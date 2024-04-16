@@ -1,0 +1,516 @@
+variables:
+  GITLAB_REPO: git@g.a-bug.org:maix_sw/k230_linux_sdk.git
+  GITHUB_REPO: git@github.com:kendryte/k230_linux_sdk.git
+  GITEE_REPO: git@gitee.com:kendryte/k230_linux_sdk.git
+  DL_SITE: https://ai.b-bug.org/~/wangjianxin/dl/
+  BUILD_CONFIGS: k230_canmv_defconfig
+  HW_VER: v0.1
+
+default:
+  image: ai.b-bug.org:5000/k230_sdk:latest
+  tags:
+    - k230_sdk
+
+stages:
+  - build_setup
+  - build_src
+  - smoke_test
+  - release
+
+.show_vars: &show_vars
+  - echo "${JOB_TYPE}"
+  - echo "${DST_BASE}"
+  - echo "${SUB_BASE}"
+  - echo "${image_url}"
+  - echo "${image_path}"
+  - echo "${BUILD}"
+
+.get_job_type: &get_job_type
+  - echo "----------get dst dir with job type----------"
+  - >
+    echo "check job from MR or tag or schedule or web";
+    if [[ $CI_PIPELINE_SOURCE == "merge_request_event" ]]; then
+      echo "current job is MR";
+      JOB_TYPE="merge_request";
+      DST_BASE="/data1/k230/gitlab-ci/images/${CI_PROJECT_NAME}";
+    elif [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
+      echo "current job is daily build schedule job";
+      JOB_TYPE="daily_build";
+      DST_BASE="/data1/k230/dev-release";
+    elif [[ $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG =~ ^v[0-9]+\.[0-9]+.*$ ]]; then
+      echo "current job is pre release job";
+      JOB_TYPE="pre_release";
+      DST_BASE="/data1/k230/pre-release";
+    elif [[ $CI_PIPELINE_SOURCE == "web" ]]; then
+      echo "current job is manual test job";
+      JOB_TYPE="manual_test";
+      DST_BASE="/data1/k230/gitlab-ci/images/${CI_PROJECT_NAME}";
+    elif [[ $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ ^v[0-9]+\.[0-9]+.*$ ]]; then
+      echo "current job is release job";
+      JOB_TYPE="release";
+      DST_BASE="/data1/k230/release";
+    else
+      echo "current job is not define, EXIT with ERROR";
+      exit 1;
+    fi
+  - echo ${JOB_TYPE}
+  - echo ${DST_BASE}
+  - echo "----------get dst dir job done----------"
+
+.latest_version: &latest_version
+  - echo "check latest commit id for daily build"
+  - >
+    if [[ "${JOB_TYPE}" == "daily_build" ]]; then
+      echo "current job is daily_build, check commit id";
+      cur_commitid=$(git rev-parse --short HEAD);
+      echo "get latest commit id";
+      if [ -d "${DST_BASE}/sdk/latest/" ]; then
+        latest_file=$(ls "${DST_BASE}/sdk/latest/");
+        echo "latest_file $latest_file";
+        finished_commitid=$(echo $latest_file | sed "s/.*-gitlab-runner-\(.*\)\.tar\.gz/\1/g");
+      else
+        echo "latest_file not exist";
+        finished_commitid="";
+      fi
+      echo "current commit_id $cur_commitid";
+      echo "finished commit_id $finished_commitid";
+      if [[ "$cur_commitid" == "$finished_commitid" ]]; then
+        echo "WARNNING current commit id is equal to finished commit id";
+        echo "There is no any code changes,  SKIP and EXIT";
+        echo "BUILD=False" > build.env;
+        exit 0;
+      else
+        echo "current commit id is NOT equal to finished commit id, will continue to run build job";
+      fi
+      echo "temp disable commit id check at 2023.12.18, and enable duplicate/same commit id build job";
+    else
+        echo "current job is NOT daily build, will continue to run build job";
+    fi
+
+.generate_version: &generate_version
+  - echo "----------generate version----------"
+  - echo "generate version with tag or commit id"
+  - >
+    if [[ $CI_COMMIT_TAG =~ ^v[0-9]+\.[0-9]+.*$ ]];
+    then
+      echo "tag exist, version should be tag";
+      new_ver=$CI_COMMIT_TAG;
+      echo "tag is ${new_ver}";
+    else
+      echo "tag is null, version should be commit id";
+      commitid="unkonwn";
+      latest_tag="unkonwn";
+      git rev-parse --short HEAD  &&  commitid=$(git rev-parse --short HEAD);
+      git describe --tags `git rev-list --tags --max-count=1` && latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`);
+      cur_date=$(date "+%Y%m%d-%H%M%S") || exit 1;
+      new_ver="${latest_tag}-${cur_date}-$(whoami)-$(hostname)-${commitid}" || exit 1;
+      echo "ver is ${new_ver}";
+    fi
+  - echo ${new_ver} > version || exit 1
+  - cat version || exit 1
+
+.check_build_result: &check_build_result
+  - date
+  - >
+    if [[ "${BUILD}" == "False" ]];
+    then
+      echo "WARNNING: current commit id is equal to finished commit id";
+      echo "There is no any code changes,  SKIP test job and quit";
+      exit 0;
+    else
+      echo "----------start to run test job----------";
+    fi
+
+before_script:
+  - echo '----------Build ENV Prepare----------'
+  - echo 'Add SSH KEY for Multiple repo'
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo "$SSH_PRIVATE_KEY" | ssh-add - > ~/.ssh/id_ed25519 || exit 1
+  - '[[ -f /.dockerenv ]] && echo -e "Host *\n    StrictHostKeyChecking no\n" > ~/.ssh/config'
+  - echo $SHELL
+  - echo "increate ssh timeout for github"
+  - echo "    ServerAliveInterval 30" >> ~/.ssh/config
+  - echo "    ServerAliveCountMax 60" >> ~/.ssh/config
+  - echo "    TCPKeepAlive yes" >> ~/.ssh/config
+  - cat ~/.ssh/config
+  - whoami
+  - uptime
+  - pwd
+  - uname -a
+  - cat /etc/issue
+  - echo $CI_PROJECT_DIR
+  - echo $CI_PROJECT_NAME
+  - echo '----------set git config ----------'
+  - echo "${GITLAB_USER_EMAIL}"
+  - echo "${GITLAB_USER_NAME}"
+  - git config --global user.email "${GITLAB_USER_EMAIL}"
+  - git config --global user.name "${GITLAB_USER_NAME}"
+  - git config --global --add safe.directory $CI_PROJECT_DIR
+  - echo '----------fetch all tags----------'
+  - git fetch --tags
+  - HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
+  - HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
+  - echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
+
+.github_to_gitlab_gitee:
+  timeout: 30m
+  retry: 2
+  script:
+    - echo $GITHUB_PUSH
+    - cd $CI_PROJECT_DIR
+    - ls -alht
+    - rm -rf ./k230_linux_sdk/
+    - echo "set http proxy for git clone"
+    - git config --global http.proxy ${GITHUB_PROXY}
+    - git config --global https.proxy ${GITHUB_PROXY}
+    - time git clone ${GITHUB_REPO} k230_linux_sdk || { time git clone ${GITHUB_REPO} k230_linux_sdk || { time git clone ${GITHUB_REPO} k230_linux_sdk || exit 1; }; }
+    - cd k230_linux_sdk || exit 1
+    - pwd
+    - git checkout ${BRANCH}
+    - git branch -a
+    - git status
+    - echo '---pull latest ${BRANCH} branch---'
+    - git pull origin ${BRANCH}
+    - echo '---fetch all tags---'
+    - git fetch --tags
+    - git remote add gitlab ${GITLAB_REPO}
+    - git remote add gitee ${GITEE_REPO}
+    - git remote -v
+    - git branch -a
+    - git status
+    - echo "---push to gitee---"
+    - git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || exit 1; }; }
+    - echo "---push to gitlab---"
+    - git push --atomic --tags -u gitlab ${BRANCH} || { git push --atomic --tags -u gitlab ${BRANCH} || { git push --atomic --tags -u gitlab ${BRANCH} || exit 1; }; }
+
+.gitlab_to_github_gitee:
+  timeout: 30m
+  retry: 2
+  script:
+    - cd $CI_PROJECT_DIR
+    - ls -alht
+    - rm -rf ./k230_linux_sdk/
+    - git clone ${GITLAB_REPO} k230_linux_sdk || { git clone ${GITLAB_REPO} k230_linux_sdk || exit 1; }
+    - cd k230_linux_sdk || exit 1
+    - pwd
+    - git checkout ${BRANCH}
+    - git branch -a
+    - git status
+    - echo '---pull latest ${BRANCH} branch---'
+    - git pull origin ${BRANCH}
+    - echo '---fetch all tags---'
+    - git fetch --tags
+    - git remote add github ${GITHUB_REPO}
+    - git remote add gitee ${GITEE_REPO}
+    - git remote -v
+    - git branch -a
+    - git status
+    - echo "---push to gitee---"
+    - git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || exit 1; }; }
+    - echo "---push to github---"
+    - git push --atomic --tags -u github ${BRANCH} || { git push --atomic --tags -u github ${BRANCH} || { git push --atomic --tags -u github ${BRANCH} || exit 1; }; }
+
+.release_download_dir:
+  timeout: 60m
+  retry: 2
+  tags:
+    - k230_sdk
+  script:
+    - cd $CI_PROJECT_DIR
+    - ls -alht
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/release/release_download_dir.sh -O ./release_download_dir.sh
+    - chmod +x ./release_download_dir.sh
+    - time ./release_download_dir.sh || time ./release_download_dir.sh
+    - echo "all file synced"
+
+.sync_release_image:
+  timeout: 60m
+  retry: 2
+  tags:
+    - k230_sdk
+  script:
+    - cd $CI_PROJECT_DIR
+    - ls -alht
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/release/release_k230_linux_sdk_image.sh -O ./release_k230_linux_sdk_image.sh
+    - chmod +x ./release_k230_linux_sdk_image.sh
+    - echo $CI_COMMIT_TAG || exit 1
+    - echo $CONF || exit 1
+    - time ./release_k230_linux_sdk_image.sh $CI_COMMIT_TAG $CONF || time ./release_k230_linux_sdk_image.sh $CI_COMMIT_TAG $CONF
+    - echo "all release file synced"
+
+.update_version: &update_version
+  - echo "---curren version ${ver}"
+  - >
+    if [[ $CI_COMMIT_TAG =~ ^v[0-9]+\.[0-9]+.*$ ]];
+    then
+      echo "release tag exist, will replace version dir with tag";
+      SUB_BASE=$CI_COMMIT_TAG;
+      echo "tag is ${ver}";
+    else
+      echo "tag is null, skip ver overwrite";
+      echo "ver is ${ver}";
+    fi
+  - echo "---update version ${ver}"
+
+.build_job: &build_job
+  - pwd
+  - echo "----------start to build linux sdk image----------"
+  - time make CONF=${CONF}  BR2_PRIMARY_SITE=${DL_SITE} || exit 1
+  - echo "----------show linux sdk image build output----------"
+  - pwd
+  - du -h -d 2 output/${CONF}/ || exit 1
+  - ls -alht output/${CONF}/images || exit 1
+  - echo "----------remove img----------"
+  - rm -rf output/${CONF}/images/sysimage-sdcard.img
+  - echo "----------build sdk image done----------"
+
+.common:
+  build_image:
+    - cd $CI_PROJECT_DIR
+    - echo "----------build image----------"
+    - *build_job
+    - echo "----------set test-image flag----------"
+    - echo "SKIP=False" > build.env
+  save_image:
+    - pwd
+    - echo "----------save image----------"
+    - echo ${DST_BASE}
+    - echo "set DST_DIR with different type based on docs/images/src"
+    - DST_DIR="${DST_BASE}/linux_sdk_images"
+    - echo ${DST_DIR}
+    - echo "---create repo dir---"
+    - sudo mkdir -p ${DST_DIR}
+    - echo "----------Save build to external path----------"
+    - *update_version
+    - SUB_DIR="${SUB_BASE}/${CONF}";
+    - echo "---create current image version dir---"
+    - sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1
+    - echo "---save sdk build output---"
+    - sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
+    - echo "${DST_DIR}/${SUB_DIR}/"
+    - ls "${DST_DIR}/${SUB_DIR}/"
+    - echo "add latest link for current build"
+    - test -h ${DST_DIR}/latest && sudo rm ${DST_DIR}/latest
+    - sudo ln -s ${DST_DIR}/${ver} ${DST_DIR}/latest || exit 1
+    - ls ${DST_DIR}/latest
+    - echo "----------output URL----------"
+    - echo "${DST_DIR}/${SUB_DIR}/" | sed "s/\/data1/https:\/\/ai\.b-bug\.org/g"
+    - echo "----------save image done----------"
+  save_tftp:
+    - pwd
+    - echo "----------save image to tftp----------"
+    - >
+      for CONFIG in $BUILD_CONFIGS
+        do
+          if [[ "${CONF}" == "${CONFIG}" ]];
+          then
+            echo "start to save test image for default config: ${CONF} ------";
+            echo ${TFTP_BASE};
+            echo "set DST_DIR with different type based on docs/images/src";
+            DST_DIR="${TFTP_BASE}/${HW_TYPE}/${HW_MODEL}_${HW_VER}";
+            echo ${DST_DIR};
+            echo "---create tftp dir---";
+            sudo mkdir -p ${DST_DIR} || exit 1;
+            echo "generate sub dir for MR/Pre-releae/relese job";
+            echo "check job from MR or tag or schedule or web";
+            if [[ ${CI_MERGE_REQUEST_IID} ]]; then
+                echo "current job is MR, skip and use CI_MERGE_REQUEST_IID";
+            elif [[ ${CI_COMMIT_TAG} ]]; then
+                echo "current job is release job, use CI_COMMIT_TAG";
+                CI_MERGE_REQUEST_IID=${CI_COMMIT_TAG};
+            elif [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
+                echo "current job is daily build schedule job, use CI_PIPELINE_SOURCE";
+                CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
+            else
+                echo "current job is not match, use CI_PIPELINE_SOURCE";
+                CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
+            fi
+            echo "current MR ID ${CI_MERGE_REQUEST_IID}";
+            SUB_DIR="${CI_MERGE_REQUEST_IID}_${CI_PIPELINE_ID}";
+            sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1;
+            src_file="${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz";
+            echo ${SRC_DIR};
+            echo ${src_file};
+            ls -alht output/${CONF}/images/ || exit 1;
+            ls -alht -L ${src_file} || exit 1;
+            sudo cp -rf --sparse=always -L ${src_file} ${DST_DIR}/${SUB_DIR}/sysimage-sdcard.img.gz;
+            echo "${DST_DIR}/${SUB_DIR}/";
+            ls -alht "${DST_DIR}/${SUB_DIR}/" || exit 1;
+            sysimage_md5=$(md5sum ${DST_DIR}/${SUB_DIR}/sysimage-sdcard.img.gz | awk '{print $1}');
+            echo "sysimage md5 is ${sysimage_md5}";
+            echo "release job works in release_sdk sub dir, use full path";
+            echo "sysimage_path=${DST_DIR}/${SUB_DIR}/sysimage-sdcard.img.gz" >> $CI_PROJECT_DIR/build.env;
+            echo "sysimage_md5=${sysimage_md5}" >> $CI_PROJECT_DIR/build.env;
+            ls;
+            cat $CI_PROJECT_DIR/build.env;
+          else
+            echo "SKIP save test image as current config ${CONF} not match build config ${CONFIG} ------";
+          fi
+        done
+    - echo "----------save image to tftp done----------"
+
+# download dir publish with tag
+download_dir_release:
+  stage: release
+  rules:
+   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+  extends:
+    - .release_download_dir
+
+# sdk zip and image publish with tag
+release_image_publish:
+  stage: release
+  rules:
+   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+  parallel:
+    matrix:
+      - CONF: [k230_canmv_defconfig]
+  extends:
+    - .sync_release_image
+
+# main branch
+main_release:
+  stage: release
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+  variables:
+    BRANCH: main
+  extends:
+    - .gitlab_to_github_gitee
+
+# tag push
+tag_release:
+  stage: release
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+  variables:
+    BRANCH: main
+  extends:
+    - .gitlab_to_github_gitee
+
+# schedule daily build sync
+gitlab_to_github_gitee:
+  stage: release
+  rules:
+    # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    # merge release
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"
+  variables:
+    BRANCH: dev
+  extends:
+    - .gitlab_to_github_gitee
+
+# manual sync
+manual_sync:
+  stage: release
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: always
+  variables:
+    BRANCH: dev
+  extends:
+    - .gitlab_to_github_gitee
+
+# github webhook trigger sync
+github_to_gitlab:
+  stage: release
+  rules:
+    # trigger with args
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $GITHUB_PUSH == "true"'
+    # trigger without args
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+  variables:
+    BRANCH: dev
+  extends:
+    - .github_to_gitlab_gitee
+
+# build setup for all jobs
+build_setup:
+  stage: build_setup
+  rules:
+    # MR job
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # release job
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    # pre-release job
+    - if: $CI_PIPELINE_SOURCE == "web"
+    # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  timeout: 5m
+  script:
+    - echo "build env setup"
+    - *get_job_type
+    - *latest_version
+    - *generate_version
+    - echo "JOB_TYPE=${JOB_TYPE}" >> build.env
+    - echo "DST_BASE=${DST_BASE}" >> build.env
+    - echo "SUB_BASE=${new_ver}" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+build-image:
+  stage: build_src
+  needs: [build_setup]
+  parallel:
+    matrix:
+      - CONF: [k230_canmv_defconfig]
+  variables:
+    DST_BASE: /data1/k230/gitlab-ci/images/${CI_PROJECT_NAME}
+    SRC_DIR: ./output/${CONF}/images
+  rules:
+    # MR open
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # release job
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    # pre-release job
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    # manual job
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG !~ /^v\d+\.\d+.*$/
+    # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  timeout: 45m
+  script:
+    - *show_vars
+    - *check_build_result
+    - !reference [.common, build_image]
+    - !reference [.common, save_image]
+    - !reference [.common, save_tftp]
+    - cat $CI_PROJECT_DIR/build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+load_image_smoke_test:
+  image: ai.b-bug.org:5000/k230_testscripts:latest
+  stage: smoke_test
+  variables:
+    TEST_ENV: ai
+  parallel:
+    matrix:
+      - CONF:
+        - k230_canmv_defconfig
+  rules:
+    # MR open
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # release job
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    # pre-release job
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    # manual job
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG !~ /^v\d+\.\d+.*$/
+    # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  timeout: 30m
+  script:
+    - *show_vars
+    - *check_build_result
+    - echo "=============================="
+    - echo "There is NO test job NOW"
+    - echo "=============================="
+    - echo "add this stage for future job"
+    - echo "=============================="
