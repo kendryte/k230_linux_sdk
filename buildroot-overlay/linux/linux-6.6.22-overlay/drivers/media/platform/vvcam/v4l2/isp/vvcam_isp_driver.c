@@ -642,7 +642,7 @@ static int vvcam_isp_async_notifier(struct vvcam_isp_dev *isp_dev)
     int pad = 0;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-    v4l2_async_nf_init(&isp_dev->notifier);
+    v4l2_async_subdev_nf_init(&isp_dev->notifier, &isp_dev->sd);
 #else
     v4l2_async_notifier_init(&isp_dev->notifier);
 #endif
@@ -691,8 +691,7 @@ static int vvcam_isp_async_notifier(struct vvcam_isp_dev *isp_dev)
     }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-        ret = v4l2_async_subdev_nf_register(&isp_dev->sd,
-						  &isp_dev->notifier);
+        ret = v4l2_async_nf_register(&isp_dev->notifier);
 #else
         ret = v4l2_async_subdev_notifier_register(&isp_dev->sd,
 						  &isp_dev->notifier);
@@ -921,7 +920,7 @@ static const struct dev_pm_ops vvcam_isp_pm_ops = {
 };
 
 static const struct of_device_id vvcam_isp_of_match[] = {
-	{.compatible = "verislicon,isp-v4l2",},
+	{.compatible = "verisilicon,isp-v4l2",},
 	{ /* sentinel */ },
 };
 
