@@ -184,6 +184,13 @@
 			g-rx-fifo-size = <512>;
 			g-np-tx-fifo-size = <64>;
 			g-tx-fifo-size = <512 1024 64 64 64 64>;
-		};		
+		};
+
+		gpu: gpu@90800000 {
+			compatible = "verisilicon,gc8000ul";
+			reg = <0x0 0x90800000 0x0 0x4000>;
+			interrupts = <135 IRQ_TYPE_LEVEL_HIGH>;
+			status = "okay";
+		};
 	};
 };
