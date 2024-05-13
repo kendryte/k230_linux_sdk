@@ -152,7 +152,7 @@
 		};
 		mmc_sd1: sdhci1@91581000 {
 			compatible = "kendryte,k230-dw-mshc";
-			reg = <0x0 0x91581000 0x0 0x1000>;			
+			reg = <0x0 0x91581000 0x0 0x1000>;
 			interrupts = <144 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "sdhci1irq";
 			clocks = <&dummy_sd>,<&dummy_sd>;
@@ -184,6 +184,14 @@
 			g-rx-fifo-size = <512>;
 			g-np-tx-fifo-size = <64>;
 			g-tx-fifo-size = <512 1024 64 64 64 64>;
-		};		
+		};
+
+		vpu: vpu@0x90400000 {
+			status              = "okay";
+			compatible          = "canaan,vpu";
+			reg                 = <0x0 0x90400000 0x0 0x10000>;
+			interrupts          = <132 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
 	};
 };
