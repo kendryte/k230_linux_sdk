@@ -5,6 +5,7 @@
 
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/soc/canaan,k230_pm_domains.h>
+#include <dt-bindings/reset/canaan-k230-reset.h>
 
 /dts-v1/;
 / {
@@ -116,8 +117,9 @@
 			};
 			sysctl_reset: sysctl_reset@91101000 {
 				status              = "okay";
-				compatible 			= "simple-bus";
 				reg                 = <0x0 0x91101000 0x0 0x1000>;
+				compatible      = "canaan,k230-sysctl-reset";
+				#reset-cells    = <4>;     /* indicate consumer resets have 5 parameters. phandle+offset+type+done+assert */
 			};
 			sysctl_boot: sysctl_boot@91102000 {
 				status              = "okay";
@@ -228,7 +230,13 @@
 			reg = <0x0 0x90800000 0x0 0x4000>;
 			interrupts = <135 IRQ_TYPE_LEVEL_HIGH>;
 			power-domains = <&sysctl_power K230_PM_DOMAIN_DISP>;
+			resets = <&sysctl_reset K230_RESET_V2P5D_REG_OFFSET K230_RESET_V2P5D_TYPE K230_RESET_V2P5D_DONE_BIT K230_RESET_V2P5D_ASSERT_BIT>;
+			reset-names = "vglite";
+			clocks = <&disp_gpu>;
+			clock-names = "vglite";
 			status = "okay";
 		};
 	};
 };
+
+#include "k230_clock_provider.dtsi"
