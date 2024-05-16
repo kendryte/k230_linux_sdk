@@ -4,6 +4,8 @@
  */
 
 #include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/soc/canaan,k230_pm_domains.h>
+#include <dt-bindings/reset/canaan-k230-reset.h>
 
 /dts-v1/;
 / {
@@ -101,6 +103,38 @@
 			interrupts-extended = <&cpu0_intc 3>, <&cpu0_intc 7>;
 		};
 
+		sysctl: sysctl {
+			status					= "okay";
+			#address-cells 			= <2>;
+			#size-cells 			= <2>;
+			compatible 				= "simple-bus";
+			ranges;
+
+			sysctl_clock: sysctl_clock@91100000 {
+				status              = "okay";
+				compatible 			= "simple-bus";
+				reg                 = <0x0 0x91100000 0x0 0x1000>;
+			};
+			sysctl_reset: sysctl_reset@91101000 {
+				status              = "okay";
+				reg                 = <0x0 0x91101000 0x0 0x1000>;
+				compatible      = "canaan,k230-sysctl-reset";
+				#reset-cells    = <4>;     /* indicate consumer resets have 5 parameters. phandle+offset+type+done+assert */
+			};
+			sysctl_boot: sysctl_boot@91102000 {
+				status              = "okay";
+				compatible 			= "simple-bus";
+				reg                 = <0x0 0x91102000 0x0 0x1000>;
+			};
+			sysctl_power: sysctl_power@91103000 {
+				status              = "okay";
+				reg                 = <0x0 0x91103000 0x0 0x1000>;
+				compatible          = "canaan, k230-sysctl-power";
+				hardlock            = <3>, <4>, <5>;
+				#power-domain-cells = <1>;                          /* more than 1 power provider */
+			};
+		};
+
 		uart0: serial@91400000 {
 			compatible = "snps,dw-apb-uart";
 			reg = <0x0 0x91400000 0x0 0x1000>;
@@ -152,7 +186,7 @@
 		};
 		mmc_sd1: sdhci1@91581000 {
 			compatible = "kendryte,k230-dw-mshc";
-			reg = <0x0 0x91581000 0x0 0x1000>;			
+			reg = <0x0 0x91581000 0x0 0x1000>;
 			interrupts = <144 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "sdhci1irq";
 			clocks = <&dummy_sd>,<&dummy_sd>;
@@ -186,10 +220,20 @@
 			g-tx-fifo-size = <512 1024 64 64 64 64>;
 		};
 
+		hardlock: canaan-hardlock@91104000 {
+			compatible = "canaan,k230-hardlock";
+			reg = <0x0 0x91104000 0x0 0x01000>;
+		};
+
 		gpu: gpu@90800000 {
 			compatible = "verisilicon,gc8000ul";
 			reg = <0x0 0x90800000 0x0 0x4000>;
 			interrupts = <135 IRQ_TYPE_LEVEL_HIGH>;
+			power-domains = <&sysctl_power K230_PM_DOMAIN_DISP>;
+			resets = <&sysctl_reset K230_RESET_V2P5D_REG_OFFSET K230_RESET_V2P5D_TYPE K230_RESET_V2P5D_DONE_BIT K230_RESET_V2P5D_ASSERT_BIT>;
+			reset-names = "vglite";
+			clocks = <&disp_gpu>;
+			clock-names = "vglite";
 			status = "okay";
 		};
 
@@ -260,3 +304,5 @@
 		};
 	};
 };
+
+#include "k230_clock_provider.dtsi"

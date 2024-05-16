@@ -86,5 +86,6 @@ source "drivers/media/platform/verisilicon/Kconfig"
 source "drivers/media/platform/via/Kconfig"
 source "drivers/media/platform/xilinx/Kconfig"
 source "drivers/media/platform/vvcam/Kconfig"
+source "drivers/media/platform/canaan-vpu/Kconfig"
 
 endif # MEDIA_PLATFORM_DRIVERS

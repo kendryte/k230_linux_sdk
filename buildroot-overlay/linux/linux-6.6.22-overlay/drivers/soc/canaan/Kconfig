@@ -9,3 +9,12 @@ config SOC_K210_SYSCTL
 	select MFD_SYSCON
 	help
 	  Canaan Kendryte K210 SoC system controller driver.
+
+config SOC_K230_PM_DOMAINS
+	bool "Canaan Kendryte K230 power domains controller"
+	depends on RISCV && OF && ARCH_CANAAN
+	select PM_GENERIC_DOMAINS if PM
+	select CANAAN_HARDLOCK
+	default ARCH_CANAAN
+	help
+	  Canaan Kendryte K230 SoC power domains driver.

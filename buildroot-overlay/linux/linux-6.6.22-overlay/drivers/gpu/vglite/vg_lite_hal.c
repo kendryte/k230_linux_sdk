@@ -240,7 +240,8 @@ void vg_lite_hal_open(void) {
     // Power-on
     pm_runtime_get_sync(device->dev);
     // Reset
-    reset_control_reset(device->reset);
+    if (!IS_ERR(device->reset))
+        reset_control_reset(device->reset);
 }
 
 void vg_lite_hal_close(void) {

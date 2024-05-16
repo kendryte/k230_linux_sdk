@@ -85,8 +85,8 @@ static void device_disable(void)
     if (readl(0x9110302c) & 0x2)
         writel(0x30001, 0x91103028);
     // disable vpu power
-    if (readl(0x91103080) & 0x2)
-        writel(0x30001, 0x9110307c);
+    // if (readl(0x91103080) & 0x2)
+    //     writel(0x30001, 0x9110307c);
     // disable dpu power
     if (readl(0x9110310c) & 0x2)
         writel(0x30001, 0x91103108);
@@ -103,9 +103,9 @@ static void device_disable(void)
     value &= ~((1 << 0));
     writel(value, 0x91100008);
     // disable vpu clk
-    value = readl(0x9110000c);
-    value &= ~((1 << 0));
-    writel(value, 0x9110000c);
+    // value = readl(0x9110000c);
+    // value &= ~((1 << 0));
+    // writel(value, 0x9110000c);
     // disable dpu clk
     value = readl(0x91100070);
     value &= ~((1 << 0));
@@ -137,7 +137,7 @@ int spl_board_init_f(void)
     memset(__bss_start, 0, (ulong)&__bss_end - (ulong)__bss_start);
     //record_boot_time_info_to_sram("be");
 
-   
+
 
     // /* load/boot image from boot device */
     //if(quick_boot() == 1){//默认非快起；
@@ -147,7 +147,7 @@ int spl_board_init_f(void)
         //record_boot_time_info("ls");
         ret += k230_img_load_boot_sys(BOOT_SYS_AUTO);
     }
-    
+
     ret = k230_img_load_boot_sys(BOOT_SYS_UBOOT);
     if(ret )
         printf("uboot boot failed\n");
@@ -162,13 +162,13 @@ int quick_boot(void)
     int ret = 1 ;
     #if defined(CONFIG_LINUX_RUN_CORE_ID) && (CONFIG_LINUX_RUN_CORE_ID == 1)
     return 0; //非快起，uboot运行在大核core1;
-    #endif 
+    #endif
 
     if((g_bootmod == SYSCTL_BOOT_SDIO0) || (g_bootmod == SYSCTL_BOOT_SDIO1)){
         if(mmc_init_device(mmc_get_env_dev()))
             return 0;//正常boot；
     }
-        
+
     env_init();
     env_load();
     ret  = env_get_yesno("quick_boot");
