@@ -1,3 +1,5 @@
-output
+/output
 .last_conf
-dl
+/dl
+/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version
+
