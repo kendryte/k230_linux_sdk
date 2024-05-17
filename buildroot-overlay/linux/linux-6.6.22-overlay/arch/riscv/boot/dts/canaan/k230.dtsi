@@ -236,6 +236,81 @@
 			clock-names = "vglite";
 			status = "okay";
 		};
+
+		isp: isp.0 {
+			compatible = "verisilicon,isp";
+			id = <0>;
+			reg = <0x0 0x90000000 0x0 0x8000>;
+			interrupts = <129 IRQ_TYPE_LEVEL_HIGH>, <127 IRQ_TYPE_LEVEL_HIGH>, <128 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&sysctl_reset K230_RESET_ISP_REG_OFFSET K230_RESET_ISP_TYPE K230_RESET_ISP_DONE_BIT K230_RESET_ISP_ASSERT_BIT>;
+			reset-names = "isp";
+			status = "disabled";
+		};
+
+		mipi: mipi.0 {
+			compatible = "verisilicon,mipi";
+			id = <1>;
+			reg = <0x0 0x90009800 0x0 0x800>;
+			interrupts = <115 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&sysctl_reset K230_RESET_CSI0_REG_OFFSET K230_RESET_CSI0_TYPE K230_RESET_CSI0_DONE_BIT K230_RESET_CSI0_ASSERT_BIT>;
+			reset-names = "mipi";
+			status = "disabled";
+		};
+
+		i2c0: i2c@91405000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "snps,designware-i2c";
+			reg = <0x0 0x91405000 0x0 0x1000>;
+			interrupts = <21 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&i2c0_clk>;
+			clock-frequency = <100000>;
+			status = "disabled";
+		};
+
+		i2c1: i2c@91406000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "snps,designware-i2c";
+			reg = <0x0 0x91406000 0x0 0x1000>;
+			interrupts = <22 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&i2c1_clk>;
+			clock-frequency = <400000>;
+			status = "disabled";
+		};
+
+		i2c2: i2c@91407000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "snps,designware-i2c";
+			reg = <0x0 0x91407000 0x0 0x1000>;
+			interrupts = <23 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&i2c2_clk>;
+			clock-frequency = <400000>;
+			status = "disabled";
+		};
+
+		i2c3: i2c@91408000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "snps,designware-i2c";
+			reg = <0x0 0x91408000 0x0 0x1000>;
+			interrupts = <24 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&i2c3_clk>;
+			clock-frequency = <400000>;
+			status = "disabled";
+		};
+
+		i2c4: i2c@91409000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "snps,designware-i2c";
+			reg = <0x0 0x91409000 0x0 0x1000>;
+			interrupts = <25 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&i2c4_clk>;
+			clock-frequency = <400000>;
+			status = "disabled";
+		};
 	};
 };
 
