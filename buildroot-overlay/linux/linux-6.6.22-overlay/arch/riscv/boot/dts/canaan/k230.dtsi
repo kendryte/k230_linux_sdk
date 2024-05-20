@@ -242,6 +242,9 @@
 			compatible          = "canaan,vpu";
 			reg                 = <0x0 0x90400000 0x0 0x10000>;
 			interrupts          = <132 IRQ_TYPE_LEVEL_HIGH>;
+			power-domains       = <&sysctl_power K230_PM_DOMAIN_VPU>;
+			clocks              = <&vpu_src>;
+            clock-names         = "vpu";
 		};
 
 		isp: isp.0 {
