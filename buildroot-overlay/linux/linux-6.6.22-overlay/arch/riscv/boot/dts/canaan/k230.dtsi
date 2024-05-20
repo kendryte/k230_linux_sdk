@@ -237,6 +237,13 @@
 			status = "okay";
 		};
 
+		vpu: vpu@0x90400000 {
+			status              = "okay";
+			compatible          = "canaan,vpu";
+			reg                 = <0x0 0x90400000 0x0 0x10000>;
+			interrupts          = <132 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
 		isp: isp.0 {
 			compatible = "verisilicon,isp";
 			id = <0>;
