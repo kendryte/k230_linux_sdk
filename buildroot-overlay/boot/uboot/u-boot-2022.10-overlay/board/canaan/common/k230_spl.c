@@ -85,8 +85,8 @@ static void device_disable(void)
     if (readl(0x9110302c) & 0x2)
         writel(0x30001, 0x91103028);
     // disable vpu power
-    // if (readl(0x91103080) & 0x2)
-    //     writel(0x30001, 0x9110307c);
+    if (readl(0x91103080) & 0x2)
+        writel(0x30001, 0x9110307c);
     // disable dpu power
     if (readl(0x9110310c) & 0x2)
         writel(0x30001, 0x91103108);
@@ -103,9 +103,9 @@ static void device_disable(void)
     value &= ~((1 << 0));
     writel(value, 0x91100008);
     // disable vpu clk
-    // value = readl(0x9110000c);
-    // value &= ~((1 << 0));
-    // writel(value, 0x9110000c);
+    value = readl(0x9110000c);
+    value &= ~((1 << 0));
+    writel(value, 0x9110000c);
     // disable dpu clk
     value = readl(0x91100070);
     value &= ~((1 << 0));
