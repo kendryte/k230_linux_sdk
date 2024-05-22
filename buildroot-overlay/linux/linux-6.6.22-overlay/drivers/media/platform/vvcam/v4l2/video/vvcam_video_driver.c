@@ -449,7 +449,7 @@ static int vvcam_video_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
     struct vvcam_media_dev *vvcam_mdev;
 
-    dev_info(dev, "%s\n", __func__);
+    dev_info(dev, "%s 1\n", __func__);
 
     vvcam_mdev = devm_kzalloc(dev, sizeof(struct vvcam_media_dev), GFP_KERNEL);
 	if (!vvcam_mdev)
