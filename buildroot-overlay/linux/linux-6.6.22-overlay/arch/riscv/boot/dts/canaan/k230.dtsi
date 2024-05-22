@@ -254,7 +254,7 @@
 			interrupts = <129 IRQ_TYPE_LEVEL_HIGH>, <127 IRQ_TYPE_LEVEL_HIGH>, <128 IRQ_TYPE_LEVEL_HIGH>;
 			resets = <&sysctl_reset K230_RESET_ISP_REG_OFFSET K230_RESET_ISP_TYPE K230_RESET_ISP_DONE_BIT K230_RESET_ISP_ASSERT_BIT>;
 			reset-names = "isp";
-			status = "disabled";
+			status = "okay";
 		};
 
 		mipi: mipi.0 {
@@ -264,7 +264,64 @@
 			interrupts = <115 IRQ_TYPE_LEVEL_HIGH>;
 			resets = <&sysctl_reset K230_RESET_CSI0_REG_OFFSET K230_RESET_CSI0_TYPE K230_RESET_CSI0_DONE_BIT K230_RESET_CSI0_ASSERT_BIT>;
 			reset-names = "mipi";
+			status = "okay";
+		};
+
+		vvcam_isp_0: vvcam_isp.0 {
+			compatible = "verisilicon,isp-v4l2";
 			status = "disabled";
+			id = <0>;
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				port@1 {
+					reg = <1>;
+					vvcam_isp_port0_mp: endpoint {
+						remote-endpoint = <&vvcam_video0>;
+					};
+				};
+				port@2 {
+					reg = <2>;
+					vvcam_isp_port0_sp1: endpoint {
+						remote-endpoint = <&vvcam_video1>;
+					};
+				};
+				port@3 {
+					reg = <3>;
+					vvcam_isp_port0_sp2: endpoint {
+						remote-endpoint = <&vvcam_video2>;
+					};
+				};
+			};
+		};
+
+		vvcam_video_0: vvcam_video.0 {
+			compatible = "verisilicon,video";
+			id = <0>;
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				port@0 {
+					reg = <0>;
+					vvcam_video0: endpoint {
+						remote-endpoint = <&vvcam_isp_port0_mp>;
+					};
+				};
+				port@1 {
+					reg = <1>;
+					vvcam_video1: endpoint {
+						remote-endpoint = <&vvcam_isp_port0_sp1>;
+					};
+				};
+				port@2 {
+					reg = <2>;
+					vvcam_video2: endpoint {
+						remote-endpoint = <&vvcam_isp_port0_sp2>;
+					};
+				};
+			};
 		};
 
 		i2c0: i2c@91405000 {

@@ -26,11 +26,3 @@
 &i2c3 {
 	status = "okay";
 };
-
-&isp {
-	status = "okay";
-};
-
-&mipi {
-	status = "okay";
-};

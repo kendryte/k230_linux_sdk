@@ -66,6 +66,7 @@ menu "Audio and video applications"
 	source "package/yavta/Config.in"
 	source "package/ympd/Config.in"
 	source "package/zynaddsubfx/Config.in"
+	source "package/vvcam/Config.in"
 endmenu
 
 menu "Compressors and decompressors"
