@@ -4,6 +4,7 @@
  */
 
 #include "k230.dtsi"
+#include "k230_gpio_provider.dtsi"
 
 / {
 	model = "Canaan CanMV-K230";
@@ -32,5 +33,13 @@
 };
 
 &i2c3 {
+	status = "okay";
+};
+
+&gpio9 {
+	status = "okay";
+};
+
+&gpio31 {
 	status = "okay";
 };
