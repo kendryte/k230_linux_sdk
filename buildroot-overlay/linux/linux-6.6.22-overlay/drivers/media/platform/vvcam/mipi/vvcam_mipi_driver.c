@@ -180,7 +180,7 @@ static long vvcam_mipi_ioctl(struct file *file,
     switch(cmd) {
     case VVCAM_MIPI_RESET:
         if (!IS_ERR(mipi_dev->reset)) {
-            dev_info(mipi_dev->dev, "ioctl reset\n");
+            dev_info(mipi_dev->dev, "reset\n");
             ret = reset_control_reset(mipi_dev->reset);
         }
         // ret = copy_from_user(&reset, (void __user *)arg, sizeof(reset));

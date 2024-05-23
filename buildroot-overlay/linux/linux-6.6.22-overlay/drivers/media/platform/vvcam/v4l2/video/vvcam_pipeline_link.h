@@ -63,6 +63,7 @@ static struct vvcam_v4l2_link pipeline0[] = {
         .remote_subdev = &g_vvcam_isp_subdev[0],
         .remote_pad = 1,
     },
+    #if 0
     {
         .local_is_video = true,
         .video_index = 1,
@@ -77,7 +78,7 @@ static struct vvcam_v4l2_link pipeline0[] = {
         .remote_subdev = &g_vvcam_isp_subdev[0],
         .remote_pad = 3,
     },
-
+    #endif
 };
 
 static struct vvcam_v4l2_link pipeline1[] = {
@@ -88,6 +89,7 @@ static struct vvcam_v4l2_link pipeline1[] = {
         .remote_subdev = &g_vvcam_isp_subdev[1],
         .remote_pad = 1,
     },
+    #if 0
     {
         .local_is_video = true,
         .video_index = 1,
@@ -102,6 +104,7 @@ static struct vvcam_v4l2_link pipeline1[] = {
         .remote_subdev = &g_vvcam_isp_subdev[1],
         .remote_pad = 3,
     },
+    #endif
 };
 
  #endif

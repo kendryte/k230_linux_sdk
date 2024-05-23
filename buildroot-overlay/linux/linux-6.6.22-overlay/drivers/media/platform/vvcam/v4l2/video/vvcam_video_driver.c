@@ -162,7 +162,7 @@ static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
 
 #else
 static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
-				struct v4l2_subdev *sd, struct v4l2_async_subdev *asd)
+				struct v4l2_subdev *sd, struct v4l2_async_connection *asc)
 {
     struct vvcam_media_dev *vvcam_mdev = container_of(notifier,
 							   struct vvcam_media_dev, notifier);
@@ -291,34 +291,34 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 }
 #else
 
-static struct v4l2_async_subdev *
+static struct v4l2_async_connection *
 vvcam_video_async_nf_add_fwnode_remote(struct v4l2_async_notifier *notif,
 				  struct fwnode_handle *endpoint,
 				  unsigned int asd_struct_size)
 {
-	struct v4l2_async_subdev *asd;
+	struct v4l2_async_connection *asc;
 	struct fwnode_handle *remote;
 
 	remote = fwnode_graph_get_remote_port_parent(endpoint);
 	if (!remote)
 		return ERR_PTR(-ENOTCONN);
 
-	asd = __v4l2_async_nf_add_fwnode(notif, remote, asd_struct_size);
+	asc = __v4l2_async_nf_add_fwnode(notif, remote, asd_struct_size);
 	fwnode_handle_put(remote);
 
-	return asd;
+	return asc;
 }
 
 static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 {
     int ret = 0;
 	struct fwnode_handle *ep;
-	struct v4l2_async_subdev asd;
+	struct v4l2_async_connection* asc;
     unsigned int port_id = 0;
 
 	vvcam_mdev->notifier.ops = &vvcam_video_async_nf_ops;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-	v4l2_async_nf_init(&vvcam_mdev->notifier);
+	v4l2_async_nf_init(&vvcam_mdev->notifier, &vvcam_mdev->v4l2_dev);
 #else
     v4l2_async_notifier_init(&vvcam_mdev->notifier);
 #endif
@@ -331,8 +331,8 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-        asd = vvcam_video_async_nf_add_fwnode_remote(&vvcam_mdev->notifier,
-                ep, sizeof(struct v4l2_async_subdev));
+        asc = vvcam_video_async_nf_add_fwnode_remote(&vvcam_mdev->notifier,
+                ep, sizeof(struct v4l2_async_connection));
 #else
         // FIXME
         ret = v4l2_async_notifier_add_fwnode_remote_subdev(&vvcam_mdev->notifier,
@@ -355,11 +355,11 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
         port_id++;
     }
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-    ret = v4l2_async_nf_register(&vvcam_mdev->v4l2_dev, &vvcam_mdev->notifier);
+    ret = v4l2_async_nf_register(&vvcam_mdev->notifier);
 #else
     ret = v4l2_async_notifier_register(&vvcam_mdev->v4l2_dev, &vvcam_mdev->notifier);
 #endif
-	if (ret) {
+	if (0) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
         v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
 #else
@@ -449,7 +449,7 @@ static int vvcam_video_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
     struct vvcam_media_dev *vvcam_mdev;
 
-    dev_info(dev, "%s\n", __func__);
+    dev_info(dev, "%s 1\n", __func__);
 
     vvcam_mdev = devm_kzalloc(dev, sizeof(struct vvcam_media_dev), GFP_KERNEL);
 	if (!vvcam_mdev)
@@ -526,7 +526,7 @@ static int vvcam_video_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id vvcam_video_of_match[] = {
-	{.compatible = "verislicon,video",},
+	{.compatible = "verisilicon,video",},
 	{ /* sentinel */ },
 };
 

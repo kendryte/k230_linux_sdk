@@ -198,7 +198,10 @@ static int vvcam_video_try_create_pipeline(struct vvcam_video_dev *vvcam_vdev)
     struct media_pad *pad;
     struct v4l2_subdev *subdev;
     struct v4l2_subdev_format sd_fmt;
-    struct v4l2_subdev_state st;
+    struct v4l2_subdev_pad_config pad_cfg;
+    struct v4l2_subdev_state sd_state = {
+        .pads = &pad_cfg
+    };
 
     if (vvcam_vdev->pipeline) {
         return 0;
@@ -219,7 +222,7 @@ static int vvcam_video_try_create_pipeline(struct vvcam_video_dev *vvcam_vdev)
     sd_fmt.pad = pad->index;
     sd_fmt.which = V4L2_SUBDEV_FORMAT_TRY;
 
-    ret = v4l2_subdev_call(subdev, pad, get_fmt, &st, &sd_fmt);
+    ret = v4l2_subdev_call(subdev, pad, get_fmt, &sd_state, &sd_fmt);
     if (ret)
         return ret;
 
@@ -257,7 +260,10 @@ static int vvcam_videoc_enum_fmt_vid_cap(struct file *file, void *priv,
     struct media_pad *pad;
     struct v4l2_subdev *subdev;
     struct v4l2_subdev_mbus_code_enum mbus_code;
-    struct v4l2_subdev_state st;
+    struct v4l2_subdev_pad_config pad_cfg;
+    struct v4l2_subdev_state sd_state = {
+        .pads = &pad_cfg
+    };
     int ret = -EINVAL;
 
     subdev = vvcam_video_remote_subdev(vvcam_vdev);
@@ -270,7 +276,7 @@ static int vvcam_videoc_enum_fmt_vid_cap(struct file *file, void *priv,
         memset(&mbus_code, 0, sizeof(mbus_code));
         mbus_code.pad = pad->index;
         mbus_code.index = f->index;
-        ret = v4l2_subdev_call(subdev, pad, enum_mbus_code, &st, &mbus_code);
+        ret = v4l2_subdev_call(subdev, pad, enum_mbus_code, &sd_state, &mbus_code);
         if (ret)
             return ret;
 
@@ -289,7 +295,10 @@ static int vvcam_videoc_try_fmt_vid_cap(struct file *file, void *priv,
     struct media_pad *pad;
     struct v4l2_subdev *subdev;
     struct v4l2_subdev_format sd_fmt;
-    struct v4l2_subdev_state st;
+    struct v4l2_subdev_pad_config pad_cfg;
+    struct v4l2_subdev_state sd_state = {
+        .pads = &pad_cfg
+    };
     int ret;
 
     if (f->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
@@ -312,7 +321,7 @@ static int vvcam_videoc_try_fmt_vid_cap(struct file *file, void *priv,
     sd_fmt.which = V4L2_SUBDEV_FORMAT_TRY;
 
     vvcam_video_vfmt_to_mfmt(f, &sd_fmt);
-    ret = v4l2_subdev_call(subdev, pad, set_fmt, &st, &sd_fmt);
+    ret = v4l2_subdev_call(subdev, pad, set_fmt, &sd_state, &sd_fmt);
     if (ret)
         return ret;
 
@@ -329,7 +338,10 @@ static int vvcam_videoc_s_fmt_vid_cap(struct file *file, void *priv,
     struct media_pad *pad;
     struct v4l2_subdev *subdev;
     struct v4l2_subdev_format sd_fmt;
-    struct v4l2_subdev_state st;
+    struct v4l2_subdev_pad_config pad_cfg;
+    struct v4l2_subdev_state sd_state = {
+        .pads = &pad_cfg
+    };
     int ret;
 
     if (vb2_is_busy(queue))
@@ -350,7 +362,7 @@ static int vvcam_videoc_s_fmt_vid_cap(struct file *file, void *priv,
 
     vvcam_video_vfmt_to_mfmt(f, &sd_fmt);
 
-    ret = v4l2_subdev_call(subdev, pad, set_fmt, &st, &sd_fmt);
+    ret = v4l2_subdev_call(subdev, pad, set_fmt, &sd_state, &sd_fmt);
     if (ret)
         return ret;
 
