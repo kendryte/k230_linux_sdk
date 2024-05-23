@@ -89,6 +89,7 @@ int vvcam_isp_reset(struct vvcam_isp_dev *isp_dev, uint32_t reset)
         // ???
         return -1;
     }
+    dev_info(isp_dev->dev, "reset\n");
     return reset_control_reset(isp_dev->reset);
 }
 
