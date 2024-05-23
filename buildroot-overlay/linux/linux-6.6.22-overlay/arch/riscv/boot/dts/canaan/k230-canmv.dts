@@ -17,6 +17,14 @@
 		device_type = "memory";
 		reg = <0x0 0x0 0x0 0x20000000>;
 	};
+
+	sound {
+		status                      = "okay";
+		compatible                  = "canaan,k230-audio-inno";
+		canaan,model                = "CANAAN_K230_I2S_INNO";
+		canaan,k230-i2s-controller  = <&i2s>;
+		canaan,k230-audio-codec     = <&inno_codec>;
+	};
 };
 
 &uart0 {
