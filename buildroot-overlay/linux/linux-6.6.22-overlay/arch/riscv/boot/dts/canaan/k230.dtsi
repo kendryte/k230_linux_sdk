@@ -6,6 +6,7 @@
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/soc/canaan,k230_pm_domains.h>
 #include <dt-bindings/reset/canaan-k230-reset.h>
+#include <dt-bindings/gpio/gpio.h>
 
 /dts-v1/;
 / {
@@ -363,6 +364,85 @@
 			};
 		};
 
+		display: display-subsystem {
+			compatible = "canaan,display-subsystem";
+			ports = <&vo_out>;
+			status = "okay";
+			power-domains = <&sysctl_power K230_PM_DOMAIN_DISP>;
+		};
+
+		vo: vo@90840000 {
+			compatible = "canaan,k230-vo";
+			reg = <0x0 0x90840000 0x0 0x10000 >;
+			interrupts = <133 IRQ_TYPE_LEVEL_HIGH>;
+			status = "okay";
+
+			backgroud = <0xffffff>;
+			vth_line = <11>;
+
+			vo_out: port {
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+		};
+
+		dsi: dsi@90850000 {
+			compatible = "canaan,k230-mipi-dsi";
+			reg = <0x0 0x90850000 0x0 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			panel@0 {
+				compatible = "canaan,hx8399";
+				reg = <0>;
+				panel-width-mm = <1080>;
+				panel-height-mm = <1920>;
+				panel-dsi-lane = <4>;
+
+				dsi_reset-gpios = <&port9 0 GPIO_ACTIVE_HIGH>;
+				backlight_gpio-gpios = <&port31 0 GPIO_ACTIVE_HIGH>;
+
+				panel-init-sequence = [
+					39 00 04 B9 FF 83 99
+					39 00 02 D2 AA
+					39 00 10 B1 02 04 71 91 01 32 33 11 11 ab 4d 56 73 02 02
+					39 00 10 B2 00 80 80 ae 05 07 5a 11 00 00 10 1e 70 03 d4
+					39 00 2d B4 00 FF 02 C0 02 c0 00 00 08 00 04 06 00 32 04 0a 08 21 03 01 00 0f b8 8b 02 c0 02 c0 00 00 08 00 04 06 00 32 04 0a 08 01 00 0f b8 01
+					39 00 22 D3 00 00 00 00 00 00 06 00 00 10 04 00 04 00 00 00 00 00 00 00 00 00 00 01 00 05 05 07 00 00 00 05 40
+					39 00 21 D5 18 18 19 19 18 18 21 20 01 00 07 06 05 04 03 02 18 18 18 18 18 18 2f 2f 30 30 31 31 18 18 18 18
+					39 00 21 D6 18 18 19 19 40 40 20 21 02 03 04 05 06 07 00 01 40 40 40 40 40 40 2f 2f 30 30 31 31 40 40 40 40
+					39 00 11 D8 a2 aa 02 a0 a2 a8 02 a0 b0 00 00 00 b0 00 00 00
+					39 00 02 BD 01
+				//	39 00 0a B2 0b 77 77 77 77 77 77 77 77
+					39 00 11 D8 B0 00 00 00 B0 00 00 00 E2 AA 03 F0 E2 AA 03 F0
+					39 00 02 BD 02
+					39 00 09 D8 E2 AA 03 F0 E2 AA 03 F0
+					39 00 02 BD 00
+					39 00 03 B6 8D 8D
+					39 00 02 CC 04  
+					39 00 03 C6 FF F9
+					39 00 37 E0 00 12 1f 1a 40 4a 59 55 5e 67 6f 75 7a 82 8b 90 95 9f a3 ad a2 b2 B6 5e 5a 65 77 00 12 1f 1a 40 4a 59 55 5e 67 6f 75 7a 82 8b 90 95 9f a3 ad a2 b2 B6 5e 5a 65 77
+					39 ff 01 11
+					39 ff 01 29
+				];
+
+				display-timings {
+					timing-0 {
+						clock-frequency = <74250000>;
+						hactive = <1080>;
+						vactive = <1920>;
+						hfront-porch = <40>;
+						hback-porch = <20>;
+						hsync-len = <20>;
+						vfront-porch = <206>;
+						vback-porch = <8>;
+						vsync-len = <5>;
+					};
+				};
+			};
+		};
+
 		i2c0: i2c@91405000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -420,4 +500,5 @@
 	};
 };
 
+#include "k230_gpio_provider.dtsi"
 #include "k230_clock_provider.dtsi"
