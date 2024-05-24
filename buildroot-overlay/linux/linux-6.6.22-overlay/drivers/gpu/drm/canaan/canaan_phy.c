@@ -195,11 +195,16 @@ void k230_dsi_phy1_config(struct canaan_dsi *dsi, uint8_t hsfreq)
     writel(0xf, dsi->base + PHY_RSTZ);
 
     k230_dsi_write_phy_reg(dsi, 0x3, 0x80);              // monitor phy fsm
-
+    unsigned count = 0;
     while (readl(dsi->base + PHY_TST_CTRL1) != 0x580)  //0x580
     {
         k230_dsi_write_phy_reg(dsi, 0x03, 0x80);
         msleep(1);
+        count += 1;
+        if (count >= 1000) {
+            printk("%s warning break\n", __func__);
+            break;
+        }
     }
 
     // printf("phy1 config done \n");

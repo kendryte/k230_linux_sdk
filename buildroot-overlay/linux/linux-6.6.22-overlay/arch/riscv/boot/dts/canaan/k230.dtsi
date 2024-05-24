@@ -6,6 +6,7 @@
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/soc/canaan,k230_pm_domains.h>
 #include <dt-bindings/reset/canaan-k230-reset.h>
+#include <dt-bindings/gpio/gpio.h>
 
 /dts-v1/;
 / {
@@ -362,6 +363,13 @@
 			};
 		};
 
+		display: display-subsystem {
+			compatible = "canaan,display-subsystem";
+			ports = <&vo_out>;
+			status = "okay";
+			power-domains = <&sysctl_power K230_PM_DOMAIN_DISP>;
+		};
+
 		vo: vo@90840000 {
 			compatible = "canaan,k230-vo";
 			reg = <0x0 0x90840000 0x0 0x10000 >;
@@ -391,8 +399,8 @@
 				panel-height-mm = <1920>;
 				panel-dsi-lane = <4>;
 
-				// dsi_reset-gpios = <&port9 0 GPIO_ACTIVE_HIGH>;
-				// backlight_gpio-gpios = <&port31 0 GPIO_ACTIVE_HIGH>;
+				dsi_reset-gpios = <&port9 0 GPIO_ACTIVE_HIGH>;
+				backlight_gpio-gpios = <&port31 0 GPIO_ACTIVE_HIGH>;
 
 				panel-init-sequence = [
 					39 00 04 B9 FF 83 99
@@ -491,4 +499,5 @@
 	};
 };
 
+#include "k230_gpio_provider.dtsi"
 #include "k230_clock_provider.dtsi"

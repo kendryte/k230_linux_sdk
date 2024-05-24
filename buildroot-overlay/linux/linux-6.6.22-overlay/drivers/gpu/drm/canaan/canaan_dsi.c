@@ -321,7 +321,7 @@ static void canaan_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	DRM_DEBUG_DRIVER("Enabling DSI output\n");
 
-	printk("canaan_dsi_encoder_enable -------------------  \n");
+	printk("canaan_dsi_encoder_enable ------------------- %d \n", adjusted_mode->clock);
 	switch(adjusted_mode->clock)
 	{
 		case 74250:
@@ -352,6 +352,7 @@ static void canaan_dsi_encoder_enable(struct drm_encoder *encoder)
 	 * Enable the DSI block.
 	 */
 
+	printk("panel ptr: %p\n", dsi->panel);
 	if (dsi->panel)
 		drm_panel_prepare(dsi->panel);
 
@@ -376,6 +377,7 @@ static void canaan_dsi_encoder_enable(struct drm_encoder *encoder)
 	if(dsi_test_en == 1)
 		canaan_mipi_dsi_set_test_mode(dsi);
 
+	printk("%s done\n", __func__);
 }
 
 static void canaan_dsi_encoder_disable(struct drm_encoder *encoder)
@@ -552,6 +554,7 @@ static int canaan_dsi_probe(struct platform_device *pdev)
 	struct resource *res;
 	int ret;
 
+	dev_info(&pdev->dev, "probe\n");
 	dsi = devm_kzalloc(dev, sizeof(*dsi), GFP_KERNEL);
 	if (!dsi)
 		return -ENOMEM;

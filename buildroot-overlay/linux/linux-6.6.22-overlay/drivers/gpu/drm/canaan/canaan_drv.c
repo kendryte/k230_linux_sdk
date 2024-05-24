@@ -247,6 +247,7 @@ static int __init canaan_drm_init(void)
 {
     int ret = 0;
 
+    printk("canaan DRM init\n");
     ret = platform_register_drivers(component_drivers,
                             ARRAY_SIZE(component_drivers));
     if (ret)

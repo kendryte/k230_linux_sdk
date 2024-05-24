@@ -4,7 +4,6 @@
  */
 
 #include "k230.dtsi"
-#include "k230_gpio_provider.dtsi"
 
 / {
 	model = "Canaan CanMV-K230";

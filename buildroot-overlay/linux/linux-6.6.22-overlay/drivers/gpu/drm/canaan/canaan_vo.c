@@ -616,6 +616,7 @@ static const struct component_ops canaan_vo_component_ops = {
 
 static int canaan_vo_probe(struct platform_device *pdev)
 {
+    dev_info(&pdev->dev, "probe\n");
     return component_add(&pdev->dev, &canaan_vo_component_ops);
 }
 

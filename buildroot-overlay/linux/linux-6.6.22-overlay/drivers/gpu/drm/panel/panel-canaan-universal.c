@@ -139,13 +139,13 @@ static int canaan_panel_prepare(struct drm_panel *panel)
 	// int err;
 
 	// set power on 
-	if(p->power_on)
+	if(!IS_ERR(p->power_on))
 	{
 		gpiod_direction_output(p->power_on, 1);
 		gpiod_set_value_cansleep(p->power_on, 1);
 	}
 	// set rst
-	if(p->reset)
+	if(!IS_ERR(p->reset))
 	{
 		gpiod_direction_output(p->reset, 1);
 		
@@ -162,7 +162,7 @@ static int canaan_panel_prepare(struct drm_panel *panel)
 		// config screen
 		panel_simple_xfer_dsi_cmd_seq(p, p->init_seq_v1);
 	}
-	
+	printk("%s done\n", __func__);
 	return 0;
 }
 
@@ -345,14 +345,14 @@ static int canaan_panel_dsi_probe(struct mipi_dsi_device *dsi)
 	
 	ctx->reset = devm_gpiod_get(&dsi->dev, "dsi_reset", GPIOD_OUT_LOW);
 	if (IS_ERR(ctx->reset)) {
-		dev_err(&dsi->dev, "Couldn't get our reset GPIO\n");
-		return PTR_ERR(ctx->reset);
+		dev_err(&dsi->dev, "Couldn't get our reset GPIO, error: %ld\n", PTR_ERR(ctx->reset));
+		// return PTR_ERR(ctx->reset);
 	}
 
 	ctx->power_on = devm_gpiod_get(&dsi->dev, "backlight_gpio", GPIOD_OUT_LOW);
-	if (IS_ERR(ctx->reset)) {
-		dev_err(&dsi->dev, "Couldn't get our backlight_gpio GPIO\n");
-		return PTR_ERR(ctx->reset);
+	if (IS_ERR(ctx->power_on)) {
+		dev_err(&dsi->dev, "Couldn't get our backlight_gpio GPIO, error: %ld\n", PTR_ERR(ctx->power_on));
+		// return PTR_ERR(ctx->power_on);
 	}
 
 	ctx->dsi = dsi;
