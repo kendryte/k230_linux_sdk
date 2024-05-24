@@ -59,6 +59,7 @@
 #include <linux/spinlock.h>
 #include <linux/pm_runtime.h>
 #include <linux/fs.h>
+#include "asm/delay.h"
 #include "k230_csi.h"
 #include "linux/interrupt.h"
 #include "vvcam_mipi.h"
@@ -156,6 +157,44 @@ static void convert_to_vi_attr(struct device* dev, const vvcam_input_dev_attr_t*
     vi_attr->dvp_port = VI_DVP_PORT0;
 }
 
+static void vicap_reset(void) {
+    uint8_t* reset_base = ioremap(0x91101000, 0x1000);
+    u32 rdata;
+
+    // csi
+    rdata = readl(reset_base + 0x80);
+    rdata = (rdata & ~(GENMASK(3, 0))) | (0x0 << 0);
+    writel(rdata, reset_base + 0x80);
+    udelay(1000);
+    rdata = readl(reset_base + 0x80);
+    rdata = (rdata & ~(GENMASK(3, 0))) | (0xf << 0);
+    writel(rdata, reset_base + 0x80);
+
+    // sensor
+    rdata = readl(reset_base + 0x80);
+    rdata = (rdata & ~(GENMASK(8, 7))) | (0x0 << 7);
+    writel(rdata, reset_base + 0x80);
+    udelay(1000);
+    rdata = readl(reset_base + 0x80);
+    rdata = (rdata & ~(GENMASK(8, 7))) | (0x3 << 7);
+    writel(rdata, reset_base + 0x80);
+
+    // ahb
+    rdata = readl(reset_base + 0x80);
+    rdata = (rdata & ~(BIT_MASK(4))) | (0 << 4);
+    writel(rdata, reset_base + 0x80);
+    udelay(1000);
+    rdata = readl(reset_base + 0x80);
+    rdata = (rdata & ~(BIT_MASK(4))) | (1 << 4);
+    writel(rdata, reset_base + 0x80);
+
+    // isp
+    rdata = readl(reset_base + 0x80);
+    writel(rdata | (3 << 5), reset_base + 0x80);
+    udelay(1000);
+    iounmap(reset_base);
+}
+
 static long vvcam_mipi_ioctl(struct file *file,
                         unsigned int cmd, unsigned long arg)
 {
@@ -181,7 +220,8 @@ static long vvcam_mipi_ioctl(struct file *file,
     case VVCAM_MIPI_RESET:
         if (!IS_ERR(mipi_dev->reset)) {
             dev_info(mipi_dev->dev, "reset\n");
-            ret = reset_control_reset(mipi_dev->reset);
+            // ret = reset_control_reset(mipi_dev->reset);
+            vicap_reset();
         }
         // ret = copy_from_user(&reset, (void __user *)arg, sizeof(reset));
         // if (ret)
