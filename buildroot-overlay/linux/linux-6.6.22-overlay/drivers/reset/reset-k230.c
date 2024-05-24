@@ -138,7 +138,7 @@ static int k230_reset(struct reset_controller_dev *rcdev, unsigned long id)
             reg = readl(rstc->membase+offset);
             if((0x20 == offset) || (0x24 == offset) || (0x80 == offset) || (0x64 == offset))
             {
-                reg |= (0 << reset);            //special，复位：reset=0
+                reg &= ~(1 << reset); //special，复位：reset=0
             }
             else if((0x4 == offset) || (0xc == offset))
             {
@@ -158,12 +158,12 @@ static int k230_reset(struct reset_controller_dev *rcdev, unsigned long id)
             {
                 if(0xa8 == offset)
                 {
-                    reg &= ~(1 << reset);                   
+                    reg &= ~(1 << reset);
                     writel(reg, rstc->membase+offset); 
                 }
                 else
                 {
-                    reg &= ~(0 << reset);                   
+                    reg |= (1 << reset);
                     writel(reg, rstc->membase+offset);
                 }
             }

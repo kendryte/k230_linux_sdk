@@ -75,7 +75,8 @@ struct vvcam_mipi_dev {
     struct mutex mlock;
     vvcam_input_dev_attr_t mipi_cfg;
     int irq;
-    struct reset_control* reset;
+    struct reset_control* reset_csi;
+    struct reset_control* reset_sensor;
 };
 
 int vvcam_mipi_reset(struct vvcam_mipi_dev *mipi_dev, uint32_t val);
