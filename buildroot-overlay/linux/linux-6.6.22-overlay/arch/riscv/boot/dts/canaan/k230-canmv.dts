@@ -34,3 +34,11 @@
 &i2c3 {
 	status = "okay";
 };
+
+&gpio9 {
+	status = "okay";
+};
+
+&gpio31 {
+	status = "okay";
+};
