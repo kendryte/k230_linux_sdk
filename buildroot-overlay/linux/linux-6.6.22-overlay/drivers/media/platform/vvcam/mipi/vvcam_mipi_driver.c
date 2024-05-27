@@ -59,6 +59,7 @@
 #include <linux/spinlock.h>
 #include <linux/pm_runtime.h>
 #include <linux/fs.h>
+#include "asm/delay.h"
 #include "k230_csi.h"
 #include "linux/interrupt.h"
 #include "vvcam_mipi.h"
@@ -179,10 +180,15 @@ static long vvcam_mipi_ioctl(struct file *file,
 
     switch(cmd) {
     case VVCAM_MIPI_RESET:
-        if (!IS_ERR(mipi_dev->reset)) {
-            dev_info(mipi_dev->dev, "reset\n");
-            ret = reset_control_reset(mipi_dev->reset);
+        if (!IS_ERR(mipi_dev->reset_csi)) {
+            dev_info(mipi_dev->dev, "csi reset\n");
+            ret = reset_control_reset(mipi_dev->reset_csi);
         }
+        if (!IS_ERR(mipi_dev->reset_sensor)) {
+            dev_info(mipi_dev->dev, "sensor reset\n");
+            ret |= reset_control_reset(mipi_dev->reset_sensor);
+        }
+        // vicap_reset();
         // ret = copy_from_user(&reset, (void __user *)arg, sizeof(reset));
         // if (ret)
         //     break;
@@ -272,9 +278,13 @@ static int vvcam_mipi_probe(struct platform_device *pdev)
     }
     dev_info(&pdev->dev, "irq: %d\n", mipi_dev->irq);
 
-    mipi_dev->reset = devm_reset_control_get(&pdev->dev, NULL);
-    if (IS_ERR(mipi_dev->reset)) {
-        dev_err(&pdev->dev, "can't get mipi reset\n");
+    mipi_dev->reset_csi = devm_reset_control_get(&pdev->dev, "csi");
+    if (IS_ERR(mipi_dev->reset_csi)) {
+        dev_err(&pdev->dev, "can't get mipi csi reset\n");
+    }
+    mipi_dev->reset_sensor = devm_reset_control_get(&pdev->dev, "sensor");
+    if (IS_ERR(mipi_dev->reset_sensor)) {
+        dev_err(&pdev->dev, "can't get mipi sensor reset\n");
     }
 
     mutex_init(&mipi_dev->mlock);

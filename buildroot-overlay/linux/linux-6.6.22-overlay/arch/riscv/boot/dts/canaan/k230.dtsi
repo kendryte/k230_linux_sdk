@@ -301,8 +301,9 @@
 			id = <1>;
 			reg = <0x0 0x90009800 0x0 0x800>;
 			interrupts = <115 IRQ_TYPE_LEVEL_HIGH>;
-			resets = <&sysctl_reset K230_RESET_CSI0_REG_OFFSET K230_RESET_CSI0_TYPE K230_RESET_CSI0_DONE_BIT K230_RESET_CSI0_ASSERT_BIT>;
-			reset-names = "mipi";
+			resets = <&sysctl_reset K230_RESET_CSI0_REG_OFFSET K230_RESET_CSI0_TYPE K230_RESET_CSI0_DONE_BIT K230_RESET_CSI0_ASSERT_BIT>, 
+				<&sysctl_reset K230_RESET_M0_REG_OFFSET K230_RESET_M0_TYPE K230_RESET_M0_DONE_BIT K230_RESET_M0_ASSERT_BIT>;
+			reset-names = "csi", "sensor";
 			status = "okay";
 		};
 
