@@ -32,6 +32,10 @@ help:sync
 	@echo "   make CONF=k230_canmv_defconfig  -build k230 linux sdk user k230_canmv_defconfig config "
 	@[ -d $(BR_SRC_DIR) ] && echo "buildroot usage:" || exit 0
 	@[ -d $(BR_SRC_DIR) ] && make --no-print-directory -C $(BR_SRC_DIR)  help  || exit 0
+	@echo "make uboot-rebuild #rebuild uboot"
+	@echo "make uboot-dirclean #uboot clean"
+	@echo "make linux-rebuild opensbi-rebuild #rebuild linux,rebuild opensbi"
+	@echo "make linux-dirclean #linux clean"
 	@echo "sdk build usage:"
 	@echo "    make CONF=k230_canmv_defconfig    -build k230 linux sdk user k230_canmv_defconfig"
 	@echo "                                      -CONF can be $$(ls $(BR_OVERLAY_DIR)/configs | tr '\n' '/')"

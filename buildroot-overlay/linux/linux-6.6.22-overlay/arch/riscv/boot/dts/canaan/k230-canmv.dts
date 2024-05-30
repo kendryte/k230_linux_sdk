@@ -42,3 +42,9 @@
 &gpio31 {
 	status = "okay";
 };
+&mmc_sd1{
+    status = "okay";
+    no-1-8-v;
+    cap-sd-highspeed;
+    mshc_ctrl_r = <0x00>;
+};
