@@ -197,7 +197,7 @@
 			sdhci,auto-cmd12;
 			dma-noncoherent;
 			//status = "disabled";/*disabled, okay*/
-			status = "okay";
+			status = "disabled";
 		};
 		usb0: usb@91500000 {
 			compatible = "canaan,k230-otg", "snps,dwc2";
