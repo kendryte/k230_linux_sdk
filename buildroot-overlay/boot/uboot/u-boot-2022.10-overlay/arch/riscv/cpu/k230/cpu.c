@@ -42,7 +42,7 @@ static inline void improving_cpu_performance(void)
 	csr_write(CSR_MCOR, 0x70013);
 	csr_write(CSR_MCCR2, 0xe0000009);
 	csr_write(CSR_MHCR, 0x11ff); //Enable L1 Cache
-	csr_write(CSR_MXSTATUS, 0x438000);
+	csr_write(CSR_MXSTATUS, 0x638000);
 	csr_write(CSR_MHINT, 0x6e30c);
 
 	csr_write(CSR_SMPEN, 0x1);
@@ -86,9 +86,9 @@ void harts_early_init(void)
 
 // This address space only allows write access by the k230_burntool.
 #ifndef CONFIG_CMD_DFU
-	// csr_write(pmpaddr0, 0x24484dff);//start addr：0x24484c00<<2=0x91213000 len=1<<9 * 8 = 4KB
-	// csr_write(pmpaddr1, 0x244851ff);//start addr：0x24485000<<2=0x91214000 len=1<<9 * 8 = 4KB
-	// csr_write(pmpcfg0, 0x9999);
+	csr_write(pmpaddr0, 0x24484dff);//start addr：0x24484c00<<2=0x91213000 len=1<<9 * 8 = 4KB
+	csr_write(pmpaddr1, 0x244851ff);//start addr：0x24485000<<2=0x91214000 len=1<<9 * 8 = 4KB
+	csr_write(pmpcfg0, 0x9999);
 #endif
 
 	//improving_cpu_performance();
