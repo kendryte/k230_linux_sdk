@@ -11,6 +11,8 @@ BR_OVERLAY_FS=$(shell find $(BR_OVERLAY_DIR) -type f -a -not -path  *u-boot-2022
 UBOOT_OVERLAY_FS=$(shell find $(BR_OVERLAY_DIR)/boot/uboot/u-boot-2022.10-overlay/  -type f )
 LINUX_OVERLAY_FS=$(shell find $(BR_OVERLAY_DIR)/linux/linux-6.6.22-overlay/  -type f )
 
+OPENSBI_OVERLAY_FS=$(shell find $(BR_OVERLAY_DIR)/boot/opensbi/opensbi-1.4-overlay/  -type f )
+
 
 $(BR_OVERLAY_FS)  $(UBOOT_OVERLAY_FS) $(LINUX_OVERLAY_FS):
 	@:
@@ -31,6 +33,9 @@ output/.uboot_overlay_sync:$(UBOOT_OVERLAY_FS)
 output/.linux_overlay_sync:$(LINUX_OVERLAY_FS)	
 	mkdir -p $(@D);touch $@
 
+output/.oepnsbi_overlay_sync:$(OPENSBI_OVERLAY_FS)	
+	mkdir -p $(@D);touch $@
+
 .PHONY:sync
-sync :$(BR_SRC_DIR)/.overlay_sync  output/.uboot_overlay_sync output/.linux_overlay_sync
+sync :$(BR_SRC_DIR)/.overlay_sync  output/.uboot_overlay_sync output/.linux_overlay_sync  output/.oepnsbi_overlay_sync
 	@:
