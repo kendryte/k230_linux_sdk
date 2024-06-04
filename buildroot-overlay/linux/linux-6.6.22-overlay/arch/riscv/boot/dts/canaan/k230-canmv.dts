@@ -33,6 +33,34 @@
 
 &i2c3 {
 	status = "okay";
+
+	sensor0: ov5647@36 {
+		compatible = "ovti,ov5647";
+		reg = <0x36>;
+		clocks = <&sensor_mclk0>;
+		pwdn-gpios = <&port0 0 GPIO_ACTIVE_HIGH>;
+
+		port {
+			camera0_out: endpoint {
+				remote-endpoint = <&vvcam_isp_dvp0>;
+			};
+		};
+	};
+};
+
+&vvcam_isp_0 {
+	ports {
+		port@0 {
+			reg = <0>;
+			vvcam_isp_dvp0: endpoint {
+				remote-endpoint = <&camera0_out>;
+			};
+		};
+	};
+};
+
+&gpio0 {
+	status = "okay";
 };
 
 &gpio9 {

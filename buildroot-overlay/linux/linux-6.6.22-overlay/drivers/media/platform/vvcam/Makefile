@@ -5,7 +5,7 @@ ccflags-y	+= -DVVCAM_ISP_REG_SIZE=0x10000
 ccflags-y	+= -DVVCAM_ISP0_IRQ=129
 ccflags-y	+= -DVVCAM_ISP0_MI_IRQ=127
 ccflags-y	+= -DVVCAM_ISP0_FE_IRQ=128
-ccflags-y	+= -DVVCAM_PLATFORM_REGISTER
+#ccflags-y	+= -DVVCAM_PLATFORM_REGISTER
 ccflags-y	+= -DVVCAM_ISP_DEV_MAX=1
 ccflags-y	+= -I$(srctree)/$(src)/v4l2/common
 

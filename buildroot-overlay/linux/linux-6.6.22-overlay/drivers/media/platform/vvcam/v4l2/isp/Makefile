@@ -9,7 +9,7 @@ ccflags-y	+= -DVVCAM_ISP0_FE_IRQ=128
 ccflags-y	+= -DVVCAM_ISP1_IRQ=129
 ccflags-y	+= -DVVCAM_ISP1_MI_IRQ=127
 ccflags-y	+= -DVVCAM_ISP1_FE_IRQ=128
-ccflags-y	+= -DVVCAM_PLATFORM_REGISTER
+#ccflags-y	+= -DVVCAM_PLATFORM_REGISTER
 ccflags-y	+= -DVVCAM_ISP_DEV_MAX=1
 ccflags-y	+= -DVVCAM_TPG0=0xDE308300
 ccflags-y	+= -DVVCAM_TPG1=0xDE308300

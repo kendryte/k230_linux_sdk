@@ -365,6 +365,21 @@ static int k230_clk_find_approximate(struct k230_clk_composite *k230_composite,
     return 0;
 }
 
+static int k230_clk_composite_determine_rate(struct clk_hw *hw, struct clk_rate_request *req) {
+    // TODO:
+    printk(
+        "[K230 CLK] determine_rate %s rate(%lu) min_rate(%lu) max_rate(%lu) best_parent_rate(%lu)\n",
+        clk_hw_get_name(hw), req->rate,
+        req->min_rate, req->max_rate,
+        req->best_parent_rate
+    );
+    // enumerate parent clk
+    return 0;
+}
+
+static u8 k230_clk_composite_get_parent(struct clk_hw *hw);
+static int k230_clk_composite_set_parent(struct clk_hw *hw, u8 index);
+
 /* calc round rate and set */
 static int k230_clk_composite_set_rate(struct clk_hw *hw, unsigned long rate, unsigned long parent_rate)
 {
@@ -374,6 +389,11 @@ static int k230_clk_composite_set_rate(struct clk_hw *hw, unsigned long rate, un
     uint32_t reg=0;
     uint32_t reg_1=0;
     unsigned long flags;
+
+    printk(
+        "[K230 CLK] set_rate %s rate(%lu) parent_rate(%lu)\n",
+        clk_hw_get_name(hw), rate, parent_rate
+    );
 
     if(NULL == k230_composite->rate_reg) {
         return -1;
@@ -561,6 +581,8 @@ static int k230_clk_composite_set_parent(struct clk_hw *hw, u8 index)
     uint32_t composite_mux_value;
     unsigned long flags;
 
+    printk("[K230 CLK] set parent %s index(%u)\n", clk_hw_get_name(hw), index);
+
     if(1 == k230_composite->composite_read_only) {
         return -1;
     }
@@ -747,6 +769,7 @@ static struct clk *_of_cannan_k230_clk_composite_setup(struct device_node *node)
     if(true == mux) {
         p_clk_ops->set_parent   = k230_clk_composite_set_parent;
         p_clk_ops->get_parent   = k230_clk_composite_get_parent;
+        p_clk_ops->determine_rate = k230_clk_composite_determine_rate;
     }
     if(true == rate) {
         p_clk_ops->recalc_rate  = k230_clk_composite_recalc_rate;

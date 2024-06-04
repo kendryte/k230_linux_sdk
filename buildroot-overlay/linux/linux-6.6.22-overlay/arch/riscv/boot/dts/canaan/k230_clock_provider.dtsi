@@ -3230,4 +3230,37 @@
         clk-gate-reg-bit-enable                 = <0>;
         clk-gate-reg-bit-reverse                = <0>;
     };
+
+    sensor_mclk0: sensor_mclk0 {
+        #clock-cells                            = <0>;
+        compatible                              = "canaan,k230-clk-composite";
+        status                                  = "okay";
+        read-only                               = <0>;
+        
+
+        /* parent */
+        clocks                                  = <&pll1_div3>, <&pll1_div4>, <&pll0_div4>;           /* mux parent */
+        clk-parent-reg-offset                   = <0x6c>;                               /* mux register offset */
+        clk-parent-reg-value-shift              = <3>;                                 /* mux field shift */
+        clk-parent-reg-value-mask               = <0x3>;                                /* mux field mask */
+
+        /* rate */
+        clk-rate-conf-mul-min                   = <1>;
+        clk-rate-conf-mul-max                   = <1>;
+        clk-rate-conf-div-min                   = <1>;
+        clk-rate-conf-div-max                   = <32>;
+        clk-rate-calc-method                    = <1>;                                  /* 0 for mul changeabled, 1 for div changeabled, 2 for div&mul changeable */
+
+        clk-rate-reg-offset                     = <0x6c>;                              /* divider register offset */
+        clk-rate-reg-mul-value-shift            = <0>;                                  /* multiple field shift. It's valid when clk-rate-calc-method = 2 */
+        clk-rate-reg-mul-value-mask             = <0>;                                  /* multiple field mask.  It's valid when clk-rate-calc-method = 2 */
+        clk-rate-reg-div-value-shift            = <5>;                                  /* divider field shift. */
+        clk-rate-reg-div-value-mask             = <0x1f>;                                /* divider field mask.  */
+        clk-rate-reg-write-enable-bit           = <31>;
+
+        /* gate */
+        clk-gate-reg-offset                     = <0x6c>;
+        clk-gate-reg-bit-enable                 = <0>;
+        clk-gate-reg-bit-reverse                = <0>;
+    };
 };

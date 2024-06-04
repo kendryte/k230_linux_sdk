@@ -286,7 +286,7 @@
 		};
 
 
-		isp: isp.0 {
+		isp: isp@90000000 {
 			compatible = "verisilicon,isp";
 			id = <0>;
 			reg = <0x0 0x90000000 0x0 0x8000>;
@@ -296,7 +296,7 @@
 			status = "okay";
 		};
 
-		mipi: mipi.0 {
+		mipi: mipi@90009800 {
 			compatible = "verisilicon,mipi";
 			id = <1>;
 			reg = <0x0 0x90009800 0x0 0x800>;
@@ -309,7 +309,7 @@
 
 		vvcam_isp_0: vvcam_isp.0 {
 			compatible = "verisilicon,isp-v4l2";
-			status = "disabled";
+			status = "okay";
 			id = <0>;
 			ports {
 				#address-cells = <1>;
@@ -320,6 +320,7 @@
 						remote-endpoint = <&vvcam_video0>;
 					};
 				};
+				/*
 				port@2 {
 					reg = <2>;
 					vvcam_isp_port0_sp1: endpoint {
@@ -331,14 +332,14 @@
 					vvcam_isp_port0_sp2: endpoint {
 						remote-endpoint = <&vvcam_video2>;
 					};
-				};
+				};*/
 			};
 		};
 
 		vvcam_video_0: vvcam_video.0 {
 			compatible = "verisilicon,video";
 			id = <0>;
-			status = "disabled";
+			status = "okay";
 
 			ports {
 				#address-cells = <1>;
@@ -349,6 +350,7 @@
 						remote-endpoint = <&vvcam_isp_port0_mp>;
 					};
 				};
+				/*
 				port@1 {
 					reg = <1>;
 					vvcam_video1: endpoint {
@@ -360,7 +362,7 @@
 					vvcam_video2: endpoint {
 						remote-endpoint = <&vvcam_isp_port0_sp2>;
 					};
-				};
+				};*/
 			};
 		};
 
