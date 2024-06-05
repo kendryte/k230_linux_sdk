@@ -1,5 +1,10 @@
 #!/bin/bash
 
+DTB="k230-canmv.dtb"
+
+[ $# -ge 2 ] && DTB="$2.dtb"
+echo ${DTB}
+
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
 K230_SDK_ROOT=$(dirname $(dirname ${BASE_DIR}))
@@ -174,7 +179,7 @@ gen_linux_bin ()
 	# sed -i "s/linux,initrd-end = <0x0 .*/linux,initrd-end = <0x0 $ROOTFS_END>;/g" hw/k230.dts.txt
 
 	# ${LINUX_BUILD_DIR}/scripts/dtc/dtc -I dts -q -O dtb hw/k230.dts.txt  >k230.dtb;	
-	cp ${LINUX_DIR}/arch/riscv/boot/dts/canaan/k230-canmv.dtb 	 k230.dtb
+	cp ${LINUX_DIR}/arch/riscv/boot/dts/canaan/${DTB} 	 k230.dtb
 	k230_gzip fw_payload.bin;
 	echo a>rd;
 	${mkimage} -A riscv -O linux -T multi -C gzip -a ${CONFIG_MEM_LINUX_SYS_BASE} -e ${CONFIG_MEM_LINUX_SYS_BASE} -n linux -d fw_payload.bin.gz:rd:k230.dtb  ulinux.bin;
