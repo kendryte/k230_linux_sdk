@@ -1,14 +1,17 @@
 #!/bin/bash
-
+set -e
 DTB="k230-canmv.dtb"
+LINUX_DIR=${BUILD_DIR}/linux-6.6.22
 
 [ $# -ge 2 ] && DTB="$2.dtb"
+[ $# -ge 3 ] && LINUX_DIR="$3"
 echo ${DTB}
 
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
 K230_SDK_ROOT=$(dirname $(dirname ${BASE_DIR}))
 GENIMAGE_CFG_SD=$(dirname $(realpath "$0"))/genimage.cfg
+env_dir=$(dirname $(realpath "$0"))
 
 #echo "${GENIMAGE_CFG_SD}, ${K230_SDK_ROOT}"
 
@@ -159,7 +162,7 @@ gen_uboot_bin()
 gen_linux_bin ()
 {
 	local mkimage="${UBOOT_BUILD_DIR}/tools/mkimage"
-	local LINUX_DIR="${BUILD_DIR}/linux-6.6.22"
+	
 	local CONFIG_MEM_LINUX_SYS_BASE=$(cat ${UBOOT_BUILD_DIR}/board/canaan/common/sdk_autoconf.h | grep CONFIG_MEM_LINUX_SYS_BASE | awk '{print $3}')
 
 	cd  "${BINARIES_DIR}/";
@@ -404,15 +407,15 @@ shrink_rootfs_common()
 gen_env_bin()
 {
 	local mkenvimage="${UBOOT_BUILD_DIR}/tools/mkenvimage"
-	cd  "${BUILD_DIR}/images/";
+	cd  "${BINARIES_DIR}/";
 	local default_env_file=${env_dir}/default.env;
 	# local jffs2_env_file=${env_dir}/spinor.jffs2.env;
 	# local spinand_env_file=${env_dir}/spinand.env;
 
 	# sed -i -e "/^quick_boot/d"  ${jffs2_env_file}
 	# sed -i -e "/quick_boot/d"  ${spinand_env_file}
-	sed -i -e "/^quick_boot/d"  ${default_env_file}
-	sed -i -e "/restore_img/d"  ${default_env_file}
+	# sed -i -e "/^quick_boot/d"  ${default_env_file}
+	# sed -i -e "/restore_img/d"  ${default_env_file}
 
 	# if [ "${CONFIG_QUICK_BOOT}" != "y" ] || [ "${CONFIG_REMOTE_TEST_PLATFORM}" = "y" ] ; then 
 	# 	echo "quick_boot=false" >> ${jffs2_env_file}
@@ -425,12 +428,12 @@ gen_env_bin()
 
 	# ${mkenvimage} -s 0x10000 -o little-core/uboot/jffs2.env ${jffs2_env_file}
 	# ${mkenvimage} -s 0x10000 -o little-core/uboot/spinand.env ${spinand_env_file}
-	# ${mkenvimage} -s 0x10000 -o little-core/uboot/env.env  ${default_env_file}
+	${mkenvimage} -s 0x10000 -o uboot/env.env  ${default_env_file}
 }
 
 
 gen_uboot_bin
-#gen_env_bin
+gen_env_bin
 #add_dev_firmware;
 gen_linux_bin;
 gen_image ${GENIMAGE_CFG_SD}   sysimage-sdcard.img
