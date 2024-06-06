@@ -1,17 +1,17 @@
-From 3b5ec268d426a71438465a13e15f8321cc833220 Mon Sep 17 00:00:00 2001
+From a01b3d62a28bd313a43fd01f211b27fcd54c1c7f Mon Sep 17 00:00:00 2001
 From: wangjianxin <wangjianxin@canaan-creative.com>
-Date: Wed, 5 Jun 2024 18:48:13 +0800
-Subject: [PATCH] add k230 sd driver
+Date: Thu, 6 Jun 2024 11:34:34 +0800
+Subject: [PATCH 2/3] k230 sd driver
 
 ---
  arch/riscv/boot/dts/canaan/k230-canmv.dts |   6 +
  arch/riscv/boot/dts/canaan/k230-evb.dts   |   7 +
- arch/riscv/boot/dts/canaan/k230.dtsi      |  14 +
+ arch/riscv/boot/dts/canaan/k230.dtsi      |  20 +
  arch/riscv/configs/defconfig              |   1 +
  drivers/mmc/host/Kconfig                  |  12 +
  drivers/mmc/host/Makefile                 |   1 +
  drivers/mmc/host/sdhci-of-kendryte.c      | 505 ++++++++++++++++++++++
- 7 files changed, 546 insertions(+)
+ 7 files changed, 552 insertions(+)
  create mode 100644 drivers/mmc/host/sdhci-of-kendryte.c
 
 diff --git a/arch/riscv/boot/dts/canaan/k230-canmv.dts b/arch/riscv/boot/dts/canaan/k230-canmv.dts
@@ -44,10 +44,23 @@ index f898b8e62..21f0fe04d 100644
 +    mshc_ctrl_r = <0x00>;
 +};
 diff --git a/arch/riscv/boot/dts/canaan/k230.dtsi b/arch/riscv/boot/dts/canaan/k230.dtsi
-index 2311fb7f7..832f8a686 100644
+index 2311fb7f7..c6f9c6dfb 100644
 --- a/arch/riscv/boot/dts/canaan/k230.dtsi
 +++ b/arch/riscv/boot/dts/canaan/k230.dtsi
-@@ -167,5 +167,19 @@ usb1: usb@91540000 {
+@@ -64,6 +64,12 @@ apb_clk: apb-clk-clock {
+ 		clock-output-names = "apb_clk";
+ 		#clock-cells = <0>;
+ 	};
++	dummy_sd:apb-sdclock {
++		compatible = "fixed-clock";
++		clock-frequency = <100000000>;
++		clock-output-names = "dummy_sd";
++		#clock-cells = <0x00>;
++	};
+ 
+ 	clk_dummy: clock-dummy {
+ 		compatible = "fixed-clock";
+@@ -167,5 +173,19 @@ usb1: usb@91540000 {
  			g-np-tx-fifo-size = <64>;
  			g-tx-fifo-size = <512 1024 64 64 64 64>;
  		};
