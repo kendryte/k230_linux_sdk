@@ -54,14 +54,14 @@ struct vvcam_sensor_mode {
 
 struct vvcam_sensor_ctrl {
     int (*init)(void** ctx);
-    void (*deinit)(void** ctx);
-    int (*enum_mode)(void** ctx, uint32_t index, struct vvcam_sensor_mode* mode);
-    int (*get_mode)(void** ctx, struct vvcam_sensor_mode* mode);
-    int (*set_mode)(void** ctx, struct vvcam_sensor_mode* mode);
-    int (*set_stream)(void** ctx, bool on);
-    int (*set_analog_gain)(void** ctx, float gain);
-    int (*set_digital_gain)(void** ctx, float gain);
-    int (*set_int_time)(void** ctx, float time);
+    void (*deinit)(void* ctx);
+    int (*enum_mode)(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode);
+    int (*get_mode)(void* ctx, struct vvcam_sensor_mode* mode);
+    int (*set_mode)(void* ctx, struct vvcam_sensor_mode* mode);
+    int (*set_stream)(void* ctx, bool on);
+    int (*set_analog_gain)(void* ctx, float gain);
+    int (*set_digital_gain)(void* ctx, float gain);
+    int (*set_int_time)(void* ctx, float time);
 };
 
 struct vvcam_sensor {
