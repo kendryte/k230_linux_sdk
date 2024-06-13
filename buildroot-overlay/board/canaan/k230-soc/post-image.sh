@@ -2,10 +2,12 @@
 set -e
 DTB="k230-canmv.dtb"
 LINUX_DIR=${BUILD_DIR}/linux-6.6.22
+rootfs_ext4_file=""
 
 [ $# -ge 2 ] && DTB="$2.dtb"
 [ $# -ge 3 ] && LINUX_DIR="$3"
-echo ${DTB}
+[ $# -ge 4 ] && rootfs_ext4_file="$4"
+echo "${DTB}, ${rootfs_ext4_file}"
 
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
@@ -250,6 +252,7 @@ gen_image()
 	local cfg="$1" ; #"genimage-sdcard.cfg"
 	local image_name="$2"; #"sysimage-sdcard.img"
 	cd  "${BINARIES_DIR}/";
+	[ -z "${rootfs_ext4_file}" ] ||  cp  ${rootfs_ext4_file}  rootfs.ext4;
 	
 	GENIMAGE_TMP="genimage.tmp" ;	rm -rf "${GENIMAGE_TMP}";
 	${genimage}   	--rootpath "${TARGET_DIR}"  --tmppath "${GENIMAGE_TMP}"    \
@@ -436,6 +439,7 @@ gen_uboot_bin
 gen_env_bin
 #add_dev_firmware;
 gen_linux_bin;
+
 gen_image ${GENIMAGE_CFG_SD}   sysimage-sdcard.img
 
 
