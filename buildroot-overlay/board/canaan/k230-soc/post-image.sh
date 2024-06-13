@@ -7,7 +7,7 @@ rootfs_ext4_file=""
 [ $# -ge 2 ] && DTB="$2.dtb"
 [ $# -ge 3 ] && LINUX_DIR="$3"
 [ $# -ge 4 ] && rootfs_ext4_file="$4"
-echo "${DTB}, ${rootfs_ext4_file}"
+#echo "${DTB}, ${rootfs_ext4_file}"
 
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
@@ -24,8 +24,6 @@ env_dir=$(dirname $(realpath "$0"))
 
 
 
-
-
 #放到post build
 gz_file_add_ver()
 {
@@ -36,14 +34,14 @@ gz_file_add_ver()
 	local sdk_ver="v0.0.0";
 	local nncase_ver="0.0.0";
 
-	#local sdk_ver_file="${TARGET_DIR}/etc/version/release_version"
+	local sdk_ver_file="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version"
 	#local nncase_ver_file="${K230_SDK_ROOT}/src/big/nncase/riscv64/nncase/include/nncase/version.h"
 
 	local storage="$(echo "$f" | sed -nE "s#[^-]*-([^\.]*).*#\1#p")"
 	local conf_name="${CONF%%_defconfig}"
 
 	
-	#sdk_ver=$(awk -F- '/^sdk:/ { print $1}' ${sdk_ver_file}  | cut -d: -f2 )
+	sdk_ver=$(awk -F- '/^sdk:/ { print $1}' ${sdk_ver_file}  | cut -d: -f2 )
 
 	# cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
 	# 	 nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
@@ -252,9 +250,8 @@ gen_image()
 	local cfg="$1" ; #"genimage-sdcard.cfg"
 	local image_name="$2"; #"sysimage-sdcard.img"
 	cd  "${BINARIES_DIR}/";
-	set -x 
+
 	[ -z "${rootfs_ext4_file}" ] ||  cp  ${rootfs_ext4_file}  rootfs.ext4;
-	set +x
 	
 	GENIMAGE_TMP="genimage.tmp" ;	rm -rf "${GENIMAGE_TMP}";
 	${genimage}   	--rootpath "${TARGET_DIR}"  --tmppath "${GENIMAGE_TMP}"    \
@@ -264,7 +261,7 @@ gen_image()
 	gzip -k -f ${image_name}
 	chmod a+rw ${image_name} ${image_name}.gz;
 	
-	#gz_file_add_ver ${image_name}.gz
+	gz_file_add_ver ${image_name}.gz
 }
 
 gen_image_spinor_proc_ai_mode()
