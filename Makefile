@@ -22,12 +22,12 @@ buildroot: $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) all
 
 k230d_32bit_rootfs:sync 
-	make -C $(BR_SRC_DIR) k230d_canmv_32bit_defconfig  O=$(CURDIR)/output/k230d_canmv_32bit_defconfig
-	make -C $(CURDIR)/output/k230d_canmv_32bit_defconfig  all
+	make -C $(BR_SRC_DIR) k230d_canmv_32bit_rootfs_defconfig  O=$(CURDIR)/output/k230d_canmv_32bit_rootfs_defconfig
+	make -C $(CURDIR)/output/k230d_canmv_32bit_rootfs_defconfig  all
 
 k230d_canmv_kernel64_root32: sync   k230d_32bit_rootfs
-	make -C $(BR_SRC_DIR) k230d_canmv_64bit_k_u_o_defconfig  O=$(CURDIR)/output/k230d_canmv_64bit_k_u_o_defconfig
-	make -C $(CURDIR)/output/k230d_canmv_64bit_k_u_o_defconfig  all
+	make -C $(BR_SRC_DIR) k230d_canmv_64kernel_32rootfs_defconfig  O=$(CURDIR)/output/k230d_canmv_64kernel_32rootfs_defconfig
+	make -C $(CURDIR)/output/k230d_canmv_64kernel_32rootfs_defconfig  all
 
 .PHONY:dl
 dl:   $(BRW_BUILD_DIR)/.config 

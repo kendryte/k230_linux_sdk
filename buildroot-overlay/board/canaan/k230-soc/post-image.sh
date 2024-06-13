@@ -252,7 +252,9 @@ gen_image()
 	local cfg="$1" ; #"genimage-sdcard.cfg"
 	local image_name="$2"; #"sysimage-sdcard.img"
 	cd  "${BINARIES_DIR}/";
+	set -x 
 	[ -z "${rootfs_ext4_file}" ] ||  cp  ${rootfs_ext4_file}  rootfs.ext4;
+	set +x
 	
 	GENIMAGE_TMP="genimage.tmp" ;	rm -rf "${GENIMAGE_TMP}";
 	${genimage}   	--rootpath "${TARGET_DIR}"  --tmppath "${GENIMAGE_TMP}"    \
