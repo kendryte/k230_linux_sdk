@@ -1,17 +1,25 @@
 #!/bin/bash
+set -e
+DTB="k230-canmv.dtb"
+LINUX_DIR=${BUILD_DIR}/linux-6.6.22
+rootfs_ext4_file=""
+
+[ $# -ge 2 ] && DTB="$2.dtb"
+[ $# -ge 3 ] && LINUX_DIR="$3"
+[ $# -ge 4 ] && rootfs_ext4_file="$4"
+#echo "${DTB}, ${rootfs_ext4_file}"
 
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
 K230_SDK_ROOT=$(dirname $(dirname ${BASE_DIR}))
 GENIMAGE_CFG_SD=$(dirname $(realpath "$0"))/genimage.cfg
+env_dir=$(dirname $(realpath "$0"))
 
 #echo "${GENIMAGE_CFG_SD}, ${K230_SDK_ROOT}"
 
 #mkdir -p ${IMG_OUT}
 # ls ${K230_SDK_ROOT}
 #  exit 1
-
-
 
 
 
@@ -26,7 +34,7 @@ gz_file_add_ver()
 	local sdk_ver="v0.0.0";
 	local nncase_ver="0.0.0";
 
-	local sdk_ver_file="${TARGET_DIR}/etc/version/release_version"
+	local sdk_ver_file="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version"
 	#local nncase_ver_file="${K230_SDK_ROOT}/src/big/nncase/riscv64/nncase/include/nncase/version.h"
 
 	local storage="$(echo "$f" | sed -nE "s#[^-]*-([^\.]*).*#\1#p")"
@@ -154,7 +162,7 @@ gen_uboot_bin()
 gen_linux_bin ()
 {
 	local mkimage="${UBOOT_BUILD_DIR}/tools/mkimage"
-	local LINUX_DIR="${BUILD_DIR}/linux-6.6.22"
+	
 	local CONFIG_MEM_LINUX_SYS_BASE=$(cat ${UBOOT_BUILD_DIR}/board/canaan/common/sdk_autoconf.h | grep CONFIG_MEM_LINUX_SYS_BASE | awk '{print $3}')
 
 	cd  "${BINARIES_DIR}/";
@@ -174,7 +182,7 @@ gen_linux_bin ()
 	# sed -i "s/linux,initrd-end = <0x0 .*/linux,initrd-end = <0x0 $ROOTFS_END>;/g" hw/k230.dts.txt
 
 	# ${LINUX_BUILD_DIR}/scripts/dtc/dtc -I dts -q -O dtb hw/k230.dts.txt  >k230.dtb;	
-	cp ${LINUX_DIR}/arch/riscv/boot/dts/canaan/k230-canmv.dtb 	 k230.dtb
+	cp ${LINUX_DIR}/arch/riscv/boot/dts/canaan/${DTB} 	 k230.dtb
 	k230_gzip fw_payload.bin;
 	echo a>rd;
 	${mkimage} -A riscv -O linux -T multi -C gzip -a ${CONFIG_MEM_LINUX_SYS_BASE} -e ${CONFIG_MEM_LINUX_SYS_BASE} -n linux -d fw_payload.bin.gz:rd:k230.dtb  ulinux.bin;
@@ -242,6 +250,8 @@ gen_image()
 	local cfg="$1" ; #"genimage-sdcard.cfg"
 	local image_name="$2"; #"sysimage-sdcard.img"
 	cd  "${BINARIES_DIR}/";
+
+	[ -z "${rootfs_ext4_file}" ] ||  cp  ${rootfs_ext4_file}  rootfs.ext4;
 	
 	GENIMAGE_TMP="genimage.tmp" ;	rm -rf "${GENIMAGE_TMP}";
 	${genimage}   	--rootpath "${TARGET_DIR}"  --tmppath "${GENIMAGE_TMP}"    \
@@ -399,15 +409,15 @@ shrink_rootfs_common()
 gen_env_bin()
 {
 	local mkenvimage="${UBOOT_BUILD_DIR}/tools/mkenvimage"
-	cd  "${BUILD_DIR}/images/";
+	cd  "${BINARIES_DIR}/";
 	local default_env_file=${env_dir}/default.env;
 	# local jffs2_env_file=${env_dir}/spinor.jffs2.env;
 	# local spinand_env_file=${env_dir}/spinand.env;
 
 	# sed -i -e "/^quick_boot/d"  ${jffs2_env_file}
 	# sed -i -e "/quick_boot/d"  ${spinand_env_file}
-	sed -i -e "/^quick_boot/d"  ${default_env_file}
-	sed -i -e "/restore_img/d"  ${default_env_file}
+	# sed -i -e "/^quick_boot/d"  ${default_env_file}
+	# sed -i -e "/restore_img/d"  ${default_env_file}
 
 	# if [ "${CONFIG_QUICK_BOOT}" != "y" ] || [ "${CONFIG_REMOTE_TEST_PLATFORM}" = "y" ] ; then 
 	# 	echo "quick_boot=false" >> ${jffs2_env_file}
@@ -420,14 +430,15 @@ gen_env_bin()
 
 	# ${mkenvimage} -s 0x10000 -o little-core/uboot/jffs2.env ${jffs2_env_file}
 	# ${mkenvimage} -s 0x10000 -o little-core/uboot/spinand.env ${spinand_env_file}
-	# ${mkenvimage} -s 0x10000 -o little-core/uboot/env.env  ${default_env_file}
+	${mkenvimage} -s 0x10000 -o uboot/env.env  ${default_env_file}
 }
 
 
 gen_uboot_bin
-#gen_env_bin
+gen_env_bin
 #add_dev_firmware;
 gen_linux_bin;
+
 gen_image ${GENIMAGE_CFG_SD}   sysimage-sdcard.img
 
 

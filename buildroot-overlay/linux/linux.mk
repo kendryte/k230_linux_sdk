@@ -661,13 +661,13 @@ linux-rebuild-with-initramfs:
 	# If there is a .ub file copy it to the final destination
 	test ! -f $(LINUX_IMAGE_PATH).ub || cp $(LINUX_IMAGE_PATH).ub $(BINARIES_DIR)
 
-LINUX_OVERLAY_DIRS=$(TOPDIR)/../../buildroot-overlay/linux/linux-6.6.22-overlay
+# LINUX_OVERLAY_DIRS=$(TOPDIR)/../../buildroot-overlay/linux/linux-6.6.22-overlay
 
-$(LINUX_DIR)/.stamp_configured:$(LINUX_DIR)/.overlay_sync
-$(LINUX_DIR)/.stamp_dotconfig:$(LINUX_DIR)/.overlay_sync
-$(LINUX_DIR)/.overlay_sync:$(TOPDIR)/../.linux_overlay_sync   $(LINUX_DIR)/.stamp_patched
-	rsync -a $(LINUX_OVERLAY_DIRS)/ $(LINUX_DIR)/
-	touch $@
-$(LINUX_DIR)/.overlay_sync: $(LINUX_DIR)/.stamp_patched	
+# $(LINUX_DIR)/.stamp_configured:$(LINUX_DIR)/.overlay_sync
+# $(LINUX_DIR)/.stamp_dotconfig:$(LINUX_DIR)/.overlay_sync
+# $(LINUX_DIR)/.overlay_sync:$(TOPDIR)/../.linux_overlay_sync   $(LINUX_DIR)/.stamp_patched
+# 	rsync -a $(LINUX_OVERLAY_DIRS)/ $(LINUX_DIR)/
+# 	touch $@
+# $(LINUX_DIR)/.overlay_sync: $(LINUX_DIR)/.stamp_patched	
 
 
