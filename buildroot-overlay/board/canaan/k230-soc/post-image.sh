@@ -36,14 +36,14 @@ gz_file_add_ver()
 	local sdk_ver="v0.0.0";
 	local nncase_ver="0.0.0";
 
-	local sdk_ver_file="${TARGET_DIR}/etc/version/release_version"
+	#local sdk_ver_file="${TARGET_DIR}/etc/version/release_version"
 	#local nncase_ver_file="${K230_SDK_ROOT}/src/big/nncase/riscv64/nncase/include/nncase/version.h"
 
 	local storage="$(echo "$f" | sed -nE "s#[^-]*-([^\.]*).*#\1#p")"
 	local conf_name="${CONF%%_defconfig}"
 
 	
-	sdk_ver=$(awk -F- '/^sdk:/ { print $1}' ${sdk_ver_file}  | cut -d: -f2 )
+	#sdk_ver=$(awk -F- '/^sdk:/ { print $1}' ${sdk_ver_file}  | cut -d: -f2 )
 
 	# cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
 	# 	 nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
@@ -264,7 +264,7 @@ gen_image()
 	gzip -k -f ${image_name}
 	chmod a+rw ${image_name} ${image_name}.gz;
 	
-	gz_file_add_ver ${image_name}.gz
+	#gz_file_add_ver ${image_name}.gz
 }
 
 gen_image_spinor_proc_ai_mode()
