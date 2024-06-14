@@ -1,0 +1,9 @@
+    config K230_AI2D_DRIVER
+        tristate "K230 AI2D test driver"
+        default	m
+        help
+          Say Y for enabling the k230 AI2D test driver
+
+          To compile this support as a module, choose M here:
+          The module will be called allegro_encoder.
+          If unsure, say N.
