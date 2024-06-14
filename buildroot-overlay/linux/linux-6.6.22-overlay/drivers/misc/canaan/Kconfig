@@ -1,0 +1,6 @@
+menu "Canaan k230 drivers"
+
+source "drivers/misc/canaan/gnne/Kconfig"
+source "drivers/misc/canaan/ai2d/Kconfig"
+
+endmenu
