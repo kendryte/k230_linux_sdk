@@ -52,7 +52,7 @@ struct gnne_plat {
     struct cdev     cdev;
 };
 
-static int debug = 0;
+static int debug = 1;
 static struct gnne_plat *plat;
 static uint64_t gnne_membase[4];
 static unsigned int gnne_int_flag;
@@ -328,6 +328,7 @@ static struct platform_driver k230_gnne_driver = {
 int gnne_module_init(void)
 {
     int ret;
+    printk("%s\n", __func__);
     ret = platform_driver_register(&k230_gnne_driver);
     return ret;
 }

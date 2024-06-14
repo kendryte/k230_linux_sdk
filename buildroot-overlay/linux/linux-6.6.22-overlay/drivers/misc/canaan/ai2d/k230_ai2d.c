@@ -52,7 +52,7 @@ struct ai2d_plat {
     struct cdev     cdev;
 };
 
-static int debug = 0;
+static int debug = 1;
 static struct ai2d_plat *plat;
 static uint64_t ai2d_membase[4];
 static unsigned int ai2d_int_flag;

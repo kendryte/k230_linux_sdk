@@ -501,14 +501,14 @@
 
 		gnne: gnne@80400000 {
 			status              = "okay";
-			compatible          = "canaan,k230-gnne";
+			compatible          = "k230-gnne";
 			reg                 = <0x0 0x80400000 0x0 0x00000800>;
 			interrupts          = <189 IRQ_TYPE_LEVEL_HIGH>;
         };
 
 		ai2d: ai2d@80400000 {
 			status              = "okay";
-			compatible          = "canaan,k230-ai2d";
+			compatible          = "k230-ai2d";
 			reg                 = <0x0 0x80400800 0x0 0x00000400>;
 			interrupts          = <191 IRQ_TYPE_LEVEL_HIGH>;
         };
