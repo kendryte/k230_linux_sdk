@@ -1,9 +1,0 @@
-    config K230_GNNE_DRIVER
-        tristate "K230 GNNE test driver"
-        default	m
-        help
-          Say Y for enabling the k230 gnne test driver
-
-          To compile this support as a module, choose M here:
-          The module will be called allegro_encoder.
-          If unsure, say N.

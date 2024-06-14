@@ -1,7 +1,0 @@
-menu "canaan-hardlock"
-
-
-config CANAAN_HARDLOCK
-	bool "canaan hardlock driver"
-
-endmenu
