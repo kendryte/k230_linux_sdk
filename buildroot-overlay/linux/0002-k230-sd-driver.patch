@@ -1,7 +1,7 @@
-From a01b3d62a28bd313a43fd01f211b27fcd54c1c7f Mon Sep 17 00:00:00 2001
+From 91fa1952331d0acb255248e0e4431a274b2cd225 Mon Sep 17 00:00:00 2001
 From: wangjianxin <wangjianxin@canaan-creative.com>
 Date: Thu, 6 Jun 2024 11:34:34 +0800
-Subject: [PATCH 2/3] k230 sd driver
+Subject: [PATCH 02/20] k230 sd driver
 
 ---
  arch/riscv/boot/dts/canaan/k230-canmv.dts |   6 +
@@ -81,7 +81,7 @@ index 2311fb7f7..c6f9c6dfb 100644
  	};
  };
 diff --git a/arch/riscv/configs/defconfig b/arch/riscv/configs/defconfig
-index cb9d4c8ff..d97b306c1 100644
+index 9a0e1c27a..04de6f05f 100644
 --- a/arch/riscv/configs/defconfig
 +++ b/arch/riscv/configs/defconfig
 @@ -174,6 +174,7 @@ CONFIG_MMC_SDHCI=y
