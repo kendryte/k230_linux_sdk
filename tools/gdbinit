@@ -1,6 +1,9 @@
 
 # Set gdb environment
 #riscv64-unknown-elf-gdb  -ex "target remote 10.100.228.83:1026" -ex "reset" -ex "reset"  -x  gdbinit  
+#cp  output/k230d_canmv_64kernel_32rootfs_defconfig/build/linux-b6516a27c813582a837d73330f939beba3e019c7/arch/riscv/boot/Image  .
+#cp  output/k230d_canmv_64kernel_32rootfs_defconfig/build/linux-b6516a27c813582a837d73330f939beba3e019c7/arch/riscv/boot/dts/canaan/k230d-canmv.dtb  .
+#cp  output/k230d_canmv_64kernel_32rootfs_defconfig/build/opensbi-1.4/build/platform/generic/firmware/fw_dynamic.bin .
 
 set confirm off
 set height  0
