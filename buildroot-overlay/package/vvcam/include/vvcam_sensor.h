@@ -47,6 +47,7 @@ struct vvcam_sensor_mode {
     uint16_t width;
     uint16_t height;
     uint32_t clk;
+    uint32_t bit_width;
     enum vvcam_sensor_bayer bayer;
     enum vvcam_sensor_freq freq;
     enum vvcam_sensor_lanes lanes;

@@ -12,7 +12,7 @@ include .last_conf
 BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 
 
-.PHONY: all buildroot  debian ubuntu openouler
+.PHONY: all buildroot  debian ubuntu openouler  ruyi  k230d_32bit_rootfs  k230d_canmv_kernel64_root32
 all :  buildroot 
 
 debian ubuntu openouler : buildroot
@@ -20,6 +20,14 @@ debian ubuntu openouler : buildroot
 
 buildroot: $(BRW_BUILD_DIR)/.config  
 	make -C $(BRW_BUILD_DIR) all
+
+k230d_32bit_rootfs:sync 
+	make -C $(BR_SRC_DIR) k230d_canmv_32bit_rootfs_defconfig  O=$(CURDIR)/output/k230d_canmv_32bit_rootfs_defconfig
+	make -C $(CURDIR)/output/k230d_canmv_32bit_rootfs_defconfig  all
+
+k230d_canmv_kernel64_root32: sync   k230d_32bit_rootfs
+	make -C $(BR_SRC_DIR) k230d_canmv_64kernel_32rootfs_defconfig  O=$(CURDIR)/output/k230d_canmv_64kernel_32rootfs_defconfig
+	make -C $(CURDIR)/output/k230d_canmv_64kernel_32rootfs_defconfig  all
 
 .PHONY:dl
 dl:   $(BRW_BUILD_DIR)/.config 
@@ -44,12 +52,13 @@ help:sync
 sync:
 	make -f tools/sync.mk sync
 
-this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync
+this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig   k230d_32bit_rootfs    k230d_canmv_kernel64_root32
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@
 
 %_defconfig:  sync
 	echo CONF=$@ >.last_conf
+	CONF=$@ make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR)
 
 savedefconfig:  $(BRW_BUILD_DIR)/.config 
 	make -C $(BRW_BUILD_DIR) $@

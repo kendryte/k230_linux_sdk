@@ -9,6 +9,23 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 
+// FIXME
+
+enum k230_mclk {
+    K230_MCLK0 = 0,
+    K230_MCLK1 = 1,
+    K230_MCLK2 = 2,
+};
+
+// Enable MCLK
+int k230_mclk_enable(enum k230_mclk mclk);
+
+// Disable MCLK
+int k230_mclk_disable(enum k230_mclk mclk);
+
+// Set MCLK frequency
+uint32_t k230_mclk_set_frequency(enum k230_mclk mclk, uint32_t frequency);
+
 struct ov5647_ctx {
     int i2c;
 };
@@ -22,24 +39,28 @@ static ssize_t write_reg(struct ov5647_ctx* ctx, uint16_t addr, uint8_t value) {
 }
 
 static int init(void** ctx) {
-    struct ov5647_ctx* sensor = malloc(sizeof(struct ov5647_ctx));
-    sensor->i2c = open("/dev/i2c-0", O_RDWR);
-    if (sensor->i2c < 0) {
-        free(sensor);
+    // power & clock
+    k230_mclk_set_frequency(K230_MCLK0, 25000000);
+    k230_mclk_enable(K230_MCLK0);
+    // i2c
+    int i2c = open("/dev/i2c-0", O_RDWR);
+    if (i2c < 0) {
         perror("open /dev/i2c-0");
         return -1;
     }
-    if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, 0x36) < 0) {
-        free(sensor);
+    if (ioctl(i2c, I2C_SLAVE_FORCE, 0x36) < 0) {
         perror("i2c ctrl 0x36");
         return -1;
     }
+    struct ov5647_ctx* sensor = malloc(sizeof(struct ov5647_ctx));
+    sensor->i2c = i2c;
     *ctx = sensor;
     return 0;
 }
 
 static void deinit(void* ctx) {
     struct ov5647_ctx* sensor = ctx;
+    k230_mclk_disable(K230_MCLK0);
     close(sensor->i2c);
     free(ctx);
 }

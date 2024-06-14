@@ -1,0 +1,63 @@
+From 7df07afed56314254334e1318c15a278a25eb271 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 5 Jun 2024 18:20:24 +0800
+Subject: [PATCH 3/3] add k230d canmv board
+
+---
+ arch/riscv/boot/dts/canaan/Makefile        |  1 +
+ arch/riscv/boot/dts/canaan/k230d-canmv.dts | 30 ++++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
+ create mode 100644 arch/riscv/boot/dts/canaan/k230d-canmv.dts
+
+diff --git a/arch/riscv/boot/dts/canaan/Makefile b/arch/riscv/boot/dts/canaan/Makefile
+index 6180e5bdd..2cabb52b7 100644
+--- a/arch/riscv/boot/dts/canaan/Makefile
++++ b/arch/riscv/boot/dts/canaan/Makefile
+@@ -2,6 +2,7 @@
+ dtb-$(CONFIG_ARCH_CANAAN) += canaan_kd233.dtb
+ dtb-$(CONFIG_ARCH_CANAAN) += k210_generic.dtb
+ dtb-$(CONFIG_ARCH_CANAAN) += k230-canmv.dtb
++dtb-$(CONFIG_ARCH_CANAAN) += k230d-canmv.dtb
+ dtb-$(CONFIG_ARCH_CANAAN) += k230-evb.dtb
+ dtb-$(CONFIG_ARCH_CANAAN) += sipeed_maix_bit.dtb
+ dtb-$(CONFIG_ARCH_CANAAN) += sipeed_maix_dock.dtb
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv.dts b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+new file mode 100644
+index 000000000..6c277dd22
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+@@ -0,0 +1,30 @@
++// SPDX-License-Identifier: GPL-2.0 OR MIT
++/*
++ * Copyright (C) 2024 Yangyu Chen <cyy@cyyself.name>
++ */
++
++#include "k230.dtsi"
++
++/ {
++	model = "Canaan CanMV-K230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	ddr: memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x8000000>;
++	};
++};
++
++&uart0 {
++	status = "okay";
++};
++&mmc_sd1{
++    status = "okay";
++    no-1-8-v;
++    cap-sd-highspeed;
++    mshc_ctrl_r = <0x00>;
++};
+\ No newline at end of file
+-- 
+2.39.1
+

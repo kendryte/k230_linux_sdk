@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.1.0)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 project(vvcam)
 
 file(GLOB SOURCES "src/*.c")
