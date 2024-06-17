@@ -1,214 +1,214 @@
-From 2ed8b348ca1c70d0f25637b5c9982c2725c6c63a Mon Sep 17 00:00:00 2001
+From ed6e79940835682fd134fc211905b9d5b97aee35 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?=E9=BB=84=E5=AD=90=E6=87=BF?=
  <huangziyi@canaan-creative.com>
-Date: Mon, 17 Jun 2024 16:20:25 +0800
-Subject: [PATCH] update media drivers
+Date: Mon, 17 Jun 2024 16:24:58 +0800
+Subject: [PATCH] update media drivers path
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Signed-off-by: 黄子懿 <huangziyi@canaan-creative.com>
 ---
- arch/riscv/configs/k230_defconfig                            | 4 +++-
- drivers/media/platform/Kconfig                               | 4 ++--
- drivers/media/platform/Makefile                              | 5 ++---
- drivers/media/platform/{canaan-vpu => canaan/vpu}/Kconfig    | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/Makefile   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/fw_h264dec.c   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/fw_h264enc.c   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/fw_hevcdec.c   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/fw_hevcenc.c   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/fw_jpegdec.c   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/fw_jpegenc.c   | 0
- .../{canaan-vpu => canaan/vpu}/mve_protocol_def_v2.h         | 0
- .../{canaan-vpu => canaan/vpu}/mve_protocol_def_v3.h         | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx-v4l2-controls.h  | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_bitops.h   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_buffer.c   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_buffer.h   | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_dev.c  | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_dev.h  | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_driver.c   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_ext_if.h   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_ext_v4l2.c | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware.c | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware.h | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_cache.c | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_cache.h | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_priv.h  | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_v2.c    | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_v3.c    | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg.c    | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg.h    | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v500.c     | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v500.h     | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v52_v76.c  | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v52_v76.h  | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v550.c     | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v550.h     | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v61.c      | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v61.h      | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_if.c   | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_if.h   | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log.c  | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log.h  | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_log_group.c      | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_log_group.h      | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_log_ram.h  | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_lsid.c | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_lsid.h | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_mmu.c  | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_mmu.h  | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_pm_runtime.c     | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_pm_runtime.h     | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_scheduler.c      | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_scheduler.h      | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_secure.c   | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_secure.h   | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_seq.c  | 0
- drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_seq.h  | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_session.c  | 0
- .../media/platform/{canaan-vpu => canaan/vpu}/mvx_session.h  | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_buffer.c    | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_buffer.h    | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_ctrls.c     | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_ctrls.h     | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_fops.c      | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_fops.h      | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_session.c   | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_session.h   | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_vidioc.c    | 0
- .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_vidioc.h    | 0
- drivers/media/platform/{ => canaan}/vvcam/Kconfig            | 0
- drivers/media/platform/{ => canaan}/vvcam/Makefile           | 0
- drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_event.c  | 0
- drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_event.h  | 0
- drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp.h    | 0
- .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_driver.c | 0
- .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_driver.h | 0
- .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_hal.c    | 0
- .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_hal.h    | 0
- .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_procfs.c | 0
- .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_procfs.h | 0
- drivers/media/platform/{ => canaan}/vvcam/mipi/k230_csi.c    | 0
- drivers/media/platform/{ => canaan}/vvcam/mipi/k230_csi.h    | 0
- drivers/media/platform/{ => canaan}/vvcam/mipi/k230_vi.c     | 0
- drivers/media/platform/{ => canaan}/vvcam/mipi/k230_vi.h     | 0
- drivers/media/platform/{ => canaan}/vvcam/mipi/vvcam_mipi.h  | 0
- .../platform/{ => canaan}/vvcam/mipi/vvcam_mipi_driver.c     | 0
- .../platform/{ => canaan}/vvcam/mipi/vvcam_mipi_driver.h     | 0
- .../{ => canaan}/vvcam/v4l2/common/vvcam_v4l2_common.h       | 0
- drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/Makefile  | 0
- .../vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.c    | 0
- .../vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.h    | 0
- .../vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.c  | 0
- .../vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.h  | 0
- .../vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.c  | 0
- .../vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.h  | 0
- .../vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.c  | 0
- .../vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.h  | 0
- .../vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.c    | 0
- .../vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.h    | 0
- .../vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.c             | 0
- .../vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.h             | 0
- .../vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.c    | 0
- .../vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.h    | 0
- .../vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.c    | 0
- .../vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.h    | 0
- .../vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.c          | 0
- .../vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.h          | 0
- .../vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.c             | 0
- .../vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.h             | 0
- .../vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.c    | 0
- .../vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.h    | 0
- .../vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.c     | 0
- .../vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.h     | 0
- .../vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.c     | 0
- .../vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.h     | 0
- .../vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.c | 0
- .../vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.h | 0
- .../{ => canaan}/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.c    | 0
- .../{ => canaan}/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.h    | 0
- .../vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.c             | 0
- .../vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.h             | 0
- .../vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.c       | 0
- .../vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.h       | 0
- .../vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.c     | 0
- .../vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.h     | 0
- .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_driver.c  | 0
- .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_driver.h  | 0
- .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_event.c   | 0
- .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_event.h   | 0
- .../{ => canaan}/vvcam/v4l2/isp/vvcam_isp_platform.c         | 0
- .../{ => canaan}/vvcam/v4l2/isp/vvcam_isp_platform.h         | 0
- .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_procfs.c  | 0
- .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_procfs.h  | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_pipeline_link.h      | 0
- .../platform/{ => canaan}/vvcam/v4l2/video/vvcam_video.h     | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_driver.c       | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_driver.h       | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_event.c        | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_event.h        | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_m2m_register.c | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_m2m_register.h | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_platform.c     | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_platform.h     | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_register.c     | 0
- .../{ => canaan}/vvcam/v4l2/video/vvcam_video_register.h     | 0
- drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_cma.c     | 0
- drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_cma.h     | 0
- drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_mmz.c     | 0
- drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_mmz.h     | 0
- drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb.h      | 0
- .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_driver.c   | 0
- .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_driver.h   | 0
- .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_platform.c | 0
- .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_platform.h | 0
- .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_procfs.c   | 0
- .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_procfs.h   | 0
- 191 files changed, 7 insertions(+), 6 deletions(-)
+ arch/riscv/configs/k230_defconfig             |  4 ++-
+ drivers/media/platform/Kconfig                |  4 +--
+ drivers/media/platform/Makefile               |  5 ++--
+ .../{canaan-vpu => canaan/vpu}/Kconfig        |  0
+ .../{canaan-vpu => canaan/vpu}/Makefile       |  0
+ .../{canaan-vpu => canaan/vpu}/fw_h264dec.c   | 25 +++++++++++++++++++
+ .../{canaan-vpu => canaan/vpu}/fw_h264enc.c   | 25 +++++++++++++++++++
+ .../{canaan-vpu => canaan/vpu}/fw_hevcdec.c   | 25 +++++++++++++++++++
+ .../{canaan-vpu => canaan/vpu}/fw_hevcenc.c   | 25 +++++++++++++++++++
+ .../{canaan-vpu => canaan/vpu}/fw_jpegdec.c   | 25 +++++++++++++++++++
+ .../{canaan-vpu => canaan/vpu}/fw_jpegenc.c   | 25 +++++++++++++++++++
+ .../vpu}/mve_protocol_def_v2.h                |  0
+ .../vpu}/mve_protocol_def_v3.h                |  0
+ .../vpu}/mvx-v4l2-controls.h                  |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_bitops.h   |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_buffer.c   |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_buffer.h   |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_dev.c      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_dev.h      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_driver.c   |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_ext_if.h   |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_ext_v4l2.c |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_firmware.c |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_firmware.h |  0
+ .../vpu}/mvx_firmware_cache.c                 |  0
+ .../vpu}/mvx_firmware_cache.h                 |  0
+ .../vpu}/mvx_firmware_priv.h                  |  0
+ .../vpu}/mvx_firmware_v2.c                    |  0
+ .../vpu}/mvx_firmware_v3.c                    |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_hwreg.c    |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_hwreg.h    |  0
+ .../vpu}/mvx_hwreg_v500.c                     |  0
+ .../vpu}/mvx_hwreg_v500.h                     |  0
+ .../vpu}/mvx_hwreg_v52_v76.c                  |  0
+ .../vpu}/mvx_hwreg_v52_v76.h                  |  0
+ .../vpu}/mvx_hwreg_v550.c                     |  0
+ .../vpu}/mvx_hwreg_v550.h                     |  0
+ .../vpu}/mvx_hwreg_v61.c                      |  0
+ .../vpu}/mvx_hwreg_v61.h                      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_if.c       |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_if.h       |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_log.c      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_log.h      |  0
+ .../vpu}/mvx_log_group.c                      |  0
+ .../vpu}/mvx_log_group.h                      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_log_ram.h  |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_lsid.c     |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_lsid.h     |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_mmu.c      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_mmu.h      |  0
+ .../vpu}/mvx_pm_runtime.c                     |  0
+ .../vpu}/mvx_pm_runtime.h                     |  0
+ .../vpu}/mvx_scheduler.c                      |  0
+ .../vpu}/mvx_scheduler.h                      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_secure.c   |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_secure.h   |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_seq.c      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_seq.h      |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_session.c  |  0
+ .../{canaan-vpu => canaan/vpu}/mvx_session.h  |  0
+ .../vpu}/mvx_v4l2_buffer.c                    |  0
+ .../vpu}/mvx_v4l2_buffer.h                    |  0
+ .../vpu}/mvx_v4l2_ctrls.c                     |  0
+ .../vpu}/mvx_v4l2_ctrls.h                     |  0
+ .../vpu}/mvx_v4l2_fops.c                      |  0
+ .../vpu}/mvx_v4l2_fops.h                      |  0
+ .../vpu}/mvx_v4l2_session.c                   |  0
+ .../vpu}/mvx_v4l2_session.h                   |  0
+ .../vpu}/mvx_v4l2_vidioc.c                    |  0
+ .../vpu}/mvx_v4l2_vidioc.h                    |  0
+ .../media/platform/{ => canaan}/vvcam/Kconfig |  0
+ .../platform/{ => canaan}/vvcam/Makefile      |  0
+ .../{ => canaan}/vvcam/isp/vvcam_event.c      |  0
+ .../{ => canaan}/vvcam/isp/vvcam_event.h      |  0
+ .../{ => canaan}/vvcam/isp/vvcam_isp.h        |  0
+ .../{ => canaan}/vvcam/isp/vvcam_isp_driver.c |  0
+ .../{ => canaan}/vvcam/isp/vvcam_isp_driver.h |  0
+ .../{ => canaan}/vvcam/isp/vvcam_isp_hal.c    |  0
+ .../{ => canaan}/vvcam/isp/vvcam_isp_hal.h    |  0
+ .../{ => canaan}/vvcam/isp/vvcam_isp_procfs.c |  0
+ .../{ => canaan}/vvcam/isp/vvcam_isp_procfs.h |  0
+ .../{ => canaan}/vvcam/mipi/k230_csi.c        |  0
+ .../{ => canaan}/vvcam/mipi/k230_csi.h        |  0
+ .../{ => canaan}/vvcam/mipi/k230_vi.c         |  0
+ .../{ => canaan}/vvcam/mipi/k230_vi.h         |  0
+ .../{ => canaan}/vvcam/mipi/vvcam_mipi.h      |  0
+ .../vvcam/mipi/vvcam_mipi_driver.c            |  0
+ .../vvcam/mipi/vvcam_mipi_driver.h            |  0
+ .../vvcam/v4l2/common/vvcam_v4l2_common.h     |  0
+ .../{ => canaan}/vvcam/v4l2/isp/Makefile      |  0
+ .../isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.c    |  0
+ .../isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.h    |  0
+ .../isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.c  |  0
+ .../isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.h  |  0
+ .../isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.c  |  0
+ .../isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.h  |  0
+ .../isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.c  |  0
+ .../isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.h  |  0
+ .../v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.c |  0
+ .../v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.h |  0
+ .../v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.c |  0
+ .../v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.h |  0
+ .../isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.c   |  0
+ .../isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.h   |  0
+ .../isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.c   |  0
+ .../isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.h   |  0
+ .../v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.c |  0
+ .../v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.h |  0
+ .../v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.c |  0
+ .../v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.h |  0
+ .../isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.c   |  0
+ .../isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.h   |  0
+ .../v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.c |  0
+ .../v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.h |  0
+ .../isp_ctrl/cproc/cproc/vvcam_isp_cproc.c    |  0
+ .../isp_ctrl/cproc/cproc/vvcam_isp_cproc.h    |  0
+ .../v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.c    |  0
+ .../v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.h    |  0
+ .../isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.c    |  0
+ .../isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.h    |  0
+ .../isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.c    |  0
+ .../isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.h    |  0
+ .../isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.c   |  0
+ .../isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.h   |  0
+ .../isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.c   |  0
+ .../isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.h   |  0
+ .../v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.c |  0
+ .../v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.h |  0
+ .../v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.c |  0
+ .../v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.h |  0
+ .../isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.c   |  0
+ .../isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.h   |  0
+ .../v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.c |  0
+ .../v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.h |  0
+ .../v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.c |  0
+ .../v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.h |  0
+ .../v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.c    |  0
+ .../v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.h    |  0
+ .../isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.c   |  0
+ .../isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.h   |  0
+ .../isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.c    |  0
+ .../isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.h    |  0
+ .../isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.c |  0
+ .../isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.h |  0
+ .../isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.c |  0
+ .../isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.h |  0
+ .../isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.c   |  0
+ .../isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.h   |  0
+ .../isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.c   |  0
+ .../isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.h   |  0
+ .../isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.c |  0
+ .../isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.h |  0
+ .../vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.c  |  0
+ .../vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.h  |  0
+ .../v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.c    |  0
+ .../v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.h    |  0
+ .../isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.c   |  0
+ .../isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.h   |  0
+ .../isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.c |  0
+ .../isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.h |  0
+ .../vvcam/v4l2/isp/vvcam_isp_driver.c         |  0
+ .../vvcam/v4l2/isp/vvcam_isp_driver.h         |  0
+ .../vvcam/v4l2/isp/vvcam_isp_event.c          |  0
+ .../vvcam/v4l2/isp/vvcam_isp_event.h          |  0
+ .../vvcam/v4l2/isp/vvcam_isp_platform.c       |  0
+ .../vvcam/v4l2/isp/vvcam_isp_platform.h       |  0
+ .../vvcam/v4l2/isp/vvcam_isp_procfs.c         |  0
+ .../vvcam/v4l2/isp/vvcam_isp_procfs.h         |  0
+ .../vvcam/v4l2/video/vvcam_pipeline_link.h    |  0
+ .../vvcam/v4l2/video/vvcam_video.h            |  0
+ .../vvcam/v4l2/video/vvcam_video_driver.c     |  0
+ .../vvcam/v4l2/video/vvcam_video_driver.h     |  0
+ .../vvcam/v4l2/video/vvcam_video_event.c      |  0
+ .../vvcam/v4l2/video/vvcam_video_event.h      |  0
+ .../v4l2/video/vvcam_video_m2m_register.c     |  0
+ .../v4l2/video/vvcam_video_m2m_register.h     |  0
+ .../vvcam/v4l2/video/vvcam_video_platform.c   |  0
+ .../vvcam/v4l2/video/vvcam_video_platform.h   |  0
+ .../vvcam/v4l2/video/vvcam_video_register.c   |  0
+ .../vvcam/v4l2/video/vvcam_video_register.h   |  0
+ .../{ => canaan}/vvcam/vb/vvcam_cma.c         |  0
+ .../{ => canaan}/vvcam/vb/vvcam_cma.h         |  0
+ .../{ => canaan}/vvcam/vb/vvcam_mmz.c         |  0
+ .../{ => canaan}/vvcam/vb/vvcam_mmz.h         |  0
+ .../platform/{ => canaan}/vvcam/vb/vvcam_vb.h |  0
+ .../{ => canaan}/vvcam/vb/vvcam_vb_driver.c   |  0
+ .../{ => canaan}/vvcam/vb/vvcam_vb_driver.h   |  0
+ .../{ => canaan}/vvcam/vb/vvcam_vb_platform.c |  0
+ .../{ => canaan}/vvcam/vb/vvcam_vb_platform.h |  0
+ .../{ => canaan}/vvcam/vb/vvcam_vb_procfs.c   |  0
+ .../{ => canaan}/vvcam/vb/vvcam_vb_procfs.h   |  0
+ 191 files changed, 157 insertions(+), 6 deletions(-)
  rename drivers/media/platform/{canaan-vpu => canaan/vpu}/Kconfig (100%)
  rename drivers/media/platform/{canaan-vpu => canaan/vpu}/Makefile (100%)
- rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_h264dec.c (100%)
- rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_h264enc.c (100%)
- rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_hevcdec.c (100%)
- rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_hevcenc.c (100%)
- rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_jpegdec.c (100%)
- rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_jpegenc.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_h264dec.c (99%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_h264enc.c (92%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_hevcdec.c (99%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_hevcenc.c (99%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_jpegdec.c (99%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_jpegenc.c (99%)
  rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mve_protocol_def_v2.h (100%)
  rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mve_protocol_def_v3.h (100%)
  rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx-v4l2-controls.h (100%)
@@ -445,29 +445,221 @@ similarity index 100%
 rename from drivers/media/platform/canaan-vpu/Makefile
 rename to drivers/media/platform/canaan/vpu/Makefile
 diff --git a/drivers/media/platform/canaan-vpu/fw_h264dec.c b/drivers/media/platform/canaan/vpu/fw_h264dec.c
-similarity index 100%
+similarity index 99%
 rename from drivers/media/platform/canaan-vpu/fw_h264dec.c
 rename to drivers/media/platform/canaan/vpu/fw_h264dec.c
+index ca74e871a046..d4b2f644ec6a 100755
+--- a/drivers/media/platform/canaan-vpu/fw_h264dec.c
++++ b/drivers/media/platform/canaan/vpu/fw_h264dec.c
+@@ -1,3 +1,28 @@
++/* Copyright (c) 2024, Canaan Bright Sight Co., Ltd
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ * 1. Redistributions of source code must retain the above copyright
++ * notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ * notice, this list of conditions and the following disclaimer in the
++ * documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
++ * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
++ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
++ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
++ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
+ const unsigned int fw_h264dec[] __attribute__((aligned(0x1000))) = {
+     0x0000eb5e,
+     0x02020305,
 diff --git a/drivers/media/platform/canaan-vpu/fw_h264enc.c b/drivers/media/platform/canaan/vpu/fw_h264enc.c
-similarity index 100%
+similarity index 92%
 rename from drivers/media/platform/canaan-vpu/fw_h264enc.c
 rename to drivers/media/platform/canaan/vpu/fw_h264enc.c
+index 53428d6e9600..54f695b5876d 100755
+--- a/drivers/media/platform/canaan-vpu/fw_h264enc.c
++++ b/drivers/media/platform/canaan/vpu/fw_h264enc.c
+@@ -1,3 +1,28 @@
++/* Copyright (c) 2024, Canaan Bright Sight Co., Ltd
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ * 1. Redistributions of source code must retain the above copyright
++ * notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ * notice, this list of conditions and the following disclaimer in the
++ * documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
++ * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
++ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
++ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
++ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
+ const unsigned int fw_h264enc[] __attribute__ ((aligned (0x1000))) = {
+ 0x0000eb5e,
+ 0x02020305,
 diff --git a/drivers/media/platform/canaan-vpu/fw_hevcdec.c b/drivers/media/platform/canaan/vpu/fw_hevcdec.c
-similarity index 100%
+similarity index 99%
 rename from drivers/media/platform/canaan-vpu/fw_hevcdec.c
 rename to drivers/media/platform/canaan/vpu/fw_hevcdec.c
+index cd1ebf93ce4a..48af1957c371 100755
+--- a/drivers/media/platform/canaan-vpu/fw_hevcdec.c
++++ b/drivers/media/platform/canaan/vpu/fw_hevcdec.c
+@@ -1,3 +1,28 @@
++/* Copyright (c) 2024, Canaan Bright Sight Co., Ltd
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ * 1. Redistributions of source code must retain the above copyright
++ * notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ * notice, this list of conditions and the following disclaimer in the
++ * documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
++ * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
++ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
++ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
++ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
+ const unsigned int fw_hevcdec[] __attribute__((aligned(0x1000))) = {
+     0x0000eb5e,
+     0x02020305,
 diff --git a/drivers/media/platform/canaan-vpu/fw_hevcenc.c b/drivers/media/platform/canaan/vpu/fw_hevcenc.c
-similarity index 100%
+similarity index 99%
 rename from drivers/media/platform/canaan-vpu/fw_hevcenc.c
 rename to drivers/media/platform/canaan/vpu/fw_hevcenc.c
+index fd020c3fc5e4..525323ba66c1 100755
+--- a/drivers/media/platform/canaan-vpu/fw_hevcenc.c
++++ b/drivers/media/platform/canaan/vpu/fw_hevcenc.c
+@@ -1,3 +1,28 @@
++/* Copyright (c) 2024, Canaan Bright Sight Co., Ltd
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ * 1. Redistributions of source code must retain the above copyright
++ * notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ * notice, this list of conditions and the following disclaimer in the
++ * documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
++ * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
++ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
++ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
++ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
+ const unsigned int fw_hevcenc[] __attribute__((aligned(0x1000))) = {
+     0x0000eb5e,
+     0x02020305,
 diff --git a/drivers/media/platform/canaan-vpu/fw_jpegdec.c b/drivers/media/platform/canaan/vpu/fw_jpegdec.c
-similarity index 100%
+similarity index 99%
 rename from drivers/media/platform/canaan-vpu/fw_jpegdec.c
 rename to drivers/media/platform/canaan/vpu/fw_jpegdec.c
+index cd40bfbeffa4..7ff422ac0a02 100755
+--- a/drivers/media/platform/canaan-vpu/fw_jpegdec.c
++++ b/drivers/media/platform/canaan/vpu/fw_jpegdec.c
+@@ -1,3 +1,28 @@
++/* Copyright (c) 2024, Canaan Bright Sight Co., Ltd
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ * 1. Redistributions of source code must retain the above copyright
++ * notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ * notice, this list of conditions and the following disclaimer in the
++ * documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
++ * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
++ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
++ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
++ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
+ const unsigned int fw_jpegdec[] __attribute__((aligned(0x1000))) = {
+     0x0000eb5e,
+     0x02020305,
 diff --git a/drivers/media/platform/canaan-vpu/fw_jpegenc.c b/drivers/media/platform/canaan/vpu/fw_jpegenc.c
-similarity index 100%
+similarity index 99%
 rename from drivers/media/platform/canaan-vpu/fw_jpegenc.c
 rename to drivers/media/platform/canaan/vpu/fw_jpegenc.c
+index bfb72957a1fd..5c80891748ce 100755
+--- a/drivers/media/platform/canaan-vpu/fw_jpegenc.c
++++ b/drivers/media/platform/canaan/vpu/fw_jpegenc.c
+@@ -1,3 +1,28 @@
++/* Copyright (c) 2024, Canaan Bright Sight Co., Ltd
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ * 1. Redistributions of source code must retain the above copyright
++ * notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ * notice, this list of conditions and the following disclaimer in the
++ * documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
++ * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
++ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
++ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
++ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
+ const unsigned int fw_jpegenc[] __attribute__((aligned(0x1000))) = {
+     0x0000eb5e,
+     0x02020305,
 diff --git a/drivers/media/platform/canaan-vpu/mve_protocol_def_v2.h b/drivers/media/platform/canaan/vpu/mve_protocol_def_v2.h
 similarity index 100%
 rename from drivers/media/platform/canaan-vpu/mve_protocol_def_v2.h
