@@ -1,0 +1,1193 @@
+From 2ed8b348ca1c70d0f25637b5c9982c2725c6c63a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E9=BB=84=E5=AD=90=E6=87=BF?=
+ <huangziyi@canaan-creative.com>
+Date: Mon, 17 Jun 2024 16:20:25 +0800
+Subject: [PATCH] update media drivers
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: 黄子懿 <huangziyi@canaan-creative.com>
+---
+ arch/riscv/configs/k230_defconfig                            | 4 +++-
+ drivers/media/platform/Kconfig                               | 4 ++--
+ drivers/media/platform/Makefile                              | 5 ++---
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/Kconfig    | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/Makefile   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/fw_h264dec.c   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/fw_h264enc.c   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/fw_hevcdec.c   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/fw_hevcenc.c   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/fw_jpegdec.c   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/fw_jpegenc.c   | 0
+ .../{canaan-vpu => canaan/vpu}/mve_protocol_def_v2.h         | 0
+ .../{canaan-vpu => canaan/vpu}/mve_protocol_def_v3.h         | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx-v4l2-controls.h  | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_bitops.h   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_buffer.c   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_buffer.h   | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_dev.c  | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_dev.h  | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_driver.c   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_ext_if.h   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_ext_v4l2.c | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware.c | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware.h | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_cache.c | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_cache.h | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_priv.h  | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_v2.c    | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_firmware_v3.c    | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg.c    | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg.h    | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v500.c     | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v500.h     | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v52_v76.c  | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v52_v76.h  | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v550.c     | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v550.h     | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v61.c      | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v61.h      | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_if.c   | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_if.h   | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log.c  | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log.h  | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_log_group.c      | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_log_group.h      | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_log_ram.h  | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_lsid.c | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_lsid.h | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_mmu.c  | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_mmu.h  | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_pm_runtime.c     | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_pm_runtime.h     | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_scheduler.c      | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_scheduler.h      | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_secure.c   | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_secure.h   | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_seq.c  | 0
+ drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_seq.h  | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_session.c  | 0
+ .../media/platform/{canaan-vpu => canaan/vpu}/mvx_session.h  | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_buffer.c    | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_buffer.h    | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_ctrls.c     | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_ctrls.h     | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_fops.c      | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_fops.h      | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_session.c   | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_session.h   | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_vidioc.c    | 0
+ .../platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_vidioc.h    | 0
+ drivers/media/platform/{ => canaan}/vvcam/Kconfig            | 0
+ drivers/media/platform/{ => canaan}/vvcam/Makefile           | 0
+ drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_event.c  | 0
+ drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_event.h  | 0
+ drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp.h    | 0
+ .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_driver.c | 0
+ .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_driver.h | 0
+ .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_hal.c    | 0
+ .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_hal.h    | 0
+ .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_procfs.c | 0
+ .../media/platform/{ => canaan}/vvcam/isp/vvcam_isp_procfs.h | 0
+ drivers/media/platform/{ => canaan}/vvcam/mipi/k230_csi.c    | 0
+ drivers/media/platform/{ => canaan}/vvcam/mipi/k230_csi.h    | 0
+ drivers/media/platform/{ => canaan}/vvcam/mipi/k230_vi.c     | 0
+ drivers/media/platform/{ => canaan}/vvcam/mipi/k230_vi.h     | 0
+ drivers/media/platform/{ => canaan}/vvcam/mipi/vvcam_mipi.h  | 0
+ .../platform/{ => canaan}/vvcam/mipi/vvcam_mipi_driver.c     | 0
+ .../platform/{ => canaan}/vvcam/mipi/vvcam_mipi_driver.h     | 0
+ .../{ => canaan}/vvcam/v4l2/common/vvcam_v4l2_common.h       | 0
+ drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/Makefile  | 0
+ .../vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.c    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.h    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.c  | 0
+ .../vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.h  | 0
+ .../vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.c  | 0
+ .../vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.h  | 0
+ .../vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.c  | 0
+ .../vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.h  | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.c    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.h    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.c             | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.h             | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.c    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.h    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.c    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.h    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.c          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.h          | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.c             | 0
+ .../vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.h             | 0
+ .../vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.c    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.h    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.c     | 0
+ .../vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.h     | 0
+ .../vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.c     | 0
+ .../vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.h     | 0
+ .../vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.c | 0
+ .../vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.h | 0
+ .../{ => canaan}/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.c    | 0
+ .../{ => canaan}/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.h    | 0
+ .../vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.c             | 0
+ .../vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.h             | 0
+ .../vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.c       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.h       | 0
+ .../vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.c     | 0
+ .../vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.h     | 0
+ .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_driver.c  | 0
+ .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_driver.h  | 0
+ .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_event.c   | 0
+ .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_event.h   | 0
+ .../{ => canaan}/vvcam/v4l2/isp/vvcam_isp_platform.c         | 0
+ .../{ => canaan}/vvcam/v4l2/isp/vvcam_isp_platform.h         | 0
+ .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_procfs.c  | 0
+ .../platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_procfs.h  | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_pipeline_link.h      | 0
+ .../platform/{ => canaan}/vvcam/v4l2/video/vvcam_video.h     | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_driver.c       | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_driver.h       | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_event.c        | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_event.h        | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_m2m_register.c | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_m2m_register.h | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_platform.c     | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_platform.h     | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_register.c     | 0
+ .../{ => canaan}/vvcam/v4l2/video/vvcam_video_register.h     | 0
+ drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_cma.c     | 0
+ drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_cma.h     | 0
+ drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_mmz.c     | 0
+ drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_mmz.h     | 0
+ drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb.h      | 0
+ .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_driver.c   | 0
+ .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_driver.h   | 0
+ .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_platform.c | 0
+ .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_platform.h | 0
+ .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_procfs.c   | 0
+ .../media/platform/{ => canaan}/vvcam/vb/vvcam_vb_procfs.h   | 0
+ 191 files changed, 7 insertions(+), 6 deletions(-)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/Kconfig (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/Makefile (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_h264dec.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_h264enc.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_hevcdec.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_hevcenc.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_jpegdec.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/fw_jpegenc.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mve_protocol_def_v2.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mve_protocol_def_v3.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx-v4l2-controls.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_bitops.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_buffer.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_buffer.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_dev.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_dev.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_driver.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_ext_if.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_ext_v4l2.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware_cache.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware_cache.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware_priv.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware_v2.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_firmware_v3.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v500.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v500.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v52_v76.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v52_v76.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v550.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v550.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v61.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_hwreg_v61.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_if.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_if.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log_group.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log_group.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_log_ram.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_lsid.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_lsid.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_mmu.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_mmu.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_pm_runtime.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_pm_runtime.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_scheduler.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_scheduler.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_secure.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_secure.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_seq.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_seq.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_session.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_session.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_buffer.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_buffer.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_ctrls.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_ctrls.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_fops.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_fops.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_session.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_session.h (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_vidioc.c (100%)
+ rename drivers/media/platform/{canaan-vpu => canaan/vpu}/mvx_v4l2_vidioc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/Kconfig (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/Makefile (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_event.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_event.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp_driver.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp_driver.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp_hal.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp_hal.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp_procfs.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/isp/vvcam_isp_procfs.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/mipi/k230_csi.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/mipi/k230_csi.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/mipi/k230_vi.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/mipi/k230_vi.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/mipi/vvcam_mipi.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/mipi/vvcam_mipi_driver.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/mipi/vvcam_mipi_driver.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/common/vvcam_v4l2_common.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/Makefile (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_driver.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_driver.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_event.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_event.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_platform.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_platform.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_procfs.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/isp/vvcam_isp_procfs.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_pipeline_link.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_driver.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_driver.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_event.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_event.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_m2m_register.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_m2m_register.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_platform.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_platform.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_register.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/v4l2/video/vvcam_video_register.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_cma.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_cma.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_mmz.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_mmz.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb_driver.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb_driver.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb_platform.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb_platform.h (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb_procfs.c (100%)
+ rename drivers/media/platform/{ => canaan}/vvcam/vb/vvcam_vb_procfs.h (100%)
+
+diff --git a/arch/riscv/configs/k230_defconfig b/arch/riscv/configs/k230_defconfig
+index 082808db67ae..b702e49d6e14 100644
+--- a/arch/riscv/configs/k230_defconfig
++++ b/arch/riscv/configs/k230_defconfig
+@@ -277,4 +277,6 @@ CONFIG_RCU_EQS_DEBUG=y
+ # CONFIG_FTRACE is not set
+ # CONFIG_RUNTIME_TESTING_MENU is not set
+ CONFIG_MEMTEST=y
+-CONFIG_USB_ANNOUNCE_NEW_DEVICES=y
+\ No newline at end of file
++CONFIG_USB_ANNOUNCE_NEW_DEVICES=y
++CONFIG_MEDIA_SUPPORT=y
++CONFIG_VVCAM=m
+diff --git a/drivers/media/platform/Kconfig b/drivers/media/platform/Kconfig
+index 545569cc40e0..d1975245282a 100644
+--- a/drivers/media/platform/Kconfig
++++ b/drivers/media/platform/Kconfig
+@@ -85,7 +85,7 @@ source "drivers/media/platform/ti/Kconfig"
+ source "drivers/media/platform/verisilicon/Kconfig"
+ source "drivers/media/platform/via/Kconfig"
+ source "drivers/media/platform/xilinx/Kconfig"
+-source "drivers/media/platform/vvcam/Kconfig"
+-source "drivers/media/platform/canaan-vpu/Kconfig"
++source "drivers/media/platform/canaan/vvcam/Kconfig"
++source "drivers/media/platform/canaan/vpu/Kconfig"
+ 
+ endif # MEDIA_PLATFORM_DRIVERS
+diff --git a/drivers/media/platform/Makefile b/drivers/media/platform/Makefile
+index c6f6f66f288b..e460570c7f51 100644
+--- a/drivers/media/platform/Makefile
++++ b/drivers/media/platform/Makefile
+@@ -28,12 +28,11 @@ obj-y += ti/
+ obj-y += verisilicon/
+ obj-y += via/
+ obj-y += xilinx/
+-obj-y += canaan-vpu/
++obj-y += canaan/vpu/
++obj-y += canaan/vvcam/
+ 
+ # Please place here only ancillary drivers that aren't SoC-specific
+ # Please keep it alphabetically sorted by Kconfig name
+ # (e. g. LC_ALL=C sort Makefile)
+ obj-$(CONFIG_VIDEO_MEM2MEM_DEINTERLACE)	+= m2m-deinterlace.o
+ obj-$(CONFIG_VIDEO_MUX)			+= video-mux.o
+-
+-obj-y							+= vvcam/
+diff --git a/drivers/media/platform/canaan-vpu/Kconfig b/drivers/media/platform/canaan/vpu/Kconfig
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/Kconfig
+rename to drivers/media/platform/canaan/vpu/Kconfig
+diff --git a/drivers/media/platform/canaan-vpu/Makefile b/drivers/media/platform/canaan/vpu/Makefile
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/Makefile
+rename to drivers/media/platform/canaan/vpu/Makefile
+diff --git a/drivers/media/platform/canaan-vpu/fw_h264dec.c b/drivers/media/platform/canaan/vpu/fw_h264dec.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/fw_h264dec.c
+rename to drivers/media/platform/canaan/vpu/fw_h264dec.c
+diff --git a/drivers/media/platform/canaan-vpu/fw_h264enc.c b/drivers/media/platform/canaan/vpu/fw_h264enc.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/fw_h264enc.c
+rename to drivers/media/platform/canaan/vpu/fw_h264enc.c
+diff --git a/drivers/media/platform/canaan-vpu/fw_hevcdec.c b/drivers/media/platform/canaan/vpu/fw_hevcdec.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/fw_hevcdec.c
+rename to drivers/media/platform/canaan/vpu/fw_hevcdec.c
+diff --git a/drivers/media/platform/canaan-vpu/fw_hevcenc.c b/drivers/media/platform/canaan/vpu/fw_hevcenc.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/fw_hevcenc.c
+rename to drivers/media/platform/canaan/vpu/fw_hevcenc.c
+diff --git a/drivers/media/platform/canaan-vpu/fw_jpegdec.c b/drivers/media/platform/canaan/vpu/fw_jpegdec.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/fw_jpegdec.c
+rename to drivers/media/platform/canaan/vpu/fw_jpegdec.c
+diff --git a/drivers/media/platform/canaan-vpu/fw_jpegenc.c b/drivers/media/platform/canaan/vpu/fw_jpegenc.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/fw_jpegenc.c
+rename to drivers/media/platform/canaan/vpu/fw_jpegenc.c
+diff --git a/drivers/media/platform/canaan-vpu/mve_protocol_def_v2.h b/drivers/media/platform/canaan/vpu/mve_protocol_def_v2.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mve_protocol_def_v2.h
+rename to drivers/media/platform/canaan/vpu/mve_protocol_def_v2.h
+diff --git a/drivers/media/platform/canaan-vpu/mve_protocol_def_v3.h b/drivers/media/platform/canaan/vpu/mve_protocol_def_v3.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mve_protocol_def_v3.h
+rename to drivers/media/platform/canaan/vpu/mve_protocol_def_v3.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx-v4l2-controls.h b/drivers/media/platform/canaan/vpu/mvx-v4l2-controls.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx-v4l2-controls.h
+rename to drivers/media/platform/canaan/vpu/mvx-v4l2-controls.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_bitops.h b/drivers/media/platform/canaan/vpu/mvx_bitops.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_bitops.h
+rename to drivers/media/platform/canaan/vpu/mvx_bitops.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_buffer.c b/drivers/media/platform/canaan/vpu/mvx_buffer.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_buffer.c
+rename to drivers/media/platform/canaan/vpu/mvx_buffer.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_buffer.h b/drivers/media/platform/canaan/vpu/mvx_buffer.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_buffer.h
+rename to drivers/media/platform/canaan/vpu/mvx_buffer.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_dev.c b/drivers/media/platform/canaan/vpu/mvx_dev.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_dev.c
+rename to drivers/media/platform/canaan/vpu/mvx_dev.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_dev.h b/drivers/media/platform/canaan/vpu/mvx_dev.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_dev.h
+rename to drivers/media/platform/canaan/vpu/mvx_dev.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_driver.c b/drivers/media/platform/canaan/vpu/mvx_driver.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_driver.c
+rename to drivers/media/platform/canaan/vpu/mvx_driver.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_ext_if.h b/drivers/media/platform/canaan/vpu/mvx_ext_if.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_ext_if.h
+rename to drivers/media/platform/canaan/vpu/mvx_ext_if.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_ext_v4l2.c b/drivers/media/platform/canaan/vpu/mvx_ext_v4l2.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_ext_v4l2.c
+rename to drivers/media/platform/canaan/vpu/mvx_ext_v4l2.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_firmware.c b/drivers/media/platform/canaan/vpu/mvx_firmware.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_firmware.c
+rename to drivers/media/platform/canaan/vpu/mvx_firmware.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_firmware.h b/drivers/media/platform/canaan/vpu/mvx_firmware.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_firmware.h
+rename to drivers/media/platform/canaan/vpu/mvx_firmware.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_firmware_cache.c b/drivers/media/platform/canaan/vpu/mvx_firmware_cache.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_firmware_cache.c
+rename to drivers/media/platform/canaan/vpu/mvx_firmware_cache.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_firmware_cache.h b/drivers/media/platform/canaan/vpu/mvx_firmware_cache.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_firmware_cache.h
+rename to drivers/media/platform/canaan/vpu/mvx_firmware_cache.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_firmware_priv.h b/drivers/media/platform/canaan/vpu/mvx_firmware_priv.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_firmware_priv.h
+rename to drivers/media/platform/canaan/vpu/mvx_firmware_priv.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_firmware_v2.c b/drivers/media/platform/canaan/vpu/mvx_firmware_v2.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_firmware_v2.c
+rename to drivers/media/platform/canaan/vpu/mvx_firmware_v2.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_firmware_v3.c b/drivers/media/platform/canaan/vpu/mvx_firmware_v3.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_firmware_v3.c
+rename to drivers/media/platform/canaan/vpu/mvx_firmware_v3.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg.c b/drivers/media/platform/canaan/vpu/mvx_hwreg.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg.c
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg.h b/drivers/media/platform/canaan/vpu/mvx_hwreg.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg.h
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg_v500.c b/drivers/media/platform/canaan/vpu/mvx_hwreg_v500.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg_v500.c
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg_v500.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg_v500.h b/drivers/media/platform/canaan/vpu/mvx_hwreg_v500.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg_v500.h
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg_v500.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg_v52_v76.c b/drivers/media/platform/canaan/vpu/mvx_hwreg_v52_v76.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg_v52_v76.c
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg_v52_v76.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg_v52_v76.h b/drivers/media/platform/canaan/vpu/mvx_hwreg_v52_v76.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg_v52_v76.h
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg_v52_v76.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg_v550.c b/drivers/media/platform/canaan/vpu/mvx_hwreg_v550.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg_v550.c
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg_v550.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg_v550.h b/drivers/media/platform/canaan/vpu/mvx_hwreg_v550.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg_v550.h
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg_v550.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg_v61.c b/drivers/media/platform/canaan/vpu/mvx_hwreg_v61.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg_v61.c
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg_v61.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_hwreg_v61.h b/drivers/media/platform/canaan/vpu/mvx_hwreg_v61.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_hwreg_v61.h
+rename to drivers/media/platform/canaan/vpu/mvx_hwreg_v61.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_if.c b/drivers/media/platform/canaan/vpu/mvx_if.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_if.c
+rename to drivers/media/platform/canaan/vpu/mvx_if.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_if.h b/drivers/media/platform/canaan/vpu/mvx_if.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_if.h
+rename to drivers/media/platform/canaan/vpu/mvx_if.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_log.c b/drivers/media/platform/canaan/vpu/mvx_log.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_log.c
+rename to drivers/media/platform/canaan/vpu/mvx_log.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_log.h b/drivers/media/platform/canaan/vpu/mvx_log.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_log.h
+rename to drivers/media/platform/canaan/vpu/mvx_log.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_log_group.c b/drivers/media/platform/canaan/vpu/mvx_log_group.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_log_group.c
+rename to drivers/media/platform/canaan/vpu/mvx_log_group.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_log_group.h b/drivers/media/platform/canaan/vpu/mvx_log_group.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_log_group.h
+rename to drivers/media/platform/canaan/vpu/mvx_log_group.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_log_ram.h b/drivers/media/platform/canaan/vpu/mvx_log_ram.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_log_ram.h
+rename to drivers/media/platform/canaan/vpu/mvx_log_ram.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_lsid.c b/drivers/media/platform/canaan/vpu/mvx_lsid.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_lsid.c
+rename to drivers/media/platform/canaan/vpu/mvx_lsid.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_lsid.h b/drivers/media/platform/canaan/vpu/mvx_lsid.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_lsid.h
+rename to drivers/media/platform/canaan/vpu/mvx_lsid.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_mmu.c b/drivers/media/platform/canaan/vpu/mvx_mmu.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_mmu.c
+rename to drivers/media/platform/canaan/vpu/mvx_mmu.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_mmu.h b/drivers/media/platform/canaan/vpu/mvx_mmu.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_mmu.h
+rename to drivers/media/platform/canaan/vpu/mvx_mmu.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_pm_runtime.c b/drivers/media/platform/canaan/vpu/mvx_pm_runtime.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_pm_runtime.c
+rename to drivers/media/platform/canaan/vpu/mvx_pm_runtime.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_pm_runtime.h b/drivers/media/platform/canaan/vpu/mvx_pm_runtime.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_pm_runtime.h
+rename to drivers/media/platform/canaan/vpu/mvx_pm_runtime.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_scheduler.c b/drivers/media/platform/canaan/vpu/mvx_scheduler.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_scheduler.c
+rename to drivers/media/platform/canaan/vpu/mvx_scheduler.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_scheduler.h b/drivers/media/platform/canaan/vpu/mvx_scheduler.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_scheduler.h
+rename to drivers/media/platform/canaan/vpu/mvx_scheduler.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_secure.c b/drivers/media/platform/canaan/vpu/mvx_secure.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_secure.c
+rename to drivers/media/platform/canaan/vpu/mvx_secure.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_secure.h b/drivers/media/platform/canaan/vpu/mvx_secure.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_secure.h
+rename to drivers/media/platform/canaan/vpu/mvx_secure.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_seq.c b/drivers/media/platform/canaan/vpu/mvx_seq.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_seq.c
+rename to drivers/media/platform/canaan/vpu/mvx_seq.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_seq.h b/drivers/media/platform/canaan/vpu/mvx_seq.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_seq.h
+rename to drivers/media/platform/canaan/vpu/mvx_seq.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_session.c b/drivers/media/platform/canaan/vpu/mvx_session.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_session.c
+rename to drivers/media/platform/canaan/vpu/mvx_session.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_session.h b/drivers/media/platform/canaan/vpu/mvx_session.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_session.h
+rename to drivers/media/platform/canaan/vpu/mvx_session.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_buffer.c b/drivers/media/platform/canaan/vpu/mvx_v4l2_buffer.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_buffer.c
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_buffer.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_buffer.h b/drivers/media/platform/canaan/vpu/mvx_v4l2_buffer.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_buffer.h
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_buffer.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_ctrls.c b/drivers/media/platform/canaan/vpu/mvx_v4l2_ctrls.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_ctrls.c
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_ctrls.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_ctrls.h b/drivers/media/platform/canaan/vpu/mvx_v4l2_ctrls.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_ctrls.h
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_ctrls.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_fops.c b/drivers/media/platform/canaan/vpu/mvx_v4l2_fops.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_fops.c
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_fops.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_fops.h b/drivers/media/platform/canaan/vpu/mvx_v4l2_fops.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_fops.h
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_fops.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_session.c b/drivers/media/platform/canaan/vpu/mvx_v4l2_session.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_session.c
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_session.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_session.h b/drivers/media/platform/canaan/vpu/mvx_v4l2_session.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_session.h
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_session.h
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_vidioc.c b/drivers/media/platform/canaan/vpu/mvx_v4l2_vidioc.c
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_vidioc.c
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_vidioc.c
+diff --git a/drivers/media/platform/canaan-vpu/mvx_v4l2_vidioc.h b/drivers/media/platform/canaan/vpu/mvx_v4l2_vidioc.h
+similarity index 100%
+rename from drivers/media/platform/canaan-vpu/mvx_v4l2_vidioc.h
+rename to drivers/media/platform/canaan/vpu/mvx_v4l2_vidioc.h
+diff --git a/drivers/media/platform/vvcam/Kconfig b/drivers/media/platform/canaan/vvcam/Kconfig
+similarity index 100%
+rename from drivers/media/platform/vvcam/Kconfig
+rename to drivers/media/platform/canaan/vvcam/Kconfig
+diff --git a/drivers/media/platform/vvcam/Makefile b/drivers/media/platform/canaan/vvcam/Makefile
+similarity index 100%
+rename from drivers/media/platform/vvcam/Makefile
+rename to drivers/media/platform/canaan/vvcam/Makefile
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_event.c b/drivers/media/platform/canaan/vvcam/isp/vvcam_event.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_event.c
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_event.c
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_event.h b/drivers/media/platform/canaan/vvcam/isp/vvcam_event.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_event.h
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_event.h
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_isp.h b/drivers/media/platform/canaan/vvcam/isp/vvcam_isp.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_isp.h
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_isp.h
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_isp_driver.c b/drivers/media/platform/canaan/vvcam/isp/vvcam_isp_driver.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_isp_driver.c
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_isp_driver.c
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_isp_driver.h b/drivers/media/platform/canaan/vvcam/isp/vvcam_isp_driver.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_isp_driver.h
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_isp_driver.h
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_isp_hal.c b/drivers/media/platform/canaan/vvcam/isp/vvcam_isp_hal.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_isp_hal.c
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_isp_hal.c
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_isp_hal.h b/drivers/media/platform/canaan/vvcam/isp/vvcam_isp_hal.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_isp_hal.h
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_isp_hal.h
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_isp_procfs.c b/drivers/media/platform/canaan/vvcam/isp/vvcam_isp_procfs.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_isp_procfs.c
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_isp_procfs.c
+diff --git a/drivers/media/platform/vvcam/isp/vvcam_isp_procfs.h b/drivers/media/platform/canaan/vvcam/isp/vvcam_isp_procfs.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/isp/vvcam_isp_procfs.h
+rename to drivers/media/platform/canaan/vvcam/isp/vvcam_isp_procfs.h
+diff --git a/drivers/media/platform/vvcam/mipi/k230_csi.c b/drivers/media/platform/canaan/vvcam/mipi/k230_csi.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/mipi/k230_csi.c
+rename to drivers/media/platform/canaan/vvcam/mipi/k230_csi.c
+diff --git a/drivers/media/platform/vvcam/mipi/k230_csi.h b/drivers/media/platform/canaan/vvcam/mipi/k230_csi.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/mipi/k230_csi.h
+rename to drivers/media/platform/canaan/vvcam/mipi/k230_csi.h
+diff --git a/drivers/media/platform/vvcam/mipi/k230_vi.c b/drivers/media/platform/canaan/vvcam/mipi/k230_vi.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/mipi/k230_vi.c
+rename to drivers/media/platform/canaan/vvcam/mipi/k230_vi.c
+diff --git a/drivers/media/platform/vvcam/mipi/k230_vi.h b/drivers/media/platform/canaan/vvcam/mipi/k230_vi.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/mipi/k230_vi.h
+rename to drivers/media/platform/canaan/vvcam/mipi/k230_vi.h
+diff --git a/drivers/media/platform/vvcam/mipi/vvcam_mipi.h b/drivers/media/platform/canaan/vvcam/mipi/vvcam_mipi.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/mipi/vvcam_mipi.h
+rename to drivers/media/platform/canaan/vvcam/mipi/vvcam_mipi.h
+diff --git a/drivers/media/platform/vvcam/mipi/vvcam_mipi_driver.c b/drivers/media/platform/canaan/vvcam/mipi/vvcam_mipi_driver.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/mipi/vvcam_mipi_driver.c
+rename to drivers/media/platform/canaan/vvcam/mipi/vvcam_mipi_driver.c
+diff --git a/drivers/media/platform/vvcam/mipi/vvcam_mipi_driver.h b/drivers/media/platform/canaan/vvcam/mipi/vvcam_mipi_driver.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/mipi/vvcam_mipi_driver.h
+rename to drivers/media/platform/canaan/vvcam/mipi/vvcam_mipi_driver.h
+diff --git a/drivers/media/platform/vvcam/v4l2/common/vvcam_v4l2_common.h b/drivers/media/platform/canaan/vvcam/v4l2/common/vvcam_v4l2_common.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/common/vvcam_v4l2_common.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/common/vvcam_v4l2_common.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/Makefile b/drivers/media/platform/canaan/vvcam/v4l2/isp/Makefile
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/Makefile
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/Makefile
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v3/vvcam_isp_2dnr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/2dnr/2dnr_v5_2/vvcam_isp_2dnr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v1_2/vvcam_isp_3dnr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/3dnr/3dnr_v2_1/vvcam_isp_3dnr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ae/ae_v3/vvcam_isp_ae.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/af/af_v3/vvcam_isp_af.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/afm/afm_v1/vvcam_isp_afm.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/awb/awb_v3/vvcam_isp_awb.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/bls/bls/vvcam_isp_bls.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ccm/ccm/vvcam_isp_ccm.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cnr/cnr_v1/vvcam_isp_cnr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cpd/cpd/vvcam_isp_cpd.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/cproc/cproc/vvcam_isp_cproc.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dg/dg/vvcam_isp_dg.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v1/vvcam_isp_dmsc.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dmsc/dmsc_v2/vvcam_isp_dmsc.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dpcc/dpcc/vvcam_isp_dpcc.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/dpf/dpf_v1/vvcam_isp_dpf.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ee/ee_v1/vvcam_isp_ee.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ee/ee_v2/vvcam_isp_ee.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/exp/exp_v2/vvcam_isp_exp.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gc/gc_v1/vvcam_isp_gc.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gc/gc_v2/vvcam_isp_gc.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/ge/ge/vvcam_isp_ge.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gtm/gtm_v1/vvcam_isp_gtm.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/gwdr/gwdr_v1/vvcam_isp_gwdr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v1_3/vvcam_isp_hdr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/hdr/hdr_v3_1/vvcam_isp_hdr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v1/vvcam_isp_lsc.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/lsc/lsc_v3/vvcam_isp_lsc.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/rgbir/rgbir_v2/vvcam_isp_rgbir.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/vvcam_isp_ctrl.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wb/wb/vvcam_isp_wb.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v3/vvcam_isp_wdr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/isp_ctrl/wdr/wdr_v5_2/vvcam_isp_wdr.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_driver.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_driver.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_driver.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_driver.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_driver.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_driver.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_driver.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_driver.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_event.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_event.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_event.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_event.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_event.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_event.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_event.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_event.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_platform.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_platform.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_platform.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_platform.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_platform.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_platform.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_platform.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_platform.h
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_procfs.c b/drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_procfs.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_procfs.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_procfs.c
+diff --git a/drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_procfs.h b/drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_procfs.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/isp/vvcam_isp_procfs.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/isp/vvcam_isp_procfs.h
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_pipeline_link.h b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_pipeline_link.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_pipeline_link.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_pipeline_link.h
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video.h b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video.h
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_driver.c b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_driver.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_driver.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_driver.c
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_driver.h b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_driver.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_driver.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_driver.h
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_event.c b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_event.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_event.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_event.c
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_event.h b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_event.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_event.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_event.h
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_m2m_register.c b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_m2m_register.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_m2m_register.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_m2m_register.c
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_m2m_register.h b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_m2m_register.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_m2m_register.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_m2m_register.h
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_platform.c b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_platform.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_platform.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_platform.c
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_platform.h b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_platform.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_platform.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_platform.h
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_register.c b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_register.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_register.c
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_register.c
+diff --git a/drivers/media/platform/vvcam/v4l2/video/vvcam_video_register.h b/drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_register.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/v4l2/video/vvcam_video_register.h
+rename to drivers/media/platform/canaan/vvcam/v4l2/video/vvcam_video_register.h
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_cma.c b/drivers/media/platform/canaan/vvcam/vb/vvcam_cma.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_cma.c
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_cma.c
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_cma.h b/drivers/media/platform/canaan/vvcam/vb/vvcam_cma.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_cma.h
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_cma.h
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_mmz.c b/drivers/media/platform/canaan/vvcam/vb/vvcam_mmz.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_mmz.c
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_mmz.c
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_mmz.h b/drivers/media/platform/canaan/vvcam/vb/vvcam_mmz.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_mmz.h
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_mmz.h
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_vb.h b/drivers/media/platform/canaan/vvcam/vb/vvcam_vb.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_vb.h
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_vb.h
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_vb_driver.c b/drivers/media/platform/canaan/vvcam/vb/vvcam_vb_driver.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_vb_driver.c
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_vb_driver.c
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_vb_driver.h b/drivers/media/platform/canaan/vvcam/vb/vvcam_vb_driver.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_vb_driver.h
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_vb_driver.h
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_vb_platform.c b/drivers/media/platform/canaan/vvcam/vb/vvcam_vb_platform.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_vb_platform.c
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_vb_platform.c
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_vb_platform.h b/drivers/media/platform/canaan/vvcam/vb/vvcam_vb_platform.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_vb_platform.h
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_vb_platform.h
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_vb_procfs.c b/drivers/media/platform/canaan/vvcam/vb/vvcam_vb_procfs.c
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_vb_procfs.c
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_vb_procfs.c
+diff --git a/drivers/media/platform/vvcam/vb/vvcam_vb_procfs.h b/drivers/media/platform/canaan/vvcam/vb/vvcam_vb_procfs.h
+similarity index 100%
+rename from drivers/media/platform/vvcam/vb/vvcam_vb_procfs.h
+rename to drivers/media/platform/canaan/vvcam/vb/vvcam_vb_procfs.h
+-- 
+2.39.1
+
