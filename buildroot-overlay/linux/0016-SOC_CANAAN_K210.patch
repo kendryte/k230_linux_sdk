@@ -27,22 +27,6 @@ index 4debf4947..5aa1a9827 100644
  	help
  	  Add support for the Canaan Kendryte K210 RISC-V SOC Field
  	  Programmable IO Array (FPIOA) controller.
-@@ -469,15 +469,6 @@ config PINCTRL_TB10X
- 	depends on OF && ARC_PLAT_TB10X
- 	select GPIOLIB
- 
--config PINCTRL_TH1520
--	tristate "Pinctrl driver for the T-Head TH1520 SoC"
--	depends on ARCH_THEAD || COMPILE_TEST
--	select GENERIC_PINMUX_FUNCTIONS
--	select GENERIC_PINCONF
--	select PINMUX
--	help
--	  This selects the pinctrl driver for T-Head TH1520 RISC-V SoC.
--
- config PINCTRL_ZYNQ
- 	bool "Pinctrl driver for Xilinx Zynq"
- 	depends on ARCH_ZYNQ
 -- 
 2.39.1
 

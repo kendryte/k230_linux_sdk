@@ -1,5 +1,11 @@
 # K230 Liunx SDK
 
+
+
+>This document uses the k230_canmv_defconfig configuration as an example. If you use other configurations, replace k230_canmv_defconfig with correct names. All the configurations supported by this sdk,  can be found in  buildroot-overlay/configs directory.
+
+
+
 ## build
 
 ```bash
@@ -10,7 +16,6 @@ make CONF=k230_canmv_defconfig # build k230 canmv image
 # make help # view help
 ```
 
->All configurations can be found in the buildroot-overlay/configs  directory
 >[BR2_PRIMARY_SIT configuration primary download site]("https://bootlin.com/pub/conferences/2011/elce/using-buildroot-real-project/using-buildroot-real-project.pdf") for example:make CONF=${CONF}  BR2_PRIMARY_SITE=https://ai.b-bug.org/~/wangjianxin/dl/
 
 ## output
@@ -43,7 +48,7 @@ make linux-dirclean #linux clean
 ```
 
 >linux source code can be specified using the LINUX_OVERRIDE_SRCDIR macro,for example:
->echo LINUX_OVERRIDE_SRCDIR=/home/wangjianxin/t/linux-xuantie-kernel >output/k230d_canmv_64kernel_32rootfs_defconfig/local.mk
+>echo LINUX_OVERRIDE_SRCDIR=/home/wangjianxin/t/linux-xuantie-kernel >output/k230_canmv_defconfig/local.mk
 
 
 ## buildroot

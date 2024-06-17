@@ -41,23 +41,6 @@ index ec69e6bbb..ac4835d55 100644
  config RESET_LANTIQ
  	bool "Lantiq XWAY Reset Driver" if COMPILE_TEST
  	default SOC_TYPE_XWAY
-@@ -253,16 +263,6 @@ config RESET_SUNXI
- 	help
- 	  This enables the reset driver for Allwinner SoCs.
- 
--config RESET_TH1520
--	bool "TH1520 Reset Driver"
--	depends on (ARCH_THEAD || COMPILE_TEST) && OF
--	select MFD_SYSCON
--	default ARCH_THEAD
--	help
--	  Support for the T-HEAD 1520 RISC-V SoC reset controller.
--	  Say Y if you want to control reset signals provided by this
--	  controller.
--
- config RESET_TI_SCI
- 	tristate "TI System Control Interface (TI-SCI) reset driver"
- 	depends on TI_SCI_PROTOCOL || (COMPILE_TEST && TI_SCI_PROTOCOL=n)
 diff --git a/drivers/reset/Makefile b/drivers/reset/Makefile
 index 5c858e622..3fb9389f6 100644
 --- a/drivers/reset/Makefile
@@ -70,14 +53,6 @@ index 5c858e622..3fb9389f6 100644
  obj-$(CONFIG_RESET_LANTIQ) += reset-lantiq.o
  obj-$(CONFIG_RESET_LPC18XX) += reset-lpc18xx.o
  obj-$(CONFIG_RESET_MCHP_SPARX5) += reset-microchip-sparx5.o
-@@ -33,7 +34,6 @@ obj-$(CONFIG_RESET_SIMPLE) += reset-simple.o
- obj-$(CONFIG_RESET_SOCFPGA) += reset-socfpga.o
- obj-$(CONFIG_RESET_SUNPLUS) += reset-sunplus.o
- obj-$(CONFIG_RESET_SUNXI) += reset-sunxi.o
--obj-$(CONFIG_RESET_TH1520) += reset-th1520.o
- obj-$(CONFIG_RESET_TI_SCI) += reset-ti-sci.o
- obj-$(CONFIG_RESET_TI_SYSCON) += reset-ti-syscon.o
- obj-$(CONFIG_RESET_TI_TPS380X) += reset-tps380x.o
 diff --git a/drivers/reset/reset-k230.c b/drivers/reset/reset-k230.c
 new file mode 100644
 index 000000000..ddd42684f
