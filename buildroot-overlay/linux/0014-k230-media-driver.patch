@@ -1,0 +1,25 @@
+From 3e8b2dd145a063a7c00c751ebd5e1701db852a30 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 11 Jun 2024 16:58:49 +0800
+Subject: [PATCH 14/20] k230 media driver
+
+---
+ drivers/video/Kconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/video/Kconfig b/drivers/video/Kconfig
+index b694d7669..b6a3afa0d 100644
+--- a/drivers/video/Kconfig
++++ b/drivers/video/Kconfig
+@@ -41,6 +41,8 @@ source "drivers/gpu/ipu-v3/Kconfig"
+ 
+ source "drivers/gpu/drm/Kconfig"
+ 
++source "drivers/gpu/vglite/Kconfig"
++
+ menu "Frame buffer Devices"
+ source "drivers/video/fbdev/Kconfig"
+ endmenu
+-- 
+2.39.1
+

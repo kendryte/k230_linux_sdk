@@ -1,0 +1,65 @@
+
+# Set gdb environment
+#riscv64-unknown-elf-gdb  -ex "target remote 10.100.228.83:1026" -ex "reset" -ex "reset"  -x  gdbinit  
+#cp  output/k230d_canmv_64kernel_32rootfs_defconfig/build/linux-b6516a27c813582a837d73330f939beba3e019c7/arch/riscv/boot/Image  .
+#cp  output/k230d_canmv_64kernel_32rootfs_defconfig/build/linux-b6516a27c813582a837d73330f939beba3e019c7/arch/riscv/boot/dts/canaan/k230d-canmv.dtb  .
+#cp  output/k230d_canmv_64kernel_32rootfs_defconfig/build/opensbi-1.4/build/platform/generic/firmware/fw_dynamic.bin .
+
+set confirm off
+set height  0
+
+# Invalidate & Clear IBP BTB BHT ICache & DCache
+set $mcor = 0x70013
+
+# Enable L2 Cache
+set $mccr2 = 0xe0000009
+
+# Enable L1 Cache
+set $mhcr = 0x11ff
+
+# Enable CPU Features
+set $mxstatus = 0x638000
+set $mhint = 0x6e30c
+#set $mhint2 = 0x8000
+
+set $msmpr = 0x1
+#set $plic_ctrl  = 0xf001FFFFC
+
+
+# memory layout
+set $opensbi_addr = 0
+set $vmlinux_addr = 0x200000
+set $dtb_addr     = 0x2200000
+set $rootfs_addr  = $opensbi_addr + 0x04000000
+#set $zsb_addr     = $rootfs_addr  - 0x00008000
+set $dyninfo_addr = $rootfs_addr  - 0x40  
+#  set $flag_addr    = $rootfs_addr  - 0x100
+
+# Load kernel
+#restore zero_stage_boot.bin binary          $zsb_addr
+restore k230d-canmv.dtb  binary  $dtb_addr
+restore fw_dynamic.bin binary               $opensbi_addr
+restore Image binary                        $vmlinux_addr
+
+# Set opensbi dynamic info param
+set *(unsigned long *)($dyninfo_addr)      = 0x4942534f  
+set *(unsigned long *)($dyninfo_addr + 8)  = 2
+set *(unsigned long *)($dyninfo_addr + 16) = $vmlinux_addr
+set *(unsigned long *)($dyninfo_addr + 24) = 1
+set *(unsigned long *)($dyninfo_addr + 32) = 0
+set *(unsigned long *)($dyninfo_addr + 40) = -1
+
+# Set boot flag for CPU functional setting
+# BIT[0]: Enable RV64XT32 by setting mxstatus.[63]=1
+# set *(unsigned int *)$flag_addr = 0x1
+# set *(unsigned int *)$flag_addr = 0x0
+
+set $a0 = 0
+set $a1 =  $dtb_addr 
+set $a2 =  $dyninfo_addr
+set $pc = $opensbi_addr
+#add-symbol-file  -o -0xffffffff7fe00000 vmlinux
+#hbreak *0x200000
+#info registers
+c
+

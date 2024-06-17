@@ -1,7 +1,7 @@
-From 7df07afed56314254334e1318c15a278a25eb271 Mon Sep 17 00:00:00 2001
+From 754372727f6200ebbe03b5c911cb9a59068eaf14 Mon Sep 17 00:00:00 2001
 From: wangjianxin <wangjianxin@canaan-creative.com>
 Date: Wed, 5 Jun 2024 18:20:24 +0800
-Subject: [PATCH 3/3] add k230d canmv board
+Subject: [PATCH 03/20] add k230d canmv board
 
 ---
  arch/riscv/boot/dts/canaan/Makefile        |  1 +
