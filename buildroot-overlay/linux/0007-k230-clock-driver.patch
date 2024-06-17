@@ -47,11 +47,6 @@ index a78f2165a..023cc8246 100644
  obj-$(CONFIG_LMK04832)			+= clk-lmk04832.o
  obj-$(CONFIG_COMMON_CLK_LAN966X)	+= clk-lan966x.o
  obj-$(CONFIG_COMMON_CLK_LOCHNAGAR)	+= clk-lochnagar.o
-@@ -136,4 +137,3 @@ endif
- obj-y					+= xilinx/
- obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
- obj-$(CONFIG_COMMON_CLK_ZYNQMP)         += zynqmp/
--obj-$(CONFIG_ARCH_THEAD)               	+= thead/
 diff --git a/drivers/clk/clk-k230.c b/drivers/clk/clk-k230.c
 new file mode 100644
 index 000000000..4d832353b

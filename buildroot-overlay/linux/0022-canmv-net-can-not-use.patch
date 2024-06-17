@@ -1,0 +1,28 @@
+From 80e3d8486c0b2bb93ffcd8073d9d1ee3e1feec28 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Mon, 17 Jun 2024 12:19:20 +0800
+Subject: [PATCH] canmv net can not use
+
+---
+ arch/riscv/boot/dts/canaan/k230-canmv.dts | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv.dts b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+index a19483516..d1f8c9928 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+@@ -28,3 +28,10 @@ &mmc_sd1{
+     cap-sd-highspeed;
+     mshc_ctrl_r = <0x00>;
+ };
++
++&usb0 {
++	status = "okay";
++};
++&usb1 {
++	status = "okay";
++};
+\ No newline at end of file
+-- 
+2.39.1
+
