@@ -169,8 +169,8 @@ static pufs_status_t __sp38a_ctx_update(uint8_t* outbuf,
     cb_dma_write_config_0(false, false, false);
     cb_dma_write_data_block_config(sp38a_ctx->start ? false : true, last, true, true, 0);
 
-    flush_dcache_range((uint64_t *)inbuf, inbuf+inlen);// //csi_dcache_clean_range
-    invalidate_dcache_range((uint64_t *)outbuf, outbuf+inlen);
+    flush_dcache_range((unsigned long)inbuf, (unsigned long)inbuf+inlen);// //csi_dcache_clean_range
+    invalidate_dcache_range((unsigned long)outbuf,(unsigned long) outbuf+inlen);
     //csi_dcache_clean_invalid_range((uint64_t *)outbuf, inlen);
     cb_dma_write_rwcfg(outbuf, inbuf, inlen);
 

@@ -64,7 +64,7 @@ static ulong spl_spi_fit_read(struct spl_load_info *load, ulong sector,
 	struct spi_flash *flash = load->dev;
 	ulong ret;
 
-	ret = nand_read(flash, sector, &count, buf);
+	ret = nand_read((struct mtd_info *)flash, sector, &count, buf);
 	if (!ret)
 		return count;
 	else
@@ -130,7 +130,7 @@ static int spl_spinand_load_image(struct spl_image_info *spl_image,
 	{
 		lenth = sizeof(*header);
 		/* Load u-boot, mkimage header is 64 bytes. */
-		err = nand_read(flash, payload_offs, &lenth,
+		err = nand_read((struct mtd_info*)flash, payload_offs, &lenth,
 				     (void *)header);
 		if (err) {
 			debug("%s: Failed to read from SPI flash (err=%d)\n",
@@ -141,7 +141,7 @@ static int spl_spinand_load_image(struct spl_image_info *spl_image,
 		lenth = roundup(fdt_totalsize(header), 4);
 		if (IS_ENABLED(CONFIG_SPL_LOAD_FIT_FULL) &&
 		    image_get_magic(header) == FDT_MAGIC) {
-			err = nand_read(flash, payload_offs,
+			err = nand_read((struct mtd_info*)flash, payload_offs,
 					     &lenth,
 					     (void *)CONFIG_SYS_LOAD_ADDR);
 			if (err)
@@ -177,7 +177,7 @@ static int spl_spinand_load_image(struct spl_image_info *spl_image,
 			if (err)
 				return err;
 			lenth = spl_image->size;
-			err = nand_read(flash, payload_offs + spl_image->offset,
+			err = nand_read((struct mtd_info *)flash, payload_offs + spl_image->offset,
 					     &lenth,
 					     (void *)spl_image->load_addr);
 		}

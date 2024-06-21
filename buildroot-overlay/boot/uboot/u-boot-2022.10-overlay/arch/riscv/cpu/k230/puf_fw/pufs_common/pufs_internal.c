@@ -34,7 +34,7 @@ uint8_t pufs_buffer[BUFFER_SIZE];
  ****************************************************************************/
 void hardlock_config(pufs_lock_t lock_cfg)
 {
-    void *lock_base_addr = 0x911040b8;
+    void *lock_base_addr = (void *)0x911040b8;
 
     switch(lock_cfg)
     {

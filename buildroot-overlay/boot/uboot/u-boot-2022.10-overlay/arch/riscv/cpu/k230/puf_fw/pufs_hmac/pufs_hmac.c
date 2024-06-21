@@ -26,6 +26,7 @@
 #include <common.h>
 #include "platform.h"
 #include "pufs_ecp.h"
+#include <cpu_func.h>
 #pragma GCC push_options
 #pragma GCC optimize ("O0")
 struct pufs_hmac_regs *hmac_regs = (struct pufs_hmac_regs *)(PUFIOT_ADDR_START+HMAC_HASH_ADDR_OFFSET);
@@ -63,7 +64,7 @@ static pufs_status_t __hmac_ctx_update(pufs_dgst_st* md,
     cb_dma_write_config_0(false, false, false);
     cb_dma_write_data_block_config(hmac_ctx->start ? false : true, last, true, true, 0);
 
-    flush_dcache_range((uint64_t *)msg, msg+msglen); // //csi_dcache_clean_range
+    flush_dcache_range((unsigned long)msg, (unsigned long)msg+msglen); // //csi_dcache_clean_range
     cb_dma_write_rwcfg(NULL, msg, msglen);
 
     cb_dma_write_key_config_0(hmac_ctx->keytype,
@@ -75,7 +76,7 @@ static pufs_status_t __hmac_ctx_update(pufs_dgst_st* md,
         cb_crypto_write_dgst(hmac_ctx->state, DGST_INT_STATE_LEN);
 
     val32 = ((hmac_ctx->hash == SHA_256) ? 0x03 : 0x08);
-    
+
     hmac_regs->cfg = val32;
     hmac_regs->plen = hmac_ctx->curlen;
 

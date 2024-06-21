@@ -25,6 +25,7 @@
 #include "pufs_ka_internal.h"
 #include "pufs_dma_internal.h"
 #include "platform.h"
+#include <cpu_func.h>
 
 #pragma GCC push_options
 #pragma GCC optimize ("O0")
@@ -87,7 +88,7 @@ static pufs_status_t sp38d_get_config(uint32_t *cfg, bool gctr, bool reg_in, boo
 
     if (reg_out)
         val32 |= 0x1 << SP38C_CFG_REG_OUT_BITS;
-    
+
     *cfg = val32;
     return SUCCESS;
 }
@@ -169,8 +170,8 @@ static pufs_status_t sp38d_prepare(const uint8_t* out,
         return check;
 
     sp38d_regs->cfg = val32;
-    
-    
+
+
     if (sp38d_ctx->inbits != ULLONG_MAX)
         sp38d_regs->block_num = sp38d_ctx->incj0;
     else
@@ -222,24 +223,24 @@ static pufs_status_t __sp38d_ctx_update(uint8_t* out,
     // Register manipulation
     if (cb_dma_check_busy_status(NULL))
         return E_BUSY;
-    
+
     cb_dma_write_config_0(false, false, false);
 
     cb_dma_write_data_block_config(sp38d_ctx->start ? false : true, last, true, true, 0);
 
     cb_dma_write_rwcfg(out, in, inlen);
-    flush_dcache_range((uint64_t *)in, in+inlen);  //csi_dcache_clean_range
-    
+    flush_dcache_range((unsigned long)in, (unsigned long)in+inlen);  //csi_dcache_clean_range
+
     if ((check = cb_sp38d_prepare(out, inlen)) != SUCCESS)
         return check;
 
     if (out != NULL)
     {
-        invalidate_dcache_range((uint64_t *)out, out+inlen);//csi_dcache_clean_invalid_range
+        invalidate_dcache_range((unsigned long)out, (unsigned long)out+inlen);//csi_dcache_clean_invalid_range
     }
     cb_dma_write_start();
     while (cb_dma_check_busy_status(&val32));
- 
+
     if (val32 != 0)
     {
         LOG_ERROR("DMA status 0: 0x%x\n", val32);
@@ -390,7 +391,7 @@ static pufs_status_t sp38d_tag(uint8_t *tag, uint32_t taglen, bool from_reg)
                                          BC_BLOCK_SIZE, true)) != SUCCESS) ||
         (tmplen != BC_BLOCK_SIZE))
             return E_FIRMWARE;
-    
+
         memcpy(tag, tmp.uc, taglen);
         return SUCCESS;
     }
@@ -413,11 +414,11 @@ static pufs_status_t sp38d_tag(uint8_t *tag, uint32_t taglen, bool from_reg)
                            ALGO_TYPE_GCM,
                            sp38d_ctx->keybits,
                            cb_get_key_slot_idx(sp38d_ctx->keytype, sp38d_ctx->keyslot));
-    
+
     cb_dma_write_start();
 
     while (cb_dma_check_busy_status(&val32));
- 
+
     if (val32 != 0)
     {
         LOG_ERROR("DMA status 0: 0x%x\n", val32);
@@ -724,7 +725,7 @@ pufs_status_t pufs_dec_gcm(uint8_t* out,
     pufs_status_t check;
     uint32_t toutlen;
     *outlen = 0;
-        
+
     // Call I-U-F model
     if ((check = cb_pufs_dec_gcm_init(cipher, keytype, keyaddr,
                                     keybits, iv, ivlen)) != SUCCESS)

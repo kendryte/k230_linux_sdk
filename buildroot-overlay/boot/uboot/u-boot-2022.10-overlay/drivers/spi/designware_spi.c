@@ -439,7 +439,7 @@ static int dw_spi_of_to_plat(struct udevice *bus)
 
 	plat->dtr_frequency = dev_read_u32_default(bus, "dtr-max-frequency",
 					       500000);
-                           
+
     plat->def_rxdly_ns = dev_read_u32_default(bus, "rx-sample-delay-ns",
 					       5);
 
@@ -486,7 +486,7 @@ static void spi_hw_init(struct udevice *bus, struct dw_spi_priv *priv)
 	}
 	dw_write(priv, DW_SPI_RX_SAMPLE_DLY, priv->def_rxdly|(0<<16));
 	dw_write(priv, DW_SPI_SSIENR, 1);
-	
+
 
 	/*
 	 * Try to detect the FIFO depth if not set by interface driver,
@@ -889,7 +889,7 @@ static DEVICE_TYPE get_device_type(uint64_t addr)
 /*
  * This function is necessary for reading SPI flash with the native CS
  * c.f. https://lkml.org/lkml/2015/12/23/132
- * 
+ *
  * It also lets us handle DUAL/QUAD/OCTAL transfers in a much more idiomatic
  * way.
  */
@@ -962,7 +962,7 @@ static int dw_spi_exec_op(struct spi_slave *slave, const struct spi_mem_op *op)
 	dw_write(priv, DW_SPI_CTRLR1, op->data.nbytes/(priv->bits_per_word >> 3) - 1);
 	if (priv->spi_frf != CTRLR0_SPI_FRF_BYTE)
 		dw_write(priv, DW_SPI_SPI_CTRL0, spi_cr0);
-	
+
 	if (op->cmd.dtr || op->addr.dtr || op->dummy.dtr || op->data.dtr)
 	{
 		// ssi_ctrl_u ssi_ctrl;
@@ -977,7 +977,7 @@ static int dw_spi_exec_op(struct spi_slave *slave, const struct spi_mem_op *op)
 	/* Write out the instruction */
 	if (priv->use_idma == 0) {
 		dw_write(priv, DW_SPI_SSIENR, 1);
-		if (priv->spi_frf == CTRLR0_SPI_FRF_BYTE) 
+		if (priv->spi_frf == CTRLR0_SPI_FRF_BYTE)
 		{
 			/* From spi_mem_exec_op */
 			pos = 0;
@@ -1017,14 +1017,14 @@ static int dw_spi_exec_op(struct spi_slave *slave, const struct spi_mem_op *op)
 				txfthr = 0x3ff;
 			dw_write(priv, DW_SPI_TXFTLR, txfthr << 16);
 		}
-			
+
 		switch( (uint64_t)buffer % 8 )
 		{
 			case 0: atw = BYTE_8; break;
 			case 4: atw = BYTE_4; break;
 			case 2:
 			case 6: atw = BYTE_2; break;
-			case 1: 
+			case 1:
 			case 3:
 			case 5:
 			case 7:
@@ -1055,17 +1055,17 @@ static int dw_spi_exec_op(struct spi_slave *slave, const struct spi_mem_op *op)
 		{
 			axiawlen.axiawlen.awlen = axi_len;
 			dw_write(priv, DW_SPI_AXIAWLEN, axiawlen.data);
-			flush_dcache_range(buffer, buffer + op->data.nbytes);
-			invalidate_dcache_range(buffer, buffer + op->data.nbytes);
+			flush_dcache_range((unsigned long)buffer, (unsigned long)buffer + op->data.nbytes);
+			invalidate_dcache_range((unsigned long)buffer, (unsigned long)buffer + op->data.nbytes);
 		}
 		else
 		{
 			axiarlen.axiarlen.arlen = axi_len;
 			dw_write(priv, DW_SPI_AXIARLEN, axiarlen.data);
-			flush_dcache_range(buffer, buffer + op->data.nbytes);
+			flush_dcache_range((unsigned long)buffer, (unsigned long)buffer + op->data.nbytes);
 		}
 
-		dw_write(priv, DW_SPI_AXIAR0, buffer);
+		dw_write(priv, DW_SPI_AXIAR0, (u32)buffer);
 	}
 
 	external_cs_manage(slave->dev, false);
@@ -1168,7 +1168,7 @@ static int dw_spi_set_speed(struct udevice *bus, uint speed)
 	dw_write(priv, DW_SPI_SSIENR, 1);
 
 	priv->def_freq = priv->freq = speed;
-	
+
 	dev_dbg(bus, "speed=%d clk_div=%d\n", priv->freq, clk_div);
 
 	return 0;
