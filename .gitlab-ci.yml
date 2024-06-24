@@ -367,7 +367,7 @@ dev_release:
     # daily build
     - if: $CI_PIPELINE_SOURCE == "schedule"
     # merge release
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"
   variables:
     BRANCH: dev
   extends:
