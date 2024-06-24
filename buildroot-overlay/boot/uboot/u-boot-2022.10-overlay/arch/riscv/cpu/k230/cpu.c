@@ -75,13 +75,13 @@ void harts_early_init(void)
 	/*enable mtimer clk*/
     writel(0x1, (volatile void __iomem *)0x91108020);//CPU0
 	writel(0x1, (volatile void __iomem *)0x91108030);//CPU1
-	// enable stc0 
+	// enable stc0
 	writel(0x69, (volatile void __iomem *)0x91108000);
 
-	record_boot_time_info_to_sram("et");
+	//record_boot_time_info_to_sram("et");
 
 	writel(0x80199805, (void*)0x91100004);
-    
+
     writel(0x0, (void*)SYSCTL_PWR_BASE_ADDR + 0x158);
 
 // This address space only allows write access by the k230_burntool.
@@ -144,6 +144,6 @@ int do_reset(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	printf("reboot system\n");
 	#ifndef CONFIG_SPL_BUILD
 	writel(0x10001, (void*)SYSCTL_BOOT_BASE_ADDR+0x60);
-	#endif 
+	#endif
 	while(1);
 }
