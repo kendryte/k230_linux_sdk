@@ -155,6 +155,36 @@ before_script:
   - HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
   - echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
 
+.github_to_gitlab:
+  timeout: 30m
+  retry: 2
+  script:
+    - cd $CI_PROJECT_DIR
+    - ls -alht
+    - rm -rf ./k230_linux_sdk/
+    - echo "set http proxy for git clone"
+    - git config --global http.proxy ${GITHUB_PROXY}
+    - git config --global https.proxy ${GITHUB_PROXY}
+    - time git clone ${GITHUB_REPO} k230_linux_sdk || { time git clone ${GITHUB_REPO} k230_linux_sdk || { time git clone ${GITHUB_REPO} k230_linux_sdk || exit 1; } } }
+    - cd k230_linux_sdk || exit 1
+    - pwd
+    - git checkout ${BRANCH}
+    - git branch -a
+    - git status
+    - echo '---pull latest ${BRANCH} branch---'
+    - git pull origin ${BRANCH}
+    - echo '---fetch all tags---'
+    - git fetch --tags
+    - git remote add gitlab ${GITLAB_REPO}
+    - git remote add gitee ${GITEE_REPO}
+    - git remote -v
+    - git branch -a
+    - git status
+    - echo "---push to gitee---"
+    - git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || exit 1; } }
+    - echo "---push to gitlab---"
+    - git push --atomic --tags -u gitlab ${BRANCH} || { git push --atomic --tags -u gitlab ${BRANCH} || { git push --atomic --tags -u gitlab ${BRANCH} || exit 1; } }
+
 .sync_github_gitee:
   timeout: 30m
   retry: 2
@@ -178,9 +208,9 @@ before_script:
     - git branch -a
     - git status
     - echo "---push to gitee---"
-    - git push --atomic --tags -u gitee ${BRANCH} || git push --atomic --tags -u gitee ${BRANCH} || git push --atomic --tags -u gitee ${BRANCH}
+    - git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || exit 1; } }
     - echo "---push to github---"
-    - git push --atomic --tags -u github ${BRANCH} || git push --atomic --tags -u github ${BRANCH} || git push --atomic --tags -u github ${BRANCH}
+    - git push --atomic --tags -u github ${BRANCH} || { git push --atomic --tags -u github ${BRANCH} || { git push --atomic --tags -u github ${BRANCH} || exit 1; } }
 
 .release_download_dir:
   timeout: 60m
@@ -383,6 +413,19 @@ manual_sync:
     BRANCH: dev
   extends:
     - .sync_github_gitee
+
+# github webhook trigger sync
+github_to_gitlab:
+  stage: release
+  rules:
+    # trigger with args
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $GITHUB_PUSH == "true"'
+    # trigger
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+  variables:
+    BRANCH: dev
+  extends:
+    - .github_to_gitlab
 
 # build setup for all jobs
 build_setup:
