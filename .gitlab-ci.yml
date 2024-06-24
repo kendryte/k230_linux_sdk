@@ -178,9 +178,9 @@ before_script:
     - git branch -a
     - git status
     - echo "---push to gitee---"
-    - git push --atomic --tags -u -f gitee ${BRANCH} || git push --atomic --tags -u -f gitee ${BRANCH} || git push --atomic --tags -u -f gitee ${BRANCH}
+    - git push --atomic --tags -u gitee ${BRANCH} || git push --atomic --tags -u gitee ${BRANCH} || git push --atomic --tags -u gitee ${BRANCH}
     - echo "---push to github---"
-    - git push --atomic --tags -u -f github ${BRANCH} || git push --atomic --tags -u -f github ${BRANCH} || git push --atomic --tags -u -f github ${BRANCH}
+    - git push --atomic --tags -u github ${BRANCH} || git push --atomic --tags -u github ${BRANCH} || git push --atomic --tags -u github ${BRANCH}
 
 .release_download_dir:
   timeout: 60m
@@ -366,6 +366,8 @@ dev_release:
   rules:
     # daily build
     - if: $CI_PIPELINE_SOURCE == "schedule"
+    # merge release
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
   variables:
     BRANCH: dev
   extends:
