@@ -334,9 +334,9 @@ static void dwc_otg_core_host_init(struct udevice *dev,
         #define USB1_TEST_CTL3 (0x9158509cU)
         #define USB_DMPULLDOWN0 	(1<<8)
         #define USB_DPPULLDOWN0 	(1<<9)
-        u32 usb_test_ctl3 = readl((regs == 0x91500000)?USB0_TEST_CTL3:USB1_TEST_CTL3);
+        u32 usb_test_ctl3 = readl((regs == 0x91500000)?(void *)USB0_TEST_CTL3:(void *)USB1_TEST_CTL3);
         usb_test_ctl3 |= (USB_DMPULLDOWN0 | USB_DPPULLDOWN0);
-        writel(usb_test_ctl3, (regs == 0x91500000)?USB0_TEST_CTL3:USB1_TEST_CTL3);
+        writel(usb_test_ctl3, (regs == 0x91500000)?(void *)USB0_TEST_CTL3:(void *)USB1_TEST_CTL3);
 	}
 
 	if (dev)
@@ -1443,7 +1443,7 @@ static int dwc2_usb_probe(struct udevice *dev)
 	int ret;
 
 	bus_priv->desc_before_addr = true;
-	writel(0x1, 0x91108030);
+	writel(0x1, (void*)0x91108030);
 
 	ret = dwc2_clk_init(dev);
 	if (ret)
