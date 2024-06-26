@@ -148,10 +148,14 @@ long timeval_delta(const struct timeval* start, const struct timeval* end) {
 
 int main(int argc, char* argv[]) {
     float x = -1, y = 1, tx = 0.5, ty = -1;
-    x = atof(argv[1]);
-    y = atof(argv[2]);
-    tx = atof(argv[3]);
-    ty = atof(argv[4]);
+    if (argc > 1)
+        x = atof(argv[1]);
+    if (argc > 2)
+        y = atof(argv[2]);
+    if (argc > 3)
+        tx = atof(argv[3]);
+    if (argc > 4)
+        ty = atof(argv[4]);
     vg_lite_error_t error = VG_LITE_SUCCESS;
 
     drm_init();
@@ -267,7 +271,7 @@ int main(int argc, char* argv[]) {
         gettimeofday(&current, NULL);
 #if COUNT_TIME
         printf(
-            "total: %ld us, cpu: %ld us, gpu: %ld us\n",
+            "total: %ld us, cpu: %ld us, gpu: %ld us\r",
             timeval_delta(&tv1, &current),
             timeval_delta(&tv1, &tv2),
             timeval_delta(&tv2, &current)
