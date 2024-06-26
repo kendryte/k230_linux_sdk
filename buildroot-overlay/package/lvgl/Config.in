@@ -1,0 +1,4 @@
+config BR2_PACKAGE_LVGL
+    bool "LVGL demo and library"
+    help
+        LVGL demo and library
