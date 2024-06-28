@@ -1,0 +1,232 @@
+name: Build_Test
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+
+env:
+  DST_BASE: /data1/k230/github-actions/k230_linux_sdk
+  SUB_BASE: ${{ github.event.number }}_${{ github.run_id }}
+  TFTP_ROOT: /data1/tftp_server
+  NFS_ROOT: /data/nfs_server
+  HW_VER: v0.1
+  WORKSPACE: /workspace/
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build_image:
+    name: Build Image
+    runs-on: [self-hosted, k230_linux_sdk]
+    timeout-minutes: 45
+    container:
+      image: ai.b-bug.org:5000/k230_sdk:latest
+      env:
+        CONF: ${{ matrix.hw_type }}_${{ matrix.hw_model }}_defconfig
+      volumes:
+        - /data:/data
+        - /data1:/data1
+      options: --hostname runner
+    strategy:
+      matrix:
+        hw_type: ["k230"]
+        hw_model: ["canmv"]
+    outputs:
+      image_name: ${{ steps.save_image.outputs.image_name }}
+      image_path: ${{ steps.save_image.outputs.image_path }}
+      image_url: ${{ steps.save_image.outputs.image_url }}
+      image_md5: ${{ steps.save_tftp.outputs.image_md5 }}
+      image_tftp: ${{ steps.save_tftp.outputs.image_tftp }}
+    steps:
+      - name: Build Env Setup
+        id: build_env
+        run: |
+          echo '----------Build ENV Prepare----------'
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo $SHELL
+          echo -e "Host *\n    StrictHostKeyChecking no" > ~/.ssh/config
+          echo "increate ssh timeout for github"
+          echo "    ServerAliveInterval 30" >> ~/.ssh/config
+          echo "    ServerAliveCountMax 60" >> ~/.ssh/config
+          echo "    TCPKeepAlive yes" >> ~/.ssh/config
+          cat ~/.ssh/config
+          whoami
+          uptime
+          pwd
+          ls -alht
+          uname -a
+          cat /etc/issue
+          HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
+          HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
+          echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
+          echo "create workspace dir : ${WORKSPACE}"
+          sudo mkdir ${WORKSPACE}
+          sudo chown -R $(id -u):$(id -g) ${WORKSPACE}
+          sudo chmod 755 ${WORKSPACE}
+
+      - name: Checkout Code
+        id: checkout_code
+        run: |
+          PR_REPO=${{ github.event.pull_request.head.repo.full_name }}
+          PR_BRANCH=${{ github.event.pull_request.head.ref }}
+          BASE_REPO=${{ github.repository }}
+          BASE_BRANCH=${{ github.event.pull_request.base.ref }}
+          echo "PR_REPO: ${PR_REPO}, PR_BRANCH: ${PR_BRANCH}"
+          echo "BASE_REPO: ${BASE_REPO}, BASE_BRANCH: ${BASE_BRANCH}"
+          echo "Cloning PR repository ${PR_REPO} branch ${PR_BRANCH}"
+          echo "clean dst dir"
+          pwd
+          cd ${WORKSPACE} || exit 1
+          pwd
+          ls -alht
+          rm -rf k230_linux_sdk
+          echo "set github proxy"
+          git config --global https.proxy ${{ secrets.GH_PROXY }}
+          git clone --depth=10 --branch=${PR_BRANCH} https://github.com/${PR_REPO}  k230_linux_sdk || git clone --depth=10 --branch=${PR_BRANCH} https://github.com/${PR_REPO} k230_linux_sdk
+          cd k230_linux_sdk || exit 1
+          git fetch origin ${PR_BRANCH} || exit 1
+          git checkout ${PR_BRANCH} || exit 1
+          ls -alht
+          pwd
+
+      - name: Build Image
+        id: build_image
+        run: |
+          pwd
+          cd ${WORKSPACE} || exit 1
+          cd k230_linux_sdk || exit 1
+          echo "----------start to build linux sdk image----------"
+          time make CONF=${CONF} BR2_PRIMARY_SITE=${{ secrets.DL_SITE }} || exit 1
+          echo "----------show linux sdk image build output----------"
+          pwd
+          du -h -d 2 output/${CONF}/ || exit 1
+          ls -alht output/${CONF}/images || exit 1
+          echo "----------remove img----------"
+          rm -rf output/${CONF}/images/sysimage-sdcard.img
+          echo "----------build sdk image done----------"
+
+      - name: Save Image
+        id: save_image
+        run: |
+          pwd
+          ls
+          HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
+          HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
+          echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
+          cd ${WORKSPACE} || exit 1
+          cd k230_linux_sdk || exit 1
+          ls -alht
+          echo "----------save image----------"
+          SRC_DIR="./output/${CONF}/images"
+          echo "SRC_DIR: ${SRC_DIR}"
+          echo ${DST_BASE}
+          echo "set DST_DIR with different type based on docs/images/src"
+          DST_DIR="${DST_BASE}/images"
+          echo "DST_DIR: ${DST_DIR}"
+          echo "---create repo dir---"
+          sudo mkdir -p ${DST_DIR}
+          ls ${SRC_DIR}
+          ls -alht ${SRC_DIR}
+          tree ${SRC_DIR}
+          echo "----------Save build ----------"
+          SUB_DIR="${SUB_BASE}/${CONF}";
+          echo "---create current image version dir---"
+          sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1
+          echo "---save sdk build output---"
+          sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
+          echo "${DST_DIR}/${SUB_DIR}/"
+          ls "${DST_DIR}/${SUB_DIR}/"
+          echo "add latest link for current build"
+          test -h ${DST_DIR}/latest && sudo rm ${DST_DIR}/latest
+          sudo ln -s ${DST_DIR}/${ver} ${DST_DIR}/latest || exit 1
+          ls ${DST_DIR}/latest
+          echo "----------output URL----------"
+          echo "${DST_DIR}/${SUB_DIR}/" | sed "s/\/data1/https:\/\/ai\.b-bug\.org/g"
+          echo "----------save image done----------"
+          image_name=$(ls "${DST_DIR}/${SUB_DIR}/")
+          image_path="${DST_DIR}/${SUB_DIR}/"
+          image_url=$(echo "${DST_DIR}/${SUB_DIR}/" | sed "s/\/data1/https:\/\/ai\.b-bug\.org/g")
+          echo "image_name: $image_name"
+          echo "image_path: $image_path"
+          echo "image_url: $image_url"
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_path=$image_path" >> $GITHUB_OUTPUT
+          echo "image_url=$image_url" >> $GITHUB_OUTPUT
+
+      - name: Save image to TFTP
+        id: save_tftp
+        run: |
+          pwd
+          ls
+          HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
+          HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
+          echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
+          cd ${WORKSPACE} || exit 1
+          cd k230_linux_sdk || exit 1
+          echo "start to save test image for config: ${CONF} ------";
+          SRC_DIR="./output/${CONF}/images"
+          echo "SRC_DIR: ${SRC_DIR}"
+          echo ${TFTP_BASE};
+          echo "set DST_DIR with different type based on docs/images/src";
+          DST_DIR="${TFTP_BASE}/${HW_TYPE}/${HW_MODEL}_${HW_VER}";
+          echo ${DST_DIR};
+          SUB_DIR=${SUB_BASE}/${CONF}
+          echo "---create tftp dir---";
+          sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1;
+          sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}
+          image_md5=$(md5sum ${DST_DIR}/${SUB_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz | awk '{print $1}')
+          image_tftp="${DST_DIR}/${SUB_DIR}/"
+          echo "image_md5: $image_md5"
+          echo "image_tftp: $image_tftp"
+          echo "image_md5=$image_md5" >> $GITHUB_OUTPUT
+          echo "image_tftp=$image_tftp" >> $GITHUB_OUTPUT
+
+  test_image:
+    name: Test Image
+    needs: build_image
+    timeout-minutes: 15
+    runs-on: [self-hosted, k230_linux_sdk]
+    env:
+        CONF: ${{ matrix.hw_type }}_${{ matrix.hw_model }}_defconfig
+    container:
+      image: ai.b-bug.org:5000/k230_sdk:latest
+      volumes:
+        - /data:/data
+        - /data1:/data1
+      options: --hostname runner
+    strategy:
+      matrix:
+        hw_type: ["k230"]
+        hw_model: ["canmv"]
+    steps:
+      - name: Run Test
+        id: run_test
+        run: |
+          echo "image name: ${{needs.build_image.outputs.image_name}}"
+          echo "image path: ${{needs.build_image.outputs.image_path}}"
+          echo "image url: ${{needs.build_image.outputs.image_url}}"
+          echo "image md5: ${{needs.build_image.outputs.image_md5}}"
+          echo "image tftp path: ${{needs.build_image.outputs.image_tftp}}"
+          echo "=============================="
+          echo "There is NO test job NOW"
+          echo "=============================="
+          echo "add this stage for future job"
+          echo "=============================="
+          whoami
+          uptime
+          pwd
+          uname -a
+          cat /etc/issue
+          ls -alht
+          HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
+          HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
+          echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
