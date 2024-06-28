@@ -198,7 +198,6 @@ static int set_mode(void* ctx, struct vvcam_sensor_mode* mode) {
             break;
         }
         write_reg(sensor, modes[0].regs[i].addr, modes[0].regs[i].value);
-        i++;
     }
     return 0;
 }
