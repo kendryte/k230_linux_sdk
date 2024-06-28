@@ -150,7 +150,7 @@ before_script:
   - git config --global user.name "${GITLAB_USER_NAME}"
   - git config --global --add safe.directory $CI_PROJECT_DIR
   - echo '----------fetch all tags----------'
-  - git fetch --tags
+  - timeout 3m git fetch --tags || { timeout 3m git fetch --tags || { timeout 3m git fetch --tags || exit 1; }; }
   - HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
   - HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
   - echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
@@ -166,25 +166,25 @@ before_script:
     - echo "set http proxy for git clone"
     - git config --global http.proxy ${GITHUB_PROXY}
     - git config --global https.proxy ${GITHUB_PROXY}
-    - time git clone ${GITHUB_REPO} k230_linux_sdk || { time git clone ${GITHUB_REPO} k230_linux_sdk || { time git clone ${GITHUB_REPO} k230_linux_sdk || exit 1; }; }
+    - timeout 3m git clone ${GITHUB_REPO} k230_linux_sdk || { timeout 3m git clone ${GITHUB_REPO} k230_linux_sdk || { timeout 3m git clone ${GITHUB_REPO} k230_linux_sdk || exit 1; }; }
     - cd k230_linux_sdk || exit 1
     - pwd
     - git checkout ${BRANCH}
     - git branch -a
     - git status
     - echo '---pull latest ${BRANCH} branch---'
-    - git pull origin ${BRANCH}
+    - timeout 3m git pull origin ${BRANCH} || { timeout 3m git pull origin ${BRANCH} || { timeout 3m git pull origin ${BRANCH} || exit 1; }; }
     - echo '---fetch all tags---'
-    - git fetch --tags
+    - timeout 3m git fetch --tags || { timeout 3m git fetch --tags || { timeout 3m git fetch --tags || exit 1; }; }
     - git remote add gitlab ${GITLAB_REPO}
     - git remote add gitee ${GITEE_REPO}
     - git remote -v
     - git branch -a
     - git status
     - echo "---push to gitee---"
-    - git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || exit 1; }; }
+    - timeout 3m git push --atomic --tags -u gitee ${BRANCH} || { timeout 3m git push --atomic --tags -u gitee ${BRANCH} || { timeout 3m git push --atomic --tags -u gitee ${BRANCH} || exit 1; }; }
     - echo "---push to gitlab---"
-    - git push --atomic --tags -u gitlab ${BRANCH} || { git push --atomic --tags -u gitlab ${BRANCH} || { git push --atomic --tags -u gitlab ${BRANCH} || exit 1; }; }
+    - timeout 3m git push --atomic --tags -u gitlab ${BRANCH} || { timeout 3m git push --atomic --tags -u gitlab ${BRANCH} || { timeout 3m git push --atomic --tags -u gitlab ${BRANCH} || exit 1; }; }
 
 .gitlab_to_github_gitee:
   timeout: 30m
@@ -193,25 +193,25 @@ before_script:
     - cd $CI_PROJECT_DIR
     - ls -alht
     - rm -rf ./k230_linux_sdk/
-    - git clone ${GITLAB_REPO} k230_linux_sdk || { git clone ${GITLAB_REPO} k230_linux_sdk || exit 1; }
+    - timeout 3m git clone ${GITLAB_REPO} k230_linux_sdk || { timeout 3m git clone ${GITLAB_REPO} k230_linux_sdk || { timeout 3m git clone ${GITLAB_REPO} k230_linux_sdk || exit 1; }; }
     - cd k230_linux_sdk || exit 1
     - pwd
     - git checkout ${BRANCH}
     - git branch -a
     - git status
     - echo '---pull latest ${BRANCH} branch---'
-    - git pull origin ${BRANCH}
+    - timeout 3m git pull origin ${BRANCH} || { timeout 3m git pull origin ${BRANCH} || { timeout 3m git pull origin ${BRANCH} || exit 1; }; }
     - echo '---fetch all tags---'
-    - git fetch --tags
+    - timeout 3m git fetch --tags || { timeout 3m git fetch --tags || { timeout 3m git fetch --tags || exit 1; }; }
     - git remote add github ${GITHUB_REPO}
     - git remote add gitee ${GITEE_REPO}
     - git remote -v
     - git branch -a
     - git status
     - echo "---push to gitee---"
-    - git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || { git push --atomic --tags -u gitee ${BRANCH} || exit 1; }; }
+    - timeout 3m git push --atomic --tags -u gitee ${BRANCH} || { timeout 3m git push --atomic --tags -u gitee ${BRANCH} || { timeout 3m git push --atomic --tags -u gitee ${BRANCH} || exit 1; }; }
     - echo "---push to github---"
-    - git push --atomic --tags -u github ${BRANCH} || { git push --atomic --tags -u github ${BRANCH} || { git push --atomic --tags -u github ${BRANCH} || exit 1; }; }
+    - timeout 3m git push --atomic --tags -u github ${BRANCH} || { timeout 3m git push --atomic --tags -u github ${BRANCH} || { timeout 3m git push --atomic --tags -u github ${BRANCH} || exit 1; }; }
 
 .release_download_dir:
   timeout: 60m
