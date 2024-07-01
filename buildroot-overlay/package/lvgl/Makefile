@@ -8,7 +8,7 @@ LDFLAGS ?= -lm -ldrm
 BIN = lvgl_demo_music
 
 # LDFLAGS += -Wl,-Map=$(BIN).map,--cref
-CFLAGS += $(CFLAG)
+CFLAGS += -fno-tree-loop-distribute-patterns $(CFLAG)
 LDFLAGS += $(LDFLAG)
 
 prefix ?= /usr
