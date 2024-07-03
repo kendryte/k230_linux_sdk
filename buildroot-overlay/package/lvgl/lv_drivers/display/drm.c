@@ -651,7 +651,7 @@ static int drm_allocate_dumb(struct drm_buffer *buf)
 	/* clear the framebuffer to 0 (= full transparency in ARGB8888) */
 	// FIXME: gcc14 break memset
 	for (unsigned i = 0; i < creq.size; i++) {
-		(unsigned char*)buf->map[i] = 0;
+		((unsigned char*)buf->map)[i] = 0;
 	}
 	// memset(buf->map, 0, creq.size);
 
