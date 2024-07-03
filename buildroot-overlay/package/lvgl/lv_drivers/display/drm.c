@@ -650,10 +650,13 @@ static int drm_allocate_dumb(struct drm_buffer *buf)
 
 	/* clear the framebuffer to 0 (= full transparency in ARGB8888) */
 	// FIXME: gcc14 break memset
+	if __GNUC__ == 14
 	for (unsigned i = 0; i < creq.size; i++) {
 		((unsigned char*)buf->map)[i] = 0;
 	}
-	// memset(buf->map, 0, creq.size);
+	#else
+	memset(buf->map, 0, creq.size);
+	#endif
 
 	/* create framebuffer object for the dumb-buffer */
 	handles[0] = creq.handle;
