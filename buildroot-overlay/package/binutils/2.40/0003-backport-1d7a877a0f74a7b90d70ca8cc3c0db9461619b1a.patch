@@ -1,0 +1,67 @@
+From f6fe9da210ce362dd8b4e27cc4546240fe3e878f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E9=BB=84=E5=AD=90=E6=87=BF?=
+ <huangziyi@canaan-creative.com>
+Date: Thu, 4 Jul 2024 15:26:21 +0800
+Subject: [PATCH] backport 1d7a877a0f74a7b90d70ca8cc3c0db9461619b1a
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+https://sourceware.org/git/?p=binutils-gdb.git;a=commit;h=1d7a877a0f74a7b90d70ca8cc3c0db9461619b1a
+
+Signed-off-by: 黄子懿 <huangziyi@canaan-creative.com>
+---
+ bfd/elfnn-riscv.c | 11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/bfd/elfnn-riscv.c b/bfd/elfnn-riscv.c
+index 4a5da7df3fe..ed9f62a3d01 100644
+--- a/bfd/elfnn-riscv.c
++++ b/bfd/elfnn-riscv.c
+@@ -3254,7 +3254,7 @@ riscv_elf_finish_dynamic_sections (bfd *output_bfd,
+ 	}
+     }
+ 
+-  if (htab->elf.sgotplt)
++  if (htab->elf.sgotplt && htab->elf.sgotplt->size > 0)
+     {
+       asection *output_section = htab->elf.sgotplt->output_section;
+ 
+@@ -3265,31 +3265,28 @@ riscv_elf_finish_dynamic_sections (bfd *output_bfd,
+ 	  return false;
+ 	}
+ 
+-      if (htab->elf.sgotplt->size > 0)
+-	{
+ 	  /* Write the first two entries in .got.plt, needed for the dynamic
+ 	     linker.  */
+ 	  bfd_put_NN (output_bfd, (bfd_vma) -1, htab->elf.sgotplt->contents);
+ 	  bfd_put_NN (output_bfd, (bfd_vma) 0,
+ 		      htab->elf.sgotplt->contents + GOT_ENTRY_SIZE);
+-	}
+ 
+       elf_section_data (output_section)->this_hdr.sh_entsize = GOT_ENTRY_SIZE;
+     }
+ 
+-  if (htab->elf.sgot)
++  if (htab->elf.sgot && htab->elf.sgot->size > 0)
+     {
+       asection *output_section = htab->elf.sgot->output_section;
+ 
+-      if (htab->elf.sgot->size > 0)
++      if (!bfd_is_abs_section (output_section))
+ 	{
+ 	  /* Set the first entry in the global offset table to the address of
+ 	     the dynamic section.  */
+ 	  bfd_vma val = sdyn ? sec_addr (sdyn) : 0;
+ 	  bfd_put_NN (output_bfd, val, htab->elf.sgot->contents);
++	  elf_section_data (output_section)->this_hdr.sh_entsize = GOT_ENTRY_SIZE;
+ 	}
+ 
+-      elf_section_data (output_section)->this_hdr.sh_entsize = GOT_ENTRY_SIZE;
+     }
+ 
+   /* Fill PLT and GOT entries for local STT_GNU_IFUNC symbols.  */
+-- 
+2.39.1
+
