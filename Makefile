@@ -13,15 +13,15 @@ BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 
 
 .PHONY: all buildroot  debian ubuntu openouler  ruyi  k230d_32bit_rootfs  k230d_canmv_kernel64_root32
-all :  buildroot 
+all :  buildroot
 
 debian ubuntu openouler : buildroot
 	@:
 
-buildroot: $(BRW_BUILD_DIR)/.config  
+buildroot: $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) all
 
-k230d_32bit_rootfs:sync 
+k230d_32bit_rootfs:sync
 	make -C $(BR_SRC_DIR) k230d_canmv_32bit_rootfs_defconfig  O=$(CURDIR)/output/k230d_canmv_32bit_rootfs_defconfig
 	make -C $(CURDIR)/output/k230d_canmv_32bit_rootfs_defconfig  all
 
@@ -30,7 +30,7 @@ k230d_canmv_kernel64_root32: sync   k230d_32bit_rootfs
 	make -C $(CURDIR)/output/k230d_canmv_64kernel_32rootfs_defconfig  all
 
 .PHONY:dl
-dl:   $(BRW_BUILD_DIR)/.config 
+dl:   $(BRW_BUILD_DIR)/.config
 	echo "download all source"
 	make -C $(BRW_BUILD_DIR) source
 
@@ -50,7 +50,7 @@ help:sync
 
 .PHONY:sync
 sync:
-	make -f tools/sync.mk sync
+	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
 
 this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig   k230d_32bit_rootfs    k230d_canmv_kernel64_root32
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
@@ -60,7 +60,7 @@ $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 	echo CONF=$@ >.last_conf
 	CONF=$@ make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR)
 
-savedefconfig:  $(BRW_BUILD_DIR)/.config 
+savedefconfig:  $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) $@
 	cp $(BR_SRC_DIR)/configs/$(CONF) $(BR_OVERLAY_DIR)/configs/
 
@@ -69,7 +69,7 @@ ifeq ("$(origin CONF)", "command line")
 	make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR)
 	touch $@
 else
-	[ -e "$(BRW_BUILD_DIR)" ] || ( make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR) ;touch $@; )	
-endif	
+	[ -e "$(BRW_BUILD_DIR)" ] || ( make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR) ;touch $@; )
+endif
 
 #echo LINUX_OVERRIDE_SRCDIR=/home/wangjianxin/t/linux-xuantie-kernel >output/k230d_canmv_64kernel_32rootfs_defconfig/local.mk

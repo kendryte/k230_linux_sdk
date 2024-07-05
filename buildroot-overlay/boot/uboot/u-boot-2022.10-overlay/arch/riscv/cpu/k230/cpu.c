@@ -125,8 +125,13 @@ static int k230_boot_baremetal(struct cmd_tbl *cmdtp, int flag, int argc,
 	}
 	else
 	{
-		func_app_entry app_entry = (void *)(long)boot_address;
-		app_entry();
+		writel(boot_address, (void*)0x91102100ULL);//cpu0_hart_rstvec
+		udelay(100);
+		writel(0x10001000,(void*)0x91101004ULL);
+		udelay(100);
+		writel(0x10001,(void*)0x91101004ULL);
+		udelay(100);
+		writel(0x10000,(void*)0x91101004ULL);
 	}
 
     return 0;
