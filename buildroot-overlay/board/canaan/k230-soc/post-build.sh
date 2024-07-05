@@ -57,7 +57,7 @@ boot_file_proc()
 	#BINARIES_DIR
 	cd ${TARGET_DIR}/boot
 	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  fw_jump_add_uboot_head.bin
-	rm -rf  k.dtb; ln -s ${DTB}.dtb k.dtb
+	rm -rf  k.dtb; ln -s ${DTB} k.dtb
 	cd -;
 }
 gen_version
