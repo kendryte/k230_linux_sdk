@@ -52,21 +52,23 @@ add_firmHead()
 	local filename="$1"
 	#export PATH=\"${PATH#*host\/bin:}
 	local firmware_gen="python3  ${UBOOT_BUILD_DIR}/tools/firmware_gen.py "
+	PATH_BAK=${PATH};	PATH="${PATH#*host\/bin:}" ;
 
 
 	if [ $# -ge 2 ]; then
 		firmArgs="$2" #add k230 firmware head
-		cp ${filename} ${filename}.t;	 PATH="${PATH#*host\/bin:}" ; ${firmware_gen}   -i ${filename}.t -o f${firmArgs##-}${filename} ${firmArgs};
+		cp ${filename} ${filename}.t; ${firmware_gen}   -i ${filename}.t -o f${firmArgs##-}${filename} ${firmArgs};
+
 	else
 		#add k230 firmware head
-		firmArgs="-n"; cp ${filename} ${filename}.t;  	  PATH="${PATH#*host\/bin:}" ; ${firmware_gen}   -i ${filename}.t -o f${firmArgs##-}_${filename} ${firmArgs};
-
+		firmArgs="-n"; cp ${filename} ${filename}.t; ${firmware_gen}   -i ${filename}.t -o f${firmArgs##-}_${filename} ${firmArgs};
 		if [ "${CONFIG_GEN_SECURITY_IMG}" = "y" ];then
-			firmArgs="-s";cp ${filename} ${filename}.t;	  PATH="${PATH#*host\/bin:}" ;${firmware_gen}   -i ${filename}.t -o f${firmArgs##-}_${filename} ${firmArgs};
-			firmArgs="-a";cp ${filename} ${filename}.t;	  PATH="${PATH#*host\/bin:}" ;${firmware_gen}   -i ${filename}.t -o f${firmArgs##-}_${filename} ${firmArgs};
+			firmArgs="-s";cp ${filename} ${filename}.t;	 ${firmware_gen}   -i ${filename}.t -o f${firmArgs##-}_${filename} ${firmArgs};
+			firmArgs="-a";cp ${filename} ${filename}.t;	${firmware_gen}   -i ${filename}.t -o f${firmArgs##-}_${filename} ${firmArgs};
 		fi
 	fi
 	rm -rf  ${filename}.t
+	PATH=${PATH_BAK};
 }
 
 k230_gzip()
