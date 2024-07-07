@@ -48,12 +48,10 @@ gz_file_add_ver()
 add_firmHead()
 {
 
-	# $(UBOOT_BUILD_DIR)/tools/firmware_gen.py
+	# $(UBOOT_BUILD_DIR)/tools/firmware_gen_no_securiy.py
 	local filename="$1"
 	#export PATH=\"${PATH#*host\/bin:}
-	local firmware_gen="python3  ${UBOOT_BUILD_DIR}/tools/firmware_gen.py "
-	PATH_BAK=${PATH};	PATH="${PATH#*host\/bin:}" ;
-
+	local firmware_gen="python3  ${UBOOT_BUILD_DIR}/tools/firmware_gen_no_securiy.py "
 
 	if [ $# -ge 2 ]; then
 		firmArgs="$2" #add k230 firmware head
@@ -68,7 +66,7 @@ add_firmHead()
 		fi
 	fi
 	rm -rf  ${filename}.t
-	PATH=${PATH_BAK};
+
 }
 
 k230_gzip()

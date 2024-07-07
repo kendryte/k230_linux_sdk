@@ -39,7 +39,7 @@
 #include <pufs_sp38d.h>
 #include <pufs_ecp.h>
 #include <gzip.h>
-#endif 
+#endif
 
 #define MAGIC_NUM   0x3033324B // "K230"
 
@@ -49,13 +49,13 @@ typedef enum {
     INTERNATIONAL_SECURITY
 } crypto_type_e;
 
-typedef struct 
+typedef struct
 {
     uint32_t magic; // 方便升级时快速判断固件是否有效。
     uint32_t length; // 从存储介质读到SRAM的数据量
     crypto_type_e crypto_type; // 支持国密或国际加密算法，或支持不加密启动(otp可以控制是否支持)。
     // 设想这样一个场景，如果固件只使用对称加密，在工厂批量生产的时候，解密密钥必然会泄露给工厂。如果使用非对称加密就可以这种问题了，只需要把公钥交给工厂。
-    union verify_{ 
+    union verify_{
         struct rsa_{
             uint8_t n[256];// 非对称加密的验签，防止固件被篡改。同时其HASH值会被烧录到otp。
             uint32_t e;
@@ -96,9 +96,9 @@ int board_init(void)
 #ifdef CONFIG_HAVE_HARD_UNZIP
 int gunzip(void *dst, int dstlen, unsigned char *src, unsigned long *lenp){
     printf("my gunzip\n");
-    return -1;    
+    return -1;
 }
-#endif 
+#endif
 
 //去掉k230 fireware头信息，完整性校验，解密；
 int k230_check_and_get_plain_data(firmware_head_s *pfh, ulong *pplain_addr)
@@ -107,7 +107,7 @@ int k230_check_and_get_plain_data(firmware_head_s *pfh, ulong *pplain_addr)
     char * pplaint=(char *)0x6200000; //明文、98MB
     //image_header_t *pUimgh; //uimage head
     uint32_t uint32_tmp=0xa000000;
-    
+
     int ret = 0;
     //pufs_dgst_st md;
 
@@ -115,45 +115,45 @@ int k230_check_and_get_plain_data(firmware_head_s *pfh, ulong *pplain_addr)
         printf("magic error %x : %x \n", MAGIC_NUM, pfh->magic);
         return CMD_RET_FAILURE;
     }
-        
-    if(pfh->crypto_type == NONE_SECURITY){        
+
+    if(pfh->crypto_type == NONE_SECURITY){
         //校验完整性
         #ifdef  CONFIG_K230_PUFS
 		ret = pufs_hash(&md, (const uint8_t*)(pfh + 1), pfh->length, SHA_256);
-        #else 
+        #else
         //sha256_csum_wd((const uint8_t*)(pfh + 1), pfh->length, md.dgst, CHUNKSZ_SHA256);
-        #endif   
+        #endif
 
-        // if(memcmp(md.dgst, pfh->verify.none_sec.signature, SHA256_SUM_LEN) )   
-        //     return -3; 
+        // if(memcmp(md.dgst, pfh->verify.none_sec.signature, SHA256_SUM_LEN) )
+        //     return -3;
 
-        if(pplain_addr) 
-            *pplain_addr = (ulong)pfh + sizeof(*pfh) ; 
+        if(pplain_addr)
+            *pplain_addr = (ulong)pfh + sizeof(*pfh) ;
 
 	} else  if(pfh->crypto_type == INTERNATIONAL_SECURITY) {
         #ifdef CONFIG_K230_PUFS
         //验证mac签名
         char *gcm_tag = (char *)pfh + pfh->length - 16;
-        ret = pufs_rsa_p1v15_verify(pfh->verify.rsa.signature, 
-                                    RSA2048, 
-                                    pfh->verify.rsa.n, 
-                                    pfh->verify.rsa.e, 
-                                    gcm_tag, 
+        ret = pufs_rsa_p1v15_verify(pfh->verify.rsa.signature,
+                                    RSA2048,
+                                    pfh->verify.rsa.n,
+                                    pfh->verify.rsa.e,
+                                    gcm_tag,
                                     16);
-        if (ret )  
+        if (ret )
             return CMD_RET_FAILURE;
 
-        //gcm解密,同时保证完整性；获取明文        
+        //gcm解密,同时保证完整性；获取明文
         ret = pufs_dec_gcm((uint8_t *)pplaint, &uint32_tmp, (const uint8_t *)(pfh+1), pfh->length - 16,
              AES, OTPKEY, OTPKEY_2, 256, (const uint8_t *)gcm_iv, 12, NULL, 0, gcm_tag, 16);
-        if (ret )  
-            return CMD_RET_FAILURE;      
+        if (ret )
+            return CMD_RET_FAILURE;
 
-        #endif           
+        #endif
 
-       
-        //pUimgh = (image_header_t *)(pplaint);    
-        if(pplain_addr) 
+
+        //pUimgh = (image_header_t *)(pplaint);
+        if(pplain_addr)
             *pplain_addr = (ulong)pplaint;
     }
     return 0;
@@ -162,11 +162,11 @@ int k230_check_and_get_plain_data(firmware_head_s *pfh, ulong *pplain_addr)
 /**
  * @brief  k230 load image
  *  密文镜像从sd/emmc/flash/mem加载到buff
- * 
- * @param argc 
- * @param argv 
- * @param buff 
- * @return int 
+ *
+ * @param argc
+ * @param argv
+ * @param buff
+ * @return int
  */
 int k230_load_image(int argc, char *const argv[],  ulong  buff)
 {
@@ -187,8 +187,8 @@ int k230_load_image(int argc, char *const argv[],  ulong  buff)
             printf("magic error %x : %x \n", MAGIC_NUM, pfh->magic);
             return CMD_RET_FAILURE;
         }
-        //读密文数据 //mmc read xx  pload_buf 
-        //mmc read 0x6600000+512 1 100  (pfh->length + sizeof(firmware_head_s) ) /512 -1;  
+        //读密文数据 //mmc read xx  pload_buf
+        //mmc read 0x6600000+512 1 100  (pfh->length + sizeof(firmware_head_s) ) /512 -1;
     }else if(!strcmp(argv[1], "mem")) {
         if(argc < 4)
             return CMD_RET_USAGE;
@@ -208,10 +208,10 @@ int k230_load_image(int argc, char *const argv[],  ulong  buff)
 
 }
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param pUh  image_header_t *
- * @return int 
+ * @return int
  */
 int k230_boot_rtt(image_header_t *pUh)
 {
@@ -223,7 +223,7 @@ int k230_boot_rtt(image_header_t *pUh)
     image_multi_getimg(pUh, 0, &data, &len);
 
     //设计要求必须gzip压缩，调试可以不压缩；
-    if (image_get_comp(pUh) == IH_COMP_GZIP) {        
+    if (image_get_comp(pUh) == IH_COMP_GZIP) {
         ret = gunzip((void *)(ulong)image_get_load(pUh), 0x2000000, (void *)data, &len);
         if(ret){
             printf("unzip fialed ret =%x\n", ret);
@@ -244,27 +244,27 @@ int k230_boot_rtt(image_header_t *pUh)
 
     writel(0x10001, (void*)0x9110100cULL); //复位大核
     printf("0x9110100c =%x\n", readl( (void*)0x9110100cULL));
-    writel(0x10001000, (void *)0x9110100cULL); //解复位大核   
+    writel(0x10001000, (void *)0x9110100cULL); //解复位大核
     printf("0x9110100c =%x\n", readl( (void*)0x9110100cULL));
     printf("reset big hart\n");
-    
+
     return 0;
 }
 #define CONFIG_CIPHER_ADDR  0x6600000
 /**
- * @brief 
- * 
- * @param cmdtp 
- * @param flag 
- * @param argc 
- * @param argv 
- * @return int 
+ * @brief
+ *
+ * @param cmdtp
+ * @param flag
+ * @param argc
+ * @param argv
+ * @return int
  */
 static int do_k230_boot(struct cmd_tbl *cmdtp, int flag, int argc,
 		  char *const argv[])
 {
     int ret = 0;
- 
+
     //假设：密文10MB；明文10M,解压缩后32M, ----
     //uboot--16M@112M
     //密文----10M@102M---0x6600000
@@ -279,32 +279,32 @@ static int do_k230_boot(struct cmd_tbl *cmdtp, int flag, int argc,
     ret = k230_load_image(argc, argv, cipher_addr);
     if (ret )
         return ret;
-    
+
     ret = k230_check_and_get_plain_data((firmware_head_s *)cipher_addr,  &plain_addr);
      if (ret )
         return ret;
     pUh = (image_header_t *) (plain_addr + 4);//4字节是版本号
-    
+
     if ( (0 == strcmp(image_get_name(pUh), "linux") ) || (0 == strcmp(image_get_name(pUh), "Linux") )
-        ){ 
+        ){
         /*
             gzip  -k fw_payload.bin;
             echo a>rd;mkimage -A riscv -O linux -T multi -C gzip -a 0x3000000 -e 0x3000000 -n linux -d fw_payload.bin.gz:rd:k.dtb  a.bin
             bootm xxxx;
-            ../../board/csky-ci/9xx/firmware_gen.py  -i a.bin -o aa.bin -n
+            ../../board/csky-ci/9xx/firmware_gen_no_securiy.py  -i a.bin -o aa.bin -n
             restore aa.bin  binary  0x5000000
             k230_boot  mem 0x5000000   0x5204db
-        */   
+        */
         sprintf(cmd,"bootm 0x%lx -", (ulong)pUh);
         ret = run_command(cmd, 0);
-    }else if(0 == strcmp(image_get_name(pUh), "rtt")){        
+    }else if(0 == strcmp(image_get_name(pUh), "rtt")){
         /*
             mkimage -A riscv -O opensbi -T multi -C gzip -a 0x40000000 -e 0x40000000 -n rtt  -d fw_payload.bin.gz  rtt.bin
-            ../../board/csky-ci/9xx/firmware_gen.py  -i rtt.bin -o urtt.bin -n
+            ../../board/csky-ci/9xx/firmware_gen_no_securiy.py  -i rtt.bin -o urtt.bin -n
             restore urtt.bin  binary  0x5000000
             k230_boot  mem 0x5000000 0x0f5982
         */
-        ret = k230_boot_rtt(pUh);       
+        ret = k230_boot_rtt(pUh);
     } else  {
         printf("error %s \n", image_get_name(pUh));
         return 3;
@@ -313,7 +313,7 @@ static int do_k230_boot(struct cmd_tbl *cmdtp, int flag, int argc,
     return ret;
 }
 /*
-boot sd/mmc/spinor/spinand/mem  add 
+boot sd/mmc/spinor/spinand/mem  add
 先实现从sd启动吧；
 */
 U_BOOT_CMD_COMPLETE(
@@ -321,6 +321,3 @@ U_BOOT_CMD_COMPLETE(
 	"boot <sd/mmc/spinor/spinand/mem>  <add|offset> [len]",
 	"boot <sd/mmc/spinor/spinand/mem>  <add|offset> [len]", NULL
 );
-
-
-
