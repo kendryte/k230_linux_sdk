@@ -205,11 +205,22 @@ gen_env_bin()
 	local default_env_file=${env_dir}/default.env;
 	${mkenvimage} -s 0x10000 -o uboot/env.env  ${default_env_file}
 }
+gen_boot_ext4()
+{
+	cd  "${BINARIES_DIR}/";
+	mkdir boot;
 
+	cp ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/boot/nuttx-7000000-uart2.bin  boot/;
+	cp Image boot/;
+	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  boot/fw_jump_add_uboot_head.bin
+	cp ${DTB} boot;
+	cd boot; ln -s ${DTB} k.dtb; cd -;
+	rm -rf boot.ext4 ;fakeroot mkfs.ext4 -d boot  -r 1 -N 0 -m 1 -L "boot" -O ^64bit boot.ext4 45M
+}
 
 gen_uboot_bin
 gen_env_bin
-#add_dev_firmware;
-gen_linux_bin;
+#gen_linux_bin;
+gen_boot_ext4
 
 gen_image ${GENIMAGE_CFG_SD}   sysimage-sdcard.img

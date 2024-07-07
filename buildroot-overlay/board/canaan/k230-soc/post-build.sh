@@ -48,17 +48,17 @@ gen_version()
 	echo "build version: ${sdk_ver}"
 
 	mkdir -p ${post_copy_rootfs_dir}/etc/version/
-	#cp -f ${rootfs_dir}/${ver_file}   ${post_copy_rootfs_dir}/${ver_file}
+	cp -f ${rootfs_dir}/${ver_file}   ${post_copy_rootfs_dir}/${ver_file}
 
 	cd -;
 }
-boot_file_proc()
-{
-	#BINARIES_DIR
-	cd ${TARGET_DIR}/boot
-	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  fw_jump_add_uboot_head.bin
-	rm -rf  k.dtb; ln -s ${DTB} k.dtb
-	cd -;
-}
+# boot_file_proc()
+# {
+# 	#BINARIES_DIR
+# 	cd ${TARGET_DIR}/boot
+# 	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  fw_jump_add_uboot_head.bin
+# 	rm -rf  k.dtb; ln -s ${DTB} k.dtb
+# 	cd -;
+# }
 gen_version
-boot_file_proc
+#boot_file_proc
