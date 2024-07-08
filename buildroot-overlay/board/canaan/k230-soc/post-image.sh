@@ -212,7 +212,7 @@ gen_boot_ext4()
 	cp Image boot/;
 	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  boot/fw_jump_add_uboot_head.bin
 	cp ${DTB} boot;
-	cd boot; ln -s ${DTB} k.dtb; cd -;
+	cd boot; rm -rf k.dtb;ln -s ${DTB} k.dtb; cd -;
 	rm -rf boot.ext4 ;fakeroot mkfs.ext4 -d boot  -r 1 -N 0 -m 1 -L "boot" -O ^64bit boot.ext4 45M
 }
 
