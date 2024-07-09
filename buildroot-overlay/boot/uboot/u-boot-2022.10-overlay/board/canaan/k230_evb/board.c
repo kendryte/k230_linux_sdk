@@ -63,5 +63,4 @@ void quick_boot_board_init(void)
     u32 usb0_otg_en_gpio52_data = readl((void*)(GPIO_BASE_ADDR1 + 0x0));
     usb0_otg_en_gpio52_data |= 1 << (52 - 32);
     writel(usb0_otg_en_gpio52_data, (void*)(GPIO_BASE_ADDR1 + 0x0));
-	return 0;
 }
