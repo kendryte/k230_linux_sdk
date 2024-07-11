@@ -1,4 +1,5 @@
 config BR2_PACKAGE_LVGL
     bool "LVGL demo and library"
+    select BR2_PACKAGE_LIBDRM
     help
         LVGL demo and library
