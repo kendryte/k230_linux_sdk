@@ -31,7 +31,7 @@
 
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
-#define print(msg, ...)	fprintf(stderr, msg, ##__VA_ARGS__);
+#define print(msg, ...)	fprintf(stderr, msg, ##__VA_ARGS__)
 #define err(msg, ...)  print("error: " msg "\n", ##__VA_ARGS__)
 #define info(msg, ...) print(msg "\n", ##__VA_ARGS__)
 #define dbg(msg, ...)  {} //print(DBG_TAG ": " msg "\n", ##__VA_ARGS__)
@@ -273,7 +273,7 @@ static int drm_dmabuf_set_plane(struct drm_buffer *buf)
 
 	ret = drmModeAtomicCommit(drm_dev.fd, drm_dev.req, flags, NULL);
 	if (ret) {
-		err("drmModeAtomicCommit failed: %s", strerror(errno));
+		err("drmModeAtomicCommit failed: %d(%s)", errno, strerror(errno));
 		drmModeAtomicFree(drm_dev.req);
 		return ret;
 	}
@@ -710,6 +710,10 @@ void drm_wait_vsync(lv_disp_drv_t *disp_drv)
 	drm_dev.req = NULL;
 }
 
+void* drm_get_map(unsigned index) {
+	return drm_dev.drm_bufs[index].map;
+}
+
 void drm_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
 {
 	struct drm_buffer *fbuf = drm_dev.cur_bufs[1];
@@ -717,17 +721,44 @@ void drm_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color
 	lv_coord_t h = (area->y2 - area->y1 + 1);
 	int i, y;
 
-	dbg("x %d:%d y %d:%d w %d h %d", area->x1, area->x2, area->y1, area->y2, w, h);
+	dbg("x %d:%d y %d:%d w %d h %d p %p", area->x1, area->x2, area->y1, area->y2, w, h, color_p);
+
+	#define FPS_COUNTER 1
+	#if FPS_COUNTER
+	static unsigned count = 0;
+	static unsigned long flush_duration;
+	static struct timeval tv;
+	count += 1;
+	struct timeval tv2;
+	gettimeofday(&tv2, NULL);
+	if ((tv2.tv_sec - tv.tv_sec) * 1000000 + (tv2.tv_usec - tv.tv_usec) >= 1000000) {
+		printf(" fps: %u, flush: %f\r", count, (float)flush_duration / count);
+		fflush(stdout);
+		count = 0;
+		flush_duration = 0;
+		gettimeofday(&tv, NULL);
+	}
+	#endif
+
+	#define TEST_FPS_ONLY 0
+	#if TEST_FPS_ONLY
+	lv_disp_flush_ready(disp_drv);
+	return;
+	#endif
 
 	/* Partial update */
-	if ((w != drm_dev.width || h != drm_dev.height) && drm_dev.cur_bufs[0])
-		memcpy(fbuf->map, drm_dev.cur_bufs[0]->map, fbuf->size);
-
-	for (y = 0, i = area->y1 ; i <= area->y2 ; ++i, ++y) {
-                memcpy((uint8_t *)fbuf->map + (area->x1 * (LV_COLOR_SIZE/8)) + (fbuf->pitch * i),
-                       (uint8_t *)color_p + (w * (LV_COLOR_SIZE/8) * y),
-		       w * (LV_COLOR_SIZE/8));
+	#if DRM_DIRECT_BUFFER
+	if (color_p == drm_dev.drm_bufs[0].map) {
+		fbuf = &drm_dev.drm_bufs[0];
+	} else {
+		fbuf = &drm_dev.drm_bufs[1];
 	}
+	#else
+	static unsigned buf_idx = 0;
+	buf_idx = (buf_idx + 1) % 2;
+	fbuf = &drm_dev.drm_bufs[buf_idx];
+	memcpy(fbuf->map, color_p, fbuf->size);
+	#endif
 
 	if (drm_dev.req)
 		drm_wait_vsync(disp_drv);
@@ -748,6 +779,11 @@ void drm_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color
 	// drm_dev.cur_bufs[0] = fbuf;
 
 	lv_disp_flush_ready(disp_drv);
+	#if FPS_COUNTER
+	struct timeval tv3;
+	gettimeofday(&tv3, NULL);
+	flush_duration += (tv3.tv_sec - tv2.tv_sec) * 1000000 + tv3.tv_usec - tv2.tv_usec;
+	#endif
 }
 
 #if LV_COLOR_DEPTH == 32
