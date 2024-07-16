@@ -7,9 +7,14 @@ CFLAGS ?= -O3 -I$(LVGL_DIR)/ -Wall -Wshadow -Wundef -Wmissing-prototypes -Wno-di
 LDFLAGS ?= -lm -ldrm
 BIN = lvgl_demo_music
 
-# 64bit
-CFLAGS += -march=rv64gcv -flto
+CFLAGS += -flto
 LDFLAGS += -flto
+
+ifeq ($(findstring riscv64, $(CC)), riscv64)
+CFLAGS += -march=rv64gcv
+else
+CFLAGS += -march=rv32gcv
+endif
 
 # LDFLAGS += -Wl,-Map=$(BIN).map,--cref
 CFLAGS += $(CFLAG)
@@ -41,13 +46,14 @@ OBJS = $(AOBJS) $(COBJS)
 all: default
 
 %.o: %.c
-	@$(CC)  $(CFLAGS) -c $< -o $@
 	@echo "CC $<"
-    
-default: $(AOBJS) $(COBJS) $(MAINOBJ)
-	$(CC) -o $(BIN) $(MAINOBJ) $(AOBJS) $(COBJS) $(LDFLAGS)
+	@$(CC)  $(CFLAGS) -c $< -o $@
 
-clean: 
+default: $(AOBJS) $(COBJS) $(MAINOBJ)
+	@echo LD $(BIN)
+	@$(CC) -o $(BIN) $(MAINOBJ) $(AOBJS) $(COBJS) $(LDFLAGS)
+
+clean:
 	rm -f $(BIN) $(AOBJS) $(COBJS) $(MAINOBJ)
 
 install:
