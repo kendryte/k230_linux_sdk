@@ -118,7 +118,7 @@ int main(void)
     #endif
     lv_disp_draw_buf_init(&disp_buf, buf_2_1, buf_2_2, draw_buf_size);
     printf("buffers: %p %p\n", buf_2_1, buf_2_2);
-    dump_maps();
+    // dump_maps();
     test_mem_speed(buf_2_1, draw_buf_size);
     test_mem_speed(buf_2_2, draw_buf_size);
 
