@@ -201,6 +201,10 @@ gen_env_bin()
 	local mkenvimage="${UBOOT_BUILD_DIR}/tools/mkenvimage"
 	cd  "${BINARIES_DIR}/";
 	local default_env_file=${env_dir}/default.env;
+	if [ ${DTB} == "k230-canmv-01studio.dtb" ]; then
+		default_env_file=${env_dir}/01studio.env;
+	fi
+
 	${mkenvimage} -s 0x10000 -o uboot/env.env  ${default_env_file}
 }
 gen_boot_ext4()

@@ -2,7 +2,7 @@
 
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 #BUILDROOT_DIR=${PWD}
-
+set -e
 rootfs_dir="$1"
 DTB="$2.dtb"
 

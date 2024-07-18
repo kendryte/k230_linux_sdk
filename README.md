@@ -1,4 +1,4 @@
-# K230 Liunx SDK
+# K230 Linux SDK
 
 
 

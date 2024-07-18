@@ -47,6 +47,9 @@ help:sync
 	@echo "sdk build usage:"
 	@echo "    make CONF=k230_canmv_defconfig    -build k230 linux sdk user k230_canmv_defconfig"
 	@echo "                                      -CONF can be $$(ls $(BR_OVERLAY_DIR)/configs | tr '\n' '/')"
+	@echo "dcoker build and run example:"
+	@echo "		docker  build   -f tools/docker/Dockerfile  -t wjx/linux_sdk_docker_tt tools/docker "
+	@echo '		docker run -it  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -w $$(pwd) wjx/linux_sdk_docker_tt:latest '
 
 .PHONY:sync
 sync:
