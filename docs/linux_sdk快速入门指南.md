@@ -27,17 +27,26 @@ cd k230_linux_sdk
 
 ### 安装依赖
 
-安装如下软件的64位linux系统(推荐ubuntu20.04和ubuntu24.04)，
+需要安装如下软件的 ubuntu22.04 或者ubuntu 24.04系统，
 
 ```bash
-git sed make binutils build-essential diffutils gcc g++ bash patch gzip bzip2 perl  tar cpio unzip rsync file bc findutils wget libncurses-dev python3 libssl-dev
+git sed make binutils build-essential diffutils gcc g++ bash patch gzip bzip2 perl  tar cpio unzip rsync file bc findutils wget libncurses-dev python3 libssl-dev gawk cmake
 ```
 
-ubuntu发行版参考如下命令进行安装上述软件
+参考如下命令进行安装上述软件
 
 ```bash
-sudo apt-get inst wget all -y git sed make binutils build-essential diffutils gcc  g++ bash patch gzip bzip2 perl tar cpio unzip rsync file bc findutils wget libncurses-dev python3 libssl-dev 
+sudo apt-get inst wget all -y git sed make binutils build-essential diffutils gcc  g++ bash patch gzip bzip2 perl tar cpio unzip rsync file bc findutils wget libncurses-dev python3 libssl-dev  gawk cmake
 ```
+
+>依赖软件包见tools/docker/Dockerfile 文件，构建和进入docker环境参考如下命令：
+
+```shell
+docker  build   -f tools/Dockerfile  -t wjx/linux_sdk_docker_tt tools/  #构建
+docker run -it  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v ${HOME}:${HOME}  -w $(pwd) wjx/linux_sdk_docker_tt:latest   #使用
+```
+
+
 
 ### 编译
 
@@ -50,7 +59,7 @@ make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both
 # make CONF=k230d_canmv_64kernel_32rootfs_defconfig #build k230d 64bit kernel  32bit rootfs image
 ```
 
->k230d_canmv_defconfig是个例子，请替换为正确的配置文件，比如替换为k230_canmv_defconfig
+>k230d_canmv_defconfig是个例子，需要替换为正确的配置文件，比如替换为k230_canmv_defconfig
 >
 >sdk支持的所有配置文件见buildroot-overlay/configs目录
 >
@@ -321,23 +330,23 @@ output/k230d_canmv_defconfig/host/bin/riscv64-linux-gcc hello.c -o hello
 
 
 
-### linux gpio demo
+### linux gpio demo(未完成)
 
 
 
 
 
-### linux lvgl demo
+### linux lvgl demo(未完成)
 
 
 
-### vector向量demo
+### vector向量demo(未完成)
 
 
 
 
 
-## 7.rootfs定制及源码修改
+## 7.rootfs定制及源码修改(未完成)
 
 ### rootfs定制：
 
