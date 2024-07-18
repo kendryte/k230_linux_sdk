@@ -1,27 +1,15 @@
 #  1. build image:
-#     docker build -t k230_sdk:latest .
-#     docker build --progress=plain -t k230_sdk:latest .
-#       docker  build -f tools/Dockerfile  -t wjx/linux_sdk_docker_tt .
-#       docker run -it -v $(pwd):$(pwd) wjx/linux_sdk_docker_tt:latest /bin/bash
-#
-#  2.  run docker image:
-#
-#     2.1 run with default user
-#     docker run -it -v $(pwd):$(pwd) -v $(pwd)/toolchain:/opt/toolchain k230_sdk:latest /bin/bash
-#
-#     2.2 run with root user
-#     docker run -u 0 -it -v $(pwd):$(pwd) -v $(pwd)/toolchain:/opt/toolchain k230_sdk:latest /bin/bash
-#
+#   docker  build   -f tools/Dockerfile  -t wjx/linux_sdk_docker_tt tools/
+#   docker run -it  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v $HOME:$HOME  -w $(pwd) wjx/linux_sdk_docker_tt:latest
 
-FROM ubuntu:20.04
+
+FROM ubuntu:22.04
 # LABEL verdor=Canaan
 # LABEL name=k230_sdk
 # LABEL version=0.1
 # LABEL date='2023-01-10'
 # LABEL auther='wuwentao@canaan-creative.com'
 
-# ENV USER=gitlab
-# ARG UID=6000
 
 # config for default software install
 ARG DEBIAN_FRONTEND=noninteractive
@@ -39,6 +27,15 @@ RUN apt-get install -y --fix-broken --fix-missing --no-install-recommends   sudo
 
 RUN apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
         bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3 libssl-dev
+
+RUN echo 'ALL ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+
 # install software
 # RUN apt-get clean all && \
 #     apt-get update && \

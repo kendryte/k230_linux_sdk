@@ -138,6 +138,9 @@ __weak int ddr_init_training(void)
 	#elif defined(CONFIG_SIPLP4_2667)
 		change_pll_2660();
 		sip_ddr_init_2667();
+	#elif  defined(CONFIG_CANMV_01STUDIO_LPDDR4_2667)
+		printf("CONFIG_LPDDR4_2667 \n");
+		ddr_init_2667();
 	#endif
 
 	return 0;
