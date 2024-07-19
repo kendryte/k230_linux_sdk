@@ -1,10 +1,24 @@
 # K230 Linux SDK
 
-
-
 >This document uses the k230d_canmv_defconfig configuration as an example. If you use other configurations, replace k230d_canmv_defconfig with correct names. All the configurations supported by this sdk,  can be found in  buildroot-overlay/configs directory.
 
+## Install toolchain and dependencies
 
+download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz toolchan from  https://www.xrvm.cn/community/download?id=4333581795569242112
+uncompress the toolchain to the /opt/toolchain(Refer command):
+
+```bash
+mkdir -p /opt/toolchain;
+tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz -C /opt/toolchain;
+```
+
+install dependencies(Refer command):
+
+```bash
+apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
+        bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3  \
+        libssl-dev gawk cmake
+```
 
 ## build
 
@@ -50,7 +64,6 @@ make linux-dirclean #linux clean
 
 >linux source code can be specified using the LINUX_OVERRIDE_SRCDIR macro,for example:
 >echo LINUX_OVERRIDE_SRCDIR=/home/wangjianxin/t/linux-xuantie-kernel >output/k230d_canmv_defconfig/local.mk
-
 
 ## buildroot
 

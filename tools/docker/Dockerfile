@@ -1,7 +1,8 @@
 #  1. build image:
 #   docker  build   -f tools/Dockerfile  -t wjx/linux_sdk_docker_tt tools/
+#  2. run
 #   docker run -it  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v $HOME:$HOME  -w $(pwd) wjx/linux_sdk_docker_tt:latest
-
+#   docker run -it --entrypoint "/bin/bash"  -h k230 -v /opt/toolchain:/opt/toolchain   -v $HOME:$HOME  -w $(pwd) wjx/linux_sdk_docker_tt:latest
 
 FROM ubuntu:22.04
 # LABEL verdor=Canaan
