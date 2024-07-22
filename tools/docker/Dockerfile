@@ -1,8 +1,8 @@
 #  1. build image:
-#   docker  build   -f tools/Dockerfile  -t wjx/linux_sdk_docker_tt tools/
+#   docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker
 #  2. run
-#   docker run -it  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v $HOME:$HOME  -w $(pwd) wjx/linux_sdk_docker_tt:latest
-#   docker run -it --entrypoint "/bin/bash"  -h k230 -v /opt/toolchain:/opt/toolchain   -v $HOME:$HOME  -w $(pwd) wjx/linux_sdk_docker_tt:latest
+#   docker run -it  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v $HOME:$HOME -v /opt/toolchain:/opt/toolchain  -w $(pwd) wjx/d:latest
+#   docker run -it --entrypoint "/bin/bash"  -h k230 -v /opt/toolchain:/opt/toolchain   -v $HOME:$HOME  -w $(pwd) wjx/d:latest
 
 FROM ubuntu:22.04
 # LABEL verdor=Canaan
@@ -28,7 +28,7 @@ RUN apt-get install -y --fix-broken --fix-missing --no-install-recommends   sudo
 
 RUN apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
         bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3  \
-        libssl-dev gawk cmake
+        libssl-dev gawk cmake bison flex  bash-completion
 
 RUN echo 'ALL ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers
 COPY entrypoint.sh /entrypoint.sh

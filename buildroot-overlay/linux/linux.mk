@@ -668,6 +668,7 @@ linux-rebuild-with-initramfs:
 # $(LINUX_DIR)/.overlay_sync:$(TOPDIR)/../.linux_overlay_sync   $(LINUX_DIR)/.stamp_patched
 # 	rsync -a $(LINUX_OVERLAY_DIRS)/ $(LINUX_DIR)/
 # 	touch $@
-# $(LINUX_DIR)/.overlay_sync: $(LINUX_DIR)/.stamp_patched	
+# $(LINUX_DIR)/.overlay_sync: $(LINUX_DIR)/.stamp_patched
 
 
+include linux/linux_ilp32/linux_ilp32.mk

@@ -1,0 +1,22 @@
+config BR2_PACKAGE_LINUX_ILP32
+	bool "build RV64ILP32 64ilp32.config  Linux Kernel "
+	default n
+	help
+	  Enable this option if you want to build a  RV64ILP32 64ilp32.config
+	  Linux kernel for your embedded device
+
+config BR2_TOOLCHAIN_EXTERNAL_RUYI_NEW32_RV64ILP32_BIN_PATH
+	string "ruyi new 32 bit Toolchain relative binary path"
+	default "/opt/toolchain/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25/riscv"
+	depends on 	BR2_PACKAGE_LINUX_ILP32
+	help
+	  Path to where the binaries (e.g. the compiler) can be found,
+	  relative to the downloaded toolchain root directory. The
+	  default is "bin" and is correct for most toolchains.
+
+config BR2_TOOLCHAIN_EXTERNAL_RUYI_NEW32_RV64ILP32_PREFIX
+	string "Ruyi new 32 bit Toolchain prefix"
+	default "riscv64-unknown-elf"
+	depends on 	BR2_PACKAGE_LINUX_ILP32
+	help
+	  Component name prefix used by your external toolchain.
