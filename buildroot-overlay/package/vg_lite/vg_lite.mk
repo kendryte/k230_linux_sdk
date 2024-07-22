@@ -13,9 +13,14 @@ VG_LITE_DEPENDENCIES += libdrm
 DRM_CFLAGS = $(TARGET_CFLAGS) -I$(STAGING_DIR)/usr/include/libdrm -I$(STAGING_DIR)/usr/include
 DRM_LDFLAGS = -L$(STAGING_DIR)/usr/lib -ldrm
 
+ifeq ($(BR2_RISCV_32), y)
+VG_LITE_CFLAGS += -march=rv32gcv_xtheadc
+DRM_CFLAGS += -march=rv32gcv_xtheadc
+endif
+
 ifeq ($(BR2_PACKAGE_VG_LITE_DEMOS),y)
 define VG_LITE_BUILD_CMDS
-	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" -C $(@D)/VGLite
+	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" CFLAGS="$(VG_LITE_CFLAGS)" -C $(@D)/VGLite
 	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" DRM_CFLAGS="$(DRM_CFLAGS)" DRM_LDFLAGS="$(DRM_LDFLAGS)" SDK_DIR=$(@D) -C $(@D)/test
 endef
 
@@ -26,7 +31,7 @@ endef
 
 else
 define VG_LITE_BUILD_CMDS
-	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" -C $(@D)/VGLite
+	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" CFLAGS="$(VG_LITE_CFLAGS)" -C $(@D)/VGLite
 endef
 
 define VG_LITE_INSTALL_TARGET_CMDS

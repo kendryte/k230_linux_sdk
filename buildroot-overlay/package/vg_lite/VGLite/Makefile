@@ -8,21 +8,11 @@ SOURCES = vg_lite_dump.c \
 		  ../VGLiteKernel/linux/vg_lite_ioctl.c \
 		  ../VGLiteKernel/linux/vg_lite_os.c
 
-CFLAGS += -I../inc -I../VGLiteKernel -I.
-CFLAGS += -Wno-missing-braces -D_GNU_SOURCE -g
+CFLAG := -mcpu=c908v -I../inc -I../VGLiteKernel -I. -Wno-missing-braces -D_GNU_SOURCE -g $(CFLAGS) 
 
 LIBS += m
 LDFLAGS += $(addprefix -l,$(LIBS))
 LDFLAGS += -fPIC -shared -Wl,-z,defs
-
-# ifeq ($(findstring riscv64, $(CC)), riscv64)
-# CFLAGS += -march=rv64gcv_zifencei_xtheadcmo
-# else
-# CFLAGS += -march=rv32gcv_zifencei_xtheadcmo
-# endif
-
-CFLAGS += -mcpu=c908v
-
 
 all : $(OUT)/$(NAME)
 
@@ -38,4 +28,4 @@ $(OUT):
 	mkdir $(OUT)
 
 $(OUT)/$(NAME) : $(OUT) $(SOURCES)
-	$(CC) $(CFLAGS) -o $@ $(SOURCES) $(LDFLAGS)
+	$(CC) $(CFLAG) -o $@ $(SOURCES) $(LDFLAGS)
