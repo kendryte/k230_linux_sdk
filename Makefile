@@ -12,7 +12,7 @@ include .last_conf
 BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 
 
-.PHONY: all buildroot  debian ubuntu openouler  ruyi  k230d_32bit_rootfs  k230d_canmv_kernel64_root32
+.PHONY: all buildroot  debian ubuntu openouler  ruyi
 all :  buildroot
 
 debian ubuntu openouler : buildroot
@@ -20,14 +20,6 @@ debian ubuntu openouler : buildroot
 
 buildroot: $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) all
-
-k230d_32bit_rootfs:sync
-	make -C $(BR_SRC_DIR) k230d_canmv_32bit_rootfs_defconfig  O=$(CURDIR)/output/k230d_canmv_32bit_rootfs_defconfig
-	make -C $(CURDIR)/output/k230d_canmv_32bit_rootfs_defconfig  all
-
-k230d_canmv_kernel64_root32: sync   k230d_32bit_rootfs
-	make -C $(BR_SRC_DIR) k230d_canmv_64kernel_32rootfs_defconfig  O=$(CURDIR)/output/k230d_canmv_64kernel_32rootfs_defconfig
-	make -C $(CURDIR)/output/k230d_canmv_64kernel_32rootfs_defconfig  all
 
 .PHONY:dl
 dl:   $(BRW_BUILD_DIR)/.config
@@ -48,14 +40,14 @@ help:sync
 	@echo "    make CONF=k230_canmv_defconfig    -build k230 linux sdk user k230_canmv_defconfig"
 	@echo "                                      -CONF can be $$(ls $(BR_OVERLAY_DIR)/configs | tr '\n' '/')"
 	@echo "dcoker build and run example:"
-	@echo "		docker  build   -f tools/docker/Dockerfile  -t wjx/linux_sdk_docker_tt tools/docker "
-	@echo '		docker run -it  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -w $$(pwd) wjx/linux_sdk_docker_tt:latest '
+	@echo "		docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker "
+	@echo '		docker run -it  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -v /opt/toolchain:/opt/toolchain -w $$(pwd) wjx/d:latest '
 
 .PHONY:sync
 sync:
 	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
 
-this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig   k230d_32bit_rootfs    k230d_canmv_kernel64_root32
+this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@
 

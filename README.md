@@ -4,7 +4,7 @@
 
 ## Install toolchain and dependencies
 
-download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz toolchan from  https://www.xrvm.cn/community/download?id=4333581795569242112
+download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz toolchan from  `https://www.xrvm.cn/community/download?id=4333581795569242112`
 uncompress the toolchain to the /opt/toolchain(Refer command):
 
 ```bash
@@ -17,8 +17,16 @@ install dependencies(Refer command):
 ```bash
 apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
         bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3  \
-        libssl-dev gawk cmake
+        libssl-dev gawk cmake bison flex  bash-completion
 ```
+
+>k230d_canmv_ilp32_defconfig required  ubuntu 22.04 or 24.04 and install rv64ilp32 toolchain(refer command):
+>
+>`wget -c https://github.com/ruyisdk/riscv-gnu-toolchain-rv64ilp32/releases/download/2024.06.25/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25-nightly.tar.gz;`
+>
+>`mkdir -p /opt/toolchain/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25/;`
+》
+>`tar -xvf riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25-nightly.tar.gz   -C /opt/toolchain/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25/;`
 
 ## build
 
@@ -26,12 +34,11 @@ apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ ba
 
 make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both 64bit);
 # make CONF=k230_canmv_defconfig # build k230 canmv image
-# make CONF=k230d_canmv_32bit_rootfs_defconfig  #build k230d canmv 32bit rootfs;
-# make CONF=k230d_canmv_64kernel_32rootfs_defconfig #build k230d 64bit kernel and 32bit rootfs image
+# make CONF=k230d_canmv_ilp32_defconfig  #build k230d canmv 32bit rootfs;
 # make help # view help
 ```
 
->[BR2_PRIMARY_SIT configuration primary download site]("https://bootlin.com/pub/conferences/2011/elce/using-buildroot-real-project/using-buildroot-real-project.pdf") for example:make CONF=k230d_canmv_defconfig  BR2_PRIMARY_SITE=https://ai.b-bug.org/~/wangjianxin/dl/
+>[BR2_PRIMARY_SIT configuration primary download site]("https://bootlin.com/pub/conferences/2011/elce/using-buildroot-real-project/using-buildroot-real-project.pdf") for example: `make CONF=k230d_canmv_defconfig  BR2_PRIMARY_SITE=https://ai.b-bug.org/~/wangjianxin/dl/`
 
 ## output
 
@@ -58,7 +65,7 @@ output/k230d_canmv_defconfig/build/uboot-2022.10/ #uboot full code,uboot build d
 make linux-menuconfig #modify configuration
 make linux-savedefconfig #save to defconfig
 
-make linux-rebuild opensbi-rebuild #rebuild linux,rebuild opensbi
+make linux-rebuild  #rebuild linux
 make linux-dirclean #linux clean
 ```
 

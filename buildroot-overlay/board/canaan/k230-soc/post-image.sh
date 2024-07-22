@@ -199,24 +199,35 @@ gen_image()
 gen_env_bin()
 {
 	local mkenvimage="${UBOOT_BUILD_DIR}/tools/mkenvimage"
+	local CONFT=${BUILD_DIR%/build*}
+	local CONF=${CONFT##*/output/};
+
+
 	cd  "${BINARIES_DIR}/";
 	local default_env_file=${env_dir}/default.env;
+
 	if [ ${DTB} == "k230-canmv-01studio.dtb" ]; then
 		default_env_file=${env_dir}/01studio.env;
 	fi
 
+	if [ ${CONF} == "k230d_canmv_ilp32_defconfig" ]; then
+		sed -i 's/^bootcmd=.*$/bootcmd=run blinuxilp32;/g' ${default_env_file}
+	else
+		sed -i 's/^bootcmd=.*$/bootcmd=run blinux;/g' ${default_env_file}
+	fi
 	${mkenvimage} -s 0x10000 -o uboot/env.env  ${default_env_file}
 }
 gen_boot_ext4()
 {
 	cd  "${BINARIES_DIR}/";
-	mkdir boot;
+	mkdir -p boot;
 
 	cp ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/boot/nuttx-7000000-uart2.bin  boot/;
 	cp Image boot/;
-	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  boot/fw_jump_add_uboot_head.bin
+	[ ! -f "Image_ilp32" ] ||  cp Image_ilp32 boot/;
 	cp ${DTB} boot;
 	cd boot; rm -rf k.dtb;ln -s ${DTB} k.dtb; cd -;
+	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  boot/fw_jump_add_uboot_head.bin
 	rm -rf boot.ext4 ;fakeroot mkfs.ext4 -d boot  -r 1 -N 0 -m 1 -L "boot" -O ^64bit boot.ext4 45M
 }
 

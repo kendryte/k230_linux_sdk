@@ -15,7 +15,7 @@ static inline void thead_csi_dcache_clean_invalid_range(void* addr, uint64_t siz
     __asm volatile("fence iorw, iorw");
 
     while (op_size > 0) {
-        __asm volatile("th.dcache.civa %0" : : "r"(op_addr));
+        __asm volatile("dcache.civa %0" : : "r"(op_addr));
         op_addr += linesize;
         op_size -= linesize;
     }

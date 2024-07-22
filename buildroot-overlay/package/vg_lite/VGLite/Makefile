@@ -15,11 +15,14 @@ LIBS += m
 LDFLAGS += $(addprefix -l,$(LIBS))
 LDFLAGS += -fPIC -shared -Wl,-z,defs
 
-ifeq ($(findstring riscv64, $(CC)), riscv64)
-CFLAGS += -march=rv64gcv_zifencei_xtheadcmo
-else
-CFLAGS += -march=rv32gcv_zifencei_xtheadcmo
-endif
+# ifeq ($(findstring riscv64, $(CC)), riscv64)
+# CFLAGS += -march=rv64gcv_zifencei_xtheadcmo
+# else
+# CFLAGS += -march=rv32gcv_zifencei_xtheadcmo
+# endif
+
+CFLAGS += -mcpu=c908v
+
 
 all : $(OUT)/$(NAME)
 

@@ -8,7 +8,7 @@ k230系列芯片采用全新的多异构单元加速计算架构，集成了2个
 
 ![K230_block_diagram](https://developer.canaan-creative.com/k230_canmv/main/_images/K230_block_diagram.png)
 
->k230和k230d的区别是k230d内部多一个128MB的lpddr4颗粒；
+>k230和k230d的主要区别是k230d内部多一个128MB的lpddr4颗粒；
 
 ## 2.sdk源码及编译
 
@@ -17,36 +17,38 @@ k230系列芯片采用全新的多异构单元加速计算架构，集成了2个
 参考如下命令下载sdk代码
 
 ```bash
-git clone git@gitee.com:kendryte/k230_linux_sdk.git
+git clone git@github.com:kendryte/k230_linux_sdk.git
 # git clone git@gitee.com:kendryte/k230_linux_sdk.git
 cd k230_linux_sdk
 ```
 
->github 上仓库地址是 git@gitee.com:kendryte/k230_linux_sdk.git
+>github上仓库地址是 git@github.com:kendryte/k230_linux_sdk.git
+>
 >gitee上仓库地址是 git@gitee.com:kendryte/k230_linux_sdk.git
 
+### 安装交叉工具链
+下载Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz （下载链接https://www.xrvm.cn/community/download?id=4333581795569242112 ）文件，并解压缩到/opt/toolchain目录  (Refer command):
+
+```bash
+mkdir -p /opt/toolchain;
+tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz -C /opt/toolchain;
+```
+> 安装新32位交叉工具链(可选 只有k230d_canmv_ilp32_defconfig配置需要)
+>
+> wget -c xxxx;mkdir -p  /opt/toolchain;tar -xvf xxx.tar.gz -C /opt/toolchain/
 ### 安装依赖
 
-需要安装如下软件的 ubuntu22.04 或者ubuntu 24.04系统，
+需要安装如下软件的 ubuntu22.04 或者ubuntu 24.04系统(参考安装命令)
 
 ```bash
-git sed make binutils build-essential diffutils gcc g++ bash patch gzip bzip2 perl  tar cpio unzip rsync file bc findutils wget libncurses-dev python3 libssl-dev gawk cmake
-```
-
-参考如下命令进行安装上述软件
-
-```bash
-sudo apt-get inst wget all -y git sed make binutils build-essential diffutils gcc  g++ bash patch gzip bzip2 perl tar cpio unzip rsync file bc findutils wget libncurses-dev python3 libssl-dev  gawk cmake
+sudo apt-get inst wget all -y git sed make binutils build-essential diffutils gcc  g++ bash patch gzip bzip2 perl tar cpio unzip rsync file bc findutils wget libncurses-dev python3 libssl-dev  gawk cmake bison flex bash-completion
 ```
 
 >依赖软件包见tools/docker/Dockerfile 文件，构建和进入docker环境参考如下命令：
-
-```shell
-docker  build   -f tools/Dockerfile  -t wjx/linux_sdk_docker_tt tools/  #构建
-docker run -it  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v ${HOME}:${HOME}  -w $(pwd) wjx/linux_sdk_docker_tt:latest   #使用
-```
-
-
+>
+>docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker  #构建
+>
+>docker run -it  -h k230  -e uid=\$(id -u) -e gid=\$(id -g) -e user=\${USER} -v \${HOME}:\${HOME}  -w \$(pwd) wjx/d:latest   #使用
 
 ### 编译
 
@@ -55,7 +57,7 @@ docker run -it  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v ${HO
 ```bash
 make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both 64bit);
 # make CONF=k230_canmv_defconfig # build k230 canmv image
-# make CONF=k230d_canmv_32bit_rootfs_defconfig  #build k230d canmv 32bit rootfs;
+# make CONF=k230d_canmv_ilp32_defconfig  #build k230d canmv 32bit rootfs;
 # make CONF=k230d_canmv_64kernel_32rootfs_defconfig #build k230d 64bit kernel  32bit rootfs image
 ```
 
@@ -258,12 +260,12 @@ k230_linux_sdk/
 │   └── package
 │       ├── libdrm  #libdrm有修改的文件
 │       ├── lvgl  #lvgl有修改的文件
-│       ├── vg_lite  
+│       ├── vg_lite
 │       └── vvcam
 ├── docs  #文档目录
 ├── output   #输出目录，包含最终使用的源码，及所有的输出文件
 │   ├── buildroot-2024.02.1  #最后使用的buildroot目录
-│   └── k230d_canmv_defconfig  #编译输出目录，所有源代及编译输出文件 
+│   └── k230d_canmv_defconfig  #编译输出目录，所有源代及编译输出文件
 ├── Makefile  #主makefile文件
 ├── README.md  #readme文件
 └── tools  #一些脚本工具
@@ -375,8 +377,3 @@ https://developer.canaan-creative.com/k230_canmv/main/zh/CanMV-K230%E5%BF%AB%E9%
 https://d1.docs.aw-ol.com/d1_dev/
 
 https://yoc.docs.t-head.cn/icebook/
-
-
-
-
-
