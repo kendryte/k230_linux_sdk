@@ -8,6 +8,12 @@ LVGL_SOURCE = $(LVGL_VERSION).tar.gz
 LVGL_SITE = https://github.com/lvgl/lvgl/archive/refs/tags
 LVGL_DEPENDENCIES += libdrm
 
+LVGL_CFLAG = -I$(STAGING_DIR)/usr/include/libdrm
+
+ifeq ($(BR2_RISCV_32), y)
+LVGL_CFLAG += -march=rv32gcv
+endif
+
 define LVGL_EXTRACT_CMDS
 	tar zxf $(LVGL_DL_DIR)/$(LVGL_SOURCE) -C $(@D)
 	mv $(@D)/lvgl-* $(@D)/lvgl
@@ -15,7 +21,7 @@ define LVGL_EXTRACT_CMDS
 endef
 
 define LVGL_BUILD_CMDS
-	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" CFLAG="-I$(STAGING_DIR)/usr/include/libdrm" -C $(@D)
+	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" CFLAG="$(LVGL_CFLAG)" -C $(@D)
 endef
 
 define LVGL_INSTALL_TARGET_CMDS
