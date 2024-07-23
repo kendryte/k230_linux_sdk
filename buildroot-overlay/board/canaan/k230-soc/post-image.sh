@@ -38,8 +38,8 @@ gz_file_add_ver()
 
 	# cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
 	# 	 nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
-	rm -rf  ${conf_name}_${storage}_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
-	ln -s  $f ${conf_name}_${storage}_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
+	rm -rf  linux_${conf_name}_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
+	ln -s  $f linux_${conf_name}_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
 }
 
 
