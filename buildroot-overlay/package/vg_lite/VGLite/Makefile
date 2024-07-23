@@ -22,7 +22,7 @@ clean:
 install:
 	cp $(OUT)/$(NAME) $(TARGET_DIR)/usr/lib/$(NAME)
 	cp $(OUT)/$(NAME) $(STAGING_DIR)/usr/lib/$(NAME)
-	cp ../inc/vg_lite.h $(STAGING_DIR)/usr/include/vg_lite.h
+	cp ../inc/*.h $(STAGING_DIR)/usr/include/
 
 $(OUT):
 	mkdir $(OUT)

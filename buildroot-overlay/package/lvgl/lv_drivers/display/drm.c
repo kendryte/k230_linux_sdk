@@ -8,7 +8,7 @@
  *********************/
 #include "drm.h"
 #if USE_DRM
-
+#include <thead.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
@@ -748,6 +748,7 @@ void drm_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color
 
 	/* Partial update */
 	#if DRM_DIRECT_BUFFER
+	thead_csi_dcache_clean_invalid_range(color_p, drm_dev.drm_bufs[0].size);
 	if (color_p == drm_dev.drm_bufs[0].map) {
 		fbuf = &drm_dev.drm_bufs[0];
 	} else {

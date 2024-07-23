@@ -32,7 +32,7 @@ extern "C" {
 /*********************
  *      DEFINES
  *********************/
-#define DRM_DIRECT_BUFFER 0
+#define DRM_DIRECT_BUFFER 1
 /**********************
  *      TYPEDEFS
  **********************/
