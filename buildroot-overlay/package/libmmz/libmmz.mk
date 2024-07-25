@@ -6,7 +6,7 @@ define LIBMMZ_BUILD_CMDS
 endef
 
 define LIBMMZ_INSTALL_TARGET_CMDS
-	$(INSTALL) -m 0755 $(@D)/libmmz.so $(TARGET_DIR)/usr/lib/
+	$(INSTALL) -m 0755 $(@D)/libmmz.a $(TARGET_DIR)/usr/lib/
 endef
 
 $(eval $(generic-package))
