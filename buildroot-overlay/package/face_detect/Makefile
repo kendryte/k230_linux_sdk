@@ -9,7 +9,7 @@ INCLUDE = -I ./ -I ../libnncase/runtime_lib -I ../libnncase/runtime_lib/nncase/i
 CXX_FLAG = -O2 -march=rv64imafdcv -mabi=lp64d -mcmodel=medany -std=c++17 -DLINUX_RUNTIME
 
 all:
-	$(CXX) $(CXX_FLAG) $(INCLUDE) $(OBJ) -o face_detect  $(LIBDIR)  $(LIBS)
+	$(CXX) $(CXX_FLAG) $(INCLUDE) $(OBJ) -o face_detect.elf  $(LIBDIR)  $(LIBS)
 
 clean:
-	rm -f *.o face_detect
+	rm -f *.o *.elf

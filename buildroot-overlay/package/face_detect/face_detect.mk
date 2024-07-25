@@ -9,9 +9,10 @@ endef
 
 define FACE_DETECT_INSTALL_TARGET_CMDS
 	mkdir -p $(TARGET_DIR)/app/face_detect
-	$(INSTALL) -m 0755 $(@D)/face_detect $(TARGET_DIR)/app/face_detect
+	$(INSTALL) -m 0755 $(@D)/face_detect.elf $(TARGET_DIR)/app/face_detect
 	$(INSTALL) -m 0755 $(@D)/ai2d_input.bin $(TARGET_DIR)/app/face_detect
 	$(INSTALL) -m 0755 $(@D)/face_detection_320.kmodel $(TARGET_DIR)/app/face_detect
+	$(INSTALL) -m 0755 $(@D)/run.sh $(TARGET_DIR)/app/face_detect
 endef
 
 $(eval $(generic-package))

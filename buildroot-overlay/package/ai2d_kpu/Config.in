@@ -1,0 +1,4 @@
+config BR2_PACKAGE_AI2D_KPU
+    bool "ai2d kpu test case"
+    help
+        ai2d and kpu test case
