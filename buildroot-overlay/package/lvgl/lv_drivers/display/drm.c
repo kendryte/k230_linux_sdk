@@ -726,22 +726,25 @@ void drm_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color
 	#define FPS_COUNTER 1
 	#if FPS_COUNTER
 	static unsigned count = 0;
-	static unsigned long flush_duration;
+	static unsigned long draw_duration;
 	static struct timeval tv;
+	static struct timeval tv3;
 	count += 1;
 	struct timeval tv2;
 	gettimeofday(&tv2, NULL);
+	draw_duration += (tv2.tv_sec - tv3.tv_sec) * 1000000 + tv2.tv_usec - tv3.tv_usec;
 	if ((tv2.tv_sec - tv.tv_sec) * 1000000 + (tv2.tv_usec - tv.tv_usec) >= 1000000) {
-		printf(" fps: %u, flush: %f\r", count, (float)flush_duration / count);
+		printf(" fps: %u, draw: %f us\r", count, (float)draw_duration / count);
 		fflush(stdout);
 		count = 0;
-		flush_duration = 0;
+		draw_duration = 0;
 		gettimeofday(&tv, NULL);
 	}
 	#endif
 
 	#define TEST_FPS_ONLY 0
 	#if TEST_FPS_ONLY
+	gettimeofday(&tv3, NULL);
 	lv_disp_flush_ready(disp_drv);
 	return;
 	#endif
@@ -781,9 +784,7 @@ void drm_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color
 
 	lv_disp_flush_ready(disp_drv);
 	#if FPS_COUNTER
-	struct timeval tv3;
 	gettimeofday(&tv3, NULL);
-	flush_duration += (tv3.tv_sec - tv2.tv_sec) * 1000000 + tv3.tv_usec - tv2.tv_usec;
 	#endif
 }
 
