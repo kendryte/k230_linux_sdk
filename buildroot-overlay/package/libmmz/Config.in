@@ -1,0 +1,4 @@
+config BR2_PACKAGE_LIBMMZ
+    bool "libmmz"
+    help
+        mmz lib

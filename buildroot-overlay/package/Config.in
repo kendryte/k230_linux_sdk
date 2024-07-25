@@ -2839,4 +2839,10 @@ menu "Text editors and viewers"
 	source "package/vim/Config.in"
 endmenu
 
+menu "AI"
+	source "package/libmmz/Config.in"
+	source "package/libnncase/Config.in"
+	source "package/face_detect/Config.in"
+endmenu
+
 endmenu
