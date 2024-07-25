@@ -1,0 +1,87 @@
+From 892efae80ad619da97985d572e8e670d925fdeb7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E9=BB=84=E5=AD=90=E6=87=BF?=
+ <huangziyi@canaan-creative.com>
+Date: Thu, 25 Jul 2024 14:57:46 +0800
+Subject: [PATCH] modify cpu usage method
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: 黄子懿 <huangziyi@canaan-creative.com>
+---
+ src/core/lv_refr.c | 45 ++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 44 insertions(+), 1 deletion(-)
+
+diff --git a/lvgl/src/core/lv_refr.c b/lvgl/src/core/lv_refr.c
+index 45ff2e0e7..3728a3979 100644
+--- a/lvgl/src/core/lv_refr.c
++++ b/lvgl/src/core/lv_refr.c
+@@ -7,6 +7,8 @@
+  *      INCLUDES
+  *********************/
+ #include <stddef.h>
++#include <stdio.h>
++#include <sys/time.h>
+ #include "lv_refr.h"
+ #include "lv_disp.h"
+ #include "../hal/lv_hal_tick.h"
+@@ -279,6 +281,47 @@ void _lv_refr_set_disp_refreshing(lv_disp_t * disp)
+     disp_refr = disp;
+ }
+ 
++uint8_t get_cpu_usage(void);
++
++uint8_t get_cpu_usage(void) {
++    struct timeval tv2;
++    char proc_buffer[1024];
++    unsigned proc_buffer_size = 0;
++    FILE* f = fopen("/proc/self/stat", "r");
++    static uint64_t start;
++    uint64_t current;
++    static uint64_t last_cpu_time;
++    uint64_t current_cpu_time, ret;
++    uint32_t utime = 0, stime = 0;
++
++    gettimeofday(&tv2, NULL);
++    current = (tv2.tv_sec * 1000000 + tv2.tv_usec) / 10000;
++    // read /proc/self/stat
++    memset(proc_buffer, 0, sizeof(proc_buffer));
++    if (f == NULL) {
++        perror("open /proc/self/stat");
++        return 0;
++    }
++    proc_buffer_size = fread(proc_buffer, 1, sizeof(proc_buffer), f);
++    fclose(f);
++    // find the 13rd space and the 14th space
++    for (unsigned i = 0, space_cnt = 0; i < proc_buffer_size; i++) {
++        if (proc_buffer[i] == ' ') {
++            space_cnt += 1;
++            if (space_cnt == 13) {
++                sscanf(proc_buffer + i, "%u%u", &utime, &stime);
++                break;
++            }
++        }
++    }
++    current_cpu_time = utime + stime;
++    ret = (current_cpu_time - last_cpu_time) * 100 / (current - start);
++    start = current;
++    last_cpu_time = current_cpu_time;
++
++    return ret;
++}
++
+ /**
+  * Called periodically to handle the refreshing
+  * @param tmr pointer to the timer itself
+@@ -398,7 +441,7 @@ void _lv_disp_refr_timer(lv_timer_t * tmr)
+ 
+         perf_monitor.fps_sum_all += fps;
+         perf_monitor.fps_sum_cnt ++;
+-        uint32_t cpu = 100 - lv_timer_get_idle();
++        uint32_t cpu = get_cpu_usage();
+         lv_label_set_text_fmt(perf_label, "%"LV_PRIu32" FPS\n%"LV_PRIu32"%% CPU", fps, cpu);
+     }
+ #endif
+-- 
+2.39.1
+
