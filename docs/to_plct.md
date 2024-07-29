@@ -1,4 +1,38 @@
-# jtag更新k230 内核和设备树方法
+## k230d新32位系统切换说明
+
+### 编译
+
+```bash
+make CONF=k230d_canmv_ilp32_defconfig
+#output  output/k230d_canmv_ilp32_defconfig/images/sysimage-sdcard.img.gz
+```
+
+### 启动nuttx
+
+```bash
+#uboot 命令行执行下面命令
+run bnuttx
+```
+
+### 启动64位内核+32位rootfs
+
+```bash
+run blinux
+```
+
+### 启动32位新内核+32位rootfs
+
+```bash
+run blinuxilp32
+```
+
+### 启动nuttx和linux双系统
+
+```bash
+run bnuttx;run blinux
+```
+
+## jtag更新k230 内核和设备树方法
 
 1.参考下面命令把内核 设备树 opensbi文件复制到tools目录下面；
 

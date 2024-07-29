@@ -52,7 +52,7 @@ sudo apt-get inst wget all -y git sed make binutils build-essential diffutils gc
 >
 >docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker  #构建
 >
->docker run -it  -h k230  -e uid=\$(id -u) -e gid=\$(id -g) -e user=\${USER} -v \${HOME}:\${HOME}  -w \$(pwd) wjx/d:latest   #使用
+>docker run -it --rm  -h k230  -e uid=\$(id -u) -e gid=\$(id -g) -e user=\${USER} -v \${HOME}:\${HOME}  -w \$(pwd) wjx/d:latest   #使用
 
 ### 编译
 
@@ -338,7 +338,7 @@ int main()
 把hello文件复制到开发板上，并执行,可以看到打印正确
 
 ```
-[root@canaan ~ ]#./hello 
+[root@canaan ~ ]#./hello
 Hello, World!
 [root@canaan ~ ]#
 ```
@@ -349,7 +349,7 @@ Hello, World!
 
 
 
-### uart 
+### uart
 
 说明：
 
@@ -501,8 +501,8 @@ int main() {
 
 ```bash
 [root@canaan ~ ]#scp  wangjianxin@10.10.1.94:/home/wangjianxin/k230_linux_sdk/rvv .
-wangjianxin@10.10.1.94's password: 
-rvv                                           100%   14KB   2.1MB/s   00:00    
+wangjianxin@10.10.1.94's password:
+rvv                                           100%   14KB   2.1MB/s   00:00
 [root@canaan ~ ]#./rvv
 vl: 8
 [root@canaan ~ ]#
