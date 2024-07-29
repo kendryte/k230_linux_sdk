@@ -1,8 +1,8 @@
 #  1. build image:
 #   docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker
 #  2. run
-#   docker run -it  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v $HOME:$HOME -v /opt/toolchain:/opt/toolchain  -w $(pwd) wjx/d:latest
-#   docker run -it --entrypoint "/bin/bash"  -h k230 -v /opt/toolchain:/opt/toolchain   -v $HOME:$HOME  -w $(pwd) wjx/d:latest
+#   docker run -it --rm  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v $HOME:$HOME -v /opt/toolchain:/opt/toolchain  -w $(pwd) wjx/d:latest
+#   docker run -it --rm --entrypoint "/bin/bash"  -h k230 -v /opt/toolchain:/opt/toolchain   -v $HOME:$HOME  -w $(pwd) wjx/d:latest
 
 FROM ubuntu:22.04
 # LABEL verdor=Canaan

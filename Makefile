@@ -41,7 +41,7 @@ help:sync
 	@echo "                                      -CONF can be $$(ls $(BR_OVERLAY_DIR)/configs | tr '\n' '/')"
 	@echo "dcoker build and run example:"
 	@echo "		docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker "
-	@echo '		docker run -it  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -v /opt/toolchain:/opt/toolchain -w $$(pwd) wjx/d:latest '
+	@echo '		docker run -it --rm  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -v /opt/toolchain:/opt/toolchain -w $$(pwd) wjx/d:latest '
 
 .PHONY:sync
 sync:
