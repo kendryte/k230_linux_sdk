@@ -1,12 +1,11 @@
-LIBNNCASE_SITE = $(realpath $(TOPDIR))"/package/libnncase"
-LIBNNCASE_SITE_METHOD = local
+LIBNNCASE_VERSION =
+NNCASE_VERSION = v2.9.0
+LIBNNCASE_SOURCE = nncase_k230_$(NNCASE_VERSION)_runtime_linux.tgz
+LIBNNCASE_SITE = https://github.com/kendryte/nncase/releases/download/$(NNCASE_VERSION)
 
-define LIBNNCASE_BUILD_CMDS
-wget https://ai.b-bug.org/~zhaozhongxiang/runtime_lib.tar.bz2
-endef
-
-define LIBNNCASE_INSTALL_TARGET_CMDS
-tar xvf runtime_lib.tar.bz2 -C $(@D)
+define LIBNNCASE_EXTRACT_CMDS
+	tar zxf $(LIBNNCASE_DL_DIR)/$(LIBNNCASE_SOURCE) -C $(@D)
+	mv $(@D)/nncase_k230_$(NNCASE_VERSION)_runtime_linux $(@D)/nncase
 endef
 
 $(eval $(generic-package))
