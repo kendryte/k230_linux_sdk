@@ -25,21 +25,23 @@ gz_file_add_ver()
 	local CONF=$(basename ${BASE_DIR})
 
 	local sdk_ver="v0.0.0";
-	local nncase_ver="0.0.0";
+	local nncase_ver="2.9.0";
 
 	local sdk_ver_file="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version"
-	#local nncase_ver_file="${K230_SDK_ROOT}/src/big/nncase/riscv64/nncase/include/nncase/version.h"
+	local nncase_ver_file="${K230_SDK_ROOT}/output/${CONF}/build/libnncase/nncase/include/nncase/version.h"
+
 
 	local storage="$(echo "$f" | sed -nE "s#[^-]*-([^\.]*).*#\1#p")"
 	local conf_name="${CONF%%_defconfig}"
 
-
 	sdk_ver=$(awk -F- '/^sdk:/ { print $1}' ${sdk_ver_file}  | cut -d: -f2 )
 
-	# cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
-	# 	 nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
-	rm -rf  linux_${conf_name}_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
-	ln -s  $f linux_${conf_name}_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
+	if [ -e "${nncase_ver_file}" ]; then
+		cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
+			nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
+	fi
+	rm -rf  ${conf_name}_linux_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
+	ln -s  $f ${conf_name}_linux_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
 }
 
 
