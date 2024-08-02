@@ -298,7 +298,7 @@ before_script:
     - echo "---create current image version dir---"
     - sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1
     - echo "---save sdk build output---"
-    - sudo cp -rf --sparse=always -L ${SRC_DIR}/linux_${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
+    - sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
     - echo "${DST_DIR}/${SUB_DIR}/"
     - ls "${DST_DIR}/${SUB_DIR}/"
     - echo "add latest link for current build"
@@ -340,7 +340,7 @@ before_script:
             echo "current MR ID ${CI_MERGE_REQUEST_IID}";
             SUB_DIR="${CI_MERGE_REQUEST_IID}_${CI_PIPELINE_ID}/${CONF}";
             sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1;
-            src_file="${SRC_DIR}/linux_${HW_TYPE}_${HW_MODEL}_*.img.gz";
+            src_file="${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz";
             echo ${SRC_DIR};
             echo ${src_file};
             ls -alht output/${CONF}/images/ || exit 1;
