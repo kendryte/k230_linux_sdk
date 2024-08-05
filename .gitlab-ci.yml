@@ -4,6 +4,11 @@ variables:
   GITEE_REPO: git@gitee.com:kendryte/k230_linux_sdk.git
   DL_SITE: https://ai.b-bug.org/~/wangjianxin/dl/
   HW_VER: v0.1
+  TFTP_BASE: /data1/tftp_server
+  NFS_SERVER: 10.10.1.94
+  NFS_BASE: /data/nfs_server
+  IMAGE_DIR: linux_sdk_images
+  IMAGE_NAME: "*_linux_*_nncase_*.img.gz"
   TEST_CONFIGS: >
     k230_canmv_defconfig
     k230d_canmv_defconfig
@@ -153,9 +158,21 @@ before_script:
   - git config --global --add safe.directory $CI_PROJECT_DIR
   - echo '----------fetch all tags----------'
   - timeout 3m git fetch --tags || { timeout 3m git fetch --tags || { timeout 3m git fetch --tags || exit 1; }; }
-  - HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
-  - HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
-  - echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
+  - |
+    echo "get hw type and modle based on configs name"
+    if [[ "$CONF" == "BPI-CanMV-K230D-Zero_defconfig" ]]; then
+        HW_TYPE="k230d"
+        HW_MODEL="bpi"
+    else
+        HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
+        HW_MODEL=$(echo $CONF | awk -F "_"  '{if ($3 == "v2") print $2"_"$3; else print $2}')
+      fi
+    echo "HW_TYPE ${HW_TYPE}, HW_MODEL ${HW_MODEL}"
+  - echo "set only_linux and only_rtt flag for test jobs"
+  - ONLY_LINUX=True
+  - ONLY_RTT=False
+  - echo "ONLY_RTT is ${ONLY_RTT}"
+  - echo "ONLY_LINUX is ${ONLY_LINUX}"
 
 .github_to_gitlab_gitee:
   timeout: 30m
@@ -236,26 +253,26 @@ before_script:
   script:
     - cd $CI_PROJECT_DIR
     - ls -alht
-    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/release/release_k230_linux_sdk_image.sh -O ./release_k230_linux_sdk_image.sh
-    - chmod +x ./release_k230_linux_sdk_image.sh
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/release/release_images.sh -O ./release_images.sh
+    - chmod +x ./release_images.sh
     - echo $CI_COMMIT_TAG || exit 1
     - echo $CONF || exit 1
-    - time ./release_k230_linux_sdk_image.sh $CI_COMMIT_TAG $CONF || time ./release_k230_linux_sdk_image.sh $CI_COMMIT_TAG $CONF
-    - echo "all release file synced"
+    - time ./release_images.sh $CI_COMMIT_TAG $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR || time ./release_images.sh $CI_COMMIT_TAG $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR
+    - echo "all release file published"
 
 .update_version: &update_version
-  - echo "---curren version ${ver}"
+  - echo "---curren version ${SUB_BASE}"
   - >
     if [[ $CI_COMMIT_TAG =~ ^v[0-9]+\.[0-9]+.*$ ]];
     then
       echo "release tag exist, will replace version dir with tag";
       SUB_BASE=$CI_COMMIT_TAG;
-      echo "tag is ${ver}";
+      echo "tag is ${SUB_BASE}";
     else
       echo "tag is null, skip ver overwrite";
-      echo "ver is ${ver}";
+      echo "ver is ${SUB_BASE}";
     fi
-  - echo "---update version ${ver}"
+  - echo "---update version ${SUB_BASE}"
 
 .build_job: &build_job
   - pwd
@@ -281,7 +298,7 @@ before_script:
     - echo "----------save image----------"
     - echo ${DST_BASE}
     - echo "set DST_DIR with different type based on docs/images/src"
-    - DST_DIR="${DST_BASE}/linux_sdk_images"
+    - DST_DIR="${DST_BASE}/${IMAGE_DIR}"
     - echo ${DST_DIR}
     - echo "---create repo dir---"
     - sudo mkdir -p ${DST_DIR}
@@ -291,12 +308,13 @@ before_script:
     - echo "---create current image version dir---"
     - sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1
     - echo "---save sdk build output---"
-    - sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
+    - ls "${SRC_DIR}"
+    - sudo cp -rf --sparse=always -L ${SRC_DIR}/${IMAGE_NAME} ${DST_DIR}/${SUB_DIR}/
     - echo "${DST_DIR}/${SUB_DIR}/"
     - ls "${DST_DIR}/${SUB_DIR}/"
     - echo "add latest link for current build"
     - test -h ${DST_DIR}/latest && sudo rm ${DST_DIR}/latest
-    - sudo ln -s ${DST_DIR}/${ver} ${DST_DIR}/latest || exit 1
+    - sudo ln -s ${DST_DIR}/${SUB_BASE} ${DST_DIR}/latest || exit 1
     - ls ${DST_DIR}/latest
     - echo "----------output URL----------"
     - echo "${DST_DIR}/${SUB_DIR}/" | sed "s/\/data1/https:\/\/ai\.b-bug\.org/g"
@@ -331,9 +349,9 @@ before_script:
                 CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
             fi
             echo "current MR ID ${CI_MERGE_REQUEST_IID}";
-            SUB_DIR="${CI_MERGE_REQUEST_IID}_${CI_PIPELINE_ID}";
+            SUB_DIR="${CI_MERGE_REQUEST_IID}_${CI_PIPELINE_ID}/${CONF}";
             sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1;
-            src_file="${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz";
+            src_file="${SRC_DIR}/${IMAGE_NAME}";
             echo ${SRC_DIR};
             echo ${src_file};
             ls -alht output/${CONF}/images/ || exit 1;
@@ -354,6 +372,375 @@ before_script:
         done
     - echo "----------save image to tftp done----------"
 
+.test:
+  test_setup:
+    - echo "----------Step 1. get available test devices----------"
+    - |
+      echo "check job from MR or tag or schedule or web";
+      if [[ ${CI_MERGE_REQUEST_IID} ]]; then
+          echo "current job is MR, skip and use CI_MERGE_REQUEST_IID";
+      elif [[ ${CI_COMMIT_TAG} ]]; then
+          echo "current job is release job, use CI_COMMIT_TAG";
+          CI_MERGE_REQUEST_IID=${CI_COMMIT_TAG};
+      elif [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
+          echo "current job is daily build schedule job, use CI_PIPELINE_SOURCE";
+          CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
+      else
+          echo "current job is not match, use CI_PIPELINE_SOURCE";
+          CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
+        fi
+    - echo "MR ID ${CI_MERGE_REQUEST_IID}"
+    - echo "Pipeline ID ${CI_PIPELINE_ID}"
+    - test -d bin || mkdir ./bin
+    - test -f ./bin/ailab && rm -rf ./bin/ailab
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/tools/ailab -O ./bin/ailab
+    - chmod +x ./bin/ailab
+    - |
+      echo "for loop to get available test device"
+      for i in {1..6}; do
+        if [ $i -eq 6 ];
+        then
+          echo "ERROR: No Available DUT after 5 times retry, Please rerun curent job to check it again";
+          exit 1;
+        fi
+        starttime=$(date +'%Y-%m-%d %H:%M:%S');
+        echo "---loop $i start time: $starttime";
+        echo "---start to get available test device in loop $i---";
+        available=$(./bin/ailab show --dest available --domain ${DOMAIN} --hw_type ${HW_TYPE} --hw_model ${HW_MODEL} --hw_ver ${HW_VER} --format args)
+        echo ${available}
+        if [[ $available =~ "k230" ]];
+        then
+          echo "---Get Available DUT pass in loop $i---";
+          echo "----------get available test devices done----------";
+          echo "----------Step 2. reserve test device----------";
+          reserved=$(./bin/ailab add ${available} --time 15m --site ${CI_PROJECT_NAME} --source ${CI_MERGE_REQUEST_IID} --job ${CI_PIPELINE_ID} --format args);
+          echo ${reserved};
+          if [[ ${reserved} =~ "gitlab" ]];
+          then
+            echo "Reserve DUT pass in loop $i, break loop and continue the next job";
+            # exit for loop with break once device avaiable and reserved pass
+            break;
+          else
+            echo "ERROR: Reserve DUT failed";
+            if [ $i -eq 6 ];
+            then
+              echo "ERROR: No Available DUT after 5 times retry, Please rerun curent job to check it again";
+              exit 1;
+            else
+              echo "---sleep 30 seconds and auto rerun in next loop...";
+              sleep 30
+            fi
+          fi
+        else
+          echo "ERROR: Get available test device failed in loop $i, ignore Error and try again...";
+          echo "---sleep for 30seconds and start to rerun in next loop...";
+          sleep 30;
+        fi
+      done
+    - echo "----------Step 3. save reserved/available for after_script----------"
+    - echo "${available}" > available
+    - echo "${reserved}" > reserved
+    - echo "${HW_MODEL}" > HW_MODEL
+    - echo "----------Step 4. power on/reset test device before test start----------"
+    - power_off="./bin/ailab power --type=off ${available}";
+    - power_on="./bin/ailab power --type=on ${available}";
+    - power_reset="./bin/ailab power --type=cycle ${available}";
+    - echo $power_off
+    - echo $power_on
+    - echo $power_reset
+    - |
+      echo "---start to run device power job before test start...";
+      if [[ "$HW_MODEL" =~ "canmv_v2" ]]
+      then
+        echo "---canmv v2 board will be power reset at test start ---";
+        $power_reset;
+        sleep 2;
+        echo "canmv_v2 board power reset done. continue to run test job";
+      elif [[ "$HW_MODEL" == "canmv" ]]
+      then
+        echo "---canmv board will be power reset at test start ---";
+        $power_reset;
+        sleep 2;
+        echo "canmv board power reset done. continue to run test job";
+      else
+        echo "---evb board will be power off and power on at test start---";
+        $power_off;
+        sleep 2;
+        $power_on;
+        sleep 2;
+        echo "evb board power off and power on done. continue in next loop";
+      fi
+      echo "---device power action done, start to run test job...";
+    - echo "----------reserve test device and power on/reset test device done----------"
+  test_teardown:
+    - echo "----------release test device----------"
+    - echo "get variables from previous steps"
+    - reserved=$(cat reserved)
+    - available=$(cat available)
+    - HW_MODEL=$(cat HW_MODEL)
+    - echo "Release DUT start"
+    - test -d bin || mkdir ./bin
+    - test -f ./bin/ailab && rm -rf ./bin/ailab
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/tools/ailab -O ./bin/ailab
+    - chmod +x ./bin/ailab
+    - result=$(./bin/ailab update --dest=reserved ${reserved})
+    - echo $result
+    - |
+      if [[ $result =~ "True" ]]; then
+        echo "Release DUT pass";
+      else
+        echo "ERROR: Release DUT failed";
+        exit 1;
+      fi
+    - power_off="./bin/ailab power --type=off ${available}";
+    - power_on="./bin/ailab power --type=on ${available}";
+    - power_reset="./bin/ailab power --type=cycle ${available}";
+    - echo $power_off
+    - echo $power_on
+    - echo $power_reset
+    - |
+      echo "---start to run device power job after test done...";
+      if [[ "$HW_MODEL" =~ "canmv_v2" ]]
+      then
+        echo "---canmv v2 board will skip power job at test start ---";
+        # $power_reset;
+        # sleep 2;
+        # echo "canmv_v2 board power reset done. continue to run test job";
+      elif [[ "$HW_MODEL" == "canmv" ]]
+      then
+        echo "---canmv board will skip power job after test done---";
+        # $power_reset;
+        # sleep 2;
+        # echo "canmv board power reset done. continue to run test job";
+      else
+        echo "---evb board will be power off after test done---";
+        $power_off;
+        # sleep 2;
+        # $power_on;
+        # sleep 2;
+        echo "evb board power off and power on done. continue in next loop";
+      fi
+      echo "---device power job done---";
+    - echo "----------release test device done----------"
+  copy_test_resource:
+    - echo "----------Step 5. copy test resource----------"
+    - echo "get build step result"
+    - echo $image_path
+    - echo $SUB_BASE
+    - echo $HW_TYPE
+    - echo $HW_MODEL
+    - echo $HW_VER
+    - echo "current test device config is ${CONF}"
+    - pwd
+    - echo "----------Step 6. save test resource to nfs case folder----------"
+    - echo "---get nfs case folder---"
+    - |
+      echo ${NFS_BASE};
+      echo "set NFS_DST_DIR with different type based on docs/images/src";
+      NFS_DST_DIR="${NFS_BASE}/${HW_TYPE}/${HW_MODEL}_${HW_VER}";
+      echo ${NFS_DST_DIR};
+      echo "---create NFS dir---";
+      echo "generate sub dir for MR/Pre-releae/relese job";
+      echo "check job from MR or tag or schedule or web";
+      if [[ ${CI_MERGE_REQUEST_IID} ]]; then
+          echo "current job is MR, skip and use CI_MERGE_REQUEST_IID";
+      elif [[ ${CI_COMMIT_TAG} ]]; then
+          echo "current job is release job, use CI_COMMIT_TAG";
+          CI_MERGE_REQUEST_IID=${CI_COMMIT_TAG};
+      elif [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
+          echo "current job is daily build schedule job, use CI_PIPELINE_SOURCE";
+          CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
+      else
+          echo "current job is not match, use CI_PIPELINE_SOURCE";
+          CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
+      fi
+      echo "current MR ID ${CI_MERGE_REQUEST_IID}";
+      SUB_DIR="${CI_MERGE_REQUEST_IID}_${CI_PIPELINE_ID}";
+      NFS_CASE_FOLDER="${NFS_DST_DIR}/${SUB_DIR}/${CONF}/${DOMAIN}";
+      echo "NFS_CASE_FOLDER: $NFS_CASE_FOLDER";
+    - echo "create $NFS_CASE_FOLDER"
+    - sudo mkdir -p ${NFS_CASE_FOLDER} || exit 1;
+    - sudo chmod -R 777 ${NFS_CASE_FOLDER} || exit 1;
+    - echo "----------Step 7. generate test device yml file for test job----------"
+    - echo "run command ./bin/ailab convert --dest=script --format yaml --file_name=${DOMAIN}.yml --nfs_server_ip $NFS_SERVER --nfs_case_folder $NFS_CASE_FOLDER --only_rtt ${ONLY_RTT} --only_linux ${ONLY_LINUX}--conf ${CONF} --pr_id ${CI_MERGE_REQUEST_IID} --job_id ${CI_PIPELINE_ID} --sysimage_md5 ${sysimage_md5} ${available}"
+    - ./bin/ailab convert --dest=script --format yaml --file_name=${DOMAIN}.yml --nfs_server_ip $NFS_SERVER --nfs_case_folder $NFS_CASE_FOLDER --only_rtt ${ONLY_RTT} --only_linux ${ONLY_LINUX} --conf ${CONF} --pr_id ${CI_MERGE_REQUEST_IID} --job_id ${CI_PIPELINE_ID} --sysimage_md5 ${sysimage_md5} ${available}
+    - test -f ${DOMAIN}.yml || exit 1
+    - cat ${DOMAIN}.yml || exit 1
+    - echo "cp ${DOMAIN}.yml to nfs_case_folder"
+    - cp -rf --sparse=always ${DOMAIN}.yml $NFS_CASE_FOLDER/ || exit 1
+    - test -f $NFS_CASE_FOLDER/${DOMAIN}.yml || exit 1
+    - echo "show test resource in nfs_server"
+    - echo $NFS_CASE_FOLDER
+    - ls -alht $NFS_CASE_FOLDER
+  load_image:
+    - echo "----------load image to test device----------"
+    - echo "sysimage-sdcard.img.gz md5 ${sysimage_md5}"
+    - test -d bin || mkdir ./bin
+    - test -f ./bin/aiload && rm -rf ./bin/aiload
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/tools/k230load -O ./bin/aiload
+    - chmod +x ./bin/aiload
+    - echo "MR ID ${CI_MERGE_REQUEST_IID}"
+    - echo "Pipeline ID ${CI_PIPELINE_ID}"
+    - |
+      echo "---start to load image in for loop";
+      stime=$(date +'%Y-%m-%d %H:%M:%S');
+      echo "---load image start time: $stime";
+      load_cmd="./bin/aiload --file_name=$NFS_CASE_FOLDER/${DOMAIN}.yml";
+      echo "${load_cmd}";
+      for i in {1..6}; do
+        if [ $i -eq 6 ]
+        then
+            echo "ERROR: Max retries reached with load image";
+            exit 1;
+        fi
+        starttime=$(date +'%Y-%m-%d %H:%M:%S');
+        echo "---loop $i start time: $starttime";
+        echo "---start to load image in loop $i---";
+        if eval $load_cmd
+        then
+          echo "---loop $i load image pass---";
+          break;
+        else
+          echo "ERROR:loop $i load image failed, ignore Error and retry again...";
+          echo "---start to run device power job after failed job...";
+          if [[ "$HW_MODEL" == "canmv_v2" ]]
+          then
+            echo "---canmv_v2 board will be power reset at the end of loop $i ---";
+            $power_reset;
+            sleep 15;
+            echo "canmv_v2 board power reset done. continue in next loop";
+          elif [[ "$HW_MODEL" == "canmv" ]]
+          then
+            echo "---canmv board will be power reset at the end of loop $i ---";
+            $power_reset;
+            sleep 15;
+            echo "canmv board power reset done. continue in next loop";
+          else
+            echo "---evb board will be power off and power on at the end of loop $i---";
+            $power_off;
+            sleep 3;
+            $power_on;
+            sleep 15;
+            echo "evb board power off and power on done. continue in next loop";
+          fi
+          echo "---device power action, start to rerun in next loop...";
+        fi
+        endtime=$(date +'%Y-%m-%d %H:%M:%S');
+        start_seconds=$(date -d "$starttime" +%s);
+        end_seconds=$(date -d "$endtime" +%s);
+        echo "---loop $i end time: $endtime";
+        echo "---loop $i total cost time：$((end_seconds - start_seconds)) s";
+      done
+      etime=$(date +'%Y-%m-%d %H:%M:%S');
+      s_seconds=$(date -d "$stime" +%s);
+      e_seconds=$(date -d "$etime" +%s);
+      echo "---load image end time: $etime";
+      echo "---load image total cost time：$((e_seconds - s_seconds)) s";
+      echo "---finished load image in loop $i";
+    - echo "---load image pass"
+    - echo "----------load image to test device done----------"
+  smoke_test:
+    - echo "----------Run Smoke Test start----------"
+    - test -d bin || mkdir ./bin
+    - test -f ./bin/airobot && rm -rf ./bin/airobot
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/tools/airobot -O ./bin/airobot
+    - chmod +x ./bin/airobot
+    - echo "---add smoke test script"
+    - git clone ${TEST_SCRIPTS_REPO} k230_testscripts || exit 1
+    - cd k230_testscripts || exit 1
+    - git fetch origin dev || { sleep 30; git fetch origin dev || { sleep 30; git fetch origin dev || exit 1; } }
+    - git checkout dev || exit 1
+    - cd ../ || exit 1
+    - echo "---download evb board smoke test script in loop $i---";
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/testscripts/k230_sdk_smoke_test.sh -O ./k230_sdk_smoke_test.sh;
+    - chmod +x ./k230_sdk_smoke_test.sh
+    - |
+      echo "---start to run k230 smoke test in for loop";
+      stime=$(date +'%Y-%m-%d %H:%M:%S');
+      echo "---run k230 smoke test start time: $stime";
+      test_cmd="./k230_sdk_smoke_test.sh $NFS_CASE_FOLDER/${DOMAIN}.yml";
+      for i in {1..3}; do
+        if [ $i -eq 3 ];
+        then
+          echo "ERROR: Max retries reached with run k230 smoke test";
+          exit 1;
+        fi
+        starttime=$(date +'%Y-%m-%d %H:%M:%S');
+        echo "---loop $i start time: $starttime";
+        echo "---start to run k230 smoke test in loop $i---";
+        if eval $test_cmd;
+        then
+          echo "---loop $i run k230 smoke test pass---";
+          break;
+        else
+          echo "ERROR:loop $i run k230 smoke test failed, ignore Error and try again...";
+          echo "---start to rerun in next loop...";
+          sleep 3
+        fi
+        endtime=$(date +'%Y-%m-%d %H:%M:%S');
+        start_seconds=$(date -d "$starttime" +%s);
+        end_seconds=$(date -d "$endtime" +%s);
+        echo "---loop $i end time: $endtime";
+        echo "---loop $i total cost time：$((end_seconds - start_seconds)) s";
+      done
+      etime=$(date +'%Y-%m-%d %H:%M:%S');
+      s_seconds=$(date -d "$stime" +%s);
+      e_seconds=$(date -d "$etime" +%s);
+      echo "---run k230 smoke test end time: $etime";
+      echo "---run k230 smoke test total cost time：$((e_seconds - s_seconds)) s";
+      echo "---finished run k230 smoke test in loop $i";
+    - echo "----------Run Smoke Test pass----------"
+  daily_test:
+    - echo "----------Run Daily Test start----------"
+    - test -d bin || mkdir ./bin
+    - test -f ./bin/airobot && rm -rf ./bin/airobot
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/tools/airobot -O ./bin/airobot
+    - chmod +x ./bin/airobot
+    - echo "---get daily test scripts"
+    - git clone ${TEST_SCRIPTS_REPO} k230_testscripts || exit 1
+    - cd k230_testscripts || exit 1
+    - git fetch origin dev || { sleep 30; git fetch origin dev || { sleep 30; git fetch origin dev || exit 1; } }
+    - git checkout dev || exit 1
+    - cd ../ || exit 1
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/testscripts/k230_sdk_daily_test.sh -O ./k230_sdk_daily_test.sh
+    - chmod +x ./k230_sdk_daily_test.sh
+    - |
+      echo "---start to run k230 daily test in for loop";
+      stime=$(date +'%Y-%m-%d %H:%M:%S');
+      echo "---run k230 daily test start time: $stime";
+      test_cmd="./k230_sdk_daily_test.sh $NFS_CASE_FOLDER/${DOMAIN}.yml";
+      for i in {1..3}; do
+        if [ $i -eq 3 ];
+        then
+          echo "ERROR: Max retries reached with run k230 daily test";
+          exit 1;
+        fi
+        starttime=$(date +'%Y-%m-%d %H:%M:%S');
+        echo "---loop $i start time: $starttime";
+        echo "---start to run k230 daily test in loop $i---";
+        if eval $test_cmd;
+        then
+          echo "---loop $i run k230 daily test pass---";
+          break;
+        else
+          echo "ERROR:loop $i run k230 daily test failed, ignore Error and try again...";
+          echo "---start to rerun in next loop...";
+          sleep 3;
+        fi
+        endtime=$(date +'%Y-%m-%d %H:%M:%S');
+        start_seconds=$(date -d "$starttime" +%s);
+        end_seconds=$(date -d "$endtime" +%s);
+        echo "---loop $i end time: $endtime";
+        echo "---loop $i total cost time：$((end_seconds - start_seconds)) s";
+      done
+      etime=$(date +'%Y-%m-%d %H:%M:%S');
+      s_seconds=$(date -d "$stime" +%s);
+      e_seconds=$(date -d "$etime" +%s);
+      echo "---run k230 daily test end time: $etime";
+      echo "---run k230 daily test total cost time：$((e_seconds - s_seconds)) s";
+      echo "---finished run k230 daily test in loop $i";
+    - echo "----------Run Daily Test pass----------"
+
 # download dir publish with tag
 download_dir_release:
   stage: release
@@ -369,7 +756,10 @@ release_image_publish:
    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
   parallel:
     matrix:
-      - CONF: [k230_canmv_defconfig]
+      - CONF:
+        - k230_canmv_defconfig
+        - k230d_canmv_defconfig
+        - BPI-CanMV-K230D-Zero_defconfig
   extends:
     - .sync_release_image
 
@@ -463,6 +853,7 @@ build-image:
       - CONF:
         - k230_canmv_defconfig
         - k230d_canmv_defconfig
+        - BPI-CanMV-K230D-Zero_defconfig
   variables:
     DST_BASE: /data1/k230/gitlab-ci/images/${CI_PROJECT_NAME}
     SRC_DIR: ./output/${CONF}/images
@@ -477,7 +868,7 @@ build-image:
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG !~ /^v\d+\.\d+.*$/
     # daily build
     - if: $CI_PIPELINE_SOURCE == "schedule"
-  timeout: 45m
+  timeout: 60m
   script:
     - *show_vars
     - *check_build_result
@@ -493,11 +884,12 @@ load_image_smoke_test:
   image: ai.b-bug.org:5000/k230_testscripts:latest
   stage: smoke_test
   variables:
-    TEST_ENV: ai
+    DOMAIN: ai
   parallel:
     matrix:
       - CONF:
         - k230_canmv_defconfig
+        - k230d_canmv_defconfig
   rules:
     # MR open
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -509,12 +901,13 @@ load_image_smoke_test:
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG !~ /^v\d+\.\d+.*$/
     # daily build
     - if: $CI_PIPELINE_SOURCE == "schedule"
-  timeout: 30m
+  timeout: 60m
   script:
     - *show_vars
     - *check_build_result
-    - echo "=============================="
-    - echo "There is NO test job NOW"
-    - echo "=============================="
-    - echo "add this stage for future job"
-    - echo "=============================="
+    - !reference [.test, test_setup]
+    - !reference [.test, copy_test_resource]
+    - !reference [.test, load_image]
+    #- !reference [.test, smoke_test]
+  after_script:
+    - !reference [.test, test_teardown]

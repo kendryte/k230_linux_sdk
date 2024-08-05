@@ -1,0 +1,4 @@
+config BR2_PACKAGE_LIBNNCASE
+    bool "nncase runtime"
+    help
+        nncase runtime

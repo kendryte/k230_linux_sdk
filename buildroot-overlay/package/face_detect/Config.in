@@ -1,0 +1,4 @@
+config BR2_PACKAGE_FACE_DETECT
+    bool "face detect demo"
+    help
+        ai demo for retinaface

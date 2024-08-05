@@ -8,8 +8,7 @@ SOURCES = vg_lite_dump.c \
 		  ../VGLiteKernel/linux/vg_lite_ioctl.c \
 		  ../VGLiteKernel/linux/vg_lite_os.c
 
-CFLAGS += -I../inc -I../VGLiteKernel -I.
-CFLAGS += -Wno-missing-braces -D_GNU_SOURCE -lpthread -lrt -g
+CFLAG := -mcpu=c908v -I../inc -I../VGLiteKernel -I. -Wno-missing-braces -D_GNU_SOURCE -g $(CFLAGS) 
 
 LIBS += m
 LDFLAGS += $(addprefix -l,$(LIBS))
@@ -23,10 +22,10 @@ clean:
 install:
 	cp $(OUT)/$(NAME) $(TARGET_DIR)/usr/lib/$(NAME)
 	cp $(OUT)/$(NAME) $(STAGING_DIR)/usr/lib/$(NAME)
-	cp ../inc/vg_lite.h $(STAGING_DIR)/usr/include/vg_lite.h
+	cp ../inc/*.h $(STAGING_DIR)/usr/include/
 
 $(OUT):
 	mkdir $(OUT)
 
 $(OUT)/$(NAME) : $(OUT) $(SOURCES)
-	$(CC) $(CFLAGS) -o $@ $(SOURCES) ../libthead.o $(LDFLAGS)
+	$(CC) $(CFLAG) -o $@ $(SOURCES) $(LDFLAGS)

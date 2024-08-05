@@ -3,4 +3,6 @@
 /dl
 compile_commands.json
 .cache
+/test
+/linux
 
