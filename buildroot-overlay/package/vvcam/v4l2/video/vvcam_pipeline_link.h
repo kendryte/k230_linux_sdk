@@ -63,7 +63,6 @@ static struct vvcam_v4l2_link pipeline0[] = {
         .remote_subdev = &g_vvcam_isp_subdev[0],
         .remote_pad = 1,
     },
-    #if 0
     {
         .local_is_video = true,
         .video_index = 1,
@@ -78,7 +77,14 @@ static struct vvcam_v4l2_link pipeline0[] = {
         .remote_subdev = &g_vvcam_isp_subdev[0],
         .remote_pad = 3,
     },
-    #endif
+    {
+        .local_is_video = true,
+        .video_index = 3,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 4,
+    },
+
 };
 
 static struct vvcam_v4l2_link pipeline1[] = {
@@ -89,7 +95,6 @@ static struct vvcam_v4l2_link pipeline1[] = {
         .remote_subdev = &g_vvcam_isp_subdev[1],
         .remote_pad = 1,
     },
-    #if 0
     {
         .local_is_video = true,
         .video_index = 1,
@@ -104,7 +109,124 @@ static struct vvcam_v4l2_link pipeline1[] = {
         .remote_subdev = &g_vvcam_isp_subdev[1],
         .remote_pad = 3,
     },
-    #endif
+};
+
+static struct vvcam_v4l2_link mcm_pipeline0[] = {
+    {
+        .local_is_video = true,
+        .video_index = 0,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 1,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 1,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 6,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 2,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 11,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 3,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 16,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 4,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 4,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 5,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 9,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 6,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 14,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 7,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 19,
+    },
+};
+
+static struct vvcam_v4l2_link mcm_pipeline1[] = {
+    {
+        .local_is_video = true,
+        .video_index = 0,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[1],
+        .remote_pad = 1,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 1,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[1],
+        .remote_pad = 6,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 2,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[1],
+        .remote_pad = 11,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 3,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[1],
+        .remote_pad = 16,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 4,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[1],
+        .remote_pad = 4,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 5,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[1],
+        .remote_pad = 9,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 6,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[1],
+        .remote_pad = 14,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 7,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[1],
+        .remote_pad = 19,
+    },
 };
 
  #endif

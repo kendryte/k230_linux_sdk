@@ -1,19 +1,19 @@
 /****************************************************************************
- *
+*
  * The MIT License (MIT)
- *
+*
  * Copyright (c) 2023 VeriSilicon Holdings Co., Ltd.
- *
+*
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- *
+*
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+*
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,35 +21,36 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
- *****************************************************************************
- *
+*
+*****************************************************************************
+*
  * The GPL License (GPL)
- *
+*
  * Copyright (c) 2023 VeriSilicon Holdings Co., Ltd.
- *
+*
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- *
+*
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+*
  * You should have received a copy of the GNU General Public License
  * along with this program;
- *
- *****************************************************************************
- *
+*
+*****************************************************************************
+*
  * Note: This software is released under dual MIT and GPL licenses. A
  * recipient may use this file under the terms of either the MIT license or
  * GPL License. If you wish to use only one license not the other, you can
  * indicate your decision by deleting one of the above license notices in your
  * version of this file.
- *
- *****************************************************************************/
+*
+*****************************************************************************/
+
 
 #include <linux/io.h>
 #include <linux/spinlock.h>
@@ -152,6 +153,7 @@ irqreturn_t vvcam_isp_irq_process(struct vvcam_isp_dev *isp_dev)
 
 irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
 {
+    uint32_t miv1_mis  = 0;
     uint32_t miv2_mis  = 0;
     uint32_t miv2_mis1 = 0;
     uint32_t miv2_mis2 = 0;
@@ -159,7 +161,7 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
     uint32_t mi_mis_hdr1 = 0;
     uint32_t isp_fe_ctrl = 0;
     uint64_t timestamp;
-
+    uint64_t rdcd_mi_mis = 0;
     vvcam_event_t event;
     bool irq = false;
 
@@ -199,6 +201,12 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
     mi_mis_hdr1 = vvcam_isp_hal_read_reg(isp_dev->base, MI_MIS_HDR1);
     if (mi_mis_hdr1) {
         vvcam_isp_hal_write_reg(isp_dev->base, MI_ICR_HDR1, mi_mis_hdr1);
+        irq = true;
+    }
+
+    rdcd_mi_mis = vvcam_isp_hal_read_reg(isp_dev->base, RDCD_MI_MIS);
+    if (rdcd_mi_mis) {
+        vvcam_isp_hal_write_reg(isp_dev->base, RDCD_MI_ICR, rdcd_mi_mis);
         irq = true;
     }
 
@@ -266,6 +274,15 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
         isp_dev->irq_mis[VVCAM_EID_MCM_WR_G2_RAW1_MIS] = event.irqevent.irq_value;
     }
 
+    if (miv1_mis) {
+        event.type = VVCAM_EVENT_IRQ_TYPE;
+        event.id   = VVCAM_EID_MIV2_MIS;
+        event.timestamp = timestamp;
+        event.irqevent.irq_value = miv1_mis;
+        vvcam_event_queue(&isp_dev->event_dev, &event);
+        // printk("MI V1 mi_irq_process.\n");
+    }
+
     if (miv2_mis) {
         event.type = VVCAM_EVENT_IRQ_TYPE;
         event.id   = VVCAM_EID_MIV2_MIS;
@@ -283,13 +300,15 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
     }
 
     if ((miv2_mis2 & MIV2_MIS2_HDR_RDMA_READY_MASK)
-       || (miv2_mis & MIV2_MIS_FRAME_END_MASK)) {
+       || (miv2_mis2 & MIV2_MIS2_HDR_FRAME_END_MASK)) {
+
         event.type = VVCAM_EVENT_IRQ_TYPE;
         event.id   = VVCAM_EID_MIV2_MIS2_HDR;
         event.timestamp = timestamp;
-        event.irqevent.irq_value = (miv2_mis2 & MIV2_MIS2_HDR_RDMA_READY_MASK)
-                                   | (miv2_mis & MIV2_MIS_FRAME_END_MASK);
+        event.irqevent.irq_value = ((miv2_mis2 & MIV2_MIS2_HDR_RDMA_READY_MASK)
+                                   | (miv2_mis2 & MIV2_MIS2_HDR_FRAME_END_MASK));
         miv2_mis2 &= ~MIV2_MIS2_HDR_RDMA_READY_MASK;
+        miv2_mis2 &= ~MIV2_MIS2_HDR_FRAME_END_MASK;
         vvcam_event_queue(&isp_dev->event_dev, &event);
     }
 
@@ -317,6 +336,14 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
         vvcam_event_queue(&isp_dev->event_dev, &event);
     }
 
+    if (rdcd_mi_mis) {
+        event.type = VVCAM_EVENT_IRQ_TYPE;
+        event.id   = VVCAM_EID_RDCD_MI_MIS;
+        event.timestamp = timestamp;
+        event.irqevent.irq_value = rdcd_mi_mis;
+        vvcam_event_queue(&isp_dev->event_dev, &event);
+    }
+
     if (irq) {
         tasklet_schedule(&isp_dev->stat_tasklet);
         return IRQ_HANDLED;
@@ -328,9 +355,11 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
 irqreturn_t vvcam_isp_fe_irq_process(struct vvcam_isp_dev *isp_dev)
 {
     uint32_t isp_fe_mis = 0;
+    uint32_t isp_fe_batch_mode_mis = 0;
     uint32_t isp_fe_ctrl = 0;
     vvcam_event_t event;
     uint64_t timestamp;
+    bool irq = false;
 
     if (!isp_dev->refcnt)
         return IRQ_NONE;
@@ -338,17 +367,22 @@ irqreturn_t vvcam_isp_fe_irq_process(struct vvcam_isp_dev *isp_dev)
     isp_fe_mis = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_MIS);
     if (isp_fe_mis) {
         vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_ICR, isp_fe_mis);
-    } else {
-        return IRQ_NONE;
+
+        isp_fe_ctrl = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_CTL);
+        if ((isp_fe_ctrl & ISP_FE_CFG_SEL_MASK) == ISP_FE_SEL_CMDBUF) {
+            isp_fe_ctrl &= ~(ISP_FE_CFG_SEL_MASK | ISP_FE_AHB_WRITE_MASK);
+            isp_fe_ctrl |= (ISP_FE_SEL_AHBBUF) << ISP_FE_CFG_SEL_SHIFT;
+            isp_fe_ctrl |= (ISP_FE_AHB_WR_ENABLE) << ISP_FE_AHB_WRITE_SHIFT;
+            vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_CTL, isp_fe_ctrl);
+
+        }
+        irq = true;
     }
 
-    isp_fe_ctrl = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_CTL);
-    if ((isp_fe_ctrl & ISP_FE_CFG_SEL_MASK) == ISP_FE_SEL_CMDBUF) {
-        isp_fe_ctrl &= ~(ISP_FE_CFG_SEL_MASK | ISP_FE_AHB_WRITE_MASK);
-        isp_fe_ctrl |= (ISP_FE_SEL_AHBBUF) << ISP_FE_CFG_SEL_SHIFT;
-        isp_fe_ctrl |= (ISP_FE_AHB_WR_ENABLE) << ISP_FE_AHB_WRITE_SHIFT;
-        vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_CTL, isp_fe_ctrl);
-
+    isp_fe_batch_mode_mis = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_BATCH_MODE_MIS);
+    if (isp_fe_batch_mode_mis) {
+        vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_BATCH_MODE_ICR, isp_fe_batch_mode_mis);
+        irq = true;
     }
 
     timestamp = ktime_get_ns();
@@ -360,10 +394,23 @@ irqreturn_t vvcam_isp_fe_irq_process(struct vvcam_isp_dev *isp_dev)
         event.irqevent.irq_value = isp_fe_mis;
         vvcam_event_queue(&isp_dev->event_dev, &event);
         isp_dev->irq_mis[VVCAM_EID_FE_MIS] = isp_fe_mis;
-        tasklet_schedule(&isp_dev->stat_tasklet);
     }
 
-    return IRQ_HANDLED;
+    if (isp_fe_batch_mode_mis) {
+        event.type = VVCAM_EVENT_IRQ_TYPE;
+        event.id   = VVCAM_EID_FE_BATCH_MODE_MIS;
+        event.timestamp = timestamp;
+        event.irqevent.irq_value = isp_fe_batch_mode_mis;
+        vvcam_event_queue(&isp_dev->event_dev, &event);
+        isp_dev->irq_mis[VVCAM_EID_FE_BATCH_MODE_MIS] = isp_fe_batch_mode_mis;
+    }
+
+    if (irq) {
+        tasklet_schedule(&isp_dev->stat_tasklet);
+        return IRQ_HANDLED;
+    }
+
+    return IRQ_NONE;
 }
 
 irqreturn_t vvcam_isp_fusa_irq_process(struct vvcam_isp_dev *isp_dev)
@@ -381,70 +428,70 @@ irqreturn_t vvcam_isp_fusa_irq_process(struct vvcam_isp_dev *isp_dev)
 
     vvcam_event_t event;
     bool irq = false;
-    
+
     if (!isp_dev->refcnt)
         return IRQ_NONE;
 
-    printk("enter fusa_irq_process\n");
-    
+    // printk("enter fusa_irq_process\n");
+
     fusa_ecc_mis1 = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_ECC_MIS1);
-    printk("FUSA_ECC_MIS1 : 0x%08x \n", fusa_ecc_mis1);
+    // printk("FUSA_ECC_MIS1 : 0x%08x \n", fusa_ecc_mis1);
     if (fusa_ecc_mis1) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_ECC_ICR1, fusa_ecc_mis1);
         irq = true;
     }
 
     fusa_ecc_mis2 = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_ECC_MIS2);
-    printk("FUSA_ECC_MIS2 : 0x%08x \n", fusa_ecc_mis2);
+    // printk("FUSA_ECC_MIS2 : 0x%08x \n", fusa_ecc_mis2);
     if (fusa_ecc_mis2) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_ECC_ICR2, fusa_ecc_mis2);
         irq = true;
     }
 
     fusa_ecc_mis3 = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_ECC_MIS3);
-    printk("FUSA_ECC_MIS3 : 0x%08x \n", fusa_ecc_mis3);
+    // printk("FUSA_ECC_MIS3 : 0x%08x \n", fusa_ecc_mis3);
     if (fusa_ecc_mis3) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_ECC_ICR3, fusa_ecc_mis3);
         irq = true;
     }
 
     fusa_ecc_mis4 = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_ECC_MIS4);
-    printk("FUSA_ECC_MIS4 : 0x%08x \n", fusa_ecc_mis4);
+    // printk("FUSA_ECC_MIS4 : 0x%08x \n", fusa_ecc_mis4);
     if (fusa_ecc_mis4) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_ECC_ICR4, fusa_ecc_mis4);
         irq = true;
     }
 
     fusa_ecc_mis5 = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_ECC_MIS5);
-    printk("FUSA_ECC_MIS5 : 0x%08x \n", fusa_ecc_mis5);
+    // printk("FUSA_ECC_MIS5 : 0x%08x \n", fusa_ecc_mis5);
     if (fusa_ecc_mis5) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_ECC_ICR5, fusa_ecc_mis5);
         irq = true;
     }
 
     fusa_ecc_mis6 = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_ECC_MIS6);
-    printk("FUSA_ECC_MIS6 : 0x%08x \n", fusa_ecc_mis6);
+    // printk("FUSA_ECC_MIS6 : 0x%08x \n", fusa_ecc_mis6);
     if (fusa_ecc_mis6) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_ECC_ICR6, fusa_ecc_mis6);
         irq = true;
     }
 
     fusa_dup_mis = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_DUP_MIS);
-    printk("FUSA_DUP_MIS : 0x%08x \n", fusa_dup_mis);
+    // printk("FUSA_DUP_MIS : 0x%08x \n", fusa_dup_mis);
     if (fusa_dup_mis) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_DUP_ICR, fusa_dup_mis);
         irq = true;
     }
 
     fusa_parity_mis = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_PARITY_MIS);
-    printk("FUSA_PARITY_MIS : 0x%08x \n", fusa_parity_mis);
+    // printk("FUSA_PARITY_MIS : 0x%08x \n", fusa_parity_mis);
     if (fusa_parity_mis) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_PARITY_ICR, fusa_parity_mis);
         irq = true;
     }
 
     fusa_lv1_mis1 = vvcam_isp_hal_read_reg(isp_dev->base, FUSA_LV1_MIS1);
-    printk("FUSA_LV1_MIS1 : 0x%08x \n", fusa_lv1_mis1);
+    // printk("FUSA_LV1_MIS1 : 0x%08x \n", fusa_lv1_mis1);
     if (fusa_lv1_mis1) {
         vvcam_isp_hal_write_reg(isp_dev->base, FUSA_LV1_ICR1, fusa_lv1_mis1);
         irq = true;
@@ -461,7 +508,7 @@ irqreturn_t vvcam_isp_fusa_irq_process(struct vvcam_isp_dev *isp_dev)
         vvcam_event_queue(&isp_dev->event_dev, &event);
         isp_dev->irq_mis[VVCAM_EID_FUSA_ECC_IMSC1] = event.irqevent.irq_value;
     }
-    
+
     if (fusa_ecc_mis2) {
         event.type = VVCAM_EVENT_IRQ_TYPE;
         event.id   = VVCAM_EID_FUSA_ECC_IMSC2;

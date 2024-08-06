@@ -386,6 +386,7 @@ static int vvcam_isp_remove(struct platform_device *pdev)
     devm_free_irq(&pdev->dev, isp_dev->isp_irq, isp_dev);
     devm_free_irq(&pdev->dev, isp_dev->mi_irq, isp_dev);
     devm_free_irq(&pdev->dev, isp_dev->fe_irq, isp_dev);
+    tasklet_kill(&isp_dev->stat_tasklet);
 
     return 0;
 }

@@ -1,55 +1,57 @@
 /****************************************************************************
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2023 VeriSilicon Holdings Co., Ltd.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
- *
- *****************************************************************************
- *
- * The GPL License (GPL)
- *
- * Copyright (c) 2023 VeriSilicon Holdings Co., Ltd.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program;
- *
- *****************************************************************************
- *
- * Note: This software is released under dual MIT and GPL licenses. A
- * recipient may use this file under the terms of either the MIT license or
- * GPL License. If you wish to use only one license not the other, you can
- * indicate your decision by deleting one of the above license notices in your
- * version of this file.
- *
- *****************************************************************************/
+*
+*    The MIT License (MIT)
+*
+*    Copyright (c) 2014 - 2024 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2024 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
+*
+*****************************************************************************/
+
 
 #include <media/v4l2-ioctl.h>
 #include "vvcam_isp_driver.h"
@@ -95,6 +97,19 @@ static int vvcam_isp_ae_s_ctrl(struct v4l2_ctrl *ctrl)
         case VVCAM_ISP_CID_AE_LUMA:
         case VVCAM_ISP_CID_AE_OBJECT_REGION:
         case VVCAM_ISP_CID_AE_FRAME_CALC_ENABLE:
+        case VVCAM_ISP_CID_AE_EXPV2_WINDOW_WEIGHT:
+        case VVCAM_ISP_CID_EC_AGAIN:
+        case VVCAM_ISP_CID_EC_AGAIN_MAX:
+        case VVCAM_ISP_CID_EC_AGAIN_MIN:
+        case VVCAM_ISP_CID_EC_AGAIN_STEP:
+        case VVCAM_ISP_CID_EC_DGAIN:
+        case VVCAM_ISP_CID_EC_DGAIN_MAX:
+        case VVCAM_ISP_CID_EC_DGAIN_MIN:
+        case VVCAM_ISP_CID_EC_DGAIN_STEP:
+        case VVCAM_ISP_CID_EC_INTEGRATION_TIME:
+        case VVCAM_ISP_CID_EC_INTEGRATION_TIME_MAX:
+        case VVCAM_ISP_CID_EC_INTEGRATION_TIME_MIN:
+        case VVCAM_ISP_CID_EC_INTEGRATION_TIME_STEP:
             ret = vvcam_isp_s_ctrl_event(isp_dev, isp_dev->ctrl_pad, ctrl);
             break;
 
@@ -144,6 +159,19 @@ static int vvcam_isp_ae_g_ctrl(struct v4l2_ctrl *ctrl)
         case VVCAM_ISP_CID_AE_LUMA:
         case VVCAM_ISP_CID_AE_OBJECT_REGION:
         case VVCAM_ISP_CID_AE_FRAME_CALC_ENABLE:
+        case VVCAM_ISP_CID_AE_EXPV2_WINDOW_WEIGHT:
+        case VVCAM_ISP_CID_EC_AGAIN:
+        case VVCAM_ISP_CID_EC_AGAIN_MAX:
+        case VVCAM_ISP_CID_EC_AGAIN_MIN:
+        case VVCAM_ISP_CID_EC_AGAIN_STEP:
+        case VVCAM_ISP_CID_EC_DGAIN:
+        case VVCAM_ISP_CID_EC_DGAIN_MAX:
+        case VVCAM_ISP_CID_EC_DGAIN_MIN:
+        case VVCAM_ISP_CID_EC_DGAIN_STEP:
+        case VVCAM_ISP_CID_EC_INTEGRATION_TIME:
+        case VVCAM_ISP_CID_EC_INTEGRATION_TIME_MAX:
+        case VVCAM_ISP_CID_EC_INTEGRATION_TIME_MIN:
+        case VVCAM_ISP_CID_EC_INTEGRATION_TIME_STEP:
             ret = vvcam_isp_g_ctrl_event(isp_dev, isp_dev->ctrl_pad, ctrl);
             break;
 
@@ -505,6 +533,162 @@ const struct v4l2_ctrl_config vvcam_isp_ae_ctrls[] = {
         .step = 1,
         .min  = 0,
         .max  = 1,
+    },
+    {
+        /* float 32x32x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_AE_EXPV2_WINDOW_WEIGHT,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ae_exp_v2_window_weight",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {1024},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_AGAIN,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_again",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_AGAIN_MAX,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_again_max",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_AGAIN_MIN,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_again_min",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_AGAIN_STEP,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_again_step",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_DGAIN,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_dgain",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_DGAIN_MAX,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_dgain_max",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_DGAIN_MIN,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_dgain_min",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_DGAIN_STEP,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_dgain_step",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_INTEGRATION_TIME,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_integration_time",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_INTEGRATION_TIME_MAX,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_integration_time_max",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_INTEGRATION_TIME_MIN,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_integration_time_min",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
+    },
+    {
+        /* float 4x32bit */
+        .ops  = &vvcam_isp_ae_ctrl_ops,
+        .id   = VVCAM_ISP_CID_EC_INTEGRATION_TIME_STEP,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_ec_integration_time_step",
+        .step = 1,
+        .min  = 0,
+        .max  = 0xFFFFFFFF,
+        .dims = {4},
     },
 };
 

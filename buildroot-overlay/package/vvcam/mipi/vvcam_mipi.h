@@ -61,6 +61,7 @@ typedef enum {
     VVCAM_INPUT_MODE_MIPI    = 0x00,
     VVCAM_INPUT_MODE_LVDS    = 0x01,
     VVCAM_INPUT_MODE_BT1120  = 0x02,
+    VVCAM_INPUT_MODE_DVP     = 0x03
 } vvcam_input_mode_t;
 
 typedef struct {
@@ -109,6 +110,11 @@ typedef enum {
     VVCAM_ITF_BIT_MODE_16BIT,
 } vvcam_itf_bit_mode_t;
 
+typedef enum {
+    VVCAM_SYNC_POL_HIGH_ACIVE = 0,
+    VVCAM_SYNC_POL_LOW_ACIVE
+}vvcam_sync_pol_t;
+
 typedef struct {
     uint32_t hsa;   /* horizontal synchronism activate (pixel cycle) */
     uint32_t hbp;   /* horizontal back porch (pixel cycle) */
@@ -122,6 +128,18 @@ typedef struct {
     uint32_t vfp;   /* vertical front porch (hline) */
     uint32_t vactivate_lines;   /* vertical resolution of video */
 } vvcam_itf_vertical_time_t;
+
+typedef struct {
+
+	vvcam_sync_pol_t pwdn;
+	vvcam_sync_pol_t rst;
+	vvcam_sync_pol_t fsin;
+}vvcam_power_attr_t;
+
+typedef struct {
+	vvcam_power_attr_t powerPin;
+	bool isPower;
+}vvcam_dvp_dev_attr_t;
 
 typedef struct {
     bool enable;
@@ -145,6 +163,7 @@ typedef struct {
 
     union {
         vvcam_mipi_dev_attr_t mipi_attr;
+		vvcam_dvp_dev_attr_t  dvp_attr;
         //vvcam_lvds_dev_attr_t lvds_attr;
     };
 } vvcam_input_dev_attr_t;

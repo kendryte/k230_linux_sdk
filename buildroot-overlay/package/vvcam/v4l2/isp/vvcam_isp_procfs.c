@@ -87,14 +87,15 @@ static int vvcam_isp_procfs_info_show(struct seq_file *sfile, void *offset)
         pad = media_entity_remote_pad(&isp_dev->pads[pad_idx]);
 #endif
 
-        if (pad && (port != (pad_idx / VVCAM_ISP_CHN_MAX))) {
-            port = pad_idx / VVCAM_ISP_CHN_MAX;
+        if (pad && (port != (pad_idx / VVCAM_ISP_PORT_PAD_NR))) {
+            port = pad_idx / VVCAM_ISP_PORT_PAD_NR;
             seq_printf(sfile, "isp%d port%d:\n", isp_dev->id, port);
             seq_printf(sfile, "sensor   : %s\n", isp_dev->sensor_info[port].sensor);
             seq_printf(sfile, "mode     : %d\n", isp_dev->sensor_info[port].mode);
             seq_printf(sfile, "xml      : %s\n", isp_dev->sensor_info[port].xml);
             seq_printf(sfile, "manu_json: %s\n", isp_dev->sensor_info[port].manu_json);
             seq_printf(sfile, "auto_json: %s\n", isp_dev->sensor_info[port].auto_json);
+            seq_printf(sfile, "*********************************\n");
         }
     }
 
@@ -132,7 +133,7 @@ static int32_t vvcam_isp_proc_process(struct seq_file *sfile,
             continue;
         }
 
-        if ((port > VVCAM_ISP_CHN_MAX) || (port < 0)) {
+        if ((port > VVCAM_ISP_PORT_NR) || (port < 0)) {
             continue;
         }
 
@@ -281,8 +282,10 @@ static int find_proc_dir_by_name(const char *root,
     pfile = filp_open(root, O_RDONLY | O_DIRECTORY, 0);
     if (pfile->f_op->iterate_shared) {
         ret = pfile->f_op->iterate_shared(pfile, &fc.ctx);
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(6, 2, 0)
     } else {
-        // ret = pfile->f_op->iterate(pfile, &fc.ctx);
+        ret = pfile->f_op->iterate(pfile, &fc.ctx);
+#endif
     }
 
     if (ret == 0) {
