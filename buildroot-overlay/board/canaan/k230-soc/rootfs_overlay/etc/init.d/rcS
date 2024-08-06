@@ -26,3 +26,9 @@ for i in /etc/init.d/S??* ;do
 done
 mount /dev/mmcblk0p1 /boot
 cat /etc/version/release_version
+modprobe vvcam_isp
+modprobe vvcam_mipi
+modprobe vvcam_vb
+modprobe vvcam_isp_subdev
+modprobe vvcam_video
+ISP_MEDIA_SENSOR_DRIVER=/usr/lib/libvvcam.so /usr/bin/isp_media_server > /dev/null 2> /tmp/isp.err.log &

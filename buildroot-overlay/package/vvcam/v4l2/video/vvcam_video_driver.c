@@ -75,6 +75,11 @@
 #include "vvcam_pipeline_link.h"
 #endif
 
+#ifdef VVCAM_PLATFORM_REGISTER
+static int mcm_mask = 0x00;
+MODULE_PARM_DESC(mcm_mask, "vvcam video mcm mask");
+#endif
+
 static int vvcam_video_register_ports(struct vvcam_media_dev *vvcam_mdev)
 {
     int i = 0;
@@ -111,8 +116,13 @@ static int vvcam_video_unregister_ports(struct vvcam_media_dev *vvcam_mdev)
 }
 
 #ifdef VVCAM_PLATFORM_REGISTER
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
 				struct v4l2_subdev *sd, struct v4l2_async_connection *asc)
+#else
+static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
+				struct v4l2_subdev *sd, struct v4l2_async_subdev *asd)
+#endif
 {
     struct vvcam_media_dev *vvcam_mdev = container_of(notifier,
 							   struct vvcam_media_dev, notifier);
@@ -161,8 +171,13 @@ static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
 }
 
 #else
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
 				struct v4l2_subdev *sd, struct v4l2_async_connection *asc)
+#else
+static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
+				struct v4l2_subdev *sd, struct v4l2_async_subdev *asd)
+#endif
 {
     struct vvcam_media_dev *vvcam_mdev = container_of(notifier,
 							   struct vvcam_media_dev, notifier);
@@ -200,7 +215,7 @@ static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
 			dev_err(dev, "failed to create %s:%u -> %s:%u link\n", source->name, source_pad, sink->name, sink_pad);
 			break;
 		}
-        dev_info(vvcam_mdev->dev, "create link %s:%u -> %s:%u\n", source->name, source_pad, sink->name, sink_pad);
+
 	}
 	fwnode_handle_put(ep);
 
@@ -208,11 +223,19 @@ static int vvcam_video_notifier_bound(struct v4l2_async_notifier *notifier,
 }
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 static void vvcam_video_notifier_unbound(struct v4l2_async_notifier *notifier,
 					struct v4l2_subdev *sd, struct v4l2_async_connection *asc)
 {
 	return;
 }
+#else
+static void vvcam_video_notifier_unbound(struct v4l2_async_notifier *notifier,
+					struct v4l2_subdev *sd, struct v4l2_async_subdev *asd)
+{
+	return;
+}
+#endif
 
 static int vvcam_video_notifier_complete(struct v4l2_async_notifier *notifier)
 {
@@ -229,16 +252,69 @@ static const struct v4l2_async_notifier_operations vvcam_video_async_nf_ops = {
 };
 
 #ifdef VVCAM_PLATFORM_REGISTER
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 {
     int ret;
     int i = 0;
-	struct v4l2_subdev *remote_subdev;
+    bool repeat = false;
+    struct v4l2_subdev *remote_subdev = NULL;
+    struct v4l2_subdev *last_subdev = NULL;
     struct v4l2_async_connection *asc;
+
+    v4l2_async_nf_init(&vvcam_mdev->notifier, &vvcam_mdev->v4l2_dev);
+
+    vvcam_mdev->notifier.ops = &vvcam_video_async_nf_ops;
+
+    for (i = 0; i < vvcam_mdev->pipeline_link_size; i++) {
+        if (vvcam_mdev->pipeline_link[i].remote_subdev) {
+            remote_subdev = *vvcam_mdev->pipeline_link[i].remote_subdev;
+            /* not allow repeat add same fwnode */
+            for (int j = i - 1; j >= 0; j--) {
+                last_subdev = *vvcam_mdev->pipeline_link[j].remote_subdev;
+                if (remote_subdev && last_subdev &&
+                    remote_subdev == last_subdev) {
+                    repeat = true;
+                    break;
+                }
+            }
+
+            if (remote_subdev && !repeat) {
+                asc = v4l2_async_nf_add_fwnode(&vvcam_mdev->notifier,
+                                        remote_subdev->fwnode,
+                                        struct v4l2_async_connection);
+                if (IS_ERR(asc)) {
+                    ret = PTR_ERR(asc);
+                    if (ret != -EEXIST) {
+                        v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
+                        return ret;
+                    }
+                }
+            }
+            repeat = false;
+        }
+    }
+
+    ret = v4l2_async_nf_register(&vvcam_mdev->notifier);
+    if (ret) {
+        v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
+        return ret;
+    }
+
+    return 0;
+}
+
+#else /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) */
+static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
+{
+    int ret;
+    int i = 0;
+    struct v4l2_subdev *remote_subdev;
+    struct v4l2_async_subdev *asd;
 
     vvcam_mdev->notifier.ops = &vvcam_video_async_nf_ops;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-	v4l2_async_nf_init(&vvcam_mdev->notifier, &vvcam_mdev->v4l2_dev);
+    v4l2_async_nf_init(&vvcam_mdev->notifier);
 #else
     v4l2_async_notifier_init(&vvcam_mdev->notifier);
 #endif
@@ -248,17 +324,17 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
             remote_subdev = *vvcam_mdev->pipeline_link[i].remote_subdev;
             if (remote_subdev) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-                asc = v4l2_async_nf_add_fwnode(&vvcam_mdev->notifier,
+                asd = v4l2_async_nf_add_fwnode(&vvcam_mdev->notifier,
                                         remote_subdev->fwnode,
-                                        struct v4l2_async_connection);
+                                        struct v4l2_async_subdev);
 #else
                 asd = v4l2_async_notifier_add_fwnode_subdev(
                                         &vvcam_mdev->notifier,
                                         remote_subdev->fwnode,
-                                        sizeof(struct v4l2_async_subdev));
+                                        struct v4l2_async_subdev);
 #endif
-                 if (IS_ERR(asc)) {
-			        ret = PTR_ERR(asc);
+                 if (IS_ERR(asd)) {
+			        ret = PTR_ERR(asd);
 			        if (ret != -EEXIST) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
                         v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
@@ -273,7 +349,7 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
     }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-    ret = v4l2_async_nf_register(&vvcam_mdev->notifier);
+    ret = v4l2_async_nf_register(&vvcam_mdev->v4l2_dev, &vvcam_mdev->notifier);
 #else
     ret = v4l2_async_notifier_register(&vvcam_mdev->v4l2_dev, &vvcam_mdev->notifier);
 #endif
@@ -289,36 +365,99 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 
     return 0;
 }
-#else
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) */
 
+#else /* VVCAM_PLATFORM_REGISTER */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 static struct v4l2_async_connection *
+vvcam_video_async_nf_add_fwnode_remote(struct v4l2_async_notifier *notif,
+				  struct fwnode_handle *endpoint,
+				  unsigned int asc_struct_size)
+{
+    struct v4l2_async_connection *asc;
+    struct fwnode_handle *remote;
+
+    remote = fwnode_graph_get_remote_port_parent(endpoint);
+    if (!remote)
+	return ERR_PTR(-ENOTCONN);
+
+    asc = __v4l2_async_nf_add_fwnode(notif, remote, asc_struct_size);
+    fwnode_handle_put(remote);
+
+    return asc;
+}
+
+static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
+{
+    int ret = 0;
+    struct fwnode_handle *ep;
+    struct v4l2_async_connection *asc;
+    unsigned int port_id = 0;
+
+    vvcam_mdev->notifier.ops = &vvcam_video_async_nf_ops;
+
+    v4l2_async_nf_init(&vvcam_mdev->notifier, &vvcam_mdev->v4l2_dev);
+
+    while (1) {
+        ep = fwnode_graph_get_endpoint_by_id(dev_fwnode(vvcam_mdev->dev),
+                port_id, 0, FWNODE_GRAPH_ENDPOINT_NEXT);
+        if (!ep)
+            break;
+
+        asc = vvcam_video_async_nf_add_fwnode_remote(&vvcam_mdev->notifier,
+                ep, sizeof(struct v4l2_async_connection));
+
+        fwnode_handle_put(ep);
+
+        if (IS_ERR(asc)) {
+            ret = PTR_ERR(asc);
+            if (ret != -EEXIST) {
+                v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
+                return ret;
+            }
+        }
+        port_id++;
+    }
+
+    ret = v4l2_async_nf_register(&vvcam_mdev->notifier);
+    if (ret) {
+        v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
+		dev_err(vvcam_mdev->dev, "v4l2 async notifier register error\n");
+        return ret;
+    }
+
+    return 0;
+}
+
+#else /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) */
+static struct v4l2_async_subdev *
 vvcam_video_async_nf_add_fwnode_remote(struct v4l2_async_notifier *notif,
 				  struct fwnode_handle *endpoint,
 				  unsigned int asd_struct_size)
 {
-	struct v4l2_async_connection *asc;
+	struct v4l2_async_subdev *asd;
 	struct fwnode_handle *remote;
 
 	remote = fwnode_graph_get_remote_port_parent(endpoint);
 	if (!remote)
 		return ERR_PTR(-ENOTCONN);
 
-	asc = __v4l2_async_nf_add_fwnode(notif, remote, asd_struct_size);
+	asd = __v4l2_async_nf_add_fwnode(notif, remote, asd_struct_size);
 	fwnode_handle_put(remote);
 
-	return asc;
+	return asd;
 }
 
 static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 {
     int ret = 0;
 	struct fwnode_handle *ep;
-	struct v4l2_async_connection* asc;
+	struct v4l2_async_subdev *asd;
     unsigned int port_id = 0;
 
 	vvcam_mdev->notifier.ops = &vvcam_video_async_nf_ops;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-	v4l2_async_nf_init(&vvcam_mdev->notifier, &vvcam_mdev->v4l2_dev);
+	v4l2_async_nf_init(&vvcam_mdev->notifier);
 #else
     v4l2_async_notifier_init(&vvcam_mdev->notifier);
 #endif
@@ -331,17 +470,16 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-        asc = vvcam_video_async_nf_add_fwnode_remote(&vvcam_mdev->notifier,
-                ep, sizeof(struct v4l2_async_connection));
+        asd = vvcam_video_async_nf_add_fwnode_remote(&vvcam_mdev->notifier,
+                ep, sizeof(struct v4l2_async_subdev));
 #else
-        // FIXME
-        ret = v4l2_async_notifier_add_fwnode_remote_subdev(&vvcam_mdev->notifier,
-                ep, &asd);
+        asd = v4l2_async_notifier_add_fwnode_remote_subdev(&vvcam_mdev->notifier,
+                ep, struct v4l2_async_subdev);
 #endif
         fwnode_handle_put(ep);
 
-        if (ret/*IS_ERR(asd)*/) {
-			// ret = PTR_ERR(asd);
+        if (IS_ERR(asd)) {
+			ret = PTR_ERR(asd);
 			if (ret != -EEXIST) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
                 v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
@@ -351,15 +489,14 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 				return ret;
 			}
 		}
-        dev_info(vvcam_mdev->dev, "register subdev port %d, subdev: %p\n", port_id, ep->dev);
         port_id++;
     }
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-    ret = v4l2_async_nf_register(&vvcam_mdev->notifier);
+    ret = v4l2_async_nf_register(&vvcam_mdev->v4l2_dev, &vvcam_mdev->notifier);
 #else
     ret = v4l2_async_notifier_register(&vvcam_mdev->v4l2_dev, &vvcam_mdev->notifier);
 #endif
-	if (0) {
+	if (ret) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
         v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
 #else
@@ -371,7 +508,8 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 
     return 0;
 }
-#endif
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) */
+#endif /* VVCAM_PLATFORM_REGISTER */
 
 static int vvcam_video_async_unregister_subdev(struct vvcam_media_dev *vvcam_mdev)
 {
@@ -379,11 +517,8 @@ static int vvcam_video_async_unregister_subdev(struct vvcam_media_dev *vvcam_mde
     v4l2_async_nf_unregister(&vvcam_mdev->notifier);
     v4l2_async_nf_cleanup(&vvcam_mdev->notifier);
 #else
-    dev_info(vvcam_mdev->dev, "%s:%d\n", __func__, __LINE__);
     v4l2_async_notifier_unregister(&vvcam_mdev->notifier);
-    dev_info(vvcam_mdev->dev, "%s:%d\n", __func__, __LINE__);
-    // FIXME: cause error
-    // v4l2_async_notifier_cleanup(&vvcam_mdev->notifier);
+    v4l2_async_notifier_cleanup(&vvcam_mdev->notifier);
 #endif
 
     return 0;
@@ -402,12 +537,22 @@ static int vvcam_video_parse_params(struct vvcam_media_dev *vvcam_mdev,
     vvcam_mdev->id = pdev->id;
     switch(vvcam_mdev->id) {
         case 0:
-            vvcam_mdev->pipeline_link = pipeline0;
-            vvcam_mdev->pipeline_link_size = ARRAY_SIZE(pipeline0);
+            if (!mcm_mask) {
+                vvcam_mdev->pipeline_link = pipeline0;
+                vvcam_mdev->pipeline_link_size = ARRAY_SIZE(pipeline0);
+            } else {
+                vvcam_mdev->pipeline_link = mcm_pipeline0;
+                vvcam_mdev->pipeline_link_size = ARRAY_SIZE(mcm_pipeline0);
+            }
             break;
         case 1:
-            vvcam_mdev->pipeline_link = pipeline1;
-            vvcam_mdev->pipeline_link_size = ARRAY_SIZE(pipeline1);
+            if (!mcm_mask) {
+                vvcam_mdev->pipeline_link = pipeline1;
+                vvcam_mdev->pipeline_link_size = ARRAY_SIZE(pipeline1);
+            } else {
+                vvcam_mdev->pipeline_link = mcm_pipeline1;
+                vvcam_mdev->pipeline_link_size = ARRAY_SIZE(mcm_pipeline1);
+            }
             break;
         default:
             break;
@@ -449,7 +594,7 @@ static int vvcam_video_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
     struct vvcam_media_dev *vvcam_mdev;
 
-    dev_info(dev, "%s 1\n", __func__);
+    dev_info(dev, "%s\n", __func__);
 
     vvcam_mdev = devm_kzalloc(dev, sizeof(struct vvcam_media_dev), GFP_KERNEL);
 	if (!vvcam_mdev)
@@ -512,13 +657,10 @@ static int vvcam_video_remove(struct platform_device *pdev)
     struct vvcam_media_dev *vvcam_mdev;
 
     vvcam_mdev = platform_get_drvdata(pdev);
-    dev_info(&pdev->dev, "%s:%d\n", __func__, __LINE__);
+
     media_device_unregister(&vvcam_mdev->mdev);
-    dev_info(&pdev->dev, "%s:%d\n", __func__, __LINE__);
     vvcam_video_async_unregister_subdev(vvcam_mdev);
-    dev_info(&pdev->dev, "%s:%d\n", __func__, __LINE__);
     vvcam_video_unregister_ports(vvcam_mdev);
-    dev_info(&pdev->dev, "%s:%d\n", __func__, __LINE__);
     v4l2_device_unregister(&vvcam_mdev->v4l2_dev);
     dev_info(&pdev->dev, "vvcam video driver remove\n");
 
@@ -572,6 +714,10 @@ static void __exit vvcam_video_exit_module(void)
 
     return;
 }
+
+#ifdef VVCAM_PLATFORM_REGISTER
+module_param(mcm_mask, int, 0644);
+#endif
 
 module_init(vvcam_video_init_module);
 module_exit(vvcam_video_exit_module);

@@ -636,8 +636,6 @@ static int find_proc_dir_by_name(const char *root,
     pfile = filp_open(root, O_RDONLY | O_DIRECTORY, 0);
     if (pfile->f_op->iterate_shared) {
         ret = pfile->f_op->iterate_shared(pfile, &fc.ctx);
-    } else {
-        // ret = pfile->f_op->iterate(pfile, &fc.ctx);
     }
 
     if (ret == 0) {

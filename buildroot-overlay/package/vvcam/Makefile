@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 
+ccflags-y	+= -g
 ccflags-y	+= -DVVCAM_ISP0_BASE=0x90000000 
 ccflags-y	+= -DVVCAM_ISP_REG_SIZE=0x10000
 ccflags-y	+= -DVVCAM_ISP0_IRQ=129

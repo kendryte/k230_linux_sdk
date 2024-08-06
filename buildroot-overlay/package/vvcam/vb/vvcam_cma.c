@@ -134,7 +134,7 @@ int vvcam_cma_alloc(struct file *file,
         return -ENOMEM;
     }
     cma_buf->size = size;
-    strncpy(cma_buf->name, name, strlen(name));
+    strncpy(cma_buf->name, name, sizeof(cma_buf->name));
     cma_buf->private = file;
     list_add_tail(&cma_buf->list, &cma->buf_list);
 

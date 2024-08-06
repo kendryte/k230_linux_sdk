@@ -1,55 +1,57 @@
 /****************************************************************************
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2023 VeriSilicon Holdings Co., Ltd.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
- *
- *****************************************************************************
- *
- * The GPL License (GPL)
- *
- * Copyright (c) 2023 VeriSilicon Holdings Co., Ltd.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program;
- *
- *****************************************************************************
- *
- * Note: This software is released under dual MIT and GPL licenses. A
- * recipient may use this file under the terms of either the MIT license or
- * GPL License. If you wish to use only one license not the other, you can
- * indicate your decision by deleting one of the above license notices in your
- * version of this file.
- *
- *****************************************************************************/
+*
+*    The MIT License (MIT)
+*
+*    Copyright (c) 2014 - 2024 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2024 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
+*
+*****************************************************************************/
+
 
 #include <media/v4l2-ioctl.h>
 #include "vvcam_isp_driver.h"
@@ -71,7 +73,7 @@ static int vvcam_isp_gtm_s_ctrl(struct v4l2_ctrl *ctrl)
         case VVCAM_ISP_CID_GTM_MODE:
         case VVCAM_ISP_CID_GTM_AUTO_LEVEL:
         case VVCAM_ISP_CID_GTM_AUTO_GAIN:
-        case VVCAM_ISP_CID_GTM_AUTO_CURVE_SELECT:
+        case VVCAM_ISP_CID_GTM_AUTO_USER_CURVE_ENABLE:
         case VVCAM_ISP_CID_GTM_AUTO_BW_CORRECTION_MIN_LOG:
         case VVCAM_ISP_CID_GTM_AUTO_BW_CORRECTION_MAX_LOG:
         case VVCAM_ISP_CID_GTM_AUTO_HIST_CONTRAST_LIMIT_LEVEL:
@@ -140,7 +142,7 @@ static int vvcam_isp_gtm_g_ctrl(struct v4l2_ctrl *ctrl)
         case VVCAM_ISP_CID_GTM_MODE:
         case VVCAM_ISP_CID_GTM_AUTO_LEVEL:
         case VVCAM_ISP_CID_GTM_AUTO_GAIN:
-        case VVCAM_ISP_CID_GTM_AUTO_CURVE_SELECT:
+        case VVCAM_ISP_CID_GTM_AUTO_USER_CURVE_ENABLE:
         case VVCAM_ISP_CID_GTM_AUTO_BW_CORRECTION_MIN_LOG:
         case VVCAM_ISP_CID_GTM_AUTO_BW_CORRECTION_MAX_LOG:
         case VVCAM_ISP_CID_GTM_AUTO_HIST_CONTRAST_LIMIT_LEVEL:
@@ -184,6 +186,22 @@ static int vvcam_isp_gtm_g_ctrl(struct v4l2_ctrl *ctrl)
         case VVCAM_ISP_CID_GTM_HIST_STATISTIC_MIN:
         case VVCAM_ISP_CID_GTM_HIST_STATISTIC_MAX:
         case VVCAM_ISP_CID_GTM_HIST_STATISTIC_DATA:
+        case VVCAM_ISP_CID_GTM_STAT_RGB_COEF:
+        case VVCAM_ISP_CID_GTM_STAT_LIGHTNESS_WEIGHT:
+        case VVCAM_ISP_CID_GTM_STAT_COLOR_WEIGHT:
+        case VVCAM_ISP_CID_GTM_STAT_BW_COR_MODE:
+        case VVCAM_ISP_CID_GTM_STAT_BW_COR_MIN_LOG:
+        case VVCAM_ISP_CID_GTM_STAT_BW_COR_MAX_LOG:
+        case VVCAM_ISP_CID_GTM_STAT_BW_COR_DAMP_COEF:
+        case VVCAM_ISP_CID_GTM_STAT_CURVE_SELECT:
+        case VVCAM_ISP_CID_GTM_STAT_CURVE_SHIFT_BIT:
+        case VVCAM_ISP_CID_GTM_STAT_PWL_KNEE_X_LOG:
+        case VVCAM_ISP_CID_GTM_STAT_PWL_KNEE_Y_LOG:
+        case VVCAM_ISP_CID_GTM_STAT_PWL_MAX_LOG:
+        case VVCAM_ISP_CID_GTM_STAT_PWL_MIN_LOG:
+        case VVCAM_ISP_CID_GTM_STAT_LOG_KNEE_X_LOG:
+        case VVCAM_ISP_CID_GTM_STAT_LOG_KNEE_SLOPE:
+        case VVCAM_ISP_CID_GTM_STAT_USER_CURVE:
             ret = vvcam_isp_g_ctrl_event(isp_dev, isp_dev->ctrl_pad, ctrl);
             break;
 
@@ -267,16 +285,6 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .dims = {20, 0, 0, 0},
     },
     {
-        .ops  = &vvcam_isp_gtm_ctrl_ops,
-        .id   = VVCAM_ISP_CID_GTM_AUTO_CURVE_SELECT,
-        .type = V4L2_CTRL_TYPE_INTEGER,
-        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_curve_select",
-        .step = 1,
-        .min  = 0,
-        .max  = 3,
-    },
-    {
         /* uint8_t array 20x */
         .ops  = &vvcam_isp_gtm_ctrl_ops,
         .id   = VVCAM_ISP_CID_GTM_AUTO_BW_CORRECTION_MIN_LOG,
@@ -285,7 +293,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .name = "isp_gtm_auto_bw_cor_min_log",
         .step = 1,
         .min  = 0,
-        .max  = 128,
+        .max  = 24,
         .dims = {20, 0, 0, 0},
     },
     {
@@ -297,7 +305,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .name = "isp_gtm_auto_bw_cor_max_log",
         .step = 1,
         .min  = 0,
-        .max  = 128,
+        .max  = 24,
         .dims = {20, 0, 0, 0},
     },
     {
@@ -306,7 +314,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_HIST_CONTRAST_LIMIT_LEVEL,
         .type = V4L2_CTRL_TYPE_U8,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_hist_cll",
+        .name = "isp_gtm_auto_hist_con_lmt_lvl",
         .step = 1,
         .min  = 0,
         .max  = 16,
@@ -318,7 +326,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_HIST_HLC_FACTOR,
         .type = V4L2_CTRL_TYPE_U32,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_hist_hf",
+        .name = "isp_gtm_auto_hist_hlc_fac",
         .step = 1,
         .min  = 0,
         .max  = 0xFFFFFFFF,
@@ -330,7 +338,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_HIST_LUMA_PRESERVE_WEIGHT,
         .type = V4L2_CTRL_TYPE_U32,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_hist_lpw",
+        .name = "isp_gtm_auto_hist_luma_pres_wt",
         .step = 1,
         .min  = 0,
         .max  = 0xFFFFFFFF,
@@ -342,7 +350,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_HIST_MAX_GAIN,
         .type = V4L2_CTRL_TYPE_U32,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_hist_maxg",
+        .name = "isp_gtm_auto_hist_max_gain",
         .step = 1,
         .min  = 0,
         .max  = 0xFFFFFFFF,
@@ -354,7 +362,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_HIST_MIN_GAIN,
         .type = V4L2_CTRL_TYPE_U32,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_hist_ming",
+        .name = "isp_gtm_auto_hist_min_gain",
         .step = 1,
         .min  = 0,
         .max  = 0xFFFFFFFF,
@@ -400,7 +408,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
          // uint32_t array 20x129 0~1048575
         .ops  = &vvcam_isp_gtm_ctrl_ops,
         .id   = VVCAM_ISP_CID_GTM_AUTO_USER_CURVE,
-        .type = V4L2_CTRL_TYPE_U16,
+        .type = V4L2_CTRL_TYPE_U32,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
         .name = "isp_gtm_auto_user_curve",
         .step = 1,
@@ -420,14 +428,13 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
     },
     {
         .ops  = &vvcam_isp_gtm_ctrl_ops,
-        .id   = VVCAM_ISP_CID_GTM_AUTO_EDR_LEVEL,
-        .type = V4L2_CTRL_TYPE_U8,
+        .id   = VVCAM_ISP_CID_GTM_AUTO_USER_CURVE_ENABLE,
+        .type = V4L2_CTRL_TYPE_BOOLEAN,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_edr_level",
+        .name = "isp_gtm_auto_user_curve_enable",
         .step = 1,
         .min  = 0,
-        .max  = 20,
-        .dims = {1, 0, 0, 0},
+        .max  = 1,
     },
     {
         .ops  = &vvcam_isp_gtm_ctrl_ops,
@@ -458,7 +465,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_CURVE_HIST_LUMA_WEIGHT,
         .type = V4L2_CTRL_TYPE_U16,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_curve_hist_lw",
+        .name = "isp_gtm_auto_curve_hist_luma_wt",
         .step = 1,
         .min  = 0,
         .max  = 1024,
@@ -470,10 +477,10 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_CURVE_HIST_HLC_FACTOR,
         .type = V4L2_CTRL_TYPE_INTEGER,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_curve_hist_hf",
+        .name = "isp_gtm_auto_curve_hist_hlc_fac",
         .step = 1,
         .min  = 0,
-        .max  = 100,
+        .max  = 1000,
     },
     {
         /* float 0.0 ~ 1.0 */
@@ -484,7 +491,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .name = "isp_gtm_auto_curve_hist_lpw",
         .step = 1,
         .min  = 0,
-        .max  = 10,
+        .max  = 100,
     },
     {
         /* float 0.0 ~ 1.0 */
@@ -492,10 +499,10 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_CURVE_HIST_COMPRESS_WEIGHT,
         .type = V4L2_CTRL_TYPE_INTEGER,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_curve_hist_cw",
+        .name = "isp_gtm_auto_curve_hist_comp_wt",
         .step = 1,
         .min  = 0,
-        .max  = 10,
+        .max  = 100,
     },
     {
         /* float 0.0 ~ 1048575.0 */
@@ -503,10 +510,10 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_CURVE_HIST_MAX_GAIN,
         .type = V4L2_CTRL_TYPE_INTEGER,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_curve_hist_maxg",
+        .name = "isp_gtm_auto_curve_hist_max_g",
         .step = 1,
         .min  = 0,
-        .max  = 10485750,
+        .max  = 104857500,
     },
     {
         /* float 0.0 ~ 1048575.0 */
@@ -514,10 +521,10 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_CURVE_HIST_MIN_GAIN,
         .type = V4L2_CTRL_TYPE_INTEGER,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_curve_hist_ming",
+        .name = "isp_gtm_auto_curve_hist_min_g",
         .step = 1,
         .min  = 0,
-        .max  = 10485750,
+        .max  = 104857500,
     },
     {
         /* float 0.0 ~ 1.0 */
@@ -528,7 +535,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .name = "isp_gtm_auto_curve_hist_str",
         .step = 1,
         .min  = 0,
-        .max  = 10,
+        .max  = 100,
     },
     {
         /* float 0.0 ~ 1.0 */
@@ -536,10 +543,21 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .id   = VVCAM_ISP_CID_GTM_AUTO_CURVE_HIST_DAMP_COEF,
         .type = V4L2_CTRL_TYPE_INTEGER,
         .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
-        .name = "isp_gtm_auto_curve_hist_dc",
+        .name = "isp_gtm_auto_curve_hist_damp_c",
         .step = 1,
         .min  = 0,
-        .max  = 10,
+        .max  = 100,
+    },
+    {
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_AUTO_EDR_LEVEL,
+        .type = V4L2_CTRL_TYPE_U8,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_auto_edr_level",
+        .step = 1,
+        .min  = 0,
+        .max  = 20,
+        .dims = {1, 0, 0, 0},
     },
     {
         /* float 20x  */
@@ -550,7 +568,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .name = "isp_gtm_auto_edr",
         .step = 1,
         .min  = 0,
-        .max  = 128,
+        .max  = 0xFFFFFFFF,
         .dims = {20, 0, 0, 0},
     },
     {
@@ -738,6 +756,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .step = 1,
         .min  = 0,
         .max  = 0xFFFFFFFF,
+        .dims = {1, 0, 0, 0},
     },
     {
         .ops  = &vvcam_isp_gtm_ctrl_ops,
@@ -748,6 +767,7 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .step = 1,
         .min  = 0,
         .max  = 0xFFFFFFFF,
+        .dims = {1, 0, 0, 0},
     },
     {
         /* uint32_t array 128x */
@@ -760,6 +780,182 @@ const struct v4l2_ctrl_config vvcam_isp_gtm_ctrls[] = {
         .min  = 0,
         .max  = 0xFFFFFFFF,
         .dims = {128, 0, 0, 0},
+    },
+    {
+        /* uint8_t 3x */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_RGB_COEF,
+        .type = V4L2_CTRL_TYPE_U8,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_rgb_coef",
+        .step = 1,
+        .min  = 0,
+        .max  = 128,
+        .dims = {3, 0, 0, 0},
+    },
+    {
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_LIGHTNESS_WEIGHT,
+        .type = V4L2_CTRL_TYPE_U8,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_lightness_weight",
+        .step = 1,
+        .min  = 0,
+        .max  = 128,
+        .dims = {1, 0, 0, 0},
+    },
+    {
+        /* uint8_t 3x */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_COLOR_WEIGHT,
+        .type = V4L2_CTRL_TYPE_U8,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_color_weight",
+        .step = 1,
+        .min  = 0,
+        .max  = 128,
+        .dims = {3, 0, 0, 0},
+    },
+    {
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_BW_COR_MODE,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_bw_cor_mode",
+        .step = 1,
+        .min  = 0,
+        .max  = 2,
+    },
+    {
+        /* double  0.0 ~ 24.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_BW_COR_MIN_LOG,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_bw_cor_min_log",
+        .step = 1,
+        .min  = 0,
+        .max  = 240,
+    },
+    {
+        /* double  0.0 ~ 24.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_BW_COR_MAX_LOG,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_bw_cor_max_log",
+        .step = 1,
+        .min  = 0,
+        .max  = 240,
+    },
+    {
+        /* double  0.0 ~ 1.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_BW_COR_DAMP_COEF,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_bw_cor_damp_coef",
+        .step = 1,
+        .min  = 0,
+        .max  = 10,
+    },
+    {
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_CURVE_SELECT,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_curve_select",
+        .step = 1,
+        .min  = 0,
+        .max  = 3,
+    },
+    {
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_CURVE_SHIFT_BIT,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_curve_shift_bit",
+        .step = 1,
+        .min  = 0,
+        .max  = 4,
+    },
+    {
+        /* double 0~24.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_PWL_KNEE_X_LOG,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_pwl_knee_x_log",
+        .step = 1,
+        .min  = 0,
+        .max  = 240,
+    },
+    {
+        /* double 0~20.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_PWL_KNEE_Y_LOG,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_pwl_knee_y_log",
+        .step = 1,
+        .min  = 0,
+        .max  = 200,
+    },
+    {
+        /* double 0~24.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_PWL_MAX_LOG,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_pwl_max_log",
+        .step = 1,
+        .min  = 0,
+        .max  = 240,
+    },
+    {
+        /* double 0~24.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_PWL_MIN_LOG,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_pwl_min_log",
+        .step = 1,
+        .min  = 0,
+        .max  = 240,
+    },
+    {
+        /* float 0~24.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_LOG_KNEE_X_LOG,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_log_knee_x_log",
+        .step = 1,
+        .min  = 0,
+        .max  = 240,
+    },
+    {
+        /* float 0~24.0 */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_LOG_KNEE_SLOPE,
+        .type = V4L2_CTRL_TYPE_INTEGER,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_log_knee_slope",
+        .step = 1,
+        .min  = 0,
+        .max  = 240,
+    },
+    {
+        /* uint32_t array 129x */
+        .ops  = &vvcam_isp_gtm_ctrl_ops,
+        .id   = VVCAM_ISP_CID_GTM_STAT_USER_CURVE,
+        .type = V4L2_CTRL_TYPE_U32,
+        .flags= V4L2_CTRL_FLAG_VOLATILE | V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
+        .name = "isp_gtm_stat_user_curve",
+        .step = 1,
+        .min  = 0,
+        .max  = 1048575,
+        .dims = {129, 0, 0, 0},
     },
 };
 
