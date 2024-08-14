@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 #define MAX_PROPS 128
+#define DISPLAY_QUEUE_DEPTH 3
 
 struct display {
     int fd;
@@ -21,14 +22,25 @@ struct display {
     drmModeConnectorPtr conn;
     drmModePropertyPtr conn_props[MAX_PROPS];
     uint32_t conn_props_count;
-    uint32_t count_planes;
-    uint32_t capacity_planes;
     drmModeAtomicReqPtr req;
+    uint32_t commitFlags;
     drmEventContext drm_event_ctx;
-    struct display_plane** planes;
+    struct display_plane* planes;
+};
+
+struct display_buffer {
+    struct display_buffer* next;
+    struct display_plane* plane;
+    uint32_t handle;
+    uint32_t stride, width, height;
+    uint32_t size;
+    int dmabuf_fd;
+    uint32_t id;
+    void* map;
 };
 
 struct display_plane {
+    struct display_plane* next;
     struct display* display;
     drmModePlanePtr plane;
     drmModePropertyPtr props[MAX_PROPS];
@@ -36,31 +48,17 @@ struct display_plane {
     uint32_t plane_id;
     unsigned int fourcc;
     bool first;
-};
-
-struct display_buffer {
-    struct display_plane* plane;
-    uint32_t handle;
-    uint32_t stride, width, height;
-    uint32_t size;
-    int fd;
-    uint32_t id;
-    void* map;
+    struct display_buffer* buffers;
 };
 
 void display_exit(struct display* display);
-
-int display_init(unsigned device, struct display* display);
-
-int display_get_plane(struct display* display, unsigned int fourcc, struct display_plane* display_plane);
-
-int display_allocate_buffer(
-    struct display_plane* plane, struct display_buffer* buffer,
-    uint32_t width, uint32_t height
-);
-
+struct display* display_init(unsigned device);
+struct display_plane* display_get_plane(struct display* display, unsigned int fourcc);
+struct display_buffer* display_allocate_buffer(struct display_plane* plane, uint32_t width, uint32_t height);
 int display_commit_buffer(const struct display_buffer* buffer, uint32_t x, uint32_t y);
-
+int display_update_buffer(struct display_buffer* buffer, uint32_t x, uint32_t y);
+int display_commit(struct display* display);
 void display_wait_vsync(struct display* display);
+void display_handle_vsync(struct display* display);
 
 #endif
