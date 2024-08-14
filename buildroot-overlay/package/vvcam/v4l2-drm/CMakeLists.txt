@@ -10,9 +10,11 @@ pkg_check_modules(LIBDRM REQUIRED libdrm)
 
 include_directories(include)
 
-file(GLOB SOURCES "src/*.c")
-add_executable(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} ${LIBDRM_LIBRARIES})
-target_include_directories(${PROJECT_NAME} PUBLIC ${LIBDRM_INCLUDE_DIRS})
+add_library(display src/display.c)
+target_link_libraries(display ${LIBDRM_LIBRARIES})
+target_include_directories(display PUBLIC ${LIBDRM_INCLUDE_DIRS})
+
+add_executable(${PROJECT_NAME} src/main.c)
+target_link_libraries(${PROJECT_NAME} display)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/bin)
