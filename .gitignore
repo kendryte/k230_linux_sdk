@@ -5,4 +5,6 @@ compile_commands.json
 .cache
 /test
 /linux
+/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version
+.clangd
 

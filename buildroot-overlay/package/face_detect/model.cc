@@ -3,6 +3,8 @@
 #include <fstream>
 #include "model.h"
 #include "util.h"
+#include <nncase/runtime/util.h>
+#include "mmz.h"
 
 Model::Model(const char *model_name, const char *kmodel_file): model_name_(model_name)
 {
@@ -22,7 +24,9 @@ Model::Model(const char *model_name, const char *kmodel_file): model_name_(model
 
 Model::~Model()
 {
-
+    std::cout << "Cleaning up memory..." << std::endl;
+    shrink_memory_pool();
+    kd_mpi_mmz_deinit();
 }
 
 void Model::run(std::vector<unsigned char> &data)
@@ -58,7 +62,6 @@ void Model::input_tensor(size_t idx, runtime_tensor &tensor)
 
 runtime_tensor Model::output_tensor(size_t idx)
 {
-    printf("output tensor idx: %d\n", idx);
     return interp_.output_tensor(idx).expect("cannot get output tensor");
 }
 
