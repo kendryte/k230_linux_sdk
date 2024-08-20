@@ -242,6 +242,12 @@ struct display_plane* display_get_plane(struct display* display, unsigned int fo
             continue;
         }
         for (j = 0; j < plane->count_formats; j++) {
+            // pr("plane %u format %c%c%c%c", plane->plane_id,
+            //     (plane->formats[j] >> 0) & 0xff,
+            //     (plane->formats[j] >> 8) & 0xff,
+            //     (plane->formats[j] >> 16) & 0xff,
+            //     (plane->formats[j] >> 24) & 0xff
+            // );
             if (plane->formats[j] == fourcc) {
                 goto found_plane;
             }
@@ -250,7 +256,7 @@ struct display_plane* display_get_plane(struct display* display, unsigned int fo
         plane = NULL;
     }
     drmModeFreePlaneResources(planes);
-    pr("No suitable plane");
+    pr("No suitable plane for %c%c%c%c", (fourcc >> 0) & 0xff, (fourcc >> 8) & 0xff, (fourcc >> 16) & 0xff, (fourcc >> 24) & 0xff);
     return NULL;
 
 found_plane:

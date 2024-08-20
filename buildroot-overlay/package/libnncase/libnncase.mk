@@ -8,4 +8,8 @@ define LIBNNCASE_EXTRACT_CMDS
 	mv $(@D)/nncase_k230_$(NNCASE_VERSION)_runtime_linux $(@D)/nncase
 endef
 
+define LIBNNCASE_INSTALL_TARGET_CMDS
+	cp -r $(@D)/nncase/* $(STAGING_DIR)/usr/
+endef
+
 $(eval $(generic-package))

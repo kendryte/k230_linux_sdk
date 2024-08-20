@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -19,21 +20,9 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <linux/videodev2.h>
+#include <getopt.h>
 
 #define DRM_BUFFERING 2
-
-void help(const char* argv0) {
-    printf("Usage: %s -d 1 -w 480 -h 320\n", argv0);
-    printf(
-        "Options:\n"
-        "\t-d Video device number\n"
-        "\t-w Width\n"
-        "\t-h Height\n"
-        "\t-n Buffer number\n"
-        "\t-f Format, NV12/NV16\n"
-        "\t-s Disable display\n"
-    );
-}
 
 static int running = 0xff;
 
@@ -44,6 +33,7 @@ void sighandler(int x) {
 struct video_context {
     unsigned width;
     unsigned height;
+    unsigned crop_x, crop_y, crop_w, crop_h;
     unsigned device;
     int video_fd;
     unsigned frame_count;
@@ -83,14 +73,35 @@ static void video_context_default(struct video_context* ctx) {
     }
     ctx->wp = 0;
     ctx->flag_dump = false;
+    ctx->crop_w = 0;
+    ctx->crop_h = 0;
+    ctx->crop_x = 0;
+    ctx->crop_y = 0;
 }
 
 static uint32_t to_v4l2_fourcc(const char* fourcc) {
     return v4l2_fourcc(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
 }
 
-static uint32_t to_display_fourcc(const char* fourcc) {
-    return fourcc_code(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
+static uint32_t v4l2_to_drm(uint32_t fourcc) {
+    switch (fourcc) {
+        case V4L2_PIX_FMT_NV12: return DRM_FORMAT_NV12;
+        case V4L2_PIX_FMT_NV21: return DRM_FORMAT_NV21;
+        case V4L2_PIX_FMT_NV16: return DRM_FORMAT_NV16;
+        case V4L2_PIX_FMT_NV61: return DRM_FORMAT_NV61;
+        case V4L2_PIX_FMT_BGR24: return DRM_FORMAT_BGR888;
+        case V4L2_PIX_FMT_RGB24: return DRM_FORMAT_RGB888;
+        case V4L2_PIX_FMT_YUYV: return DRM_FORMAT_YUYV;
+        default:
+            pr(
+                "no plane for video format %c%c%c%c",
+                (fourcc >> 0) & 0xff,
+                (fourcc >> 8) & 0xff,
+                (fourcc >> 16) & 0xff,
+                (fourcc >> 24) & 0xff
+                );
+            return 0;
+    }
 }
 
 static unsigned dump_count = 0;
@@ -118,12 +129,57 @@ static void dump_file(const struct video_context* ctx, unsigned channel) {
     pr("dump file to %s", filename);
 }
 
-int main(int argc, char* argv[]) {
+static void help(const char* argv0) {
+    printf("Usage: %s -d 1 -w 480 -h 320\n", argv0);
+    printf(
+        "Options:\n"
+        "\t-d Video device number\n"
+        "\t-w Width\n"
+        "\t-h Height\n"
+        "\t-n Buffer number\n"
+        "\t-f Format, NV12/NV16\n"
+        "\t-s Disable display\n"
+        "\t-x | --crop-x Crop offset X\n"
+        "\t-y | --crop-y Crop offset Y\n"
+        "\t--crop-width  Crop width\n"
+        "\t--crop-height Crop height\n"
+    );
+}
+
+static int parse_cmd(int argc, char* argv[], struct video_context* context) {
     int ch;
-    struct video_context context[9];
+    int option_index = 0;
     int context_idx = -1;
 
-    while((ch = getopt(argc, argv, "w:h:d:n:f:s")) != -1) {
+    struct option longopt[] = {
+        {
+            "crop-x",
+            required_argument,
+            NULL,
+            'x'
+        },
+        {
+            "crop-y",
+            required_argument,
+            NULL,
+            'y'
+        },
+        {
+            "crop-width",
+            required_argument,
+            NULL,
+            257,
+        },
+        {
+            "crop-height",
+            required_argument,
+            NULL,
+            258
+        },
+        {0, 0, 0, 0}
+    };
+
+    while((ch = getopt_long_only(argc, argv, "w:h:d:n:f:sx:y:", longopt, &option_index)) != -1) {
         if ((context_idx < 0) && (ch != 'd')) {
             help(argv[0]);
             return -1;
@@ -145,11 +201,26 @@ int main(int argc, char* argv[]) {
                 break;
             case 'f':
                 context[context_idx].video_format = to_v4l2_fourcc(optarg);
-                context[context_idx].display_format = to_display_fourcc(optarg);
+                context[context_idx].display_format = v4l2_to_drm(context[context_idx].video_format);
+                if (context[context_idx].display_format == 0) {
+                    context[context_idx].display = false;
+                }
                 break;
             case 's':
                 // disable display
                 context[context_idx].display = false;
+                break;
+            case 'x':
+                context[context_idx].crop_x = atoi(optarg);
+                break;
+            case 'y':
+                context[context_idx].crop_y = atoi(optarg);
+                break;
+            case 257:
+                context[context_idx].crop_w = atoi(optarg);
+                break;
+            case 258:
+                context[context_idx].crop_h = atoi(optarg);
                 break;
             default:
                 help(argv[0]);
@@ -157,17 +228,31 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    unsigned context_count = context_idx + 1;
+    return context_idx + 1;
+}
+
+int main(int argc, char* argv[]) {
+    struct video_context context[9];
+
+    int parse_result = parse_cmd(argc, argv, context);
+    if (parse_result < 0) {
+        return -1;
+    }
+
+    unsigned context_count = parse_result;
     unsigned flag_enable_display = 0;
     for (unsigned i = 0; i < context_count; i++) {
         // print message
-        pr("%u: %ux%u@%c%c%c%c display=%u",
-            i + 1, context[i].width, context[i].height,
+        pr("/dev/video%u: %ux%u@%c%c%c%c display(%u) crop: x(%u) y(%u) w(%u) h(%u)",
+            context[i].device, context[i].width, context[i].height,
             (context[i].video_format >> 0) & 0xff,
             (context[i].video_format >> 8) & 0xff,
             (context[i].video_format >> 16) & 0xff,
             (context[i].video_format >> 24) & 0xff,
-            context[i].display);
+            context[i].display,
+            context[i].crop_x, context[i].crop_y,
+            context[i].crop_w, context[i].crop_h
+        );
         if (context[i].display) {
             flag_enable_display = 1;
         }
@@ -206,8 +291,44 @@ int main(int argc, char* argv[]) {
         memset(&fmtdesc, 0, sizeof(fmtdesc));
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         while (ioctl(context[i].video_fd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
-            // pr("Suport Format %s",(char *)&fmtdesc.pixelformat);
+            pr(
+                "/dev/video%u support format %c%c%c%c",
+                context[i].device,
+                (fmtdesc.pixelformat >> 0) & 0xff,
+                (fmtdesc.pixelformat >> 8) & 0xff,
+                (fmtdesc.pixelformat >> 16) & 0xff,
+                (fmtdesc.pixelformat >> 24) & 0xff
+            );
             fmtdesc.index += 1;
+        }
+
+        // set crop
+        if (context[i].crop_x || context[i].crop_y || context[i].crop_w || context[i].crop_h) {
+            if (context[i].crop_w == 0) {
+                context[i].crop_w = context[i].width - context[i].crop_x;
+            }
+            if (context[i].crop_h == 0) {
+                context[i].crop_h = context[i].height - context[i].crop_y;
+            }
+
+            struct v4l2_selection sel;
+            memset(&sel,0,sizeof(sel));
+            sel.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            sel.target = V4L2_SEL_TGT_CROP_BOUNDS;
+            CKE(ioctl(context[i].video_fd, VIDIOC_G_SELECTION, &sel), close);
+            pr(
+                "/dev/video%u crop bound left(%u) top(%u) width(%u) height(%u)",
+                context[i].device,
+                sel.r.left, sel.r.top, sel.r.width, sel.r.height
+            );
+            sel.target = V4L2_SEL_TGT_CROP_DEFAULT;
+            CKE(ioctl(context[i].video_fd, VIDIOC_G_SELECTION, &sel), close);
+            sel.target = V4L2_SEL_TGT_CROP;
+            sel.r.left = context[i].crop_x;
+            sel.r.top = context[i].crop_y;
+            sel.r.width = context[i].crop_w;
+            sel.r.height = context[i].crop_h;
+            CKE(ioctl(context[i].video_fd, VIDIOC_S_SELECTION, &sel), close);
         }
 
         struct v4l2_format format;
@@ -359,6 +480,7 @@ int main(int argc, char* argv[]) {
                     if (ioctl(context[i].video_fd, VIDIOC_DQBUF, &context[i].vbuffer)) {
                         continue;
                     }
+                    context[i].frame_count += 1;
                     if (context[i].flag_dump) {
                         dump_file(&context[i], i);
                         context[i].flag_dump = false;

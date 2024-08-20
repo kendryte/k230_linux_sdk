@@ -90,6 +90,14 @@ static struct vvcam_video_fmt_info vvcam_formats_info[] = {
         .mbus      = MEDIA_BUS_FMT_YUYV8_1X16,
     },
     {
+        .fourcc    = V4L2_PIX_FMT_BGR24,
+        .mbus      = MEDIA_BUS_FMT_BGR888_1X24,
+    },
+    {
+        .fourcc    = v4l2_fourcc('B', 'G', '3', 'P'),
+        .mbus      = MEDIA_BUS_FMT_BGR888_3X8,
+    },
+    {
         .fourcc    = V4L2_PIX_FMT_SBGGR8,
         .mbus      = MEDIA_BUS_FMT_SBGGR8_1X8,
     },
@@ -225,6 +233,18 @@ static int vvcam_video_mfmt_to_vfmt( struct v4l2_subdev_format *mfmt, struct v4l
     uint32_t width;
     uint32_t height;
     int i;
+    struct v4l2_format_info bg3p_info = {
+        .format = v4l2_fourcc('B', 'G', '3', 'P'),
+        .pixel_enc = V4L2_PIXEL_ENC_RGB,
+        .mem_planes = 3,
+        .comp_planes = 3,
+        .bpp = {
+            1, 1, 1, 0
+        },
+        .bpp_div = { 1, 1, 1, 1 },
+        .hdiv = 1,
+        .vdiv = 1
+    };
 
     f->fmt.pix.width       = mfmt->format.width;
     f->fmt.pix.height      = mfmt->format.height;
@@ -238,7 +258,12 @@ static int vvcam_video_mfmt_to_vfmt( struct v4l2_subdev_format *mfmt, struct v4l
 
     width  = f->fmt.pix.width;
     height = f->fmt.pix.height;
-    info   = v4l2_format_info(f->fmt.pix.pixelformat);
+    if (f->fmt.pix.pixelformat == v4l2_fourcc('B', 'G', '3', 'P')) {
+        // special format
+        info = &bg3p_info;
+    } else {
+        info = v4l2_format_info(f->fmt.pix.pixelformat);
+    }
     if (info == NULL) {
         info = vvcam_video_vfmt_info(f->fmt.pix.pixelformat);
         if (info == NULL)
