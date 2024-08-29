@@ -2,5 +2,6 @@ config BR2_PACKAGE_VVCAM
     bool "K230 ISP server"
     select BR2_PACKAGE_MXML
     select BR2_PACKAGE_LIBMICROHTTPD
+    select BR2_PACKAGE_DISPLAY
     help
         K230 ISP server

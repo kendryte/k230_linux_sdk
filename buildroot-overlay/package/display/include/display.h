@@ -4,7 +4,12 @@
 
 #include <xf86drmMode.h>
 #include <xf86drm.h>
+#include <drm/drm_fourcc.h>
 #include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MAX_PROPS 128
 #define DISPLAY_QUEUE_DEPTH 3
@@ -54,11 +59,18 @@ struct display_plane {
 void display_exit(struct display* display);
 struct display* display_init(unsigned device);
 struct display_plane* display_get_plane(struct display* display, unsigned int fourcc);
+void display_free_plane(struct display_plane* plane);
 struct display_buffer* display_allocate_buffer(struct display_plane* plane, uint32_t width, uint32_t height);
+void display_free_plane(struct display_plane* plane);
+void display_free_buffer(struct display_buffer* buffer);
 int display_commit_buffer(const struct display_buffer* buffer, uint32_t x, uint32_t y);
 int display_update_buffer(struct display_buffer* buffer, uint32_t x, uint32_t y);
 int display_commit(struct display* display);
 void display_wait_vsync(struct display* display);
 void display_handle_vsync(struct display* display);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,5 +1,4 @@
 #include "display.h"
-#include <drm/drm_fourcc.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -22,6 +21,11 @@ static void page_flip_handler(int fd, unsigned int sequence, unsigned int tv_sec
 }
 
 void display_exit(struct display* display) {
+    struct display_plane* p = display->planes;
+    while (p != NULL) {
+        display_free_plane(p);
+        p = display->planes;
+    }
     close(display->fd);
     free(display);
 }
@@ -217,6 +221,27 @@ static bool check_plane_in_use(const struct display* display, uint32_t plane_id)
     return false;
 }
 
+void display_free_plane(struct display_plane* plane) {
+    struct display* d = plane->display;
+    struct display_plane* p = d->planes;
+    if (p == plane) {
+        d->planes = plane->next;
+    } else {
+        while (p != NULL) {
+            if (p->next == plane) {
+                p->next = plane->next;
+            }
+        }
+    }
+    // also free buffer
+    struct display_buffer* b = plane->buffers;
+    while (b != NULL) {
+        display_free_buffer(b);
+        b = plane->buffers;
+    }
+    free(plane);
+}
+
 struct display_plane* display_get_plane(struct display* display, unsigned int fourcc) {
     drmModePlaneResPtr planes;
     drmModePlanePtr plane;
@@ -375,6 +400,36 @@ free_dumb:
     drmIoctl(display->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
 error:
     return NULL;
+}
+
+void display_free_buffer(struct display_buffer* buffer) {
+    if (buffer == NULL)
+        return;
+
+    struct display_plane* p = buffer->plane;
+    struct display* d = p->display;
+    struct drm_mode_destroy_dumb destroy;
+
+    munmap(buffer->map, buffer->size);
+    memset(&destroy, 0, sizeof(destroy));
+    destroy.handle = buffer->handle;
+    drmIoctl(d->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
+
+    // remove from list
+    struct display_buffer* b = p->buffers;
+    if (b == buffer) {
+        p->buffers = b->next;
+    } else {
+        while (b != NULL) {
+            if (b->next == buffer) {
+                b->next = buffer->next;
+                break;
+            }
+            b = b->next;
+        }
+    }
+
+    free(buffer);
 }
 
 static uint32_t get_plane_property_id(const struct display_plane* plane, const char* name) {
