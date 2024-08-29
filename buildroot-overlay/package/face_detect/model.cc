@@ -22,12 +22,7 @@ Model::Model(const char *model_name, const char *kmodel_file): model_name_(model
     }
 }
 
-Model::~Model()
-{
-    std::cout << "Cleaning up memory..." << std::endl;
-    shrink_memory_pool();
-    kd_mpi_mmz_deinit();
-}
+Model::~Model() {}
 
 void Model::run(std::vector<unsigned char> &data)
 {
