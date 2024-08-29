@@ -209,12 +209,12 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    // auto ai_thread = thread(ai_proc, argv[1], 2);
-    auto display_thread = thread(display_proc, 1);
-    // display_proc(1);
-    ai_proc(argv[1], 2);
-    // ai_thread.join();
-    display_thread.join();
+    auto ai_thread = thread(ai_proc, argv[1], 2);
+    // auto display_thread = thread(display_proc, 1);
+    display_proc(1);
+    // ai_proc(argv[1], 2);
+    ai_thread.join();
+    // display_thread.join();
 
     return 0;
 }

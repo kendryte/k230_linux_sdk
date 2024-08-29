@@ -217,9 +217,10 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
         }
         continue;
         streamerr:
-        for (unsigned j = 0; j <= i; j++) {
+        for (unsigned j = 0; j < i; j++) {
             ioctl(context[i].video_fd, VIDIOC_STREAMOFF, &type);
         }
+        return -1;
     }
     uint32_t display_frame_count = 0;
     uint32_t frame_count_fps[num];
