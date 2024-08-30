@@ -43,6 +43,8 @@ static void ai_proc(const char *kmodel_file, int video_device)
     // input data
     size_t paddr = 0;
     void *vaddr = nullptr;
+    face_result_mutex.lock();
+    face_result_mutex.unlock();
 
     auto cap = cv::VideoCapture(video_device);
     if (!cap.isOpened()) {
@@ -115,6 +117,11 @@ static struct timeval tv, tv2;
 
 int frame_handler(struct v4l2_drm_context *context, bool displayed) {
     // FPS
+    static bool first_frame = true;
+    if (first_frame) {
+        face_result_mutex.unlock();
+        first_frame = false;
+    }
     static unsigned response = 0, display_frame_count = 0;
     response += 1;
     if (displayed) {
@@ -208,7 +215,7 @@ int main(int argc, char *argv[])
         cerr << "Usage: " << argv[0] << " <kmodel" << endl;
         return -1;
     }
-
+    face_result_mutex.lock();
     auto ai_thread = thread(ai_proc, argv[1], 2);
     // auto display_thread = thread(display_proc, 1);
     display_proc(1);
