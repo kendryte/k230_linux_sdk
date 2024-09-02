@@ -72,6 +72,10 @@
 #include "vvcam_v4l2_common.h"
 #include "vvcam_video_event.h"
 
+#ifndef V4L2_PIX_FMT_P010
+#define V4L2_PIX_FMT_P010 v4l2_fourcc('P', '0', '1', '0') /* 24 Y/CbCr 4:2:0 10-bit per component */
+#endif
+
 static struct vvcam_video_fmt_info vvcam_formats_info[] = {
     {
         .fourcc    = V4L2_PIX_FMT_NV16,
@@ -84,6 +88,66 @@ static struct vvcam_video_fmt_info vvcam_formats_info[] = {
     {
         .fourcc    = V4L2_PIX_FMT_YUYV,
         .mbus      = MEDIA_BUS_FMT_YUYV8_1X16,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_BGR24,
+        .mbus      = MEDIA_BUS_FMT_BGR888_1X24,
+    },
+    {
+        .fourcc    = v4l2_fourcc('B', 'G', '3', 'P'),
+        .mbus      = MEDIA_BUS_FMT_BGR888_3X8,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SBGGR8,
+        .mbus      = MEDIA_BUS_FMT_SBGGR8_1X8,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SGBRG8,
+        .mbus      = MEDIA_BUS_FMT_SGBRG8_1X8,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SGRBG8,
+        .mbus      = MEDIA_BUS_FMT_SGRBG8_1X8,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SRGGB8,
+        .mbus      = MEDIA_BUS_FMT_SRGGB8_1X8,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SBGGR10,
+        .mbus      = MEDIA_BUS_FMT_SBGGR10_1X10,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SGBRG10,
+        .mbus      = MEDIA_BUS_FMT_SGBRG10_1X10,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SGRBG10,
+        .mbus      = MEDIA_BUS_FMT_SGRBG10_1X10,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SRGGB10,
+        .mbus      = MEDIA_BUS_FMT_SRGGB10_1X10,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SBGGR12,
+        .mbus      = MEDIA_BUS_FMT_SBGGR12_1X12,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SGBRG12,
+        .mbus      = MEDIA_BUS_FMT_SGBRG12_1X12,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SGRBG12,
+        .mbus      = MEDIA_BUS_FMT_SGRBG12_1X12,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_SRGGB12,
+        .mbus      = MEDIA_BUS_FMT_SRGGB12_1X12,
+    },
+    {
+        .fourcc    = V4L2_PIX_FMT_P010,
+        .mbus      = MEDIA_BUS_FMT_YUYV10_2X10,
     },
 };
 
@@ -131,15 +195,56 @@ static int vvcam_video_vfmt_to_mfmt(struct v4l2_format *f, struct v4l2_subdev_fo
 
 }
 
+static const struct v4l2_format_info *vvcam_video_vfmt_info(u32 format)
+{
+    /* format info for user define or supported by later versions */
+    static const struct v4l2_format_info formats[] = {
+        /* YUV planar formats */
+        {
+            .format      = V4L2_PIX_FMT_P010,
+            .pixel_enc   = V4L2_PIXEL_ENC_YUV,
+            .mem_planes  = 1,
+            .comp_planes = 2,
+            .bpp         = {2, 2, 0, 0},
+            .hdiv        = 2,
+            .vdiv        = 1,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
+            .bpp_div     = {1, 1, 1, 1},
+#endif
+        },
+    };
+
+    unsigned int i;
+
+    for (i = 0; i < ARRAY_SIZE(formats); i++) {
+        if (formats[i].format == format)
+            return &formats[i];
+    }
+
+    return NULL;
+}
+
 static int vvcam_video_mfmt_to_vfmt( struct v4l2_subdev_format *mfmt, struct v4l2_format *f)
 {
     int ret;
-    const struct v4l2_format_info *info;
+    const struct v4l2_format_info *info = NULL;
     uint32_t bytesperline;
     uint32_t sizeimage = 0;
     uint32_t width;
     uint32_t height;
     int i;
+    struct v4l2_format_info bg3p_info = {
+        .format = v4l2_fourcc('B', 'G', '3', 'P'),
+        .pixel_enc = V4L2_PIXEL_ENC_RGB,
+        .mem_planes = 3,
+        .comp_planes = 3,
+        .bpp = {
+            1, 1, 1, 0
+        },
+        .bpp_div = { 1, 1, 1, 1 },
+        .hdiv = 1,
+        .vdiv = 1
+    };
 
     f->fmt.pix.width       = mfmt->format.width;
     f->fmt.pix.height      = mfmt->format.height;
@@ -147,12 +252,24 @@ static int vvcam_video_mfmt_to_vfmt( struct v4l2_subdev_format *mfmt, struct v4l
     f->fmt.pix.colorspace  = mfmt->format.colorspace;
     f->fmt.pix.quantization = mfmt->format.quantization;
     ret = vvcam_video_mbus_to_fourcc(mfmt->format.code, &f->fmt.pix.pixelformat);
-    if (ret)
+    if (ret) {
         return ret;
+    }
 
     width  = f->fmt.pix.width;
     height = f->fmt.pix.height;
-    info   = v4l2_format_info(f->fmt.pix.pixelformat);
+    if (f->fmt.pix.pixelformat == v4l2_fourcc('B', 'G', '3', 'P')) {
+        // special format
+        info = &bg3p_info;
+    } else {
+        info = v4l2_format_info(f->fmt.pix.pixelformat);
+    }
+    if (info == NULL) {
+        info = vvcam_video_vfmt_info(f->fmt.pix.pixelformat);
+        if (info == NULL)
+            return -EINVAL;
+    }
+
     bytesperline = info->bpp[0] * width;
     sizeimage = bytesperline * height;
 
@@ -200,37 +317,43 @@ static int vvcam_video_try_create_pipeline(struct vvcam_video_dev *vvcam_vdev)
     struct v4l2_subdev_format sd_fmt;
     struct v4l2_subdev_pad_config pad_cfg;
     struct v4l2_subdev_state sd_state = {
-        .pads = &pad_cfg
+        .pads = &pad_cfg,
     };
 
     if (vvcam_vdev->pipeline) {
         return 0;
     }
     ret = vvcam_video_create_pipeline_event(vvcam_vdev);
-    if (ret)
+    if (ret) {
         return ret;
+    }
 
     subdev = vvcam_video_remote_subdev(vvcam_vdev);
-    if (!subdev)
+    if (!subdev) {
         return -EINVAL;
+    }
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
     pad = media_pad_remote_pad_first(&vvcam_vdev->pad);
 #else
     pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
 
+    memset(&sd_fmt, 0, sizeof(sd_fmt));
     sd_fmt.pad = pad->index;
     sd_fmt.which = V4L2_SUBDEV_FORMAT_TRY;
 
     ret = v4l2_subdev_call(subdev, pad, get_fmt, &sd_state, &sd_fmt);
-    if (ret)
+    if (ret) {
         return ret;
+    }
 
     ret = vvcam_video_mfmt_to_vfmt(&sd_fmt, &vvcam_vdev->format);
-    if (ret)
+    if (ret) {
         return ret;
+    }
 
     vvcam_vdev->pipeline = 1;
+
     return 0;
 }
 
@@ -262,9 +385,14 @@ static int vvcam_videoc_enum_fmt_vid_cap(struct file *file, void *priv,
     struct v4l2_subdev_mbus_code_enum mbus_code;
     struct v4l2_subdev_pad_config pad_cfg;
     struct v4l2_subdev_state sd_state = {
-        .pads = &pad_cfg
+        .pads = &pad_cfg,
     };
     int ret = -EINVAL;
+
+    ret = vvcam_video_try_create_pipeline(vvcam_vdev);
+    if (ret) {
+        return ret;
+    }
 
     subdev = vvcam_video_remote_subdev(vvcam_vdev);
     if (subdev) {
@@ -297,7 +425,7 @@ static int vvcam_videoc_try_fmt_vid_cap(struct file *file, void *priv,
     struct v4l2_subdev_format sd_fmt;
     struct v4l2_subdev_pad_config pad_cfg;
     struct v4l2_subdev_state sd_state = {
-        .pads = &pad_cfg
+        .pads = &pad_cfg,
     };
     int ret;
 
@@ -305,8 +433,9 @@ static int vvcam_videoc_try_fmt_vid_cap(struct file *file, void *priv,
 		return -EINVAL;
 
     ret = vvcam_video_try_create_pipeline(vvcam_vdev);
-    if (ret)
+    if (ret) {
         return ret;
+    }
 
     subdev = vvcam_video_remote_subdev(vvcam_vdev);
     if (!subdev)
@@ -317,13 +446,15 @@ static int vvcam_videoc_try_fmt_vid_cap(struct file *file, void *priv,
     pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
 
+    memset(&sd_fmt, 0, sizeof(sd_fmt));
     sd_fmt.pad = pad->index;
     sd_fmt.which = V4L2_SUBDEV_FORMAT_TRY;
 
     vvcam_video_vfmt_to_mfmt(f, &sd_fmt);
     ret = v4l2_subdev_call(subdev, pad, set_fmt, &sd_state, &sd_fmt);
-    if (ret)
+    if (ret) {
         return ret;
+    }
 
     ret = vvcam_video_mfmt_to_vfmt(&sd_fmt, f);
 
@@ -340,7 +471,7 @@ static int vvcam_videoc_s_fmt_vid_cap(struct file *file, void *priv,
     struct v4l2_subdev_format sd_fmt;
     struct v4l2_subdev_pad_config pad_cfg;
     struct v4l2_subdev_state sd_state = {
-        .pads = &pad_cfg
+        .pads = &pad_cfg,
     };
     int ret;
 
@@ -357,14 +488,17 @@ static int vvcam_videoc_s_fmt_vid_cap(struct file *file, void *priv,
 #else
     pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+
+    memset(&sd_fmt, 0, sizeof(sd_fmt));
     sd_fmt.pad = pad->index;
     sd_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
 
     vvcam_video_vfmt_to_mfmt(f, &sd_fmt);
 
     ret = v4l2_subdev_call(subdev, pad, set_fmt, &sd_state, &sd_fmt);
-    if (ret)
+    if (ret) {
         return ret;
+    }
 
     vvcam_vdev->format = *f;
     printk("%d x %d size %d fmt %s \n",
@@ -384,8 +518,9 @@ static int vvcam_videoc_g_fmt_vid_cap(struct file *file, void *fh,
 		return -EINVAL;
 
     ret = vvcam_video_try_create_pipeline(vvcam_vdev);
-    if (ret)
+    if (ret) {
         return ret;
+    }
 
     *f = vvcam_vdev->format;
 
@@ -417,6 +552,7 @@ static int vvcam_videoc_reqbufs(struct file *file, void *priv,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_requbufs, 0, sizeof(pad_requbufs));
         pad_requbufs.pad = pad->index;
         pad_requbufs.num_buffers = p->count;
         v4l2_subdev_call(subdev, core, ioctl, VVCAM_PAD_REQUBUFS, &pad_requbufs);
@@ -464,6 +600,7 @@ static int vvcam_videoc_queryctrl(struct file *file, void *fh,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_query_ctrl, 0, sizeof(pad_query_ctrl));
         pad_query_ctrl.pad = pad->index;
         pad_query_ctrl.query_ctrl = a;
         ret = v4l2_subdev_call(subdev, core, ioctl,
@@ -492,6 +629,7 @@ static int vvcam_videoc_query_ext_ctrl(struct file *file, void *fh,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_query_ext_ctrl, 0, sizeof(pad_query_ext_ctrl));
         pad_query_ext_ctrl.pad = pad->index;
         pad_query_ext_ctrl.query_ext_ctrl = a;
         ret = v4l2_subdev_call(subdev, core, ioctl,
@@ -520,6 +658,7 @@ static int vvcam_vidioc_g_ctrl(struct file *file, void *fh,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_control, 0, sizeof(pad_control));
         pad_control.pad = pad->index;
         pad_control.control = a;
         ret = v4l2_subdev_call(subdev, core, ioctl,
@@ -548,6 +687,7 @@ static int vvcam_vidioc_s_ctrl(struct file *file, void *fh,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_control, 0, sizeof(pad_control));
         pad_control.pad = pad->index;
         pad_control.control = a;
         ret = v4l2_subdev_call(subdev, core, ioctl,
@@ -576,6 +716,7 @@ static int vvcam_vidioc_g_ext_ctrls(struct file *file, void *fh,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_ext_controls, 0, sizeof(pad_ext_controls));
         pad_ext_controls.pad = pad->index;
         pad_ext_controls.ext_controls = a;
         ret = v4l2_subdev_call(subdev, core, ioctl,
@@ -604,6 +745,7 @@ static int vvcam_vidioc_s_ext_ctrls(struct file *file, void *fh,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_ext_controls, 0, sizeof(pad_ext_controls));
         pad_ext_controls.pad = pad->index;
         pad_ext_controls.ext_controls = a;
         ret = v4l2_subdev_call(subdev, core, ioctl,
@@ -632,6 +774,7 @@ static int vvcam_vidioc_try_ext_ctrls(struct file *file, void *fh,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_ext_controls, 0, sizeof(pad_ext_controls));
         pad_ext_controls.pad = pad->index;
         pad_ext_controls.ext_controls = a;
         ret = v4l2_subdev_call(subdev, core, ioctl,
@@ -660,6 +803,7 @@ static int vvcam_vidioc_querymenu(struct file *file, void *fh,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_querymenu, 0, sizeof(pad_querymenu));
         pad_querymenu.pad = pad->index;
         pad_querymenu.querymenu = a;
         ret = v4l2_subdev_call(subdev, core, ioctl,
@@ -884,6 +1028,7 @@ static void vvcam_video_vb2_buf_queue(struct vb2_buffer *vb)
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&pad_buf, 0, sizeof(pad_buf));
         pad_buf.pad = pad->index;
         pad_buf.buf = buf;
         v4l2_subdev_call(subdev, core, ioctl, VVCAM_PAD_BUF_QUEUE, &pad_buf);
@@ -908,6 +1053,7 @@ static int vvcam_video_vb2_start_streaming(struct vb2_queue *queue,
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&stream_status, 0, sizeof(stream_status));
         stream_status.pad = pad->index;
         stream_status.status = 1;
         ret = v4l2_subdev_call(subdev, core, ioctl, VVCAM_PAD_S_STREAM, &stream_status);
@@ -931,6 +1077,7 @@ static void vvcam_video_vb2_stop_streaming(struct vb2_queue *queue)
 #else
         pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
+        memset(&stream_status, 0, sizeof(stream_status));
         stream_status.pad = pad->index;
         stream_status.status = 0;
         v4l2_subdev_call(subdev, core, ioctl, VVCAM_PAD_S_STREAM, &stream_status);

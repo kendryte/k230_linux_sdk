@@ -1,0 +1,3 @@
+config BR2_PACKAGE_DISPLAY
+    bool "libdrm abstruct library for display"
+    select BR2_PACKAGE_LIBDRM

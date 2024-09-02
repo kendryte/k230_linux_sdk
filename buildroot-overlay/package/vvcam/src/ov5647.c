@@ -1,4 +1,5 @@
 #include "common.h"
+#include <endian.h>
 #include <string.h>
 #include <vvcam_sensor.h>
 #include <stdio.h>
@@ -8,20 +9,81 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
+#include <linux/i2c.h>
+
+#define I2C_SLAVE_ADDRESS 0x36
+#define CHECK_ERROR(x) if(x)return -1
+
+#define OV5647_REG_CHIP_ID_H                                0x300a
+#define OV5647_REG_CHIP_ID_L                                0x300b
+#define OV5647_REG_MIPI_CTRL00                              0x4800
+#define OV5647_REG_FRAME_OFF_NUMBER                         0x4202
+#define OV5647_REG_PAD_OUT                                  0x300d
+
+#define OV5647_REG_VTS_H                                  0x380e
+#define OV5647_REG_VTS_L                                  0x380f
+
+#define OV5647_REG_MIPI_CTRL14                              0x4814
+
+#define OV5647_SW_STANDBY                                   0x0100
+
+
+#define OV5647_REG_LONG_AGAIN_H                             0x350a
+#define OV5647_REG_LONG_AGAIN_L                             0x350b
+
+#define OV5647_REG_LONG_EXP_TIME_H                          0x3501
+#define OV5647_REG_LONG_EXP_TIME_L                          0x3502
+
+#define OV5647_MIN_GAIN_STEP                                (1.0f/16.0f)
+#define OV5647_SW_RESET                                           0x0103
+#define MIPI_CTRL00_CLOCK_LANE_GATE                         (1 << 5)
+#define MIPI_CTRL00_LINE_SYNC_ENABLE                        (1 << 4)
+#define MIPI_CTRL00_BUS_IDLE                                (1 << 1)
+#define MIPI_CTRL00_CLOCK_LANE_DISABLE                      (1 << 0)
+
 
 struct ov5647_ctx {
     int i2c;
 };
 
+static int read_reg(struct ov5647_ctx* ctx, uint16_t addr, uint8_t* value) {
+    struct i2c_msg msg[2];
+    struct i2c_rdwr_ioctl_data data;
+
+    addr = htobe16(addr);
+    msg[0].addr = I2C_SLAVE_ADDRESS;
+    msg[0].buf = (uint8_t*)&addr;
+    msg[0].len = 2;
+    msg[0].flags = 0;
+
+    msg[1].addr = I2C_SLAVE_ADDRESS;
+    msg[1].buf = value;
+    msg[1].len = 1;
+    msg[1].flags = I2C_M_RD;
+
+    data.msgs = msg;
+    data.nmsgs = 2;
+
+    int ret = ioctl(ctx->i2c, I2C_RDWR, &data);
+    if (ret != 2) {
+        fprintf(stderr, "ov5647: i2c read reg %04x error %d(%s)\n", be16toh(addr), errno, strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
 static int write_reg(struct ov5647_ctx* ctx, uint16_t addr, uint8_t value) {
     uint8_t buffer[3];
+
     buffer[0] = (addr >> 8) & 0xff;
     buffer[1] = (addr >> 0) & 0xff;
     buffer[2] = value;
     if (write(ctx->i2c, buffer, 3) != 3) {
+        fprintf(stderr, "ov5647: i2c write reg %04x error %d(%s)\n", addr, errno, strerror(errno));
         return -1;
     }
-    printf("ov5647 w %04x %02x\n", addr, value);
+    // printf("ov5647 w %04x %02x\n", addr, value);
     return 0;
 }
 
@@ -33,7 +95,7 @@ static int open_i2c(struct ov5647_ctx* sensor) {
             perror("open /dev/i2c-0");
             return -1;
         }
-        if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, 0x36) < 0) {
+        if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS) < 0) {
             perror("i2c ctrl 0x36");
             return -1;
         }
@@ -151,13 +213,17 @@ static struct reg_list ov5647_1920x1080_30fps[] = {
     {0x4800, 0x34},
     {0x3503, 0x07},         //0x0f
     {0x350b, 0x10},
+    {0x3500, 0x3},
+    {0x350a, 0x00},
+    {0x350b, 0x30},
     {0, 0}
 };
 
-static struct ov5647_mode {
+struct ov5647_mode {
     struct vvcam_sensor_mode mode;
     struct reg_list* regs;
-} modes[] = {
+};
+static struct ov5647_mode modes[] = {
     {
         .mode = {
             .clk = 25000000,
@@ -166,11 +232,52 @@ static struct ov5647_mode {
             .lanes = VVCAM_SENSOR_2LANE,
             .freq = VVCAM_SENSOR_800M,
             .bayer = VVCAM_BAYER_PAT_GBRG,
-            .bit_width = 10
+            .bit_width = 10,
+            .ae_info = {
+                .frame_length = 1199,
+                .cur_frame_length = 1199,
+                .one_line_exp_time = 0.000027808,
+                .gain_accuracy = 1024,
+                .min_gain = 1.0,
+                .max_gain = 8.0,
+                .int_time_delay_frame = 2,
+                .gain_delay_frame = 2,
+                .color_type = 0,
+                .integration_time_increment = 0.000027808,
+                .gain_increment = (1.0f/16.0f),
+                .max_long_integraion_line = 1199 - 12,
+                .min_long_integraion_line = 2,
+                .max_integraion_line = 1199 - 12,
+                .min_integraion_line = 2,
+                .max_long_integraion_time = 1199 * (1199 - 12),
+                .min_long_integraion_time = 1199 * (1199 - 12),
+                .max_integraion_time = 1199 * (1199 - 12),
+                .min_integraion_time = 1199 * (1199 - 12),
+                .cur_long_integration_time = 0.0,
+                .cur_integration_time = 0.0,
+                .cur_long_again = 0.0,
+                .cur_long_dgain = 0.0,
+                .cur_again = 0.0,
+                .cur_dgain = 0.0,
+                .a_long_gain.min = 1.0,
+                .a_long_gain.max = 8.0,
+                .a_long_gain.step = (1.0f/16.0f),
+                .a_gain.min = 1.0,
+                .a_gain.max = 8.0,
+                .a_gain.step = (1.0f/16.0f),
+                .d_long_gain.max = 1.0,
+                .d_long_gain.min = 1.0,
+                .d_long_gain.step = (1.0f/1024.0f),
+                .d_gain.max = 1.0,
+                .d_gain.min = 1.0,
+                .d_gain.step = (1.0f/1024.0f),
+                .cur_fps = 30,
+            }
         },
         .regs = ov5647_1920x1080_30fps
     }
 };
+static unsigned modes_len = sizeof(modes) / sizeof(struct ov5647_mode);
 
 static int enum_mode(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode) {
     if (index == 0) {
@@ -182,23 +289,44 @@ static int enum_mode(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode) 
 }
 
 static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
-    memcpy(mode, &modes[0], sizeof(struct vvcam_sensor_mode));
+    memcpy(mode, &modes[0].mode, sizeof(struct vvcam_sensor_mode));
     return 0;
 }
 
-static int set_mode(void* ctx, struct vvcam_sensor_mode* mode) {
+static int set_mode(void* ctx, uint32_t index) {
     struct ov5647_ctx* sensor = ctx;
+    if (index > modes_len) {
+        // out of range
+        return -1;
+    }
+    struct vvcam_sensor_mode* mode = &modes[index].mode;
     printf("ov5647: %s %ux%u\n", __func__, mode->width, mode->height);
     if (open_i2c(sensor)) {
         return -1;
     }
-    // FIXME: find nearest mode
+    uint8_t channel_id;
+    CHECK_ERROR(read_reg(ctx, OV5647_REG_MIPI_CTRL14, &channel_id));
+    channel_id &= ~(3 << 6);
+    CHECK_ERROR(write_reg(ctx, OV5647_REG_MIPI_CTRL14, channel_id));
     for(unsigned i = 0;; i++) {
         if ((modes[0].regs[i].addr == 0) && (modes[0].regs[i].value == 0)) {
             break;
         }
-        write_reg(sensor, modes[0].regs[i].addr, modes[0].regs[i].value);
+        CHECK_ERROR(write_reg(sensor, modes[0].regs[i].addr, modes[0].regs[i].value));
     }
+    uint8_t again_h, again_l;
+    uint8_t exp_time_h, exp_time_l;
+    uint8_t exp_time;
+    float again = 0, dgain = 0;
+
+    CHECK_ERROR(read_reg(ctx, OV5647_REG_LONG_AGAIN_H, &again_h));
+    CHECK_ERROR(read_reg(ctx, OV5647_REG_LONG_AGAIN_L, &again_l));
+    again = (float)(((again_h & 0x03) << 8) + again_l) / 16.0f;
+    dgain = 1.0;
+    mode->ae_info.cur_gain = again * dgain;
+    mode->ae_info.cur_long_gain = mode->ae_info.cur_gain;
+    mode->ae_info.cur_vs_gain = mode->ae_info.cur_gain;
+
     return 0;
 }
 

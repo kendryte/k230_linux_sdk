@@ -357,7 +357,7 @@ static int vvcam_vb_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id vvcam_vb_of_match[] = {
-	{.compatible = "verislicon,vb",},
+	{.compatible = "verisilicon,vb",},
 	{ /* sentinel */ },
 };
 

@@ -9,11 +9,7 @@
 #include <nncase/runtime/interpreter.h>
 #include <nncase/runtime/util.h>
 #include "mobile_retinaface.h"
-#ifdef LINUX_RUNTIME
 #include "mmz.h"
-#else
-#include "mpi_sys_api.h"
-#endif
 
 using namespace nncase;
 using namespace nncase::runtime;
@@ -70,14 +66,6 @@ void ai_proc(const char *kmodel_file, const char *image_file)
 
         ai_stop=1;
     }
-}
-
-void __attribute__((destructor)) cleanup() {
-    std::cout << "Cleaning up memory..." << std::endl;
-    shrink_memory_pool();
-#ifdef LINUX_RUNTIME
-    kd_mpi_mmz_deinit();
-#endif
 }
 
 int main(int argc, char *argv[])

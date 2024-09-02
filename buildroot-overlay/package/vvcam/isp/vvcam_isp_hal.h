@@ -60,6 +60,10 @@
 #define ISP_MIS                              0x000005c4
 #define ISP_ICR                              0x000005c8
 
+#define MIV1_CTRL                            0x00001400
+#define MIV1_MIS                             0x00001500
+#define MIV1_ICR                             0x00001504
+
 #define MIV2_CTRL                            0x00001300
 #define MIV2_MIS                             0x000016d0
 #define MIV2_MIS1                            0x000016d4
@@ -75,7 +79,11 @@
 #define ISP_FE_MIS                           0x00003D74
 #define ISP_FE_ICR                           0x00003D78
 #define ISP_FE_CTL                           0x00003D60
+#define ISP_FE_BATCH_MODE_ICR                0x00003DAC
+#define ISP_FE_BATCH_MODE_MIS                0x00003DB8
 
+
+#define MIV1_MIS_FRAME_END_MASK              0x00000001
 
 #define MIV2_CTRL_MCM_RAW_RDMA_START_MASK    0x00008000
 
@@ -142,6 +150,10 @@
 #define FUSA_LV1_RIS1                        0x00005b44
 #define FUSA_LV1_MIS1                        0x00005b48
 #define FUSA_LV1_ICR1                        0x00005b50
+
+
+#define RDCD_MI_MIS                          0x000080c0
+#define RDCD_MI_ICR                          0x000080c4
 
 enum isp_fe_cfg_sel_e {
     ISP_FE_SEL_AHBBUF = 0,

@@ -82,11 +82,11 @@
 #endif
 
 #ifdef VVCAM_PLATFORM_REGISTER
-#define VVCAM_ISP_DEFAULT_SENSOR        "imx335"
+#define VVCAM_ISP_DEFAULT_SENSOR        "ov5647"
 #define VVCAM_ISP_DEFAULT_SENSOR_MODE   0
-#define VVCAM_ISP_DEFAULT_SENSOR_XML    "OV2775.xml"
-#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "vvbcfg/simulator/ISP8000_V2201/ISP8000_V2201.manual_ext.json"
-#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "vvbcfg/simulator/ISP8000_V2201/ISP8000_V2201.auto.json"
+#define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/ov5647.xml"
+#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/ov5647.manual.json"
+#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/ov5647.auto.json"
 #endif
 
 struct vvcam_isp_mbus_fmt vvcam_isp_mp_fmts[] = {
@@ -98,7 +98,16 @@ struct vvcam_isp_mbus_fmt vvcam_isp_mp_fmts[] = {
     },
     {
         .code = MEDIA_BUS_FMT_YUYV8_1X16,  /*YUYV*/
-    }
+    },
+    {
+        .code = MEDIA_BUS_FMT_BGR888_1X24, /*BGR888*/
+    },
+    {
+        .code = MEDIA_BUS_FMT_BGR888_3X8, /*BGR888P*/
+    },
+    {
+        .code = MEDIA_BUS_FMT_YUYV10_2X10, /*P010*/
+    },
 };
 
 struct vvcam_isp_mbus_fmt vvcam_isp_sp_fmts[] = {
@@ -110,7 +119,16 @@ struct vvcam_isp_mbus_fmt vvcam_isp_sp_fmts[] = {
     },
     {
         .code = MEDIA_BUS_FMT_YUYV8_1X16,  /*YUYV*/
-    }
+    },
+    {
+        .code = MEDIA_BUS_FMT_BGR888_1X24, /*RGB888*/
+    },
+    {
+        .code = MEDIA_BUS_FMT_BGR888_3X8, /*RGB888P*/
+    },
+    {
+        .code = MEDIA_BUS_FMT_YUYV10_2X10, /*P010*/
+    },
 };
 
 static int vvcam_isp_querycap(struct v4l2_subdev *sd, void *arg)
@@ -212,6 +230,7 @@ static int vvcam_isp_buf_done(struct v4l2_subdev *sd, void *arg)
         if (is_media_entity_v4l2_subdev(pad->entity)) {
 
             subdev = media_entity_to_v4l2_subdev(pad->entity);
+            memset(&pad_buf, 0, sizeof(pad_buf));
             pad_buf.pad = pad->index;
             pad_buf.buf = buf;
             ret = v4l2_subdev_call(subdev, core, ioctl, VVCAM_PAD_BUF_DONE, &pad_buf);
@@ -430,22 +449,34 @@ static int vvcam_isp_set_fmt(struct v4l2_subdev *sd,
     int i;
     int ret;
 
-    sink_pad_index = format->pad - (format->pad % VVCAM_ISP_CHN_MAX);
+    sink_pad_index = format->pad - (format->pad % VVCAM_ISP_PORT_PAD_NR);
     sink_pad = &isp_dev->pad_data[sink_pad_index];
 
     if (sink_pad == cur_pad) {
         cur_pad->sink_detected = 1;
         cur_pad->format = format->format;
-        for (i = 1; i < VVCAM_ISP_CHN_MAX; i++) {
+        for (i = 1; i < VVCAM_ISP_PORT_PAD_NR; i++) {
             source_pad = &isp_dev->pad_data[sink_pad_index + i];
             source_pad->sink_detected = 1;
-            source_pad->format = format->format;
-            source_pad->format.code = source_pad->mbus_fmt[0].code;
-            source_pad->format.field = V4L2_FIELD_NONE;
-            source_pad->format.quantization = V4L2_QUANTIZATION_DEFAULT;
-            source_pad->format.colorspace = V4L2_COLORSPACE_DEFAULT;
-        }
 
+            switch (i) {
+                case VVCAM_ISP_PORT_PAD_SOURCE_MP:
+                case VVCAM_ISP_PORT_PAD_SOURCE_SP1:
+                case VVCAM_ISP_PORT_PAD_SOURCE_SP2:
+                    source_pad->format = format->format;
+                    source_pad->format.code = source_pad->mbus_fmt[0].code;
+                    source_pad->format.field = V4L2_FIELD_NONE;
+                    source_pad->format.quantization = V4L2_QUANTIZATION_DEFAULT;
+                    source_pad->format.colorspace = V4L2_COLORSPACE_DEFAULT;
+                    break;
+                case VVCAM_ISP_PORT_PAD_SOURCE_RAW:
+                    source_pad->format = format->format;
+                    source_pad->mbus_fmt[0].code = format->format.code;
+                    break;
+                default:
+                    break;
+            }
+        }
         return 0;
     }
 
@@ -641,8 +672,10 @@ static int vvcam_isp_async_notifier(struct vvcam_isp_dev *isp_dev)
     int ret = 0;
     int pad = 0;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
     v4l2_async_subdev_nf_init(&isp_dev->notifier, &isp_dev->sd);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+    v4l2_async_nf_init(&isp_dev->notifier);
 #else
     v4l2_async_notifier_init(&isp_dev->notifier);
 #endif
@@ -667,18 +700,26 @@ static int vvcam_isp_async_notifier(struct vvcam_isp_dev *isp_dev)
             continue;
         }
         fwnode_handle_put(remote_ep);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
         asc = v4l2_async_nf_add_fwnode_remote(&isp_dev->notifier,
                                             ep, struct v4l2_async_connection);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+        asd = v4l2_async_nf_add_fwnode_remote(&isp_dev->notifier,
+                                            ep, struct v4l2_async_subdev);
 #else
-        // asd = v4l2_async_notifier_add_fwnode_remote_subdev(&isp_dev->notifier, ep, struct v4l2_async_subdev);
-        ret = v4l2_async_notifier_add_fwnode_remote_subdev(&isp_dev->notifier, ep, &asd);
+        asd = v4l2_async_notifier_add_fwnode_remote_subdev(&isp_dev->notifier,
+                                                ep, struct v4l2_async_subdev);
 #endif
 
         fwnode_handle_put(ep);
 
-        if (ret /*IS_ERR(asd)*/) {
-            // ret = PTR_ERR(asd);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+        if (IS_ERR(asc)) {
+            ret = PTR_ERR(asc);
+#else
+        if (IS_ERR(asd)) {
+            ret = PTR_ERR(asd);
+#endif
 			if (ret != -EEXIST) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
                 v4l2_async_nf_cleanup(&isp_dev->notifier);
@@ -690,10 +731,13 @@ static int vvcam_isp_async_notifier(struct vvcam_isp_dev *isp_dev)
         }
     }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-        ret = v4l2_async_nf_register(&isp_dev->notifier);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+    ret = v4l2_async_nf_register(&isp_dev->notifier);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+    ret = v4l2_async_subdev_nf_register(&isp_dev->sd,
+						  &isp_dev->notifier);
 #else
-        ret = v4l2_async_subdev_notifier_register(&isp_dev->sd,
+    ret = v4l2_async_subdev_notifier_register(&isp_dev->sd,
 						  &isp_dev->notifier);
 #endif
     if (ret) {
@@ -711,22 +755,38 @@ static int vvcam_isp_async_notifier(struct vvcam_isp_dev *isp_dev)
 static int vvcam_isp_pads_init(struct vvcam_isp_dev *isp_dev)
 {
     int pad = 0;
+
     for (pad = 0; pad < VVCAM_ISP_PAD_NR; pad++) {
-        if (pad % VVCAM_ISP_CHN_MAX == 0) {
+        if ((pad % VVCAM_ISP_PORT_PAD_NR) == VVCAM_ISP_PORT_PAD_SINK) {
             isp_dev->pads[pad].flags = MEDIA_PAD_FL_SINK;
         } else {
             isp_dev->pads[pad].flags = MEDIA_PAD_FL_SOURCE;
         }
-    }
 
-    for (pad = 0; pad < VVCAM_ISP_PAD_NR; pad++) {
-        if (pad % VVCAM_ISP_CHN_MAX == 1) {
-            isp_dev->pad_data[pad].num_formats = ARRAY_SIZE(vvcam_isp_mp_fmts);
-            isp_dev->pad_data[pad].mbus_fmt = vvcam_isp_mp_fmts;
-        } else if (pad % VVCAM_ISP_CHN_MAX != 0) {
-            isp_dev->pad_data[pad].num_formats = ARRAY_SIZE(vvcam_isp_sp_fmts);
-            isp_dev->pad_data[pad].mbus_fmt = vvcam_isp_mp_fmts;
+        switch (pad % VVCAM_ISP_PORT_PAD_NR) {
+            case VVCAM_ISP_PORT_PAD_SINK:
+                break;
+            case VVCAM_ISP_PORT_PAD_SOURCE_MP:
+                isp_dev->pad_data[pad].num_formats = ARRAY_SIZE(vvcam_isp_mp_fmts);
+                isp_dev->pad_data[pad].mbus_fmt = vvcam_isp_mp_fmts;
+                break;
+            case VVCAM_ISP_PORT_PAD_SOURCE_SP1:
+                isp_dev->pad_data[pad].num_formats = ARRAY_SIZE(vvcam_isp_sp_fmts);
+                isp_dev->pad_data[pad].mbus_fmt = vvcam_isp_sp_fmts;
+                break;
+            case VVCAM_ISP_PORT_PAD_SOURCE_SP2:
+                isp_dev->pad_data[pad].num_formats = ARRAY_SIZE(vvcam_isp_sp_fmts);
+                isp_dev->pad_data[pad].mbus_fmt = vvcam_isp_sp_fmts;
+                break;
+            case VVCAM_ISP_PORT_PAD_SOURCE_RAW:
+                isp_dev->pad_data[pad].num_formats = 1;
+                isp_dev->pad_data[pad].mbus_fmt = devm_kzalloc(isp_dev->dev,
+		                sizeof(struct vvcam_isp_mbus_fmt), GFP_KERNEL);;
+                break;
+            default:
+                break;
         }
+
         INIT_LIST_HEAD(&isp_dev->pad_data[pad].queue);
         spin_lock_init(&isp_dev->pad_data[pad].qlock);
     }
@@ -741,7 +801,7 @@ static int vvcam_isp_parse_params(struct vvcam_isp_dev *isp_dev,
 #ifdef VVCAM_PLATFORM_REGISTER
     int port = 0;
     isp_dev->id  = pdev->id;
-    for (port = 0; port < VVCAM_ISP_CHN_MAX; port++) {
+    for (port = 0; port < VVCAM_ISP_PORT_NR; port++) {
         strncpy(isp_dev->sensor_info[port].sensor, VVCAM_ISP_DEFAULT_SENSOR,
             strlen(VVCAM_ISP_DEFAULT_SENSOR));
         strncpy(isp_dev->sensor_info[port].xml, VVCAM_ISP_DEFAULT_SENSOR_XML,
@@ -845,12 +905,15 @@ err_register_procfs:
     v4l2_async_unregister_subdev(&isp_dev->sd);
 
 error_regiter_subdev:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-                v4l2_async_nf_unregister(&isp_dev->notifier);
-                v4l2_async_nf_cleanup(&isp_dev->notifier);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+    v4l2_async_nf_cleanup(&isp_dev->notifier);
+    v4l2_async_nf_unregister(&isp_dev->notifier);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+    v4l2_async_nf_unregister(&isp_dev->notifier);
+    v4l2_async_nf_cleanup(&isp_dev->notifier);
 #else
-				v4l2_async_notifier_unregister(&isp_dev->notifier);
-	            v4l2_async_notifier_cleanup(&isp_dev->notifier);
+    v4l2_async_notifier_unregister(&isp_dev->notifier);
+    v4l2_async_notifier_cleanup(&isp_dev->notifier);
 #endif
 err_async_notifier:
     media_entity_cleanup(&isp_dev->sd.entity);
@@ -866,12 +929,16 @@ static int vvcam_isp_remove(struct platform_device *pdev)
 
     vvcam_isp_procfs_unregister(isp_dev->pde);
     v4l2_async_unregister_subdev(&isp_dev->sd);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-                v4l2_async_nf_unregister(&isp_dev->notifier);
-                v4l2_async_nf_cleanup(&isp_dev->notifier);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+    v4l2_async_nf_cleanup(&isp_dev->notifier);
+    v4l2_async_nf_unregister(&isp_dev->notifier);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+    v4l2_async_nf_unregister(&isp_dev->notifier);
+    v4l2_async_nf_cleanup(&isp_dev->notifier);
 #else
-				v4l2_async_notifier_unregister(&isp_dev->notifier);
-	            v4l2_async_notifier_cleanup(&isp_dev->notifier);
+    v4l2_async_notifier_unregister(&isp_dev->notifier);
+    v4l2_async_notifier_cleanup(&isp_dev->notifier);
 #endif
     media_entity_cleanup(&isp_dev->sd.entity);
     pm_runtime_disable(&pdev->dev);
@@ -943,6 +1010,7 @@ static int __init vvcam_isp_init_module(void)
         printk(KERN_ERR "Failed to register isp driver\n");
         return ret;
     }
+
 #ifdef VVCAM_PLATFORM_REGISTER
     ret = vvcam_isp_platform_device_register();
     if (ret) {
@@ -951,6 +1019,7 @@ static int __init vvcam_isp_init_module(void)
 		return ret;
 	}
 #endif
+
     return ret;
 }
 
