@@ -123,6 +123,9 @@ int main(int argc, const char * argv[]) {
     CHECK_ERROR(vg_lite_finish());
 
     printf("display: %d\n", drm_display(0));
+    int flag = fcntl(STDIN_FILENO, F_GETFL);
+    flag &= ~O_NONBLOCK;
+    fcntl(STDIN_FILENO, F_SETFL, flag);
     getchar();
     test_triangle(&buffer);
     getchar();
