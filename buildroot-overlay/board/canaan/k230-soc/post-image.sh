@@ -32,7 +32,16 @@ gz_file_add_ver()
 
 
 	local storage="$(echo "$f" | sed -nE "s#[^-]*-([^\.]*).*#\1#p")"
-	local conf_name="${CONF%%_defconfig}"
+
+	if [ "${CONF}" = "k230_canmv_defconfig" ] ; then
+		canaan_site_name="CanMV-K230";
+	elif [ "${CONF}" = "k230_evb_defconfig" ] ; then
+		canaan_site_name="EVB-K230";
+	else
+		canaan_site_name="${CONF%%_defconfig}"	;
+	fi
+
+
 
 	sdk_ver=$(awk -F- '/^sdk:/ { print $1}' ${sdk_ver_file}  | cut -d: -f2 )
 
@@ -40,8 +49,8 @@ gz_file_add_ver()
 		cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
 			nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
 	fi
-	rm -rf  ${conf_name}_linux_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
-	ln -s  $f ${conf_name}_linux_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
+	rm -rf  ${canaan_site_name}_linux_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
+	ln -s  $f ${canaan_site_name}_linux_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
 }
 
 
