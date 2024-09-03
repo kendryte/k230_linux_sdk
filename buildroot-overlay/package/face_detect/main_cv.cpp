@@ -184,8 +184,8 @@ static void display_proc(int video_device) {
     }
     v4l2_drm_default_context(&context);
     context.device = 1;
-    context.width = 480;
-    context.height = 320;
+    context.width = display->width;
+    context.height = (display->width * img_rows / img_cols) & 0xfff8;
     context.video_format = V4L2_PIX_FMT_BGR24;
     context.display_format = 0; // auto
     if (v4l2_drm_setup(&context, 1, &display)) {
@@ -210,9 +210,14 @@ void __attribute__((destructor)) cleanup() {
 int main(int argc, char *argv[])
 {   
     cout << "case " << argv[0] << " built at " << __DATE__ << " " << __TIME__ << endl;
-    if (argc != 2)
+    if (argc < 2)
     {
         cerr << "Usage: " << argv[0] << " <kmodel" << endl;
+        return -1;
+    }
+    display = display_init(0);
+    if (!display) {
+        cerr << "display_init error, exit" << endl;
         return -1;
     }
     face_result_mutex.lock();
