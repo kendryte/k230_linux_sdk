@@ -128,6 +128,15 @@ stages:
       echo "----------start to run test job----------";
     fi
 
+.generate_md5_file: &generate_md5_file
+  - echo "generate md5  for build image"
+  - pwd
+  - ls
+  - |
+    find . \( -type f -o -type l \) -name "*.img.gz" | while read file; do
+      sudo bash -c "md5sum \"$file\" > \"$file.md5\""
+    done
+
 before_script:
   - echo '----------Build ENV Prepare----------'
   - echo 'Add SSH KEY for Multiple repo'
@@ -310,6 +319,13 @@ before_script:
     - echo "---save sdk build output---"
     - ls "${SRC_DIR}"
     - sudo cp -rf --sparse=always -L ${SRC_DIR}/${IMAGE_NAME} ${DST_DIR}/${SUB_DIR}/
+    - pwd
+    - echo "switch to dst dir to generate md5 file"
+    - cd ${DST_DIR}/${SUB_DIR}/ || exit 1
+    - *generate_md5_file
+    - echo "return to work dir"
+    - cd $CI_PROJECT_DIR/ || exit 1
+    - ls
     - echo "${DST_DIR}/${SUB_DIR}/"
     - ls "${DST_DIR}/${SUB_DIR}/"
     - echo "add latest link for current build"
