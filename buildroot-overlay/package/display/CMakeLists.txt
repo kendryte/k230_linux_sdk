@@ -21,6 +21,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_link_libraries(${PROJECT_NAME} ${LIBDRM_LIBRARIES})
 
+# add_library(pipeline src/pipeline.c)
+# target_include_directories(pipeline PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+# target_link_libraries(pipeline ev)
+# add_executable(test-pipeline src/test-pipeline.c)
+# target_link_libraries(test-pipeline pipeline)
+
 if(${BUILD_TEST})
     add_executable(test-${PROJECT_NAME} src/test.cpp)
     target_link_libraries(test-${PROJECT_NAME} display)

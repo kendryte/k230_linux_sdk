@@ -4,6 +4,9 @@
 #include <nncase/runtime/interpreter.h>
 #include <nncase/runtime/runtime_op_utility.h>
 #include <nncase/functional/ai2d/ai2d_builder.h>
+#ifdef WITH_OPENCV
+#include <opencv2/core/mat.hpp>
+#endif
 // #include <interpreter.h>
 // #include <runtime_op_utility.h>
 // #include <ai2d_builder.h>
@@ -19,11 +22,14 @@ class Model
 public:
     Model(const char *model_name, const char *kmodel_file);
     ~Model();
+#ifdef WITH_OPENCV
+    void run(cv::Mat mat);
+#endif
     void run(std::vector<unsigned char> &data);
     std::string model_name() const;
 
 protected:
-    virtual void preprocess(std::vector<unsigned char> &data) = 0;
+    virtual void preprocess(gsl::span<gsl::byte> data, uintptr_t physical_address=0) = 0;
     void kpu_run();
     virtual void postprocess() = 0;
     runtime_tensor input_tensor(size_t idx);

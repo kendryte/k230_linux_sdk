@@ -16,18 +16,32 @@
 #include <atomic>
 #include <cstddef>
 #include <sys/select.h>
-#include "display.h"
-#include <optional>
+#include <display.h>
 #include <cerrno>
 #include <tuple>
 
 // base on DMA-BUF
 namespace pipeline {
     class Pipeline;
+    enum Capbility {
+        SupportImport = 1,
+        SupportExport = 2,
+        SupportBoth = 3
+    };
+
+    class DMABuffer {
+    public:
+        int fd;
+        void* map;
+        unsigned index;
+
+        DMABuffer(int fd, void* map, unsigned index): fd(fd), map(map), index(index) {}
+    };
 
     // FIXME: seperate source | sink
     class Endpoint {
     public:
+        virtual Capbility get_capbility() = 0;
         virtual bool set_buffer_num(unsigned channel, unsigned num) = 0;
         // return false if not support
         virtual bool import_buffer(unsigned channel, int fd, unsigned index, unsigned size) { return false; };
@@ -47,10 +61,11 @@ namespace pipeline {
         public:
             std::vector<std::tuple<Endpoint*, unsigned>> sinks;
             std::vector<unsigned> bufferHold;
+            SourceInfo(unsigned num): bufferHold(num, 0) {}
         };
     public:
-        std::map<Endpoint*, SourceInfo> forward;
-        std::map<Endpoint*, std::vector<Endpoint*>> backword;
+        std::map<Endpoint*, SourceInfo*> forward;
+        std::map<Endpoint*, std::vector<Endpoint*>*> backward;
         std::map<int, Endpoint*> fdMap;
         int maxFds;
         fd_set fds;
@@ -77,7 +92,7 @@ namespace pipeline {
                 fd_set rfds = fds;
                 struct timeval tv = {
                     .tv_sec = 0,
-                    .tv_usec = 100
+                    .tv_usec = 100000
                 };
                 int ret = select(maxFds + 1, &rfds, NULL, NULL, &tv);
                 if (ret > 0) {
@@ -85,8 +100,8 @@ namespace pipeline {
                     for (auto [fd, ep]: fdMap) {
                         if (FD_ISSET(fd, &rfds)) {
                             // check source or sink
-                            auto iter = backword.find(ep);
-                            if (iter == backword.end()) {
+                            auto iter = backward.find(ep);
+                            if (iter == backward.end()) {
                                 // ep is source
                                 auto info = forward[ep];
                                 // dequeue buffer, source only support 1 channel
@@ -94,31 +109,31 @@ namespace pipeline {
                                 if (index < 0) {
                                     continue;
                                 }
-                                info.bufferHold[index] = 0;
-                                for (auto [sink, channel]: info.sinks) {
-                                    if (sink->buffer_in(index, channel)) {
-                                        // drop
-                                        info.bufferHold[index] += 1;
+                                info->bufferHold[index] = 0;
+                                for (auto [sink, channel]: info->sinks) {
+                                    if (sink->buffer_in(channel, index)) {
+                                        // hold by sink
+                                        info->bufferHold[index] += 1;
                                     }
                                 }
-                                if (info.bufferHold[index] == 0) {
+                                if (info->bufferHold[index] == 0) {
                                     // no sink use, queue buffer back
-                                    ep->buffer_in(index, 0);
+                                    ep->buffer_in(0, index);
                                 }
                             } else {
                                 // ep is sink
                                 auto sources = iter->second;
-                                auto channels = sources.size();
+                                auto channels = sources->size();
                                 for (unsigned channel = 0; channel < channels; channel++) {
                                     auto index = ep->buffer_out(channel);
                                     if (index < 0) {
                                         continue;
                                     }
-                                    auto source = sources[channel];
+                                    auto source = (*sources)[channel];
                                     auto info = forward[source];
-                                    info.bufferHold[index] -= 1;
-                                    if (info.bufferHold[index] == 0) {
-                                        source->buffer_in(index, 0);
+                                    info->bufferHold[index] -= 1;
+                                    if (info->bufferHold[index] == 0) {
+                                        source->buffer_in(0, index);
                                     }
                                 }
                             }
@@ -139,11 +154,22 @@ namespace pipeline {
         }
 
         bool link(Endpoint& source, Endpoint& sink, unsigned bufferNum=5) {
-            auto sinkInfo = backword[&sink];
-            auto channel = sinkInfo.size();
-            sinkInfo.push_back(&source);
-            auto info = forward[&source];
-            info.sinks.push_back({&sink, channel});
+            auto iter = backward.find(&sink);
+            std::vector<Endpoint*>* sinkInfo = nullptr;
+            if (iter == backward.end()) {
+                // empty
+                sinkInfo = new std::vector<Endpoint*>();
+            } else {
+                sinkInfo = iter->second;
+            }
+            unsigned channel = sinkInfo->size();
+            sinkInfo->push_back(&source);
+            backward[&sink] = sinkInfo;
+            
+            auto info = new SourceInfo(bufferNum);
+            info->sinks.push_back({&sink, channel});
+            forward[&source] = info;
+            
             maxFds = std::max(source.fd_to_select(), std::max(sink.fd_to_select(), maxFds));
             FD_SET(source.fd_to_select(), &fds);
             FD_SET(sink.fd_to_select(), &fds);
@@ -183,17 +209,24 @@ namespace pipeline {
         }
     };
 
-    class Vicap: public Endpoint {
+    class VideoCapture: public Endpoint {
+    private:
+        bool owned;
     public:
         int fd;
         unsigned size;
-        Vicap(int fd): fd(fd), size(0) {}
-        ~Vicap() {
-            if (fd >= 0)
+        std::vector<int> buffers_fd;
+        bool export_by_me;
+        VideoCapture(int fd): fd(fd), size(0), export_by_me(false), owned(true) {}
+        VideoCapture(VideoCapture&& v): fd(v.fd), size(v.size), export_by_me(v.export_by_me), owned(true) {
+            v.owned = false;
+        }
+        ~VideoCapture() {
+            if (owned && (fd >= 0))
                 close(fd);
         }
 
-        static std::optional<Vicap> create(unsigned device, unsigned width, unsigned height, uint32_t fourcc) {
+        static std::optional<VideoCapture> create(unsigned device, unsigned width, unsigned height, uint32_t fourcc) {
             char filepath[128];
             snprintf(filepath, sizeof(filepath), "/dev/video%u", device);
             struct v4l2_capability capbility;
@@ -210,7 +243,7 @@ namespace pipeline {
             fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             while (ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
                 printf(
-                    "/dev/video%u support format %c%c%c%c",
+                    "/dev/video%u support format %c%c%c%c\n",
                     device,
                     (fmtdesc.pixelformat >> 0) & 0xff,
                     (fmtdesc.pixelformat >> 8) & 0xff,
@@ -233,7 +266,11 @@ namespace pipeline {
                 close(fd);
                 return {};
             }
-            return Vicap(fd);
+            return VideoCapture(fd);
+        }
+
+        Capbility get_capbility() {
+            return Capbility::SupportBoth;
         }
 
         bool start() {
@@ -249,21 +286,6 @@ namespace pipeline {
             ioctl(fd, VIDIOC_STREAMOFF, &type);
         }
 
-        bool import_buffer(unsigned channel, int fd, unsigned index, unsigned size) {
-            // QBUF
-            struct v4l2_buffer buffer;
-            memset(&buffer, 0, sizeof(buffer));
-            buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            buffer.memory = V4L2_MEMORY_DMABUF;
-            buffer.index = index;
-            buffer.m.fd = fd;
-            buffer.length = size;
-            if (ioctl(fd, VIDIOC_QBUF, &buffer)) {
-                return false;
-            }
-            return true;
-        }
-
         bool set_buffer_num(unsigned channel, unsigned num) {
             struct v4l2_requestbuffers request_buffer;
             memset(&request_buffer, 0, sizeof(request_buffer));
@@ -271,8 +293,56 @@ namespace pipeline {
             request_buffer.memory = V4L2_MEMORY_DMABUF;
             request_buffer.count = num;
             if (ioctl(fd, VIDIOC_REQBUFS, &request_buffer)) {
+                perror("VIDIOC_REQBUFS error");
                 return false;
             }
+            buffers_fd.resize(num);
+            return true;
+        }
+
+        int export_buffer(unsigned channel, unsigned index, unsigned& size) {
+            // TODO: querybuf & mmap & expbuf
+            struct v4l2_buffer buffer;
+            memset(&buffer, 0, sizeof(buffer));
+            buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buffer.memory = V4L2_MEMORY_MMAP;
+            buffer.index = index;
+            if (ioctl(fd, VIDIOC_QUERYBUF, &buffer)) {
+                perror("VIDIOC_QUERYBUF error");
+                return false;
+            }
+            if (ioctl(fd, VIDIOC_QBUF, &buffer)) {
+                perror("VIDIOC_QBUF error");
+                return false;
+            }
+            // TODO: mmap, if need
+            struct v4l2_exportbuffer expbuf;
+            memset(&expbuf, 0, sizeof(expbuf));
+            expbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            expbuf.index = index;
+            if (ioctl(fd, VIDIOC_EXPBUF, &expbuf)) {
+                perror("VIDIOC_EXPBUF error");
+                return false;
+            }
+            export_by_me = true;
+            return expbuf.fd;
+        }
+
+        bool import_buffer(unsigned channel, int buffer_fd, unsigned index, unsigned size) {
+            // QBUF
+            struct v4l2_buffer buffer;
+            memset(&buffer, 0, sizeof(buffer));
+            buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buffer.memory = V4L2_MEMORY_DMABUF;
+            buffer.index = index;
+            buffer.m.fd = buffer_fd;
+            buffer.length = size;
+            if (ioctl(fd, VIDIOC_QBUF, &buffer)) {
+                perror("VIDIOC_QBUF error");
+                return false;
+            }
+            buffers_fd[index] = buffer_fd;
+            export_by_me = false;
             return true;
         }
 
@@ -294,8 +364,13 @@ namespace pipeline {
             struct v4l2_buffer buffer;
             memset(&buffer, 0, sizeof(buffer));
             buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            buffer.memory = V4L2_MEMORY_DMABUF;
             buffer.index = index;
+            if (export_by_me) {
+                buffer.memory = V4L2_MEMORY_MMAP;
+            } else {
+                buffer.memory = V4L2_MEMORY_DMABUF;
+                buffer.m.fd = buffers_fd[index];
+            }
             if (ioctl(fd, VIDIOC_QBUF, &buffer)) {
                 // warning
                 return false;
@@ -317,14 +392,16 @@ namespace pipeline {
             unsigned height;
             unsigned x;
             unsigned y;
-            int queue[3];
+            #define QUEUE_DEPTH 3
+            int queue[QUEUE_DEPTH];
             unsigned wp;
             bool updated;
 
             Plane(struct display_plane* plane, unsigned width, unsigned height, unsigned x, unsigned y):
-                wp(0), plane(plane), width(width), height(height), updated(false), x(x), y(y)
+                wp(0), plane(plane), width(width), height(height), updated(false), x(x), y(y),
+                buffers()
             {
-                for (unsigned i = 0; i < 3; i++) {
+                for (unsigned i = 0; i < QUEUE_DEPTH; i++) {
                     queue[i] = -1;
                 }
             }
@@ -334,40 +411,54 @@ namespace pipeline {
                     return false;
                 }
                 queue[wp] = index;
+                updated = true;
                 return true;
             }
 
             int output() {
+                const unsigned last_indexes[] = {2, 0, 1};
+                if (queue[wp] < 0) {
+                    // start stage
+                    if (wp == 0) {
+                        display_update_buffer(buffers[0], x, y);
+                    } else {
+                        display_update_buffer(buffers[queue[last_indexes[wp]]], x, y);
+                    }
+                    return -1;
+                }
                 if (updated) {
+                    display_update_buffer(buffers[queue[wp]], x, y);
                     updated = false;
-                    auto b = buffers[queue[wp]];
-                    display_update_buffer(b, x, y);
-                    wp = (wp + 1) % sizeof(queue);
+                    wp = (wp + 1) % QUEUE_DEPTH;
                     return queue[wp];
                 } else {
-                    // no new frame, no output
+                    // no updaed, use old frame
+                    display_update_buffer(buffers[queue[last_indexes[wp]]], x, y);
                     return -1;
                 }
             }
         };
     public:
         struct display* d;
-        std::vector<Plane> planes;
+        std::vector<Plane*> planes;
+        bool owned;
 
-        Display(struct display* d): d(d) {
-            printf("construct display fd: %d\n", this->d->fd);
+        Display(struct display* d): d(d), owned(true) {}
+        Display(Display&& ds): d(ds.d), planes(ds.planes), owned(true) {
+            ds.owned = false;
         }
+
         ~Display() {
-            display_exit(d);
+            if (owned)
+                display_exit(d);
         }
 
         bool createChannel(unsigned width, unsigned height, uint32_t fourcc) {
-            printf("fd: %d\n", d->fd);
             auto p = display_get_plane(d, fourcc);
             if (p == nullptr) {
                 return false;
             }
-            planes.emplace_back(p, width, height, 0, 0);
+            planes.push_back(new Plane(p, width, height, 0, 0));
             return true;
         }
 
@@ -376,50 +467,46 @@ namespace pipeline {
             if (d == nullptr) {
                 return {};
             }
-            printf("fd: %d\n", d->fd);
             return Display(d);
         }
 
+        Capbility get_capbility() {
+            return Capbility::SupportExport;
+        }
+
         bool start() {
-            // commit buffer trig event
-            return display_commit_buffer(planes[0].buffers[0], planes[0].x, planes[0].y) == 0;
+            // commit buffer trig poll event
+            return display_commit_buffer(planes[0]->buffers[0], planes[0]->x, planes[0]->y) == 0;
         }
 
         bool set_buffer_num(unsigned channel, unsigned num) {
             auto plane = planes[channel];
-            for (unsigned i = 0; i < num; i++) {
-                auto buffer = display_allocate_buffer(plane.plane, plane.width, plane.height);
-                if (buffer) {
-                    plane.buffers.push_back(buffer);
-                } else {
-                    for (auto b: plane.buffers) {
-                        display_free_buffer(b);
-                    }
-                    plane.buffers.clear();
-                    return false;
-                }
-            }
+            plane->buffers.clear();
+            plane->buffers.resize(num);
             return true;
         }
 
         int export_buffer(unsigned channel, unsigned index, unsigned& size) {
             auto plane = planes[channel];
-            auto b = plane.buffers[index];
-            size = b->size;
-            return b->dmabuf_fd;
+            auto buffer = display_allocate_buffer(plane->plane, plane->width, plane->height);
+            if (buffer == nullptr) {
+                // TODO: remove all buffer
+                return -1;
+            }
+            plane->buffers[index] = buffer;
+            size = buffer->size;
+            return buffer->dmabuf_fd;
         }
 
         bool buffer_in(unsigned channel, unsigned index) {
-            auto plane = planes[channel];
-            return plane.input(index);
+            return planes[channel]->input(index);
         }
 
         int buffer_out(unsigned channel) {
             if (channel == 0) {
                 display_handle_vsync(d);
             }
-            auto plane = planes[channel];
-            int ret = plane.output();
+            int ret = planes[channel]->output();
             if (channel == planes.size() - 1) {
                 // the last channel
                 display_commit(d);

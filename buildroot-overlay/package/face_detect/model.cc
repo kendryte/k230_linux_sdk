@@ -26,10 +26,18 @@ Model::~Model() {}
 
 void Model::run(std::vector<unsigned char> &data)
 {
-    preprocess(data);
+    preprocess({ (gsl::byte *)data.data(), (size_t)data.size() });
     kpu_run();
     postprocess();
 }
+
+#ifdef WITH_OPENCV
+void Model::run(cv::Mat mat) {
+    preprocess({(gsl::byte *)mat.data, mat.total() * mat.channels()});
+    kpu_run();
+    postprocess();
+}
+#endif
 
 std::string Model::model_name() const
 {
