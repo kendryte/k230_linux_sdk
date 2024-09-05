@@ -23,6 +23,7 @@ include(FindPkgConfig)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DISPLAY REQUIRED display)
 pkg_check_modules(V4L2DRM REQUIRED v4l2-drm)
+add_definitions(-DWITH_OPENCV)
 
 include_directories(${OpenCV_INCLUDE_DIRS} ${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME}.elf main_cv.cpp model.cc mobile_retinaface.cc anchors_320.cc util.cc)
