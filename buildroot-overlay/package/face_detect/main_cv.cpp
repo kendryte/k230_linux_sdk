@@ -3,6 +3,7 @@
 #include <linux/videodev2.h>
 #include <mutex>
 #include <opencv2/videoio.hpp>
+#include <cstdio>
 #include <sys/select.h>
 #include <thread>
 #include <atomic>
@@ -83,6 +84,8 @@ static void ai_proc_opencv(const char *kmodel_file, int video_device)
     }
 }
 
+static struct display* display;
+
 // zero copy, use less memory
 static void ai_proc_dmabuf(const char *kmodel_file, int video_device) {
     struct v4l2_drm_context context;
@@ -125,16 +128,29 @@ static void ai_proc_dmabuf(const char *kmodel_file, int video_device) {
         }
         model.run_dmabuf(context.vbuffer.index);
         auto result = model.get_result();
-        face_result_mutex.lock();
-        face_result = result.boxes;
-        face_result_mutex.unlock();
+        if (display) {
+            face_result_mutex.lock();
+            face_result = result.boxes;
+            face_result_mutex.unlock();
+        } else {
+            char c;
+            ssize_t n = read(STDIN_FILENO, &c, 1);
+            if ((n > 0) && (c == 'q')) {
+                ai_stop.store(true);
+            }
+            if (result.boxes.size()) {
+                printf("get %lu face(s)\n", result.boxes.size());
+                for (auto box: result.boxes) {
+                    printf("(x1: %d, y1: %d, x2: %d, y2: %d)\n", box.x1, box.y1, box.x2, box.y2);
+                }
+            }
+        }
         kpu_frame_count += 1;
         v4l2_drm_dump_release(&context);
     }
     v4l2_drm_stop(&context);
 }
 
-static struct display* display;
 static struct timeval tv, tv2;
 
 int frame_handler(struct v4l2_drm_context *context, bool displayed) {
@@ -238,8 +254,7 @@ int main(int argc, char *argv[])
     }
     display = display_init(0);
     if (!display) {
-        cerr << "display_init error, exit" << endl;
-        return -1;
+        cerr << "display_init error, disable display" << endl;
     }
 
     // set stdin non-block
@@ -253,7 +268,11 @@ int main(int argc, char *argv[])
     face_result_mutex.lock();
     auto ai_thread = thread(ai_proc_dmabuf, argv[1], 2);
     // auto display_thread = thread(display_proc, 1);
-    display_proc(1);
+    if (display) {
+        display_proc(1);
+    } else {
+        face_result_mutex.unlock();
+    }
     // ai_proc(argv[1], 2);
     ai_thread.join();
     // display_thread.join();
