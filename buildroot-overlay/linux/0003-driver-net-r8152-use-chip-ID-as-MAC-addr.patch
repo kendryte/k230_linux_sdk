@@ -1,0 +1,41 @@
+From 588af5417c9b1fcc8e9d6d48b996656096d4c322 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E9=BB=84=E5=AD=90=E6=87=BF?=
+ <huangziyi@canaan-creative.com>
+Date: Fri, 13 Sep 2024 14:57:10 +0800
+Subject: [PATCH] driver: net: r8152 use chip ID as MAC addr
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: 黄子懿 <huangziyi@canaan-creative.com>
+---
+ drivers/net/usb/r8152.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/usb/r8152.c b/drivers/net/usb/r8152.c
+index 127b34dcc5b3..65bcef61b1ec 100644
+--- a/drivers/net/usb/r8152.c
++++ b/drivers/net/usb/r8152.c
+@@ -1808,8 +1808,17 @@ static int determine_ethernet_addr(struct r8152 *tp, struct sockaddr *sa)
+ 	} else if (!is_valid_ether_addr(sa->sa_data)) {
+ 		netif_err(tp, probe, dev, "Invalid ether addr %pM\n",
+ 			  sa->sa_data);
+-		eth_hw_addr_random(dev);
+-		ether_addr_copy(sa->sa_data, dev->dev_addr);
++		void __iomem *trng_addr = ioremap(0x91213300, 0x100);
++		unsigned int trng_data = readl(trng_addr);
++		iounmap(trng_addr);
++		char mac_addr_hex[6] = {
++			0x00, 0xe0, 0x4c,
++			trng_data & 0xff,
++			(trng_data>>8) & 0xff,
++			(trng_data>>16) & 0xff
++		};
++		// eth_hw_addr_random(dev);
++		ether_addr_copy(sa->sa_data, mac_addr_hex);
+ 		netif_info(tp, probe, dev, "Random ether addr %pM\n",
+ 			   sa->sa_data);
+ 		return 0;
+-- 
+2.46.0
+

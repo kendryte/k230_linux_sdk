@@ -1,0 +1,122 @@
+From bd5e66202c94fc110cd8c7d33f1e225cb94d7f98 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E9=BB=84=E5=AD=90=E6=87=BF?=
+ <huangziyi@canaan-creative.com>
+Date: Fri, 13 Sep 2024 14:49:03 +0800
+Subject: [PATCH] dts: k230: fix LCD DTS
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: 黄子懿 <huangziyi@canaan-creative.com>
+---
+ .../dts/canaan/display-hx8399-1080x1920.dtsi  | 21 +++++++++++++++++++
+ .../dts/canaan/display-st7701-480x800.dtsi    | 16 ++++++++++++++
+ arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts | 18 ----------------
+ 3 files changed, 37 insertions(+), 18 deletions(-)
+
+diff --git a/arch/riscv/boot/dts/canaan/display-hx8399-1080x1920.dtsi b/arch/riscv/boot/dts/canaan/display-hx8399-1080x1920.dtsi
+index 4335a7cbd304..f36e3f8b5425 100644
+--- a/arch/riscv/boot/dts/canaan/display-hx8399-1080x1920.dtsi
++++ b/arch/riscv/boot/dts/canaan/display-hx8399-1080x1920.dtsi
+@@ -4,6 +4,15 @@ &vo {
+ };
+ 
+ &dsi {
++	ports {
++		port@1 {
++			reg = <1>;
++			dsi_out_hx8399: endpoint {
++				remote-endpoint = <&hx8399_in>;
++			};
++		};
++	};
++
+ 	lcd: panel@0 {
+ 		compatible = "canaan,universal";
+ 		reg = <0>;
+@@ -57,5 +66,17 @@ timing-0 {
+ 				vsync-len = <5>;
+ 			};
+ 		};
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++				hx8399_in: endpoint {
++					remote-endpoint = <&dsi_out_hx8399>;
++				};
++			};
++		};
+ 	};
+ };
+diff --git a/arch/riscv/boot/dts/canaan/display-st7701-480x800.dtsi b/arch/riscv/boot/dts/canaan/display-st7701-480x800.dtsi
+index 62f2ca011b9d..1e76aa638977 100644
+--- a/arch/riscv/boot/dts/canaan/display-st7701-480x800.dtsi
++++ b/arch/riscv/boot/dts/canaan/display-st7701-480x800.dtsi
+@@ -4,6 +4,15 @@ &vo {
+ };
+ 
+ &dsi {
++	ports {
++		port@1 {
++			reg = <1>;
++			dsi_out_st7701: endpoint {
++				remote-endpoint = <&st7701_in>;
++			};
++		};
++	};
++
+ 	lcd: panel@0 {
+ 		compatible = "canaan,universal";
+ 		reg = <0>;
+@@ -76,6 +85,13 @@ timing-0 {
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++				st7701_in: endpoint {
++					remote-endpoint = <&dsi_out_st7701>;
++				};
++			};
+ 		};
+ 	};
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+index 77b11fc037e2..a08a8fc8494b 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+@@ -58,26 +58,8 @@ touchscreen@38 {
+ 		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
+ 	};
+ };
+-&dsi {
+-	ports {
+-		port@1 {
+-			reg = <1>;
+-			dsi_out_st7701: endpoint {
+-				remote-endpoint = <&st7701_in>;
+-			};
+-		};
+-	};
+-};
+ 
+ &lcd {
+ 	dsi_reset-gpios = <&gpio0_ports 20 GPIO_ACTIVE_HIGH>;
+ 	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
+-	ports {
+-		port@0 {
+-			reg = <0>;
+-			st7701_in: endpoint {
+-				remote-endpoint = <&dsi_out_st7701>;
+-			};
+-		};
+-	};
+ };
+-- 
+2.46.0
+
