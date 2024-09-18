@@ -165,21 +165,25 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed) {
     if (displayed) {
         if (context[0].buffer_hold[context[0].wp] >= 0) {
             // draw result on context[i].display_buffers[context[i].buffer_hold[context[i].wp]]
+            static struct display_buffer* last_drawed_buffer = nullptr;
             auto buffer = context[0].display_buffers[context[0].buffer_hold[context[0].wp]];
-            auto img = cv::Mat(buffer->height, buffer->width, CV_8UC3, buffer->map);
-            face_result_mutex.lock();
-            // cv::rectangle(img, cv::Point(16, 32), cv::Point(160, 180), cv::Scalar(0, 255, 0), 2);
-            for (auto& box: face_result) {
-                cv::rectangle(
-                    img,
-                    cv::Point(box.x1 * buffer->width / img_cols, box.y1 * buffer->height / img_rows),
-                    cv::Point(box.x2 * buffer->width / img_cols, box.y2 * buffer->height / img_rows),
-                    cv::Scalar(0, 255, 0), 2
-                );
+            if (buffer != last_drawed_buffer) {
+                auto img = cv::Mat(buffer->height, buffer->width, CV_8UC3, buffer->map);
+                face_result_mutex.lock();
+                // cv::rectangle(img, cv::Point(16, 32), cv::Point(160, 180), cv::Scalar(0, 255, 0), 2);
+                for (auto& box: face_result) {
+                    cv::rectangle(
+                        img,
+                        cv::Point(box.x1 * buffer->width / img_cols, box.y1 * buffer->height / img_rows),
+                        cv::Point(box.x2 * buffer->width / img_cols, box.y2 * buffer->height / img_rows),
+                        cv::Scalar(0, 255, 0), 2
+                    );
+                }
+                face_result_mutex.unlock();
+                last_drawed_buffer = buffer;
+                // flush cache
+                thead_csi_dcache_clean_invalid_range(buffer->map, buffer->size);
             }
-            face_result_mutex.unlock();
-            // flush cache
-            thead_csi_dcache_clean_invalid_range(buffer->map, buffer->size);
         }
         display_frame_count += 1;
     }
