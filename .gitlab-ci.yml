@@ -1055,6 +1055,8 @@ load_image_smoke_test:
     - !reference [.test, smoke_test]
   after_script:
     - !reference [.test, test_teardown]
+    - *show_vars
+    - *get_job_result
 
 daily_test:
   image: ai.b-bug.org:5000/k230_testscripts:latest
@@ -1086,6 +1088,8 @@ daily_test:
     - !reference [.test, daily_test]
   after_script:
     - !reference [.test, test_teardown]
+    - *show_vars
+    - *get_job_result
 
 # send feishu msg
 send_feishu_msg:
@@ -1103,4 +1107,8 @@ send_feishu_msg:
   timeout: 5m
   script:
     - *show_vars
+    - *get_job_result
+
+# use after_script to get all stage result for send_feishu
+after_script:
     - *get_job_result
