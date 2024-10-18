@@ -2,6 +2,7 @@ variables:
   GITLAB_REPO: git@g.a-bug.org:maix_sw/k230_linux_sdk.git
   GITHUB_REPO: git@github.com:kendryte/k230_linux_sdk.git
   GITEE_REPO: git@gitee.com:kendryte/k230_linux_sdk.git
+  TEST_SCRIPTS_REPO: git@g.a-bug.org:maix_sw/k230_testscripts.git
   DL_SITE: https://ai.b-bug.org/~/wangjianxin/dl/
   HW_VER: v0.1
   TFTP_BASE: /data1/tftp_server
@@ -12,6 +13,7 @@ variables:
   TEST_CONFIGS: >
     k230_canmv_defconfig
     k230d_canmv_defconfig
+    BPI-CanMV-K230D-Zero_defconfig
 
 default:
   image: ai.b-bug.org:5000/k230_sdk:latest
@@ -22,7 +24,9 @@ stages:
   - build_setup
   - build_src
   - smoke_test
+  - test
   - release
+  - send_msg
 
 .show_vars: &show_vars
   - echo "${JOB_TYPE}"
@@ -31,6 +35,98 @@ stages:
   - echo "${image_url}"
   - echo "${image_path}"
   - echo "${BUILD}"
+
+.get_job_result: &get_job_result
+  - echo "get job result"
+  - |
+    echo "CI_JOB_NAME $CI_JOB_NAME";
+    echo "CI_JOB_STATUS $CI_JOB_STATUS";
+    echo "CI_JOB_ID $CI_JOB_ID";
+    echo "CI_JOB_IMAGE $CI_JOB_IMAGE";
+    echo "CI_JOB_NAME_SLUG $CI_JOB_NAME_SLUG";
+    echo "CI_JOB_STAGE $CI_JOB_STAGE";
+    echo "CI_JOB_TIMEOUT $CI_JOB_TIMEOUT";
+    echo "CI_JOB_URL $CI_JOB_URL";
+    echo "CI_PIPELINE_SOURCE $CI_PIPELINE_SOURCE";
+    echo "CI_PIPELINE_URL $CI_PIPELINE_URL";
+    echo "CI_PIPELINE_NAME $CI_PIPELINE_NAME";
+    echo "CI_PIPELINE_TRIGGERED $CI_PIPELINE_TRIGGERED";
+    echo "check send feishu msg to group";
+    SEND="FALSE";
+    if [[ "$CI_PIPELINE_SOURCE" != "merge_request_event" ]];
+    then
+      if [[ "$CI_JOB_STATUS" == "success" ]];
+      then
+        echo "job pass, check again";
+        if [[ "$CI_JOB_STAGE" == "send_msg" ]];
+        then
+          echo "match the last test, will send feishu pass msg";
+          SEND="TRUE";
+        else
+          echo "job pass but not the last one, continue the next job";
+        fi
+      elif [[ "$CI_JOB_STATUS" == "failed" ]];
+      then
+          echo "job failed, will send feishu msg now";
+          SEND="TRUE";
+      else
+        echo "unknown job status";
+      fi
+    else
+      echo "skip feishu msg for MR event";
+    fi
+    echo "Pipeline created at $CI_PIPELINE_CREATED_AT";
+    total_seconds=$(($(date +%s) - $(date -d $CI_PIPELINE_CREATED_AT +%s)));
+    echo "Total pipeline duration ${total_seconds} seconds";
+    t_hours=$((total_seconds / 3600));
+    t_minutes=$(( (total_seconds % 3600) / 60 ));
+    t_seconds=$((total_seconds % 60));
+    echo "Total pipeline duration ${t_hours}小时${t_minutes}分${t_seconds}秒";
+    if [[ "$SEND" == "TRUE" ]];
+    then
+      test -d bin || mkdir ./bin;
+      test -f ./bin/send_feishu && rm -rf ./bin/send_feishu;
+      echo "start to download send_feishu";
+      wget -qc https://ai.b-bug.org/k230/test_resources/ci/tools/send_feishu -O ./bin/send_feishu;
+      chmod +x ./bin/send_feishu;
+      echo "---start to send feishu msg in for loop"
+        stime=$(date +'%Y-%m-%d %H:%M:%S')
+        echo "---run send feishu msg start time: $stime"
+        send_cmd="timeout 1m ./bin/send_feishu --msg_type pipeline --gitlab_repo $CI_PROJECT_NAME --pipeline_source $CI_PIPELINE_SOURCE --pipeline_version ${SUB_BASE} --pipeline_seconds $total_seconds --pipeline_stage $CI_JOB_STAGE --pipeline_url $CI_PIPELINE_URL --pipeline_result $CI_JOB_STATUS --image_url '$image_url' --job_name='$CI_JOB_NAME'"
+        for i in {1..6}; do
+          if [ $i -eq 6 ]
+          then
+            echo "ERROR: Max retries reached with run send feishu msg"
+            exit 1
+          fi
+          starttime=$(date +'%Y-%m-%d %H:%M:%S')
+          echo "---loop $i start time: $starttime"
+          echo "---start to run send feishu msg in loop $i---"
+          if eval $send_cmd
+          then
+            echo "---loop $i run send feishu msg pass---"
+            break
+          else
+            echo "ERROR:loop $i run send feishu msg failed, ignore Error and try again..."
+            echo "---start to rerun in next loop..."
+            sleep 30
+          fi
+          endtime=$(date +'%Y-%m-%d %H:%M:%S')
+          start_seconds=$(date -d "$starttime" +%s)
+          end_seconds=$(date -d "$endtime" +%s)
+          echo "---loop $i end time: $endtime"
+          echo "---loop $i total cost time：$((end_seconds - start_seconds)) s"
+        done
+        etime=$(date +'%Y-%m-%d %H:%M:%S')
+        s_seconds=$(date -d "$stime" +%s)
+        e_seconds=$(date -d "$etime" +%s)
+        echo "---run send feishu msg end time: $etime"
+        echo "---run send feishu msg total cost time：$((e_seconds - s_seconds)) s"
+        echo "---finished run send feishu msg in loop $i"
+      echo "send feishu done";
+    else
+      echo "skip send feishu msg";
+    fi
 
 .get_job_type: &get_job_type
   - echo "----------get dst dir with job type----------"
@@ -127,6 +223,15 @@ stages:
     else
       echo "----------start to run test job----------";
     fi
+
+.generate_md5_file: &generate_md5_file
+  - echo "generate md5  for build image"
+  - pwd
+  - ls
+  - |
+    find . \( -type f -o -type l \) -name "*.img.gz" | while read file; do
+      sudo bash -c "md5sum \"$file\" > \"$file.md5\""
+    done
 
 before_script:
   - echo '----------Build ENV Prepare----------'
@@ -286,6 +391,48 @@ before_script:
   - rm -rf output/${CONF}/images/sysimage-sdcard.img
   - echo "----------build sdk image done----------"
 
+.generate_nfs_dst_dir: &generate_nfs_dst_dir
+  - echo "---get nfs case folder---"
+  - |
+    echo ${NFS_BASE};
+    echo "set NFS_DST_DIR with different type based on docs/images/src";
+    NFS_DST_DIR="${NFS_BASE}/${HW_TYPE}/${HW_MODEL}_${HW_VER}";
+    echo ${NFS_DST_DIR};
+    echo "---create NFS dir---";
+    echo "generate sub dir for MR/Pre-releae/relese job";
+    echo "check job from MR or tag or schedule or web";
+    if [[ ${CI_MERGE_REQUEST_IID} ]]; then
+        echo "current job is MR, skip and use CI_MERGE_REQUEST_IID";
+    elif [[ ${CI_COMMIT_TAG} ]]; then
+        echo "current job is release job, use CI_COMMIT_TAG";
+        CI_MERGE_REQUEST_IID=${CI_COMMIT_TAG};
+    elif [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
+        echo "current job is daily build schedule job, use CI_PIPELINE_SOURCE";
+        CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
+    else
+        echo "current job is not match, use CI_PIPELINE_SOURCE";
+        CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
+    fi
+    echo "current MR ID ${CI_MERGE_REQUEST_IID}";
+    SUB_DIR="${CI_MERGE_REQUEST_IID}_${CI_PIPELINE_ID}";
+    NFS_CASE_FOLDER="${NFS_DST_DIR}/${SUB_DIR}/${CONF}/${DOMAIN}";
+    echo "NFS_CASE_FOLDER: $NFS_CASE_FOLDER";
+    echo "update current NFS_CASE_FOLDER permission before write";
+    sudo mkdir -p ${NFS_CASE_FOLDER} || exit 1;
+    sudo chmod -R 777 ${NFS_CASE_FOLDER} || exit 1;
+  - echo "---NFS_CASE_FOLDER is ${NFS_CASE_FOLDER}---"
+
+.copy_linux_test_resource: &copy_linux_test_resource
+  - echo "----------copy linux common resource to nfs case folder----------"
+  - echo "---copy linux common test resource to nfs dir in nfs_server"
+  - mkdir -p $NFS_CASE_FOLDER/output || exit 1
+  - sudo chmod -R 777 $NFS_CASE_FOLDER/output || exit 1
+  - echo "confirm dst dir not exist for rerun jobs"
+  - rm -rf $NFS_CASE_FOLDER/resource || echo "dir not exist"
+  - echo "copy src and rename to dst dir name"
+  - time cp -rf --sparse=always $NFS_BASE/k230_linux_resource $NFS_CASE_FOLDER/resource
+  - ls -alht $NFS_CASE_FOLDER
+
 .common:
   build_image:
     - cd $CI_PROJECT_DIR
@@ -310,6 +457,13 @@ before_script:
     - echo "---save sdk build output---"
     - ls "${SRC_DIR}"
     - sudo cp -rf --sparse=always -L ${SRC_DIR}/${IMAGE_NAME} ${DST_DIR}/${SUB_DIR}/
+    - pwd
+    - echo "switch to dst dir to generate md5 file"
+    - cd ${DST_DIR}/${SUB_DIR}/ || exit 1
+    - *generate_md5_file
+    - echo "return to work dir"
+    - cd $CI_PROJECT_DIR/ || exit 1
+    - ls
     - echo "${DST_DIR}/${SUB_DIR}/"
     - ls "${DST_DIR}/${SUB_DIR}/"
     - echo "add latest link for current build"
@@ -323,6 +477,14 @@ before_script:
     - echo "----------output URL----------"
     - echo "${DST_DIR}/${SUB_DIR}/" | sed "s/\/data1/https:\/\/ai\.b-bug\.org/g"
     - echo "----------save image done----------"
+    - image_path="${DST_DIR}/${SUB_BASE}"
+    - echo "image_path=${image_path}" >> $CI_PROJECT_DIR/build.env
+    - image_url=$(echo ${image_path} | sed 's/\/data1/https:\/\/ai\.b-bug\.org/g')
+    - echo "image_url=${image_url}" >> $CI_PROJECT_DIR/build.env
+    - cat $CI_PROJECT_DIR/build.env || exit 1
+    - echo "----------image output----------"
+    - echo "${image_path}"
+    - echo "${image_url}"
   save_tftp:
     - pwd
     - echo "----------save image to tftp----------"
@@ -531,6 +693,7 @@ before_script:
       echo "---device power job done---";
     - echo "----------release test device done----------"
   copy_test_resource:
+    - cd $CI_PROJECT_DIR
     - echo "----------Step 5. copy test resource----------"
     - echo "get build step result"
     - echo $image_path
@@ -540,37 +703,16 @@ before_script:
     - echo $HW_VER
     - echo "current test device config is ${CONF}"
     - pwd
-    - echo "----------Step 6. save test resource to nfs case folder----------"
-    - echo "---get nfs case folder---"
-    - |
-      echo ${NFS_BASE};
-      echo "set NFS_DST_DIR with different type based on docs/images/src";
-      NFS_DST_DIR="${NFS_BASE}/${HW_TYPE}/${HW_MODEL}_${HW_VER}";
-      echo ${NFS_DST_DIR};
-      echo "---create NFS dir---";
-      echo "generate sub dir for MR/Pre-releae/relese job";
-      echo "check job from MR or tag or schedule or web";
-      if [[ ${CI_MERGE_REQUEST_IID} ]]; then
-          echo "current job is MR, skip and use CI_MERGE_REQUEST_IID";
-      elif [[ ${CI_COMMIT_TAG} ]]; then
-          echo "current job is release job, use CI_COMMIT_TAG";
-          CI_MERGE_REQUEST_IID=${CI_COMMIT_TAG};
-      elif [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
-          echo "current job is daily build schedule job, use CI_PIPELINE_SOURCE";
-          CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
-      else
-          echo "current job is not match, use CI_PIPELINE_SOURCE";
-          CI_MERGE_REQUEST_IID=$CI_PIPELINE_SOURCE;
-      fi
-      echo "current MR ID ${CI_MERGE_REQUEST_IID}";
-      SUB_DIR="${CI_MERGE_REQUEST_IID}_${CI_PIPELINE_ID}";
-      NFS_CASE_FOLDER="${NFS_DST_DIR}/${SUB_DIR}/${CONF}/${DOMAIN}";
-      echo "NFS_CASE_FOLDER: $NFS_CASE_FOLDER";
-    - echo "create $NFS_CASE_FOLDER"
-    - sudo mkdir -p ${NFS_CASE_FOLDER} || exit 1;
-    - sudo chmod -R 777 ${NFS_CASE_FOLDER} || exit 1;
-    - echo "----------Step 7. generate test device yml file for test job----------"
-    - echo "run command ./bin/ailab convert --dest=script --format yaml --file_name=${DOMAIN}.yml --nfs_server_ip $NFS_SERVER --nfs_case_folder $NFS_CASE_FOLDER --only_rtt ${ONLY_RTT} --only_linux ${ONLY_LINUX}--conf ${CONF} --pr_id ${CI_MERGE_REQUEST_IID} --job_id ${CI_PIPELINE_ID} --sysimage_md5 ${sysimage_md5} ${available}"
+    - *generate_nfs_dst_dir
+    - *copy_linux_test_resource
+    - echo "show test resource in nfs_server"
+    - echo $NFS_CASE_FOLDER
+    - ls -alht $NFS_CASE_FOLDER
+    - cd $CI_PROJECT_DIR
+    - pwd
+    - echo "finished copy test resource in nfs_server"
+    - echo "----------generate test device yml file for test job----------"
+    - echo "run command ./bin/ailab convert --dest=script --format yaml --file_name=${DOMAIN}.yml --nfs_server_ip $NFS_SERVER --nfs_case_folder $NFS_CASE_FOLDER --only_rtt ${ONLY_RTT} --only_linux ${ONLY_LINUX} --conf ${CONF} --pr_id ${CI_MERGE_REQUEST_IID} --job_id ${CI_PIPELINE_ID} --sysimage_md5 ${sysimage_md5} ${available}"
     - ./bin/ailab convert --dest=script --format yaml --file_name=${DOMAIN}.yml --nfs_server_ip $NFS_SERVER --nfs_case_folder $NFS_CASE_FOLDER --only_rtt ${ONLY_RTT} --only_linux ${ONLY_LINUX} --conf ${CONF} --pr_id ${CI_MERGE_REQUEST_IID} --job_id ${CI_PIPELINE_ID} --sysimage_md5 ${sysimage_md5} ${available}
     - test -f ${DOMAIN}.yml || exit 1
     - cat ${DOMAIN}.yml || exit 1
@@ -611,27 +753,20 @@ before_script:
         else
           echo "ERROR:loop $i load image failed, ignore Error and retry again...";
           echo "---start to run device power job after failed job...";
-          if [[ "$HW_MODEL" == "canmv_v2" ]]
-          then
-            echo "---canmv_v2 board will be power reset at the end of loop $i ---";
-            $power_reset;
-            sleep 15;
-            echo "canmv_v2 board power reset done. continue in next loop";
-          elif [[ "$HW_MODEL" == "canmv" ]]
-          then
-            echo "---canmv board will be power reset at the end of loop $i ---";
-            $power_reset;
-            sleep 15;
-            echo "canmv board power reset done. continue in next loop";
-          else
-            echo "---evb board will be power off and power on at the end of loop $i---";
+          if [[ "$HW_MODEL" =~ "evb" ]]; then
+            echo "---$HW_MODEL board will be power off and power on at test start---";
             $power_off;
-            sleep 3;
+            sleep 2;
             $power_on;
-            sleep 15;
-            echo "evb board power off and power on done. continue in next loop";
+            sleep 2;
+            echo "$HW_MODEL board power off and power on done. continue in next loop";
+          else
+            echo "---$HW_MODEL board will be power reset at test start ---";
+            $power_reset;
+            sleep 2;
+            echo "---$HW_MODEL board power reset done. continue to run test job";
           fi
-          echo "---device power action, start to rerun in next loop...";
+          echo "---device power action done, start to rerun in next loop...";
         fi
         endtime=$(date +'%Y-%m-%d %H:%M:%S');
         start_seconds=$(date -d "$starttime" +%s);
@@ -660,15 +795,15 @@ before_script:
     - git checkout dev || exit 1
     - cd ../ || exit 1
     - echo "---download evb board smoke test script in loop $i---";
-    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/testscripts/k230_sdk_smoke_test.sh -O ./k230_sdk_smoke_test.sh;
-    - chmod +x ./k230_sdk_smoke_test.sh
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/testscripts/k230_linux_sdk_smoke_test.sh -O ./k230_linux_sdk_smoke_test.sh;
+    - chmod +x ./k230_linux_sdk_smoke_test.sh
     - |
       echo "---start to run k230 smoke test in for loop";
       stime=$(date +'%Y-%m-%d %H:%M:%S');
       echo "---run k230 smoke test start time: $stime";
-      test_cmd="./k230_sdk_smoke_test.sh $NFS_CASE_FOLDER/${DOMAIN}.yml";
+      test_cmd="./k230_linux_sdk_smoke_test.sh $NFS_CASE_FOLDER/${DOMAIN}.yml";
       for i in {1..3}; do
-        if [ $i -eq 3 ];
+        if [ $i -eq 2 ];
         then
           echo "ERROR: Max retries reached with run k230 smoke test";
           exit 1;
@@ -710,15 +845,15 @@ before_script:
     - git fetch origin dev || { sleep 30; git fetch origin dev || { sleep 30; git fetch origin dev || exit 1; } }
     - git checkout dev || exit 1
     - cd ../ || exit 1
-    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/testscripts/k230_sdk_daily_test.sh -O ./k230_sdk_daily_test.sh
-    - chmod +x ./k230_sdk_daily_test.sh
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/testscripts/k230_linux_sdk_daily_test.sh -O ./k230_linux_sdk_daily_test.sh
+    - chmod +x ./k230_linux_sdk_daily_test.sh
     - |
       echo "---start to run k230 daily test in for loop";
       stime=$(date +'%Y-%m-%d %H:%M:%S');
       echo "---run k230 daily test start time: $stime";
-      test_cmd="./k230_sdk_daily_test.sh $NFS_CASE_FOLDER/${DOMAIN}.yml";
+      test_cmd="./k230_linux_sdk_daily_test.sh $NFS_CASE_FOLDER/${DOMAIN}.yml";
       for i in {1..3}; do
-        if [ $i -eq 3 ];
+        if [ $i -eq 2 ];
         then
           echo "ERROR: Max retries reached with run k230 daily test";
           exit 1;
@@ -898,6 +1033,7 @@ load_image_smoke_test:
       - CONF:
         - k230_canmv_defconfig
         - k230d_canmv_defconfig
+        - BPI-CanMV-K230D-Zero_defconfig
   rules:
     # MR open
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -916,6 +1052,63 @@ load_image_smoke_test:
     - !reference [.test, test_setup]
     - !reference [.test, copy_test_resource]
     - !reference [.test, load_image]
-    #- !reference [.test, smoke_test]
+    - !reference [.test, smoke_test]
   after_script:
     - !reference [.test, test_teardown]
+    - *show_vars
+    - *get_job_result
+
+daily_test:
+  image: ai.b-bug.org:5000/k230_testscripts:latest
+  stage: test
+  variables:
+    DOMAIN: ai
+  parallel:
+    matrix:
+      - CONF:
+        - k230_canmv_defconfig
+        - k230d_canmv_defconfig
+        - BPI-CanMV-K230D-Zero_defconfig
+  rules:
+    # release job
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    # pre-release job
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    # manual job
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG !~ /^v\d+\.\d+.*$/
+    # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  timeout: 60m
+  script:
+    - *show_vars
+    - *check_build_result
+    - !reference [.test, test_setup]
+    - !reference [.test, copy_test_resource]
+    - !reference [.test, load_image]
+    - !reference [.test, daily_test]
+  after_script:
+    - !reference [.test, test_teardown]
+    - *show_vars
+    - *get_job_result
+
+# send feishu msg
+send_feishu_msg:
+  stage: send_msg
+  rules:
+    # release job
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    #  when: always
+    # pre-release job
+    - if: $CI_PIPELINE_SOURCE == "web"
+    #  when: always
+    # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    #  when: always
+  timeout: 5m
+  script:
+    - *show_vars
+    - *get_job_result
+
+# use after_script to get all stage result for send_feishu
+after_script:
+    - *get_job_result

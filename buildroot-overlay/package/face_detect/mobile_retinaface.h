@@ -17,15 +17,18 @@ typedef struct
 class MobileRetinaface : public Model
 {
 public:
-    MobileRetinaface(const char *kmodel_file, size_t channel, size_t height, size_t width);
+    MobileRetinaface(const char *kmodel_file, size_t channel, size_t height, size_t width, std::vector<std::tuple<int, void*>> dmabufs=std::vector<std::tuple<int, void*>>());
     ~MobileRetinaface();
     DetectResult get_result() const
     {
         return result_;
     }
 
+    void run_dmabuf(unsigned index);
+
 protected:
-    void preprocess(std::vector<unsigned char> &data);
+    void preprocess(gsl::span<gsl::byte> data, uintptr_t physical_address=0);
+    void preprocess(runtime_tensor tensor);
     void postprocess();
 
 private:
@@ -55,6 +58,8 @@ private:
     float obj_threshold_ = 0.6f;
     float nms_threshold_ = 0.5f;
     DetectResult result_;
+    std::vector<runtime_tensor> dmabufs;
+    int ai2d_fd = -1;
 };
 
 #endif

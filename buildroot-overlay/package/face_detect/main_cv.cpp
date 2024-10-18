@@ -1,10 +1,9 @@
 #include <cassert>
-#include <chrono>
-#include <fstream>
 #include <iostream>
 #include <linux/videodev2.h>
 #include <mutex>
 #include <opencv2/videoio.hpp>
+#include <cstdio>
 #include <sys/select.h>
 #include <thread>
 #include <atomic>
@@ -22,6 +21,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <thead.h>
+#include <vector>
 
 using namespace nncase;
 using namespace nncase::runtime;
@@ -38,7 +38,7 @@ static volatile unsigned kpu_frame_count = 0;
 
 atomic<bool> ai_stop(false);
 
-static void ai_proc(const char *kmodel_file, int video_device)
+static void ai_proc_opencv(const char *kmodel_file, int video_device)
 {
     // input data
     size_t paddr = 0;
@@ -75,76 +75,120 @@ static void ai_proc(const char *kmodel_file, int video_device)
             cout << "no frame" << endl;
             continue;
         }
-        vector<unsigned char> data(frame.data, frame.data + img_rows * img_cols * img_channels);
-        model.run(data);
+        model.run(frame);
         auto result = model.get_result();
-
         face_result_mutex.lock();
         face_result = result.boxes;
         face_result_mutex.unlock();
         kpu_frame_count += 1;
-
-//         cout << "Number of faces detected: " << result.boxes.size() << endl;
-// // 
-//         for (size_t i = 0; i < result.boxes.size(); i++) {
-//             auto box = result.boxes[i];
-//             auto landmark = result.landmarks[i];
-// // 
-//             cout << "Face " << i + 1 << ":" << endl;
-//             cout << "  Bounding box: "
-//                       << "(" << box.x1 << ", " << box.y1 << ") to "
-//                       << "(" << box.x2 << ", " << box.y2 << ")" << endl;
-// // 
-//             cout << "  Landmarks:" << endl;
-//             for (int j = 0; j < 5; j++) {
-//                 cout << "    Point " << j + 1 << ": "
-//                           << "(" << landmark.points[2 * j] << ", " << landmark.points[2 * j + 1] << ")" << endl;
-//             }
-//             cout << endl;
-//         }
-// // 
-//         if (result.boxes.size() > 0) {
-//             cout << "----------------------------------------" << endl;
-//             idx++;
-//             idx %= 10;
-//             cout << "Processing count: " << idx << endl;
-//         }
     }
 }
 
 static struct display* display;
+
+// zero copy, use less memory
+static void ai_proc_dmabuf(const char *kmodel_file, int video_device) {
+    struct v4l2_drm_context context;
+    struct v4l2_drm_video_buffer buffer;
+    #define BUFFER_NUM 3
+
+    // wait display_proc running
+    face_result_mutex.lock();
+    face_result_mutex.unlock();
+
+    v4l2_drm_default_context(&context);
+    context.device = video_device;
+    context.display = false;
+    context.width = img_cols;
+    context.height = img_rows;
+    context.video_format = v4l2_fourcc('B', 'G', '3', 'P');
+    context.buffer_num = BUFFER_NUM;
+    if (v4l2_drm_setup(&context, 1, NULL)) {
+        cerr << "v4l2_drm_setup error" << endl;
+        return;
+    }
+    if (v4l2_drm_start(&context)) {
+        cerr << "v4l2_drm_start error" << endl;
+        return;
+    }
+
+    // create tensors
+    std::vector<std::tuple<int, void*>> tensors;
+    for (unsigned i = 0; i < BUFFER_NUM; i++) {
+        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
+    }
+
+    MobileRetinaface model(kmodel_file, img_channels, img_rows, img_cols, tensors);
+
+    while (!ai_stop) {
+        int ret = v4l2_drm_dump(&context, 1000);
+        if (ret) {
+            perror("v4l2_drm_dump error");
+            continue;
+        }
+        model.run_dmabuf(context.vbuffer.index);
+        auto result = model.get_result();
+        if (display) {
+            face_result_mutex.lock();
+            face_result = result.boxes;
+            face_result_mutex.unlock();
+        } else {
+            char c;
+            ssize_t n = read(STDIN_FILENO, &c, 1);
+            if ((n > 0) && (c == 'q')) {
+                ai_stop.store(true);
+            }
+            if (result.boxes.size()) {
+                printf("get %lu face(s)\n", result.boxes.size());
+                for (auto box: result.boxes) {
+                    printf("(x1: %d, y1: %d, x2: %d, y2: %d)\n", box.x1, box.y1, box.x2, box.y2);
+                }
+            }
+        }
+        kpu_frame_count += 1;
+        v4l2_drm_dump_release(&context);
+    }
+    v4l2_drm_stop(&context);
+}
+
 static struct timeval tv, tv2;
 
 int frame_handler(struct v4l2_drm_context *context, bool displayed) {
-    // FPS
     static bool first_frame = true;
     if (first_frame) {
         face_result_mutex.unlock();
         first_frame = false;
     }
+
     static unsigned response = 0, display_frame_count = 0;
     response += 1;
     if (displayed) {
         if (context[0].buffer_hold[context[0].wp] >= 0) {
-            // draw result on context[i].buffers[context[i].buffer_hold[context[i].wp]]
-            auto buffer = context[0].buffers[context[0].buffer_hold[context[0].wp]];
-            auto m = cv::Mat(buffer->height, buffer->width, CV_8UC3, buffer->map);
-            face_result_mutex.lock();
-            // cv::rectangle(m, cv::Point(16, 32), cv::Point(160, 180), cv::Scalar(0, 255, 0), 2);
-            for (auto& box: face_result) {
-                cv::rectangle(
-                    m,
-                    cv::Point(box.x1 * buffer->width / img_cols, box.y1 * buffer->height / img_rows),
-                    cv::Point(box.x2 * buffer->width / img_cols, box.y2 * buffer->height / img_rows),
-                    cv::Scalar(0, 255, 0),
-                    2
-                );
+            // draw result on context[i].display_buffers[context[i].buffer_hold[context[i].wp]]
+            static struct display_buffer* last_drawed_buffer = nullptr;
+            auto buffer = context[0].display_buffers[context[0].buffer_hold[context[0].wp]];
+            if (buffer != last_drawed_buffer) {
+                auto img = cv::Mat(buffer->height, buffer->width, CV_8UC3, buffer->map);
+                face_result_mutex.lock();
+                // cv::rectangle(img, cv::Point(16, 32), cv::Point(160, 180), cv::Scalar(0, 255, 0), 2);
+                for (auto& box: face_result) {
+                    cv::rectangle(
+                        img,
+                        cv::Point(box.x1 * buffer->width / img_cols, box.y1 * buffer->height / img_rows),
+                        cv::Point(box.x2 * buffer->width / img_cols, box.y2 * buffer->height / img_rows),
+                        cv::Scalar(0, 255, 0), 2
+                    );
+                }
+                face_result_mutex.unlock();
+                last_drawed_buffer = buffer;
+                // flush cache
+                thead_csi_dcache_clean_invalid_range(buffer->map, buffer->size);
             }
-            face_result_mutex.unlock();
-            thead_csi_dcache_clean_invalid_range(buffer->map, buffer->size);
         }
         display_frame_count += 1;
     }
+
+    // FPS counter
     gettimeofday(&tv2, NULL);
     uint64_t duration = 1000000 * (tv2.tv_sec - tv.tv_sec) + tv2.tv_usec - tv.tv_usec;
     if (duration >= 1000000) {
@@ -154,7 +198,7 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed) {
             fprintf(stderr, "display: %.2f, ", display_frame_count * 1000000. / duration);
             display_frame_count = 0;
         }
-        fprintf(stderr, "cam: %.2f, ", context[0].frame_count * 1000000. / duration);
+        fprintf(stderr, "camera: %.2f, ", context[0].frame_count * 1000000. / duration);
         context[0].frame_count = 0;
         fprintf(stderr, "KPU: %.2f", kpu_frame_count * 1000000. / duration);
         kpu_frame_count = 0;
@@ -162,6 +206,7 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed) {
         fflush(stderr);
         gettimeofday(&tv, NULL);
     }
+
     // key
     char c;
     ssize_t n = read(STDIN_FILENO, &c, 1);
@@ -176,22 +221,18 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed) {
 
 static void display_proc(int video_device) {
     struct v4l2_drm_context context;
-    int flag = fcntl(STDIN_FILENO, F_GETFL);
-    flag |= O_NONBLOCK;
-    if (fcntl(STDIN_FILENO, F_SETFL, flag)) {
-        cerr << "can't set stdin non-block" << endl;
-        return;
-    }
     v4l2_drm_default_context(&context);
-    context.device = 1;
-    context.width = 480;
-    context.height = 320;
+    context.device = video_device;
+    context.width = display->width;
+    context.height = (display->width * img_rows / img_cols) & 0xfff8;
     context.video_format = V4L2_PIX_FMT_BGR24;
     context.display_format = 0; // auto
     if (v4l2_drm_setup(&context, 1, &display)) {
         cerr << "v4l2_drm_setup error" << endl;
         return;
     }
+    cout << "press 'q' to exit" << endl;
+    cout << "press 'd' to save a picture" << endl;
     gettimeofday(&tv, NULL);
     v4l2_drm_run(&context, 1, frame_handler);
     if (display) {
@@ -210,18 +251,39 @@ void __attribute__((destructor)) cleanup() {
 int main(int argc, char *argv[])
 {   
     cout << "case " << argv[0] << " built at " << __DATE__ << " " << __TIME__ << endl;
-    if (argc != 2)
+    if (argc < 2)
     {
         cerr << "Usage: " << argv[0] << " <kmodel" << endl;
         return -1;
     }
+    display = display_init(0);
+    if (!display) {
+        cerr << "display_init error, disable display" << endl;
+    }
+
+    // set stdin non-block
+    int flag = fcntl(STDIN_FILENO, F_GETFL);
+    flag |= O_NONBLOCK;
+    if (fcntl(STDIN_FILENO, F_SETFL, flag)) {
+        cerr << "can't set stdin non-block" << endl;
+        return -1;
+    }
+
     face_result_mutex.lock();
-    auto ai_thread = thread(ai_proc, argv[1], 2);
+    auto ai_thread = thread(ai_proc_dmabuf, argv[1], 2);
     // auto display_thread = thread(display_proc, 1);
-    display_proc(1);
+    if (display) {
+        display_proc(1);
+    } else {
+        face_result_mutex.unlock();
+    }
     // ai_proc(argv[1], 2);
     ai_thread.join();
     // display_thread.join();
 
+    // set stdin block
+    flag = fcntl(STDIN_FILENO, F_GETFL);
+    flag &= ~O_NONBLOCK;
+    fcntl(STDIN_FILENO, F_SETFL, flag);
     return 0;
 }

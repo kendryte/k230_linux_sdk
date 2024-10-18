@@ -2,6 +2,7 @@
 #include "display.h"
 #include "v4l2-drm.h"
 #include <display.h>
+#include <linux/videodev2.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -14,6 +15,7 @@
 #include <sys/poll.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <v4l2-drm.h>
 
 void v4l2_drm_default_context(struct v4l2_drm_context* ctx) {
     ctx->width = 640;
@@ -23,7 +25,7 @@ void v4l2_drm_default_context(struct v4l2_drm_context* ctx) {
     ctx->video_format = V4L2_PIX_FMT_NV12;
     ctx->display_format = DRM_FORMAT_NV12;
     ctx->display = true;
-    ctx->buffer_num = DRM_BUFFERING + 3;
+    ctx->buffer_num = DRM_BUFFERING + 2;
     ctx->plane = NULL;
     ctx->flag_dqbuf = true;
     ctx->offset_x = 0;
@@ -64,6 +66,8 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
         d = *display;
     }
     for (unsigned i = 0; i < num; i++) {
+        context[i].buffers = NULL;
+        context[i].display_buffers = NULL;
         if (context[i].display && context[i].plane == NULL) {
             if (d == NULL) {
                 d = display_init(0);
@@ -75,7 +79,6 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
             }
             context[i].plane = display_get_plane(d, context[i].display_format);
             CKE(context[i].plane == NULL, close);
-            context[i].buffers = malloc(sizeof(struct display_buffer*) * context[i].buffer_num);
             for (unsigned j = 0; j < context[i].buffer_num; j++) {
                 CKE(display_allocate_buffer(context[i].plane, context[i].width, context[i].height) == NULL, close);
             }
@@ -122,19 +125,25 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
         }
         request_buffer.count = context[i].buffer_num;
         CKE(ioctl(context[i].video_fd, VIDIOC_REQBUFS, &request_buffer), close);
-        context[i].mmap = malloc(sizeof(void*) * context[i].buffer_num);
+        context[i].buffers = malloc(sizeof(struct v4l2_drm_video_buffer) * context[i].buffer_num);
         if (context[i].display) {
             struct display_buffer* db = context[i].plane->buffers;
+            context[i].display_buffers = malloc(sizeof(struct display_buffer) * context[i].buffer_num);
             for (unsigned j = 0; j < context[i].buffer_num; j++) {
                 memset(&context[i].vbuffer, 0, sizeof(context[i].vbuffer));
                 context[i].vbuffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 context[i].vbuffer.memory = V4L2_MEMORY_DMABUF;
                 context[i].vbuffer.index = j;
                 context[i].vbuffer.m.fd = db->dmabuf_fd;
+                #if DEBUG_SEQ
+                pr("DEBUG: index %u dmabuf %d", j, db->dmabuf_fd);
+                #endif
                 context[i].vbuffer.length = db->size;
                 CKE(ioctl(context[i].video_fd, VIDIOC_QBUF, &context[i].vbuffer), close);
-                context[i].buffers[j] = db;
-                context[i].mmap[j] = db->map;
+                context[i].display_buffers[j] = db;
+                context[i].buffers[j].mmap = db->map;
+                context[i].buffers[j].fd = db->dmabuf_fd;
+                context[i].buffers[j].index = j;
                 db = db->next;
             }
         } else {
@@ -145,7 +154,7 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
                 context[i].vbuffer.index = j;
                 CKE(ioctl(context[i].video_fd, VIDIOC_QUERYBUF, &context[i].vbuffer), close);
                 CKE(ioctl(context[i].video_fd, VIDIOC_QBUF, &context[i].vbuffer), close);
-                context[i].mmap[j] = mmap(
+                context[i].buffers[j].mmap = mmap(
                     NULL,
                     context[i].vbuffer.length,
                     PROT_READ | PROT_WRITE,
@@ -153,7 +162,15 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
                     context[i].video_fd,
                     context[i].vbuffer.m.offset
                 );
-                CKE(context[i].mmap[j] == MAP_FAILED, close);
+                CKE(context[i].buffers[j].mmap == MAP_FAILED, close);
+                // export DMA-buf
+                struct v4l2_exportbuffer expbuf;
+                memset(&expbuf, 0, sizeof(expbuf));
+                expbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                expbuf.index = j;
+                CKE(ioctl(context[i].video_fd, VIDIOC_EXPBUF, &expbuf), close);
+                context[i].buffers[j].fd = expbuf.fd;
+                context[i].buffers[j].index = j;
             }
         }
         continue;
@@ -162,8 +179,14 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
         for (unsigned j = 0; j <= i; j++) {
             close(context[i].video_fd);
             context[i].video_fd = -1;
+            if (context[i].buffers) {
+                free(context[i].buffers);
+            }
+            if (context[i].display_buffers) {
+                free(context[i].display_buffers);
+            }
         }
-        if (d) {
+        if (display && (*display == NULL)) {
             display_exit(d);
         }
         return -1;
@@ -194,7 +217,7 @@ static void dump_file(const struct v4l2_drm_context* ctx, unsigned channel) {
         pr("open %s error %d(%s)", filename, errno, strerror(errno));
         return;
     }
-    fwrite(ctx->mmap[ctx->vbuffer.index], 1, ctx->vbuffer.length, f);
+    fwrite(ctx->buffers[ctx->vbuffer.index].mmap, 1, ctx->vbuffer.length, f);
     fclose(f);
     pr("dump file to %s", filename);
 }
@@ -209,7 +232,7 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
         if (context[i].display) {
             if (flag_enable_display == 0) {
                 // trig vsync
-                display_commit_buffer(context[i].buffers[0], context[i].offset_x, context[i].offset_y);
+                display_commit_buffer(context[i].display_buffers[0], context[i].offset_x, context[i].offset_y);
             }
             flag_enable_display = 1;
             d = context[i].plane->display;
@@ -260,11 +283,17 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
                     if (ioctl(context[i].video_fd, VIDIOC_DQBUF, &context[i].vbuffer)) {
                         continue;
                     }
+                    #if DEBUG_SEQ
+                    pr("DEBUG: DQBUF index %u dmabuf %d --", context[i].vbuffer.index, context[i].vbuffer.m.fd);
+                    #endif
                     context[i].frame_count += 1;
                     if (context[i].flag_dump) {
                         dump_file(&context[i], i);
                         context[i].flag_dump = false;
                     }
+                    #if DEBUG_SEQ
+                    pr("DEBUG: QBUF  index %u dmabuf %d --", context[i].vbuffer.index, context[i].vbuffer.m.fd);
+                    #endif
                     ioctl(context[i].video_fd, VIDIOC_QBUF, &context[i].vbuffer);
                     continue;
                 }
@@ -272,6 +301,12 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
                 if (context[i].buffer_hold[context[i].wp] >= 0) {
                     // QBUF displayed frame
                     context[i].vbuffer.index = context[i].buffer_hold[context[i].wp];
+                    if (context[i].vbuffer.memory == V4L2_MEMORY_DMABUF) {
+                        context[i].vbuffer.m.fd = context[i].buffers[context[i].vbuffer.index].fd;
+                    }
+                    #if DEBUG_SEQ
+                    pr("DEBUG: QBUF  index %u dmabuf %d", context[i].vbuffer.index, context[i].vbuffer.m.fd);
+                    #endif
                     ioctl(context[i].video_fd, VIDIOC_QBUF, &context[i].vbuffer);
                 }
                 // DQBUF
@@ -279,6 +314,9 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
                     // error, skip this frame
                     continue;
                 }
+                #if DEBUG_SEQ
+                pr("DEBUG: DQBUF index %u dmabuf %d", context[i].vbuffer.index, context[i].vbuffer.m.fd);
+                #endif
                 if (context[i].flag_dump) {
                     dump_file(&context[i], i);
                     context[i].flag_dump = false;
@@ -325,7 +363,7 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
                     continue;
                 }
                 CKE(display_update_buffer(
-                    context[i].buffers[context[i].buffer_hold[context[i].wp]],
+                    context[i].display_buffers[context[i].buffer_hold[context[i].wp]],
                     context[i].offset_x, context[i].offset_y
                 ), streamoff);
                 context[i].flag_dqbuf = false;
@@ -341,4 +379,37 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
         close(context[i].video_fd);
     }
     return 0;
+}
+
+int v4l2_drm_start(const struct v4l2_drm_context* context) {
+    int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    return ioctl(context->video_fd, VIDIOC_STREAMON, &type);
+}
+
+int v4l2_drm_stop(const struct v4l2_drm_context* context) {
+    int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    return ioctl(context->video_fd, VIDIOC_STREAMOFF, &type);
+}
+
+int v4l2_drm_dump(struct v4l2_drm_context* context, int timeout) {
+    struct pollfd pf = {
+        .events = POLLIN | POLLPRI,
+        .fd = context->video_fd,
+        .revents = 0
+    };
+    int ret;
+    retry:
+    ret = poll(&pf, 1, timeout);
+    if ((ret < 0) && (errno == EINTR)) {
+        // try again
+        goto retry;
+    }
+    if (ret <= 0) {
+        return ret;
+    }
+    return ioctl(context->video_fd, VIDIOC_DQBUF, &context->vbuffer);
+}
+
+int v4l2_drm_dump_release(struct v4l2_drm_context* context) {
+    return ioctl(context->video_fd, VIDIOC_QBUF, &context->vbuffer);
 }

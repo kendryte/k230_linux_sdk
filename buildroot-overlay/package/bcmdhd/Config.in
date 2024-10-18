@@ -1,0 +1,4 @@
+config BR2_PACKAGE_BCMDHD
+    bool "BCMDHD"
+    help
+        BCMDHD

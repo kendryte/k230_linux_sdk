@@ -1,6 +1,11 @@
+#include <exception>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#define LINUX_RUNTIME
 #include <iostream>
 #include <chrono>
 #include <fstream>
+#include <nncase/runtime/runtime_tensor.h>
 #include "mobile_retinaface.h"
 #include "util.h"
 
@@ -24,7 +29,13 @@ static float umeyama_args[] =
     141.4598,184.4082
 };
 
-MobileRetinaface::MobileRetinaface(const char *kmodel_file, size_t channel, size_t height, size_t width)
+struct ai2d_import_dmabuf {
+	int fd;
+	uintptr_t addr;
+};
+#define AI2D_IMPORT_DMABUF _IOWR('A', 0, struct ai2d_import_dmabuf)
+
+MobileRetinaface::MobileRetinaface(const char *kmodel_file, size_t channel, size_t height, size_t width, std::vector<std::tuple<int, void*>> dmabufs)
     : Model("MobileRetinaface", kmodel_file), ai2d_input_c_(channel), ai2d_input_h_(height), ai2d_input_w_(width)
 {
 #if ENABLE_DEBUG
@@ -65,13 +76,33 @@ MobileRetinaface::MobileRetinaface(const char *kmodel_file, size_t channel, size
     ai2d_affine_param_t affine_param { false };
     ai2d_builder_.reset(new ai2d_builder(in_shape, out_shape, ai2d_dtype, crop_param, shift_param, pad_param, resize_param, affine_param));
     ai2d_builder_->build_schedule();
+
+    if (dmabufs.size()) {
+        ai2d_fd = open("/dev/k230-ai2d", O_RDWR);
+        for (auto [fd, ptr]: dmabufs) {
+            struct ai2d_import_dmabuf import = { .fd = fd };
+            if (ioctl(ai2d_fd, AI2D_IMPORT_DMABUF, &import)) {
+                // error
+                std::terminate();
+            }
+            auto tensor = host_runtime_tensor::create(
+                typecode_t::dt_uint8, in_shape,
+                { (gsl::byte *)ptr, ai2d_input_c_ * ai2d_input_h_ * ai2d_input_w_ },
+                false, hrt::pool_shared_first, import.addr)
+                .expect("cannot create input tensor");
+            this->dmabufs.push_back(tensor);
+        }
+    }
 }
 
 MobileRetinaface::~MobileRetinaface()
 {
+    if (ai2d_fd >= 0) {
+        close(ai2d_fd);
+    }
 }
 
-void MobileRetinaface::preprocess(std::vector<unsigned char> &data)
+void MobileRetinaface::preprocess(gsl::span<gsl::byte> data, uintptr_t physical_address)
 {
 #if ENABLE_PROFILING
     ScopedTiming st(model_name() + " " + __FUNCTION__);
@@ -79,12 +110,18 @@ void MobileRetinaface::preprocess(std::vector<unsigned char> &data)
 
     // ai2d input tensor
     dims_t in_shape { 1, ai2d_input_c_, ai2d_input_h_, ai2d_input_w_ };
-    auto ai2d_in_tensor = host_runtime_tensor::create(typecode_t::dt_uint8, in_shape, { (gsl::byte *)data.data(), (size_t)data.size() },
-        true, hrt::pool_shared).expect("cannot create input tensor");
+    auto ai2d_in_tensor = host_runtime_tensor::create(typecode_t::dt_uint8, in_shape, data,
+        true, hrt::pool_shared, physical_address).expect("cannot create input tensor");
     hrt::sync(ai2d_in_tensor, sync_op_t::sync_write_back, true).expect("sync write_back failed");
 
     // run ai2d
     ai2d_builder_->invoke(ai2d_in_tensor, ai2d_out_tensor_).expect("error occurred in ai2d running");
+}
+
+void MobileRetinaface::run_dmabuf(unsigned index) {
+    ai2d_builder_->invoke(dmabufs[index], ai2d_out_tensor_).expect("error occurred in ai2d running");
+    kpu_run();
+    postprocess();
 }
 
 void MobileRetinaface::postprocess()

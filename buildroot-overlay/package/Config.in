@@ -67,6 +67,7 @@ menu "Audio and video applications"
 	source "package/ympd/Config.in"
 	source "package/zynaddsubfx/Config.in"
 	source "package/vvcam/Config.in"
+	source "package/bcmdhd/Config.in"
 endmenu
 
 menu "Compressors and decompressors"

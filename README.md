@@ -78,3 +78,7 @@ make linux-dirclean #linux clean
 make menuconfig #buildroot(sdk) modify configuration
 make savedefconfig #buildroot(sdk) savedefconfig
 ```
+
+## ai_demo
+
+[ai demo usage guide](https://developer.canaan-creative.com/k230_linux/dev/zh/01_software/K230_AI_Demo%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.html)
