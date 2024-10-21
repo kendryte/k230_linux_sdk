@@ -611,38 +611,9 @@ before_script:
     - echo "${available}" > available
     - echo "${reserved}" > reserved
     - echo "${HW_MODEL}" > HW_MODEL
-    - echo "----------Step 4. power on/reset test device before test start----------"
-    - power_off="./bin/ailab power --type=off ${available}";
-    - power_on="./bin/ailab power --type=on ${available}";
-    - power_reset="./bin/ailab power --type=cycle ${available}";
-    - echo $power_off
-    - echo $power_on
-    - echo $power_reset
-    - |
-      echo "---start to run device power job before test start...";
-      if [[ "$HW_MODEL" =~ "canmv_v2" ]]
-      then
-        echo "---canmv v2 board will be power reset at test start ---";
-        $power_reset;
-        sleep 2;
-        echo "canmv_v2 board power reset done. continue to run test job";
-      elif [[ "$HW_MODEL" == "canmv" ]]
-      then
-        echo "---canmv board will be power reset at test start ---";
-        $power_reset;
-        sleep 2;
-        echo "canmv board power reset done. continue to run test job";
-      else
-        echo "---evb board will be power off and power on at test start---";
-        $power_off;
-        sleep 2;
-        $power_on;
-        sleep 2;
-        echo "evb board power off and power on done. continue in next loop";
-      fi
-      echo "---device power action done, start to run test job...";
-    - echo "----------reserve test device and power on/reset test device done----------"
+    - echo "----------reserve test device and preprare test resource done----------"
   test_teardown:
+    - cd $CI_PROJECT_DIR
     - echo "----------release test device----------"
     - echo "get variables from previous steps"
     - reserved=$(cat reserved)
@@ -670,25 +641,18 @@ before_script:
     - echo $power_reset
     - |
       echo "---start to run device power job after test done...";
-      if [[ "$HW_MODEL" =~ "canmv_v2" ]]
-      then
-        echo "---canmv v2 board will skip power job at test start ---";
-        # $power_reset;
-        # sleep 2;
-        # echo "canmv_v2 board power reset done. continue to run test job";
-      elif [[ "$HW_MODEL" == "canmv" ]]
-      then
-        echo "---canmv board will skip power job after test done---";
-        # $power_reset;
-        # sleep 2;
-        # echo "canmv board power reset done. continue to run test job";
-      else
-        echo "---evb board will be power off after test done---";
+      if [[ "$HW_MODEL" =~ "evb" ]]; then
+        echo "---$HW_MODEL board will be power off and power on at test start---";
         $power_off;
-        # sleep 2;
-        # $power_on;
-        # sleep 2;
-        echo "evb board power off and power on done. continue in next loop";
+        sleep 1;
+        $power_on;
+        sleep 1;
+        echo "$HW_MODEL board power off and power on done. continue in next loop";
+      else
+        echo "---$HW_MODEL board will be power reset at test start ---";
+        $power_reset;
+        sleep 1;
+        echo "---$HW_MODEL board power reset done. continue to run test job";
       fi
       echo "---device power job done---";
     - echo "----------release test device done----------"
@@ -731,6 +695,29 @@ before_script:
     - chmod +x ./bin/aiload
     - echo "MR ID ${CI_MERGE_REQUEST_IID}"
     - echo "Pipeline ID ${CI_PIPELINE_ID}"
+    - echo "----------power on/reset test device before load image start----------"
+    - power_off="./bin/ailab power --type=off ${available}";
+    - power_on="./bin/ailab power --type=on ${available}";
+    - power_reset="./bin/ailab power --type=cycle ${available}";
+    - echo $power_off
+    - echo $power_on
+    - echo $power_reset
+    - |
+      echo "---start to run device power job before test start...";
+      if [[ "$HW_MODEL" =~ "evb" ]]; then
+        echo "---$HW_MODEL board will be power off and power on at test start---";
+        $power_off;
+        sleep 1;
+        $power_on;
+        sleep 1;
+        echo "$HW_MODEL board power off and power on done. continue in next loop";
+      else
+        echo "---$HW_MODEL board will be power reset at test start ---";
+        $power_reset;
+        sleep 1;
+        echo "---$HW_MODEL board power reset done. continue to run job";
+      fi
+      echo "---device power action done, start to run load image job...";
     - |
       echo "---start to load image in for loop";
       stime=$(date +'%Y-%m-%d %H:%M:%S');
@@ -756,14 +743,14 @@ before_script:
           if [[ "$HW_MODEL" =~ "evb" ]]; then
             echo "---$HW_MODEL board will be power off and power on at test start---";
             $power_off;
-            sleep 2;
+            sleep 1;
             $power_on;
-            sleep 2;
+            sleep 1;
             echo "$HW_MODEL board power off and power on done. continue in next loop";
           else
             echo "---$HW_MODEL board will be power reset at test start ---";
             $power_reset;
-            sleep 2;
+            sleep 1;
             echo "---$HW_MODEL board power reset done. continue to run test job";
           fi
           echo "---device power action done, start to rerun in next loop...";
