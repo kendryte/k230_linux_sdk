@@ -31,4 +31,5 @@ modprobe vvcam_mipi
 modprobe vvcam_vb
 modprobe vvcam_isp_subdev
 modprobe vvcam_video
+modprobe bcmdhd
 ISP_MEDIA_SENSOR_DRIVER=/usr/lib/libvvcam.so /usr/bin/isp_media_server > /dev/null 2> /tmp/isp.err.log &
