@@ -220,6 +220,9 @@ gen_env_bin()
 	if [ ${DTB} == "k230-canmv-01studio.dtb" ]; then
 		default_env_file=${env_dir}/01studio.env;
 	fi
+	if [ ${DTB} == "k230-canmv.dtb" ]; then
+		default_env_file=${env_dir}/k230_canmv.env;
+	fi
 
 	if [ ${CONF} == "k230d_canmv_ilp32_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_ilp32_defconfig" ]; then
 		sed -i 's/^bootcmd=.*$/bootcmd=run bnuttx;run blinuxilp32;/g' ${default_env_file}
