@@ -186,8 +186,21 @@ struct vi_attr {
     enum vi_dvp_port dvp_port;
 };
 
+/**
+ * @brief Defines the data source of VICAP
+ *
+ */
+typedef enum {
+    SOURCE_CSI0 = 0,   /**< vicap acquire data from the csi0*/
+    SOURCE_CSI1 = 1,   /**< vicap acquire data from the csi1*/
+    SOURCE_CSI1_FS_TR0 = 2,   /**<vicap acquire data from the csi1 for flash trigger 0*/
+    SOURCE_CSI1_FS_TR1 = 3,   /**<vicap acquire data from the csi0 for flash trigger 1*/
+    SOURCE_CSI2 = 4,   /**< vicap acquire data from the csi2*/
+} k_vicap_data_source;
+
 int vi_device_init(void);
 int kd_vi_set_config(struct vi_attr *attr);
+int kd_vi_bind_source(k_vicap_data_source source, enum vi_dvp_port port);
 
 #ifdef __cplusplus
 }
