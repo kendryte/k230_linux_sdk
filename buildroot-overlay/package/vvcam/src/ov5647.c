@@ -289,7 +289,27 @@ static int enum_mode(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode) 
 }
 
 static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
-    memcpy(mode, &modes[0].mode, sizeof(struct vvcam_sensor_mode));
+    uint8_t again_h, again_l;
+    uint8_t exp_time_h, exp_time_l;
+    uint16_t exp_time;
+    float again = 0, dgain = 0;
+    struct vvcam_sensor_mode* current_mode = &modes[0].mode;
+
+    CHECK_ERROR(read_reg(ctx, OV5647_REG_LONG_AGAIN_H, &again_h));
+    CHECK_ERROR(read_reg(ctx, OV5647_REG_LONG_AGAIN_L, &again_l));
+    CHECK_ERROR(read_reg(ctx, OV5647_REG_LONG_EXP_TIME_H, &exp_time_h));
+    CHECK_ERROR(read_reg(ctx, OV5647_REG_LONG_EXP_TIME_L, &exp_time_l));
+    again = (float)(((again_h & 0x03) << 8) + again_l) / 16.0f;
+    dgain = 1.0;
+    exp_time = (exp_time_h << 4) + ((exp_time_l >> 4) & 0x0F);
+
+    current_mode->ae_info.cur_gain = again * dgain;
+    current_mode->ae_info.cur_long_gain = current_mode->ae_info.cur_gain;
+    current_mode->ae_info.cur_vs_gain = current_mode->ae_info.cur_gain;
+    current_mode->ae_info.cur_integration_time = exp_time * current_mode->ae_info.one_line_exp_time;
+    memcpy(mode, current_mode, sizeof(struct vvcam_sensor_mode));
+    printf("ov5647 AE gain %f, int %f\n", current_mode->ae_info.cur_gain, current_mode->ae_info.cur_integration_time);
+
     return 0;
 }
 
@@ -351,7 +371,11 @@ static int set_stream(void* ctx, bool on) {
 }
 
 static int set_analog_gain(void* ctx, float gain) {
+    struct ov5647_ctx* sensor = ctx;
+    uint16_t again = (uint16_t)(gain * 16 + 0.5);
     printf("ov5647 %s %f\n", __func__, gain);
+    write_reg(sensor, OV5647_REG_LONG_AGAIN_H, (again & 0x0300)>>8);
+    write_reg(sensor, OV5647_REG_LONG_AGAIN_L, (again & 0xff));
     return 0;
 }
 
@@ -360,8 +384,24 @@ static int set_digital_gain(void* ctx, float gain) {
     return 0;
 }
 
-static int set_int_time(void* ctx, float gain) {
-    printf("ov5647 %s %f\n", __func__, gain);
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+static int set_int_time(void* ctx, float time) {
+    struct vvcam_sensor_mode* current_mode = &modes[0].mode;
+    uint32_t min_vts, max_vts;
+    uint16_t exp_line;
+
+    printf("ov5647 %s %f\n", __func__, time);
+    // TODO
+    max_vts = current_mode->ae_info.frame_length;
+    min_vts = max_vts;
+    exp_line = time / current_mode->ae_info.one_line_exp_time;
+    exp_line = MIN(current_mode->ae_info.max_integraion_line, MAX(current_mode->ae_info.min_integraion_line, exp_line));
+    write_reg(ctx, OV5647_REG_LONG_EXP_TIME_H, ( exp_line >> 4) & 0xff);
+    write_reg(ctx, OV5647_REG_LONG_EXP_TIME_L, ( exp_line << 4) & 0xff);
+    current_mode->ae_info.cur_integration_time = (float)exp_line * current_mode->ae_info.one_line_exp_time;
+
     return 0;
 }
 

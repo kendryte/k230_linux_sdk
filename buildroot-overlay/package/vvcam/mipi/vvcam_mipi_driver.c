@@ -62,6 +62,7 @@
 #include "asm/delay.h"
 #include "k230_csi.h"
 #include "linux/interrupt.h"
+#include "linux/of.h"
 #include "vvcam_mipi.h"
 #include "vvcam_mipi_driver.h"
 #include "k230_vi.h"
@@ -201,7 +202,14 @@ static long vvcam_mipi_ioctl(struct file *file,
             break;
         // convert to k230 api
         convert_to_vi_attr(mipi_dev->dev, &mipi_cfg, &vi_attr);
-        ret = dwc_csi_phy_init(CSI0, vi_attr.phy_freq, vi_attr.mipi_lanes);
+        vi_attr.csi_num = mipi_dev->id + 1;
+        vi_attr.dvp_port = VI_DVP_PORT0;
+        ret = kd_vi_bind_source(mipi_dev->id == 0 ? SOURCE_CSI0 : (mipi_dev->id == 1 ? SOURCE_CSI1 : SOURCE_CSI2), VI_DVP_PORT0);
+        if (ret) {
+            dev_err(mipi_dev->dev, "kd_vi_bind_source error %d\n", ret);
+            break;
+        }
+        ret = dwc_csi_phy_init(vi_attr.csi_num, vi_attr.phy_freq, vi_attr.mipi_lanes);
         if (ret) {
             dev_err(mipi_dev->dev, "dwc_csi_phy_init error %d\n", ret);
             break;
@@ -247,8 +255,13 @@ static int vvcam_mipi_probe(struct platform_device *pdev)
     struct vvcam_mipi_dev *mipi_dev;
     struct resource *res;
     char *miscdev_name;
+    int lenp = 0;
+    const unsigned int *id_p;
+    unsigned int id;
 
-    dev_info(&pdev->dev, "start probe");
+    id_p = of_get_property(pdev->dev.of_node, "id", &lenp);
+    id = htonl(*id_p);
+    dev_info(&pdev->dev, "start probe %u", id);
 
     mipi_dev = devm_kzalloc(&pdev->dev,
                 sizeof(struct vvcam_mipi_dev), GFP_KERNEL);
@@ -291,7 +304,7 @@ static int vvcam_mipi_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, mipi_dev);
 
     mipi_dev->dev = &pdev->dev;
-    mipi_dev->id  = pdev->id;
+    mipi_dev->id = id;
 
     // vvcam_mipi_default_cfg(mipi_dev);
     csi_device_init();
