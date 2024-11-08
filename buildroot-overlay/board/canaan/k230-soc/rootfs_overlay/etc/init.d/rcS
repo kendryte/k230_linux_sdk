@@ -24,7 +24,7 @@ for i in /etc/init.d/S??* ;do
 	    ;;
     esac
 done
-mount /dev/mmcblk0p1 /boot
+mount /dev/mmcblk*p1 /boot
 cat /etc/version/release_version
 modprobe vvcam_isp
 modprobe vvcam_mipi
