@@ -49,7 +49,9 @@
 &mmc0 {
 	status = "okay";
 };
-
+&usbotg1 {
+	status = "okay";
+};
 &iomux {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins>;
