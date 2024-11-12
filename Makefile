@@ -12,11 +12,11 @@ include .last_conf
 BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 
 
-.PHONY: all buildroot  debian ubuntu openouler  ruyi
+.PHONY: all buildroot  debian ubuntu openouler  ruyi  debian_rootfs ubuntu_rootfs
 all :  buildroot
 
-debian ubuntu openouler : buildroot
-	@:
+debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync
+	@$(BR_SRC_DIR)/board/canaan/k230-soc/distribution.sh  $@  $(BRW_BUILD_DIR)
 
 buildroot: $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) all
@@ -47,9 +47,14 @@ help:sync
 sync:
 	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
 
-this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig
+this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig   debian ubuntu openouler  debian_rootfs ubuntu_rootfs
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@
+	@( if [ $@ = linux-savedefconfig ];then \
+		lr="$$(make printvars VARS='LINUX_DIR' | grep LINUX_DIR  | cut -d= -f2 )";\
+		cp $${lr}/defconfig $${lr}/arch/riscv/configs/k230_defconfig ; \
+	fi )
+
 
 %_defconfig:  sync
 	echo CONF=$@ >.last_conf

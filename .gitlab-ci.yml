@@ -3,7 +3,7 @@ variables:
   GITHUB_REPO: git@github.com:kendryte/k230_linux_sdk.git
   GITEE_REPO: git@gitee.com:kendryte/k230_linux_sdk.git
   TEST_SCRIPTS_REPO: git@g.a-bug.org:maix_sw/k230_testscripts.git
-  DL_SITE: https://ai.b-bug.org/~/wangjianxin/dl/
+  DL_SITE: https://ai.b-bug.org/k230/downloads/dl/
   HW_VER: v0.1
   TFTP_BASE: /data1/tftp_server
   NFS_SERVER: 10.10.1.94
