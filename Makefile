@@ -15,7 +15,7 @@ BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 .PHONY: all buildroot  debian ubuntu openouler  ruyi  debian_rootfs ubuntu_rootfs
 all :  buildroot
 
-debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync  buildroot
+debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync
 	@$(BR_SRC_DIR)/board/canaan/k230-soc/distribution.sh  $@  $(BRW_BUILD_DIR)
 
 buildroot: $(BRW_BUILD_DIR)/.config
