@@ -282,7 +282,8 @@ distribution_rootfs_replace()
 
     {
         #resize  img
-        local img_size=$(( $(du -sm ${distr_rootfs}.ext4 | cut -f1)   +  $(du -sm ${dist_img_name} | cut -f1) ))
+        local img_size=$(( $(wc -c  ${distr_rootfs}.ext4 | awk '{print $1 }')   +  $(wc -c  ${dist_img_name} | awk '{print $1}') ))
+        img_size="$((${img_size}/1024/1024+2))"
         truncate ${dist_img_name}  -s $((${img_size}+1))M
         echo -e "Fix\n" | parted ---pretend-input-tty ${dist_img_name} print
         #parted ${dist_img_name}  print free
@@ -307,7 +308,7 @@ distribution_rootfs_replace()
     print_blue "build successfull : ${BINARIES_DIR}/${last_name}"
     chmod a+w ${distr_rootfs}.tar.gz  ${dist_img_name}.gz  ${last_name}
 
-    #rm -rf ${distr_rootfs} ${distr_rootfs}.ext4;
+    rm -rf ${distr_rootfs} ${distr_rootfs}.ext4;
 }
 
 if $(curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl/distribution ) ;then
