@@ -1,0 +1,7 @@
+config BR2_PACKAGE_AUDIO_DEMO
+    bool "audio demo"
+    select BR2_PACKAGE_ALSA_UTILS
+    select BR2_PACKAGE_ALURE
+    select BR2_PACKAGE_ALURE_MINIMP3_DECODER
+    help
+        Audio demo for recording, playing, encoding, decoding, and audio3a.
