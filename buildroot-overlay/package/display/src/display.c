@@ -334,6 +334,10 @@ struct display_buffer* display_allocate_buffer(struct display_plane* plane, uint
             creq.bpp = 8;
             creq.height = creq.height * 3 / 2;
             break;
+        case DRM_FORMAT_RGB565:
+        case DRM_FORMAT_BGR565:
+            creq.bpp = 16;
+            break;
         case DRM_FORMAT_BGR888:
         case DRM_FORMAT_RGB888:
             creq.bpp = 24;
