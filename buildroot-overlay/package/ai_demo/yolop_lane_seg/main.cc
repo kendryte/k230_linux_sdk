@@ -83,6 +83,8 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    SEG seg(argv[1],{SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[3]));
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
@@ -90,8 +92,6 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
     }
     DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
     
-    SEG seg(argv[1],{SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[3]));
-
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
         if (ret) {

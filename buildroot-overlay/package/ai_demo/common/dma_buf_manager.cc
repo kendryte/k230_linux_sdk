@@ -67,5 +67,6 @@ DMABufManager::~DMABufManager()
     if (ai2d_fd >= 0) 
     {
         close(ai2d_fd);
+        printf("close ai2d_fd\n");
     }
 }

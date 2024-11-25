@@ -148,19 +148,19 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
-    // create tensors
-    std::vector<std::tuple<int, void*>> tensors;
-    for (unsigned i = 0; i < BUFFER_NUM; i++) {
-        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
-    }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
     HandDetection hd(argv[1], atof(argv[3]), atof(argv[4]), {SENSOR_WIDTH, SENSOR_HEIGHT}, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[7]));
     HandKeypoint hk(argv[5], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[7]));
     OCRBox ocrbox(argv[6], atof(argv[7]), atof(argv[8]),  atoi(argv[10]));
     OCRReco ocrreco(argv[9],6625,atoi(argv[10]));
 
     std::vector<BoxInfo> results;
+    
+    // create tensors
+    std::vector<std::tuple<int, void*>> tensors;
+    for (unsigned i = 0; i < BUFFER_NUM; i++) {
+        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
+    }
+    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     Sort sort;
     int fi = 0;

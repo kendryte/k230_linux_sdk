@@ -90,19 +90,19 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
-    // create tensors
-    std::vector<std::tuple<int, void*>> tensors;
-    for (unsigned i = 0; i < BUFFER_NUM; i++) {
-        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
-    }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
     personDetect pd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[9]));
     float pulc_thresh = atof(argv[6]);
     float glasses_thresh = atof(argv[7]);
     float hold_thresh = atof(argv[8]);
     Pulc pul(argv[5], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},pulc_thresh, glasses_thresh, hold_thresh, atoi(argv[9]));
     vector<BoxInfo> results;
+
+    // create tensors
+    std::vector<std::tuple<int, void*>> tensors;
+    for (unsigned i = 0; i < BUFFER_NUM; i++) {
+        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
+    }
+    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
