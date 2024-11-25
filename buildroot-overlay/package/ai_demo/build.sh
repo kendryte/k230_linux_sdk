@@ -8,14 +8,14 @@ else
     echo "kmodel directory does not exist."
     if curl --output /dev/null --silent --head --fail "https://ai.b-bug.org/k230/"; then 
         echo "URL is accessible"; 
-        wget https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.9.0.tgz;
-        tar -xvf kmodel_v2.9.0.tgz;
-        rm -rf kmodel_v2.9.0.tgz;
+        wget https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.9.0.1.tgz;
+        tar -xvf kmodel_v2.9.0.1.tgz;
+        rm -rf kmodel_v2.9.0.1.tgz;
     else
         echo "URL is not accessible";
-        wget https://kendryte-download.canaan-creative.com/k230/downloads/kmodel/kmodel_v2.9.0.tgz;
-        tar -xvf kmodel_v2.9.0.tgz;
-        rm -rf kmodel_v2.9.0.tgz;
+        wget https://kendryte-download.canaan-creative.com/k230/downloads/kmodel/kmodel_v2.9.0.1.tgz;
+        tar -xvf kmodel_v2.9.0.1.tgz;
+        rm -rf kmodel_v2.9.0.1.tgz;
     fi
 fi
 
@@ -425,6 +425,33 @@ for subdir in $(ls -d */); do
             cp -a ${kmodel_root_dir}/images/000.png ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/utils/memory.bin ${k230_bin}/$subdir_name
             cp -a shell/anomaly_det_*.sh ${k230_bin}/$subdir_name
+      fi
+
+      if [ "$subdir_name" = "ocr" ]; then
+            cp out/bin/ocr_reco.elf ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/ocr_det_int16.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/ocr_rec_int16.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/images/333.jpg ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/dict_ocr.txt  ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/SourceHanSansSC-Normal-Min.ttf  ${k230_bin}/$subdir_name
+            cp -a shell/ocr_*.sh ${k230_bin}/$subdir_name
+      fi
+
+      if [ "$subdir_name" = "demo_mix" ]; then
+            cp out/bin/demo_mix.elf ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/hand_det.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/handkp_det.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/gesture.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/face_detection_320.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/face_pose.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/cropped_test127.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/nanotrack_backbone_sim.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/nanotracker_head_calib_k230.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/shang.bin ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/xia.bin ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/zuo.bin ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/you.bin ${k230_bin}/$subdir_name
+            cp -a shell/demo_mix.sh ${k230_bin}/$subdir_name
       fi
       rm -rf out/*
 done

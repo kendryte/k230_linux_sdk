@@ -105,6 +105,12 @@ void AIBase::set_input_init()
     each_input_size_by_byte_.push_back(input_total_size); // 最后一个保存总大小
 }
 
+void AIBase::set_input_tensor(size_t idx, runtime_tensor &tensor)
+{
+    ScopedTiming st(model_name_ + " set_input_tensor", debug_mode_);
+    kmodel_interp_.input_tensor(idx, tensor).expect("cannot set input tensor");
+}
+
 runtime_tensor AIBase::get_input_tensor(size_t idx)
 {
     return kmodel_interp_.input_tensor(idx).expect("cannot get input tensor");

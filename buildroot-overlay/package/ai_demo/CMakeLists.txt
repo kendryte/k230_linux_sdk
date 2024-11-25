@@ -17,6 +17,7 @@ include_directories(${usr_root}/include/nncase/include/)
 include_directories(${usr_root}/include)
 include_directories(${usr_root}/include/libdrm)
 include_directories(${usr_root}/include/opencv4)
+include_directories(${sdk_root}/output/k230_canmv_defconfig/build/freetype-2.13.2/include)
 include_directories(./common)
 
 link_directories(${usr_root}/lib/)
