@@ -127,18 +127,18 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    //手势识别和动态手势识别初始化
+    HandDetection hd(g_hand_detection_path.c_str(), g_gesture_obj_thresh, g_gesture_nms_thresh, {SENSOR_WIDTH, SENSOR_HEIGHT}, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, debug_mode);
+    HandKeypoint hk(g_hand_keypoint_path.c_str(), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, debug_mode);
+
+    DynamicGesture Dag(g_dynamic_gesture_path.c_str(), debug_mode);
+    
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
     DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
-    //手势识别和动态手势识别初始化
-    HandDetection hd(g_hand_detection_path.c_str(), g_gesture_obj_thresh, g_gesture_nms_thresh, {SENSOR_WIDTH, SENSOR_HEIGHT}, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, debug_mode);
-    HandKeypoint hk(g_hand_keypoint_path.c_str(), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, debug_mode);
-
-    DynamicGesture Dag(g_dynamic_gesture_path.c_str(), debug_mode);
 
     enum state {TRIGGER,UP,RIGHT,DOWN,LEFT,MIDDLE} cur_state_ = TRIGGER, pre_state_ = TRIGGER, draw_state_ = TRIGGER;
 

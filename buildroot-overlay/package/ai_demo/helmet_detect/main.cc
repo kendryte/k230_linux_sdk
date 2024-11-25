@@ -85,6 +85,9 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    helmetDetect hd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[5]));
+    vector<BoxInfo> results;
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
@@ -92,9 +95,6 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
     }
     DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
-    helmetDetect hd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[5]));
-
-    vector<BoxInfo> results;
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
         if (ret) {

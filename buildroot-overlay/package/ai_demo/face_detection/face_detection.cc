@@ -415,6 +415,7 @@ float FaceDetection::box_iou(Bbox a, Bbox b)
 
 FaceDetection::~FaceDetection()
 {
+    ScopedTiming st(model_name_ + " ~FaceDetection", debug_mode_);
     delete[] so_;
     delete[] boxes_;
     delete[] landmarks_;

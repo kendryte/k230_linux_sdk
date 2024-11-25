@@ -85,18 +85,18 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
-    // create tensors
-    std::vector<std::tuple<int, void*>> tensors;
-    for (unsigned i = 0; i < BUFFER_NUM; i++) {
-        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
-    }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
     poseDetect pd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[5]));
 
     cv::Vec4d params = pd.params;
     
     std::vector<OutputPose> result;
+
+     // create tensors
+    std::vector<std::tuple<int, void*>> tensors;
+    for (unsigned i = 0; i < BUFFER_NUM; i++) {
+        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
+    }
+    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);

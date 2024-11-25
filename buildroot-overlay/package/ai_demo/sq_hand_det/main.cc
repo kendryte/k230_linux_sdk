@@ -80,18 +80,19 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+   
+    char* kmodel_det = argv[1];
+    float obj_thresh = atof(argv[3]);
+    float nms_thresh = atof(argv[4]);
+    int debug_mode = atoi(argv[5]);
+    HandDetection hd(kmodel_det, obj_thresh, nms_thresh, {SENSOR_WIDTH, SENSOR_HEIGHT}, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, debug_mode);
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
     DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
-    char* kmodel_det = argv[1];
-    float obj_thresh = atof(argv[3]);
-    float nms_thresh = atof(argv[4]);
-    int debug_mode = atoi(argv[5]);
-    HandDetection hd(kmodel_det, obj_thresh, nms_thresh, {SENSOR_WIDTH, SENSOR_HEIGHT}, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, debug_mode);
 
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);

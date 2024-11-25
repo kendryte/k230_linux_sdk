@@ -87,6 +87,10 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    FaceDetection face_det(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},atoi(argv[7]));
+    FaceMesh face_mesh(argv[4],argv[5], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[7]));
+    debug_mode = atoi(argv[7]);
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
@@ -94,10 +98,6 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
     }
     DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
-    FaceDetection face_det(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},atoi(argv[7]));
-    FaceMesh face_mesh(argv[4],argv[5], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[7]));
-
-    debug_mode = atoi(argv[7]);
     while (!ai_stop) 
     {
         ScopedTiming st("total time", debug_mode);
