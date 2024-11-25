@@ -133,13 +133,6 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
 
     DynamicGesture Dag(g_dynamic_gesture_path.c_str(), debug_mode);
     
-    // create tensors
-    std::vector<std::tuple<int, void*>> tensors;
-    for (unsigned i = 0; i < BUFFER_NUM; i++) {
-        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
-    }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
     enum state {TRIGGER,UP,RIGHT,DOWN,LEFT,MIDDLE} cur_state_ = TRIGGER, pre_state_ = TRIGGER, draw_state_ = TRIGGER;
 
     int idx_ = 0;
@@ -189,6 +182,13 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
     int seconds = 1;  //倒计时时长，单位秒
     time_t endtime;  //倒计时结束时间
     int flag=0;
+
+    // create tensors
+    std::vector<std::tuple<int, void*>> tensors;
+    for (unsigned i = 0; i < BUFFER_NUM; i++) {
+        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
+    }
+    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
