@@ -82,11 +82,23 @@
 #endif
 
 #ifdef VVCAM_PLATFORM_REGISTER
+
+#if 1
 #define VVCAM_ISP_DEFAULT_SENSOR        "ov5647"
 #define VVCAM_ISP_DEFAULT_SENSOR_MODE   0
 #define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/ov5647.xml"
 #define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/ov5647.manual.json"
 #define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/ov5647.auto.json"
+
+#else
+#define VVCAM_ISP_DEFAULT_SENSOR        "gc2093"
+#define VVCAM_ISP_DEFAULT_SENSOR_MODE   0
+#define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/gc2093.xml"
+#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/gc2093.manual.json"
+#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/gc2093.auto.json"
+
+#endif
+
 #endif
 
 struct vvcam_isp_mbus_fmt vvcam_isp_mp_fmts[] = {

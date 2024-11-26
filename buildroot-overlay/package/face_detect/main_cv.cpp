@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <linux/videodev2.h>
 #include <mutex>
@@ -29,8 +30,10 @@ using namespace nncase::runtime::detail;
 using namespace std;
 
 #define img_channels  3
-#define img_rows  1080
+
 #define img_cols  1920
+#define img_rows  1080
+
 
 static mutex face_result_mutex;
 static vector<face_coordinate> face_result;
@@ -152,6 +155,7 @@ static void ai_proc_dmabuf(const char *kmodel_file, int video_device) {
 }
 
 static struct timeval tv, tv2;
+struct display_buffer* draw_buffer;
 
 int frame_handler(struct v4l2_drm_context *context, bool displayed) {
     static bool first_frame = true;
@@ -168,21 +172,51 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed) {
             static struct display_buffer* last_drawed_buffer = nullptr;
             auto buffer = context[0].display_buffers[context[0].buffer_hold[context[0].wp]];
             if (buffer != last_drawed_buffer) {
-                auto img = cv::Mat(buffer->height, buffer->width, CV_8UC3, buffer->map);
+                auto img = cv::Mat(draw_buffer->height, draw_buffer->width, CV_8UC4, draw_buffer->map);
                 face_result_mutex.lock();
-                // cv::rectangle(img, cv::Point(16, 32), cv::Point(160, 180), cv::Scalar(0, 255, 0), 2);
+                // cv::rectangle(img, cv::Point(16, 80), cv::Point(160, 300), cv::Scalar(255, 255, 255, 255), 2);
+                memset(draw_buffer->map,0, draw_buffer->size);
+
                 for (auto& box: face_result) {
-                    cv::rectangle(
+
+                    if(draw_buffer->width > draw_buffer->height)
+                    {
+                        cv::rectangle(
                         img,
-                        cv::Point(box.x1 * buffer->width / img_cols, box.y1 * buffer->height / img_rows),
-                        cv::Point(box.x2 * buffer->width / img_cols, box.y2 * buffer->height / img_rows),
-                        cv::Scalar(0, 255, 0), 2
-                    );
+                        cv::Point(box.x1 * draw_buffer->width / img_cols, box.y1 * draw_buffer->height / img_rows),
+                        cv::Point(box.x2 * draw_buffer->width / img_cols, box.y2 * draw_buffer->height / img_rows),
+                        cv::Scalar(0, 255, 0, 255), 2
+                        );
+                    }
+                    else {
+                        uint32_t line_x_start = ((uint32_t)box.y2) * draw_buffer->height / img_cols;
+                        uint32_t line_y_start = ((uint32_t)box.x1) * draw_buffer->width / img_rows;
+                        uint32_t line_x_end = ((uint32_t)box.y1) * draw_buffer->height / img_cols;
+                        uint32_t line_y_end = ((uint32_t)box.x2) * draw_buffer->width / img_rows;
+
+                        cv::rectangle(
+                        img,
+                        cv::Point( display->width - line_x_start, line_y_start),
+                        cv::Point( display->width - line_x_end, line_y_end),
+                        cv::Scalar(0, 255, 0, 255), 2
+                        );
+
+                    }
                 }
+
                 face_result_mutex.unlock();
                 last_drawed_buffer = buffer;
                 // flush cache
                 thead_csi_dcache_clean_invalid_range(buffer->map, buffer->size);
+
+                // static bool first = 1;
+                // if (first) {
+                //     first = 0;
+                //     cv::imwrite("test.png", img);
+                //     printf("write test.png\n");
+                // }
+                display_update_buffer(draw_buffer, 0, 0);
+                
             }
         }
         display_frame_count += 1;
@@ -223,24 +257,47 @@ static void display_proc(int video_device) {
     struct v4l2_drm_context context;
     v4l2_drm_default_context(&context);
     context.device = video_device;
-    context.width = display->width;
-    context.height = (display->width * img_rows / img_cols) & 0xfff8;
-    context.video_format = V4L2_PIX_FMT_BGR24;
-    context.display_format = 0; // auto
+
+
+    if(display->width > display->height)
+    {
+        context.width = display->width;
+        context.height = (display->width * img_rows / img_cols) & 0xfff8;
+        context.video_format = V4L2_PIX_FMT_NV12;
+        context.display_format = 0; // auto
+        context.drm_rotation = rotation_0;
+
+    }
+    else {
+        context.width = display->height;
+        context.height = display->width;
+        context.video_format = V4L2_PIX_FMT_NV12;
+        context.display_format = 0; // auto
+        context.drm_rotation = rotation_90;
+    }
+    
     if (v4l2_drm_setup(&context, 1, &display)) {
         cerr << "v4l2_drm_setup error" << endl;
         return;
     }
+
+    struct display_plane* plane = display_get_plane(display, DRM_FORMAT_ARGB8888);
+    draw_buffer = display_allocate_buffer(plane,  display->width, display->height);
+    display_commit_buffer(draw_buffer, 0, 0);
+
     cout << "press 'q' to exit" << endl;
     cout << "press 'd' to save a picture" << endl;
     gettimeofday(&tv, NULL);
     v4l2_drm_run(&context, 1, frame_handler);
     if (display) {
+        // free plane for argb
+        display_free_plane(plane);
         display_exit(display);
     }
     ai_stop.store(true);
     return;
 }
+
 
 void __attribute__((destructor)) cleanup() {
     std::cout << "Cleaning up memory..." << std::endl;
@@ -256,6 +313,7 @@ int main(int argc, char *argv[])
         cerr << "Usage: " << argv[0] << " <kmodel" << endl;
         return -1;
     }
+
     display = display_init(0);
     if (!display) {
         cerr << "display_init error, disable display" << endl;
