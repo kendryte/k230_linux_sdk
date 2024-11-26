@@ -35,6 +35,7 @@ apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ ba
 make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both 64bit);
 # make CONF=k230_canmv_defconfig # build k230 canmv image
 # make CONF=k230d_canmv_ilp32_defconfig  #build k230d canmv 32bit rootfs;
+# make CONF=BPI-CanMV-K230D-Zero_defconfig  # build BPI-CanMV-K230D-Zero image
 # make help # view help
 ```
 
