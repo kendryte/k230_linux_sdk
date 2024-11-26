@@ -119,27 +119,32 @@ int vvcam_cma_alloc(struct file *file,
     struct vvcam_cma *cma;
     struct vvcam_vb_dev *vb_dev;
     struct vvcam_cma_buf *cma_buf = NULL;
+    unsigned long mcm_size = 0;
 
     vb_dev = file->private_data;
     cma = vb_dev->allocator.mm_dev;
+
+    mcm_size = size ;//+ (1024*1024);
 
     cma_buf = vvcam_alloc_cma_buf_attr(cma);
     if (!cma_buf)
         return -ENOMEM;
 
     cma_buf->virt_addr =
-        dma_alloc_coherent(cma->dev, size, &(cma_buf->phys_addr), GFP_KERNEL);
+        dma_alloc_coherent(cma->dev, mcm_size, &(cma_buf->phys_addr), GFP_KERNEL);
     if (!cma_buf->virt_addr) {
         vvcam_free_cma_buf_attr(cma, cma_buf);
         return -ENOMEM;
     }
-    cma_buf->size = size;
+    cma_buf->size = mcm_size;
     strncpy(cma_buf->name, name, sizeof(cma_buf->name));
     cma_buf->private = file;
     list_add_tail(&cma_buf->list, &cma->buf_list);
 
     *paddr = cma_buf->phys_addr;
 
+    printk("vvcam_cma_alloc *paddr is %x  size is %ld \n", *paddr, mcm_size);
+    
     return 0;
 }
 

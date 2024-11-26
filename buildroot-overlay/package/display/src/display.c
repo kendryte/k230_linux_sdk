@@ -274,7 +274,40 @@ struct display_plane* display_get_plane(struct display* display, unsigned int fo
             //     (plane->formats[j] >> 24) & 0xff
             // );
             if (plane->formats[j] == fourcc) {
-                goto found_plane;
+
+                printf("%s get yuv plane fourcc is %d  DRM_FORMAT_NV12 is %d \n", __func__, fourcc, DRM_FORMAT_NV12);
+                if(fourcc == DRM_FORMAT_NV12)
+                {
+                    if((display->drm_rotation == rotation_90) || (display->drm_rotation == rotation_270))
+                    {
+                        drmModePropertyPtr plane_props[MAX_PROPS];
+                        drmModeObjectPropertiesPtr props_ptr = drmModeObjectGetProperties(display->fd, plane->plane_id, DRM_MODE_OBJECT_PLANE);
+                        if (props_ptr == NULL) {
+                            pr("get plane props failed");
+                            drmModeFreePlane(plane);
+                            return NULL;
+                        }
+                        // get props
+                        for (unsigned i = 0; i < props_ptr->count_props; i++) {
+                            plane_props[i] = drmModeGetProperty(display->fd, props_ptr->props[i]);
+                            // printf("Added plane prop %u:%s plane->plane_id is %d \n", plane_props[i]->prop_id, plane_props[i]->name, plane->plane_id);
+                            if (strcmp(plane_props[i]->name, "rotation") == 0)
+                            {
+                                printf("find rotation plane plane->plane_id is %d \n", plane->plane_id);
+                                drmModeFreeObjectProperties(props_ptr);
+                                goto found_plane;
+                            }
+                        }
+                        drmModeFreeObjectProperties(props_ptr);
+                    }
+                    else {
+                        goto found_plane;
+                    }
+                    
+                }
+                else {
+                    goto found_plane;
+                }
             }
         }
         drmModeFreePlane(plane);
@@ -298,7 +331,7 @@ found_plane:
     display_plane->next = NULL;
     for (i = 0; i < props->count_props; i++) {
         display_plane->props[i] = drmModeGetProperty(display->fd, props->props[i]);
-        // pr("Added plane prop %u:%s", display_plane->props[i]->prop_id, display_plane->props[i]->name);
+        pr("Added plane prop %u:%s", display_plane->props[i]->prop_id, display_plane->props[i]->name);
     }
     display_plane->props_count = props->count_props;
     drmModeFreeObjectProperties(props);
@@ -381,6 +414,8 @@ struct display_buffer* display_allocate_buffer(struct display_plane* plane, uint
         offsets[1] = pitches[0] * height;
     }
     struct display_buffer* buffer = malloc(sizeof(struct display_buffer));
+    memset(buffer, 0, sizeof(struct display_buffer));
+
     CKE(drmModeAddFB2(display->fd, width, height, plane->fourcc, handles, pitches, offsets, &buffer->id, 0), munmap);
     buffer->handle = creq.handle;
     buffer->stride = creq.pitch;
@@ -392,6 +427,7 @@ struct display_buffer* display_allocate_buffer(struct display_plane* plane, uint
     buffer->plane = plane;
     buffer->next = plane->buffers;
     plane->buffers = buffer;
+    buffer->drm_rotation = plane->drm_rotation;
 
     return buffer;
 
@@ -548,6 +584,15 @@ int display_update_buffer(struct display_buffer* buffer, uint32_t x, uint32_t y)
     drm_add_plane_property(plane, display->req, "CRTC_W", buffer->width);
     drm_add_plane_property(plane, display->req, "CRTC_H", buffer->height);
 
+    if(buffer->plane->fourcc == DRM_FORMAT_NV12)
+    {
+        if(buffer->drm_rotation == rotation_90)
+            drm_add_plane_property(plane, display->req, "rotation", 0x2);
+
+        if(buffer->drm_rotation == rotation_270)
+            drm_add_plane_property(plane, display->req, "rotation", 0x8);
+
+    }
     return 0;
 }
 
@@ -559,10 +604,13 @@ int display_commit(struct display* display) {
     ret = drmModeAtomicCommit(display->fd, display->req, display->commitFlags, NULL);
     display->commitFlags = DRM_MODE_PAGE_FLIP_EVENT;
     if (ret) {
+        printf("drmModeAtomicCommit ret is %d \n", ret);
         drmModeAtomicFree(display->req);
         display->req = NULL;
         return -1;
+        
     }
+    
     return 0;
 }
 
