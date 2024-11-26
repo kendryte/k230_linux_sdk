@@ -393,7 +393,15 @@ static int drm_find_connector(void)
 	drm_dev.mmWidth = conn->mmWidth;
 	drm_dev.mmHeight = conn->mmHeight;
 
-	memcpy(&drm_dev.mode, &conn->modes[0], sizeof(drmModeModeInfo));
+	for (i = 0; i < conn->count_modes; i++) {
+		if (conn->modes[i].hdisplay <= 1920 && conn->modes[i].vdisplay <= 1080 && conn->modes[i].vrefresh <= 60)
+			break;
+	}
+	if (i == conn->count_modes) {
+		err("1080P not support");
+		goto free_res;
+	}
+	memcpy(&drm_dev.mode, &conn->modes[i], sizeof(drmModeModeInfo));
 
 	if (drmModeCreatePropertyBlob(drm_dev.fd, &drm_dev.mode, sizeof(drm_dev.mode),
 				      &drm_dev.blob_id)) {
@@ -401,8 +409,8 @@ static int drm_find_connector(void)
 		goto free_res;
 	}
 
-	drm_dev.width = conn->modes[0].hdisplay;
-	drm_dev.height = conn->modes[0].vdisplay;
+	drm_dev.width = drm_dev.mode.hdisplay;
+	drm_dev.height = drm_dev.mode.vdisplay;
 
 	for (i = 0 ; i < res->count_encoders; i++) {
 		enc = drmModeGetEncoder(drm_dev.fd, res->encoders[i]);
