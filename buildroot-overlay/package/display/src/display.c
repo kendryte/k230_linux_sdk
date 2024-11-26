@@ -91,7 +91,16 @@ struct display* display_init(unsigned device) {
     display->conn_id = conn->connector_id;
     display->mmWidth = conn->mmWidth;
     display->mmHeight = conn->mmHeight;
-    memcpy(&display->mode, conn->modes, sizeof(display->mode));
+
+    for (i = 0; i < conn->count_modes; i++) {
+        if (conn->modes[i].hdisplay <= 1920 && conn->modes[i].vdisplay <= 1080 && conn->modes[i].vrefresh <= 60)
+            break;
+    }
+    if (i == conn->count_modes) {
+        pr("1080P not support");
+        goto free_con;
+    }
+    memcpy(&display->mode, &conn->modes[i], sizeof(display->mode));
 
     CKE(drmModeCreatePropertyBlob(display->fd, &display->mode, sizeof(display->mode), &display->blob_id), free_con);
 
