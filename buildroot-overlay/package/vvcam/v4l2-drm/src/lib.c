@@ -81,7 +81,6 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
             context[i].plane = display_get_plane(d, context[i].display_format);
             CKE(context[i].plane == NULL, close);
             for (unsigned j = 0; j < context[i].buffer_num; j++) {
-                
                 if(context[i].display_format == DRM_FORMAT_NV12)
                 {
                     if((context[i].drm_rotation == rotation_90) || (context[i].drm_rotation == rotation_270))
@@ -91,6 +90,9 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
                     }
                     else
                         CKE(display_allocate_buffer(context[i].plane, context[i].width, context[i].height) == NULL, close);
+                }
+                else {
+                    CKE(display_allocate_buffer(context[i].plane, context[i].width, context[i].height) == NULL, close);
                 }
             }
         }
