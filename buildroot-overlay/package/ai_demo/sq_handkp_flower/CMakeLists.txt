@@ -1,7 +1,7 @@
 set(src main.cc 
     ${CMAKE_SOURCE_DIR}/common/utils.cc
     ${CMAKE_SOURCE_DIR}/common/ai_base.cc
-    ${CMAKE_SOURCE_DIR}/common/dma_buf_manager.cc
+    ${CMAKE_SOURCE_DIR}/common/sensor_buf_manager.cc
     hand_detection.cc hand_keypoint.cc flower_recognition.cc clipper.cpp hungarian.cpp my_tracker.cpp sort.cpp)
 set(bin sq_handkp_flower.elf)
 

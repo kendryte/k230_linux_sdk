@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "person_detect.h"
 #include "BYTETracker.h"
 
@@ -181,7 +181,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     std::vector<BoxInfo> results;
     std::vector<Object> objects;
@@ -204,7 +204,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
             objects.clear();
         }
 
-        pd.pre_process(dma_buf.get_buf_for_index(context.vbuffer.index));
+        pd.pre_process(sensor_buf.get_buf_for_index(context.vbuffer.index));
         pd.inference();
         result_mutex.lock();
         results.clear();

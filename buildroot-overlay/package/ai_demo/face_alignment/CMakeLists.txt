@@ -1,7 +1,7 @@
 set(src main.cc 
     ${CMAKE_SOURCE_DIR}/common/utils.cc
     ${CMAKE_SOURCE_DIR}/common/ai_base.cc
-    ${CMAKE_SOURCE_DIR}/common/dma_buf_manager.cc
+    ${CMAKE_SOURCE_DIR}/common/sensor_buf_manager.cc
     face_detection.cc anchors_320.cc anchors_640.cc 
     face_alignment_post.cc face_alignment.cc rasterize.cc)
     
