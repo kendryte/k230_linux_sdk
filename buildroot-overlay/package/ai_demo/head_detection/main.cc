@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "head_detection.h"
 
 using std::cerr;
@@ -89,7 +89,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
@@ -97,7 +97,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
             perror("v4l2_drm_dump error");
             continue;
         }
-        runtime_tensor& img_data = dma_buf.get_buf_for_index(context.vbuffer.index);
+        runtime_tensor& img_data = sensor_buf.get_buf_for_index(context.vbuffer.index);
         head_detection.pre_process(img_data);
         head_detection.inference();
         result_mutex.lock();

@@ -1,7 +1,7 @@
 set(src main.cc 
     ${CMAKE_SOURCE_DIR}/common/utils.cc
     ${CMAKE_SOURCE_DIR}/common/ai_base.cc
-    ${CMAKE_SOURCE_DIR}/common/dma_buf_manager.cc
+    ${CMAKE_SOURCE_DIR}/common/sensor_buf_manager.cc
     licence_det.cc licence_reco.cc anchors_320.cpp anchors_640.cpp)
 set(bin licence_det_rec.elf)
 add_executable(${bin} ${src})

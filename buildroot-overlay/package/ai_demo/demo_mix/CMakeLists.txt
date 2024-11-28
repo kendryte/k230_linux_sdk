@@ -1,7 +1,7 @@
 set(src main.cc 
     ${CMAKE_SOURCE_DIR}/common/utils.cc
     ${CMAKE_SOURCE_DIR}/common/ai_base.cc
-    ${CMAKE_SOURCE_DIR}/common/dma_buf_manager.cc
+    ${CMAKE_SOURCE_DIR}/common/sensor_buf_manager.cc
     hand_detection.cc hand_keypoint.cc anchors_320.cc anchors_640.cc crop.cc cv2_utils.cc dynamic_gesture.cc face_detection.cc face_pose.cc src.cc nanotracker.cc main.cc)
 set(bin demo_mix.elf)
 
