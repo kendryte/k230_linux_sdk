@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "face_detection.h"
 #include "eye_gaze.h"
 
@@ -84,18 +84,17 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    FaceDetection face_det(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
+    EyeGaze eye_gaze(argv[4], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
+    vector<FaceDetectionInfo> det_results;
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
-    FaceDetection face_det(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
-    EyeGaze eye_gaze(argv[4], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
-
-    vector<FaceDetectionInfo> det_results;
-
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
+    
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
         if (ret) {
@@ -103,7 +102,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
             continue;
         }
         
-        runtime_tensor& img_data = dma_buf.get_buf_for_index(context.vbuffer.index);
+        runtime_tensor& img_data = sensor_buf.get_buf_for_index(context.vbuffer.index);
         
         face_det.pre_process(img_data);
         face_det.inference();

@@ -106,6 +106,8 @@ int vvcam_mmz_create(void *allocator, struct device *dev,
     struct vvcam_vb_mm_allocator *pmm_agent =
                     (struct vvcam_vb_mm_allocator *)allocator;
 
+    printk("%s __ size is %ld \n", __func__, size);
+
     mmz =(struct vvcam_mmz *)devm_kzalloc(dev,
                 sizeof(struct vvcam_mmz), GFP_KERNEL);
     if (!mmz)

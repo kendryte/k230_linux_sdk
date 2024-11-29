@@ -25,7 +25,10 @@
 #include <stdio.h>
 #include <asm/io.h>
 //#include <k230.h>
+//#include <core_rv64.h>
 #include <linux/delay.h>
+#define LP4_DEFALUT_2GB_PARAME
+
 #define               DDR_REG_BASE 0x98000000
 
 #define reg_write( addr,v)                       \
@@ -167,11 +170,19 @@ reg_write( DDR_REG_BASE +  0x00000030 , 0x00000020 );
 reg_write( DDR_REG_BASE +  0x00000034 , 0x00408a04 );
 reg_write( DDR_REG_BASE +  0x00000038 , 0x0e0e0002 );
 reg_write( DDR_REG_BASE +  0x0000003c , 0x00000060 );
-reg_write( DDR_REG_BASE +  0x00000050 , 0x98210000 );
-reg_write( DDR_REG_BASE +  0x00000054 , 0x004b0043 );
+#ifdef  LP4_DEFALUT_2GB_PARAME
+reg_write( DDR_REG_BASE +  0x00000050 , 0x98210002 );//0x98210002,0x98210000 //2G, 1G
+reg_write( DDR_REG_BASE +  0x00000054 , 0x98210002 );//0x98210002,0x004b0043
 reg_write( DDR_REG_BASE +  0x00000060 , 0x00000001 );
-reg_write( DDR_REG_BASE +  0x00000064 , 0x00510057 );
-reg_write( DDR_REG_BASE +  0x00000068 , 0x00280000 );
+reg_write( DDR_REG_BASE +  0x00000064 , 0x006100e0 );//0x006100e0,0x00510057
+reg_write( DDR_REG_BASE +  0x00000068 , 0x00480000 );//0x00480000,0x00280000
+#else
+reg_write( DDR_REG_BASE +  0x00000050 , 0x98210000 );//0x98210002,0x98210000 //2G, 1G
+reg_write( DDR_REG_BASE +  0x00000054 , 0x004b0043 );//0x98210002,0x004b0043
+reg_write( DDR_REG_BASE +  0x00000060 , 0x00000001 );
+reg_write( DDR_REG_BASE +  0x00000064 , 0x00510057 );//0x006100e0,0x00510057
+reg_write( DDR_REG_BASE +  0x00000068 , 0x00280000 );//0x00480000,0x00280000
+#endif
 reg_write( DDR_REG_BASE +  0x000000c0 , 0x00000000 );
 reg_write( DDR_REG_BASE +  0x000000d0 , 0xc0020002 );
 reg_write( DDR_REG_BASE +  0x000000d4 , 0x00010002 );
@@ -195,7 +206,11 @@ reg_write( DDR_REG_BASE +  0x0000011c , 0x00000402 );
 reg_write( DDR_REG_BASE +  0x00000120 , 0x00000101 );
 reg_write( DDR_REG_BASE +  0x00000130 , 0x00020000 );
 reg_write( DDR_REG_BASE +  0x00000134 , 0x0b100002 );
-reg_write( DDR_REG_BASE +  0x00000138 , 0x0000005c );
+#ifdef LP4_DEFALUT_2GB_PARAME
+reg_write( DDR_REG_BASE +  0x00000138 , 0x000000e6 );//0x000000e6, 0x0000005c
+#else
+reg_write( DDR_REG_BASE +  0x00000138 , 0x0000005c );//0x000000e6, 0x0000005c
+#endif
 reg_write( DDR_REG_BASE +  0x0000013c , 0x80000000 );
 reg_write( DDR_REG_BASE +  0x00000144 , 0x00860043 );
 reg_write( DDR_REG_BASE +  0x00000180 , 0xc29b0014 );
@@ -18663,6 +18678,6 @@ reg_write( DDR_REG_BASE +  0x0000050 , 0x98210000 );
     //     {add = DDR_REG_BASE +  0x00013040*4+0x02000000+i*0x100*4; printf("dbyte3 add =%lx value =%lx\n",add,readl(add)); }
     // }
 
-
+    //change_bank_flush_time();
 
 }

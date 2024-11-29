@@ -161,6 +161,41 @@ static int kd_vi_set_ipi_attr(enum csi_num csi, enum vi_ipi ipi, struct vi_ipi_a
     return 0;
 }
 
+int kd_vi_bind_source(k_vicap_data_source source, enum vi_dvp_port port)
+{
+    u32 reg = 0;
+
+    if ((source > SOURCE_CSI2) || (port > VI_DVP_PORT2)) {
+        printk("%s invalid param.\n", __func__);
+        return -1;
+    }
+    printk("%s source(%d), port(%d)\n", __func__, source, port);
+    switch (port)
+    {
+        case VI_DVP_PORT0:
+            reg = readl(g_vi_addr + VI_IMG_DVP_SELECT_CTL);
+            reg = (reg & ~(GENMASK(2, 0))) | (source << 0);
+            writel(reg, g_vi_addr + VI_IMG_DVP_SELECT_CTL);
+            break;
+
+        case VI_DVP_PORT1:
+            reg = readl(g_vi_addr + VI_IMG_DVP_SELECT_CTL);
+            reg = (reg & ~(GENMASK(5, 3))) | (source << 3);
+            writel(reg, g_vi_addr + VI_IMG_DVP_SELECT_CTL);
+            break;
+
+        case VI_DVP_PORT2:
+            reg = readl(g_vi_addr + VI_IMG_DVP_SELECT_CTL);
+            reg = (reg & ~(GENMASK(8, 6))) | (source << 6);
+            writel(reg, g_vi_addr + VI_IMG_DVP_SELECT_CTL);
+            break;
+
+        default:
+            break;
+    }
+    return 0;
+}
+
 int kd_vi_set_config(struct vi_attr *attr)
 {
     struct vi_ipi_attr ipi;
@@ -182,7 +217,7 @@ int kd_vi_set_config(struct vi_attr *attr)
             ipi.is_csi_sync_event = 1;
             ipi.hsa = 10;
             ipi.hbp = 10;
-            kd_vi_set_ipi_attr(CSI0, IPI1, &ipi);
+            kd_vi_set_ipi_attr(attr->csi_num, IPI1, &ipi);
             break;
 
         case VCID_HDR_2FRAME:
@@ -193,8 +228,8 @@ int kd_vi_set_config(struct vi_attr *attr)
             ipi.hsa = 10;
             ipi.hbp = 10;
 
-            kd_vi_set_ipi_attr(CSI0, IPI1, &ipi);
-            kd_vi_set_ipi_attr(CSI0, IPI2, &ipi);
+            kd_vi_set_ipi_attr(attr->csi_num, IPI1, &ipi);
+            kd_vi_set_ipi_attr(attr->csi_num, IPI2, &ipi);
             break;
 
         case VCID_HDR_3FRAME:
@@ -205,9 +240,9 @@ int kd_vi_set_config(struct vi_attr *attr)
             ipi.hsa = 10;
             ipi.hbp = 10;
 
-            kd_vi_set_ipi_attr(CSI0, IPI1, &ipi);
-            kd_vi_set_ipi_attr(CSI0, IPI2, &ipi);
-            kd_vi_set_ipi_attr(CSI0, IPI3, &ipi);
+            kd_vi_set_ipi_attr(attr->csi_num, IPI1, &ipi);
+            kd_vi_set_ipi_attr(attr->csi_num, IPI2, &ipi);
+            kd_vi_set_ipi_attr(attr->csi_num, IPI3, &ipi);
             break;
 
         case SONY_HDR_3FRAME:

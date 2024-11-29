@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "smoke_detect.h"
 
 using std::cerr;
@@ -85,23 +85,24 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    
+    smokeDetect sd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[5]));
+    vector<BoxInfo> results;
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
-    smokeDetect sd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[5]));
-
-    vector<BoxInfo> results;
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
         if (ret) {
             perror("v4l2_drm_dump error");
             continue;
         }
-        sd.pre_process(dma_buf.get_buf_for_index(context.vbuffer.index));
+        sd.pre_process(sensor_buf.get_buf_for_index(context.vbuffer.index));
         sd.inference();
         result_mutex.lock();
         results.clear();

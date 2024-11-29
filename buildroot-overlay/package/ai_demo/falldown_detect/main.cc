@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "falldown_detect.h"
 
 using std::cerr;
@@ -85,14 +85,14 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    falldownDetect fdd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[5]));
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
-    falldownDetect fdd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[5]));
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     vector<BoxInfo> results;
     while (!ai_stop) {
@@ -101,7 +101,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
             perror("v4l2_drm_dump error");
             continue;
         }
-        fdd.pre_process(dma_buf.get_buf_for_index(context.vbuffer.index));
+        fdd.pre_process(sensor_buf.get_buf_for_index(context.vbuffer.index));
         fdd.inference();
         result_mutex.lock();
         results.clear();

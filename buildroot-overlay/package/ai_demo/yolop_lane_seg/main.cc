@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "yolop_lane_seg.h"
 
 using std::cerr;
@@ -83,22 +83,22 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    SEG seg(argv[1],{SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[3]));
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
     
-    SEG seg(argv[1],{SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[3]));
-
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
         if (ret) {
             perror("v4l2_drm_dump error");
             continue;
         }
-        seg.pre_process(dma_buf.get_buf_for_index(context.vbuffer.index));
+        seg.pre_process(sensor_buf.get_buf_for_index(context.vbuffer.index));
         seg.inference();
         result_mutex.lock();
         osd_frame = cv::Mat(osd_height, osd_width, CV_8UC3, cv::Scalar(0, 0, 0));

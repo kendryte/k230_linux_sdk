@@ -17,7 +17,7 @@ install dependencies(Refer command):
 ```bash
 apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
         bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3  \
-        libssl-dev gawk cmake bison flex  bash-completion
+        libssl-dev gawk cmake bison flex  bash-completion parted curl
 ```
 
 >k230d_canmv_ilp32_defconfig required  ubuntu 22.04 or 24.04 and install rv64ilp32 toolchain(refer command):
@@ -38,7 +38,7 @@ make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both
 # make help # view help
 ```
 
->[BR2_PRIMARY_SIT configuration primary download site]("https://bootlin.com/pub/conferences/2011/elce/using-buildroot-real-project/using-buildroot-real-project.pdf") for example: `make CONF=k230d_canmv_defconfig  BR2_PRIMARY_SITE=https://ai.b-bug.org/~/wangjianxin/dl/`
+>[BR2_PRIMARY_SIT configuration primary download site]("https://bootlin.com/pub/conferences/2011/elce/using-buildroot-real-project/using-buildroot-real-project.pdf") for example: `make CONF=k230d_canmv_defconfig  BR2_PRIMARY_SITE=https://kendryte-download.canaan-creative.com/k230/downloads/dl/`
 
 ## output
 
@@ -77,6 +77,12 @@ make linux-dirclean #linux clean
 ```bash
 make menuconfig #buildroot(sdk) modify configuration
 make savedefconfig #buildroot(sdk) savedefconfig
+```
+
+## debian ubuntu
+```bash
+make debian #generate debian distribution image
+make ubuntu #generate ubuntu distribution image
 ```
 
 ## ai_demo

@@ -77,10 +77,23 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
                 context[i].display_format = v4l2_to_drm(context[i].video_format);
                 CKE(context[i].display_format == 0, close);
             }
+            d->drm_rotation = context[i].drm_rotation;
             context[i].plane = display_get_plane(d, context[i].display_format);
             CKE(context[i].plane == NULL, close);
             for (unsigned j = 0; j < context[i].buffer_num; j++) {
-                CKE(display_allocate_buffer(context[i].plane, context[i].width, context[i].height) == NULL, close);
+                if(context[i].display_format == DRM_FORMAT_NV12)
+                {
+                    if((context[i].drm_rotation == rotation_90) || (context[i].drm_rotation == rotation_270))
+                    {
+                        context[i].plane->drm_rotation = context[i].drm_rotation;
+                        CKE(display_allocate_buffer(context[i].plane, context[i].height, context[i].width) == NULL, close); 
+                    }
+                    else
+                        CKE(display_allocate_buffer(context[i].plane, context[i].width, context[i].height) == NULL, close);
+                }
+                else {
+                    CKE(display_allocate_buffer(context[i].plane, context[i].width, context[i].height) == NULL, close);
+                }
             }
         }
         char cam_device_path[64];

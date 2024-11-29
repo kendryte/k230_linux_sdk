@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "face_detection.h"
 #include "face_pose.h"
 
@@ -83,15 +83,15 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    FaceDetection fd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
+    FacePose fp(argv[4], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
-    FaceDetection fd(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
-    FacePose fp(argv[4], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
@@ -99,7 +99,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
             perror("v4l2_drm_dump error");
             continue;
         }
-        runtime_tensor& img_data = dma_buf.get_buf_for_index(context.vbuffer.index);
+        runtime_tensor& img_data = sensor_buf.get_buf_for_index(context.vbuffer.index);
         fd.pre_process(img_data);
         fd.inference();
         result_mutex.lock();

@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "licence_det.h"
 
 using std::cerr;
@@ -81,18 +81,18 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
-    // create tensors
-    std::vector<std::tuple<int, void*>> tensors;
-    for (unsigned i = 0; i < BUFFER_NUM; i++) {
-        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
-    }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-
     char* kmodel_det = argv[1];
     float obj_thresh = atof(argv[2]);
     float nms_thresh = atof(argv[3]);
     int debug_mode = atoi(argv[5]);
     LicenceDetect licenceDet(kmodel_det, obj_thresh, nms_thresh, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, debug_mode);
+
+      // create tensors
+    std::vector<std::tuple<int, void*>> tensors;
+    for (unsigned i = 0; i < BUFFER_NUM; i++) {
+        tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
+    }
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
@@ -100,7 +100,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
             perror("v4l2_drm_dump error");
             continue;
         }
-        licenceDet.pre_process(dma_buf.get_buf_for_index(context.vbuffer.index));
+        licenceDet.pre_process(sensor_buf.get_buf_for_index(context.vbuffer.index));
         licenceDet.inference();
         result_mutex.lock();
         licence_det_results.clear();

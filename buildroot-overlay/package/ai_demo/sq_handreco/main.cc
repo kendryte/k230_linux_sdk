@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "hand_detection.h"
 #include "hand_recognition.h"
 
@@ -83,22 +83,23 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    HandDetection hd(argv[1], atof(argv[3]), atof(argv[4]), {SENSOR_WIDTH, SENSOR_HEIGHT}, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
+    HandRecognition hr(argv[5], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
+    
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
-    HandDetection hd(argv[1], atof(argv[3]), atof(argv[4]), {SENSOR_WIDTH, SENSOR_HEIGHT}, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
-    HandRecognition hr(argv[5], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[6]));
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
         if (ret) {
             perror("v4l2_drm_dump error");
             continue;
         }
-        runtime_tensor& img_data = dma_buf.get_buf_for_index(context.vbuffer.index);
+        runtime_tensor& img_data = sensor_buf.get_buf_for_index(context.vbuffer.index);
         hd.pre_process(img_data);
         hd.inference();
         result_mutex.lock();

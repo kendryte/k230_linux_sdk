@@ -24,11 +24,23 @@ for i in /etc/init.d/S??* ;do
 	    ;;
     esac
 done
-mount /dev/mmcblk0p1 /boot
+bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
+
+
+if [ -f /first_boot_flag ]; then
+    echo "first boot flag"
+	printf "fix\n" | parted ---pretend-input-tty ${bootddev} print  >/dev/null 2>&1
+    sd_size=$(parted ${bootddev} print | grep ${bootddev} | cut -d: -f2)
+    parted ${bootddev} resizepart 2 ${sd_size}; resize2fs ${bootddev}p2
+    rm -rf /first_boot_flag
+fi
+
+mount ${bootddev}p1 /boot
 cat /etc/version/release_version
 modprobe vvcam_isp
 modprobe vvcam_mipi
 modprobe vvcam_vb
 modprobe vvcam_isp_subdev
 modprobe vvcam_video
+modprobe bcmdhd
 ISP_MEDIA_SENSOR_DRIVER=/usr/lib/libvvcam.so /usr/bin/isp_media_server > /dev/null 2> /tmp/isp.err.log &

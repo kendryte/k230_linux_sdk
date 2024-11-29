@@ -59,6 +59,14 @@ public:
      * @return None
      */
     ~AIBase();
+    
+     /**
+     * @brief 根据索引获取kmodel输入tensor
+     * @param idx 输入数据指针
+     * @param tensor 输入tensor
+     * @return None
+     */
+    void set_input_tensor(size_t idx, runtime_tensor &tensor);
 
     /**
      * @brief 根据索引获取kmodel输入tensor

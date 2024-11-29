@@ -68,6 +68,7 @@ menu "Audio and video applications"
 	source "package/zynaddsubfx/Config.in"
 	source "package/vvcam/Config.in"
 	source "package/bcmdhd/Config.in"
+	source "package/audio_demo/Config.in"
 endmenu
 
 menu "Compressors and decompressors"
@@ -2841,11 +2842,16 @@ menu "Text editors and viewers"
 	source "package/vim/Config.in"
 endmenu
 
-menu "AI"
-	source "package/libmmz/Config.in"
-	source "package/libnncase/Config.in"
-	source "package/face_detect/Config.in"
-	source "package/ai2d_kpu/Config.in"
+
+
+menu "canaan package"
+	menu "AI"
+		source "package/libmmz/Config.in"
+		source "package/libnncase/Config.in"
+		source "package/face_detect/Config.in"
+		source "package/ai2d_kpu/Config.in"
+	endmenu
+	source "package/aic8800/Config.in"
 endmenu
 
 endmenu

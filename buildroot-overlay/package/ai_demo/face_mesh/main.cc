@@ -26,7 +26,7 @@
 #include <thread>
 #include "utils.h"
 #include "vi_vo.h"
-#include "dma_buf_manager.h"
+#include "sensor_buf_manager.h"
 #include "face_detection.h"
 #include "face_mesh.h"
 #include "face_mesh_post.h"
@@ -87,17 +87,17 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
+    FaceDetection face_det(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},atoi(argv[7]));
+    FaceMesh face_mesh(argv[4],argv[5], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[7]));
+    debug_mode = atoi(argv[7]);
+
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
     for (unsigned i = 0; i < BUFFER_NUM; i++) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
-    DMABufManager dma_buf = DMABufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
+    SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
 
-    FaceDetection face_det(argv[1], atof(argv[2]),atof(argv[3]), {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},atoi(argv[7]));
-    FaceMesh face_mesh(argv[4],argv[5], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[7]));
-
-    debug_mode = atoi(argv[7]);
     while (!ai_stop) 
     {
         ScopedTiming st("total time", debug_mode);
@@ -106,7 +106,7 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
             perror("v4l2_drm_dump error");
             continue;
         }
-        runtime_tensor& img_data = dma_buf.get_buf_for_index(context.vbuffer.index);
+        runtime_tensor& img_data = sensor_buf.get_buf_for_index(context.vbuffer.index);
         face_det.pre_process(img_data);
         face_det.inference();
         result_mutex.lock();
