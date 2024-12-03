@@ -145,7 +145,7 @@ static void deinit(void* ctx) {
 
 
 static struct reg_list gc2093_1920x1080_30fps[] = {
-   {0x03fe,0xf0},
+    {0x03fe,0xf0},
     {0x03fe,0xf0},
     {0x03fe,0xf0},
     {0x03fe,0x00},
@@ -172,7 +172,7 @@ static struct reg_list gc2093_1920x1080_30fps[] = {
     {0x0005, 0x05},	//line width = 0x522 = 1314 x 2 = 2628
     {0x0006, 0x22},
     {0x0007, 0x00},	//Vblank = 17
-    {0x0008, 0x62},
+    {0x0008, 0x6e},
     {0x0009, 0x00},
     {0x000a, 0x02},
     {0x000b, 0x00},
@@ -183,8 +183,8 @@ static struct reg_list gc2093_1920x1080_30fps[] = {
     {0x0010, 0x8c},
     {0x0013, 0x15},
     {0x0019, 0x0c},
-    {0x0041, 0x04},	// frame length = 0x04b6 = 1206
-    {0x0042, 0xb6},
+    {0x0041, 0x06},	// frame length = 0x04c2 = 1218
+    {0x0042, 0x3a},
     {0x0053, 0x60},
     {0x008d, 0x92},
     {0x0090, 0x00},
@@ -534,7 +534,7 @@ static int set_analog_gain(void* ctx, float gain) {
         sensor->sensor_again = again;
     }
 
-    sensor->mode.ae_info.cur_again = (float)sensor->sensor_again/64.0f;
+    sensor->mode.ae_info.cur_gain = (float)sensor->sensor_again/64.0f;
 
     return 0;
 }
