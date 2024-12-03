@@ -25,7 +25,7 @@ void v4l2_drm_default_context(struct v4l2_drm_context* ctx) {
     ctx->video_format = V4L2_PIX_FMT_NV12;
     ctx->display_format = DRM_FORMAT_NV12;
     ctx->display = true;
-    ctx->buffer_num = DRM_BUFFERING + 2;
+    ctx->buffer_num = DRM_BUFFERING + 3;
     ctx->plane = NULL;
     ctx->flag_dqbuf = true;
     ctx->offset_x = 0;

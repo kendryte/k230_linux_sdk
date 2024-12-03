@@ -266,6 +266,7 @@ static void display_proc(int video_device) {
         context.video_format = V4L2_PIX_FMT_NV12;
         context.display_format = 0; // auto
         context.drm_rotation = rotation_0;
+        // context.buffer_num = 5;
 
     }
     else {

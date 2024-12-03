@@ -55,7 +55,8 @@
 #include <linux/io.h>
 #include <linux/spinlock.h>
 #include "vvcam_isp_driver.h"
-#include "vvcam_isp_hal.h"
+#include "vvcam_isp_hal.h"'
+#include <linux/jiffies.h>
 
 extern void vvcam_isp_proc_stat(unsigned long pde,
                     const uint32_t *irq_mis, const int len);
@@ -151,6 +152,9 @@ irqreturn_t vvcam_isp_irq_process(struct vvcam_isp_dev *isp_dev)
     return IRQ_HANDLED;
 }
 
+uint32_t cut = 0;
+uint64_t frame_timer = 0;
+uint32_t flag = 0;
 irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
 {
     uint32_t miv1_mis  = 0;
@@ -221,6 +225,21 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
         miv2_mis &= ~MIV2_MIS_MCM_RAW_RADY_MASK;
         vvcam_event_queue(&isp_dev->event_dev, &event);
         isp_dev->irq_mis[VVCAM_EID_RDMA_MIS] = event.irqevent.irq_value;
+
+        // if (miv2_mis & MIV2_MIS_MP_FRAME_END_MASK) {
+        //     if(flag == 0)
+        //     {
+        //         flag = 1;
+        //         frame_timer = ktime_get();
+        //         cut = 0;
+        //     }
+        //     cut = cut + 1;
+        //     if(cut == 100)
+        //     {
+        //         printk("timer is %lld \n", (ktime_to_ns(ktime_sub(ktime_get(),frame_timer))) / 100);
+        //         flag = 0;
+        //     }
+        // }
     }
 
     if (miv2_mis & MIV2_MIS_JPD_FRAME_END_MASK) {
