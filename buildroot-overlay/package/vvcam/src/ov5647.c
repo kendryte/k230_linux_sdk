@@ -311,6 +311,8 @@ static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
 
     memcpy(mode, &sensor->mode, sizeof(struct vvcam_sensor_mode));
 
+    // printf(" %s sensor->mode.ae_info.cur_again is %f \n", __func__, sensor->mode.ae_info.cur_again);
+
     return 0;
 }
 
@@ -395,8 +397,6 @@ static int set_analog_gain(void* ctx, float gain) {
     struct ov5647_ctx* sensor = ctx;
     uint32_t again;
 
-    // printf("ov5647 %s %f\n", __func__, gain);
-
     again = (uint32_t)(gain * 16 + 0.5);
 
     if(sensor->sensor_again !=again)
@@ -406,8 +406,9 @@ static int set_analog_gain(void* ctx, float gain) {
         sensor->sensor_again = again;
     }
 
-    sensor->mode.ae_info.cur_again = (float)sensor->sensor_again/16.0f;
+    sensor->mode.ae_info.cur_gain = (float)sensor->sensor_again/16.0f;
 
+    // printf("ov5647 %s %f  sensor->mode.ae_info.cur_again is %f \n", __func__, gain, sensor->mode.ae_info.cur_again);
     return 0;
 }
 
@@ -421,7 +422,7 @@ static int set_int_time(void* ctx, float time) {
     uint16_t exp_line = 0;
     float integraion_time = 0;
 
-    // printf("ov5647 %s %f\n", __func__, time);
+    printf("ov5647 %s %f\n", __func__, time);
 
     integraion_time = time;
 

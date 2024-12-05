@@ -386,8 +386,8 @@
           "range_v": 7,
           "sadweight": 8,
           "sigma": 5,
-          "strength": 32,
-          "thr_motion_slope": 8,
+          "strength": 48,
+          "thr_motion_slope": 12,
           "tnr_en": true
         },
         {
