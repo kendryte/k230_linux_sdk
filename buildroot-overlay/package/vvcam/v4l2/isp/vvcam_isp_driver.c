@@ -93,9 +93,9 @@
 #else
 #define VVCAM_ISP_DEFAULT_SENSOR        "gc2093"
 #define VVCAM_ISP_DEFAULT_SENSOR_MODE   0
-#define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/gc2093.xml"
-#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/gc2093.manual.json"
-#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/gc2093.auto.json"
+#define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/gc2093-1920x1080.xml"
+#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/gc2093-1920x1080_manual.json"
+#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/gc2093-1920x1080_auto.json"
 
 #endif
 
