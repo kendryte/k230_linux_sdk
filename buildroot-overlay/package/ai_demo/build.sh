@@ -51,7 +51,7 @@ for subdir in $(ls -d */); do
       fi
       
       if [ "$subdir_name" = "llamac" ] && { [ "$curr_pro" = "llamac" ] || [ "$curr_pro" = "all" ]; }; then
-            /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-g++ -O3 llamac/llama_run.cc -o out/llama_run -lm
+            /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2/bin/riscv64-unknown-linux-gnu-g++ -O3 llamac/llama_run.cc -o out/llama_run -lm
       elif { [ "$curr_pro" = "$subdir_name" ] || [ "$curr_pro" = "all" ]; }; then
             echo "******************$subdir_name 开始编译******************"
             if [ "$subdir_name" = "pose_det_rtsp_plug" ]; then
@@ -65,7 +65,7 @@ for subdir in $(ls -d */); do
             cmake -DCMAKE_BUILD_TYPE=Release                \
             -DCMAKE_INSTALL_PREFIX=`pwd`               \
             -D$subdir_name=ON                        \
-            -DCMAKE_C_COMPILER=/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-gcc \
+            -DCMAKE_C_COMPILER=/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2/bin/riscv64-unknown-linux-gnu-gcc \
             ..
             make -j && make install
             echo "******************$subdir_name 编译完成******************"
