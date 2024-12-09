@@ -525,7 +525,7 @@ static const int rwnx_hwq2uapsd[NL80211_NUM_ACS] = {
 struct semaphore aicwf_deinit_sem;
 atomic_t aicwf_deinit_atomic;
 
-int aicwf_dbg_level = LOGERROR|LOGINFO;
+int aicwf_dbg_level = LOGERROR;
 module_param(aicwf_dbg_level, int, 0660);
 
 int testmode = 0;
@@ -1212,11 +1212,11 @@ void netdev_br_init(struct net_device *netdev)
 void rwnx_set_conn_state(atomic_t *drv_conn_state, int state){
 
     if((int)atomic_read(drv_conn_state) != state){
-        AICWFDBG(LOGDEBUG, "%s drv_conn_state:%p %s --> %s \r\n", __func__, 
+        AICWFDBG(LOGDEBUG, "%s drv_conn_state:%p %s --> %s \r\n", __func__,
             drv_conn_state,
-            s_conn_state[(int)atomic_read(drv_conn_state)], 
+            s_conn_state[(int)atomic_read(drv_conn_state)],
             s_conn_state[state]);
-        
+
         atomic_set(drv_conn_state, state);
     }
 }
@@ -2891,7 +2891,7 @@ static int rwnx_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
         WARN_ON(1);
         return -EBUSY;
     }
-    
+
 	if(atomic_read(&rwnx_vif->drv_conn_state) == RWNX_DRV_STATUS_DISCONNECTING) {
 		AICWFDBG(LOGERROR, "%s wifi is disconnecting, return it:%d \r\n",
 				__func__, reason_code);
@@ -2901,7 +2901,7 @@ static int rwnx_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 	if(atomic_read(&rwnx_vif->drv_conn_state) == RWNX_DRV_STATUS_CONNECTED||
         atomic_read(&rwnx_vif->drv_conn_state) == RWNX_DRV_STATUS_CONNECTING||
         atomic_read(&rwnx_vif->drv_conn_state) == RWNX_DRV_STATUS_ROAMING){
-        
+
 		rwnx_set_conn_state(&rwnx_vif->drv_conn_state, RWNX_DRV_STATUS_DISCONNECTING);
 
 		#ifdef CONFIG_USE_WIRELESS_EXT
@@ -8583,4 +8583,3 @@ MODULE_DESCRIPTION(RW_DRV_DESCRIPTION);
 MODULE_VERSION(RWNX_VERS_MOD);
 MODULE_AUTHOR(RW_DRV_COPYRIGHT " " RW_DRV_AUTHOR);
 MODULE_LICENSE("GPL");
-

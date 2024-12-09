@@ -2852,6 +2852,7 @@ menu "canaan package"
 		source "package/ai2d_kpu/Config.in"
 	endmenu
 	source "package/aic8800/Config.in"
+	source "package/bluez_inc/Config.in"
 endmenu
 
 endmenu
