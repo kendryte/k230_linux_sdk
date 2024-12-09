@@ -1,8 +1,10 @@
 CONFIG_AIC_LOADFW_SUPPORT := m
 CONFIG_AIC8800_WLAN_SUPPORT := m
+CONFIG_AIC8800_BTUSB :=m
 
 obj-$(CONFIG_AIC_LOADFW_SUPPORT)    += aic_load_fw/
 obj-$(CONFIG_AIC8800_WLAN_SUPPORT) += aic8800_fdrv/
+obj-$(CONFIG_AIC8800_BTUSB) += aic_btusb/
 
 ########## config option ##########
 export CONFIG_USE_FW_REQUEST = n
