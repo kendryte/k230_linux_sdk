@@ -16,8 +16,13 @@ config SYS_CONFIG_NAME
 config BOARD_SPECIFIC_OPTIONS # dummy
 	def_bool y
 	select RISCV_THEAD
-    
-config CANMV_LPDDR3_2133
-	def_bool y
+    choice
+        prompt "DDR Type And Frequency"
+        default CANMV_DONGSHANPI_LPDDR3_1866
 
+        config CANMV_DONGSHANPI_LPDDR3_2133
+            bool "k230 canmv dongshanpi ddr3 2133"
+        config CANMV_DONGSHANPI_LPDDR3_1866
+            bool "k230 canmv dongshanpi ddr3 1866"
+    endchoice
 endif

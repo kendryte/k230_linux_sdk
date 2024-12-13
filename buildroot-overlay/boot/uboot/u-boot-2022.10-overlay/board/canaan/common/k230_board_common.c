@@ -316,7 +316,7 @@ static int do_k230_dfu(struct cmd_tbl *cmdtp, int flag, int argc, char *const ar
             has_firmware = true;
             alt_info_len = sprintf(pInfo, "%s raw 0x%x 0x%x", item->altName, item->address / sector, (item->size+sector-1) / sector);
             pInfo += alt_info_len;
-            // if(i != (cfg->cfgCount - 1)) 
+            // if(i != (cfg->cfgCount - 1))
             {
                 pInfo[0] = ';';
                 pInfo ++;
@@ -361,4 +361,23 @@ U_BOOT_CMD(
 	"k230 burntool enter dfu",
 	"k230 burntool enter dfu"
 );
+#endif
+
+#if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
+__weak int ft_board_setup(void *blob, struct bd_info *bd)
+{
+    phys_addr_t base;
+	phys_size_t size;
+	// struct cpu_type *cpu;
+
+	// cpu = gd->arch.cpu;
+	// ft_cpu_setup(blob, bd);
+
+	base = env_get_bootm_low();
+	size = env_get_bootm_size();
+
+	fdt_fixup_memory(blob, (u64)base, (u64)size);
+    return 0;
+}
+
 #endif

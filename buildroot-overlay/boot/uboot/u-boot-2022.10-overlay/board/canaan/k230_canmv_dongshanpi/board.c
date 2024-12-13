@@ -23,4 +23,21 @@
 #include <env_internal.h>
 #include <linux/delay.h>
 #include <dm.h>
+#include "../common/k230_board_common.h"
+int ddr_init_training(void)
+{
+	if( 0x00 != (readl((const volatile void __iomem *)0x980001bcULL) & 0x1 )) {
+		//have init ,not need reinit;
+		return 0;
+	}
 
+	board_ddr_init();
+
+	return 0;
+}
+
+int board_late_init(void)
+{
+    env_set_ulong("mmc_boot_dev_num", g_bootmod - SYSCTL_BOOT_SDIO0);
+    return 0;
+}

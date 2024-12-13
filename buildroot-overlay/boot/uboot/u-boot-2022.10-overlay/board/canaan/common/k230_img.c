@@ -58,25 +58,25 @@ static int k230_boot_rtt_uimage(image_header_t *pUh);
 
 #define LINUX_KERNEL_IMG_MAX_SIZE  (25*1024*1024)
 
-#ifndef CONFIG_MEM_LINUX_SYS_SIZE 
+#ifndef CONFIG_MEM_LINUX_SYS_SIZE
 #define  CONFIG_MEM_LINUX_SYS_SIZE  CONFIG_MEM_RTT_SYS_SIZE
-#endif 
+#endif
 
-#ifndef CONFIG_MEM_LINUX_SYS_BASE 
+#ifndef CONFIG_MEM_LINUX_SYS_BASE
 #define  CONFIG_MEM_LINUX_SYS_BASE CONFIG_MEM_RTT_SYS_BASE
-#endif 
+#endif
 
 unsigned long get_CONFIG_CIPHER_ADDR(void)
 {
     unsigned long ret=0;
-    
+
     if(CONFIG_MEM_LINUX_SYS_SIZE >= 0x8000000){
         ret = round_down( (((CONFIG_MEM_LINUX_SYS_SIZE - 0x1000000)/3) + CONFIG_MEM_LINUX_SYS_BASE ), 0x100000);//25MB
     }else{
         ret = round_down ((LINUX_KERNEL_IMG_MAX_SIZE + CONFIG_MEM_LINUX_SYS_BASE ), 0x100000);//25MB;
     }
 
-    
+
     return ret;
 }
 unsigned long get_CONFIG_PLAIN_ADDR(void)
@@ -87,10 +87,10 @@ unsigned long get_CONFIG_PLAIN_ADDR(void)
     }else {
         ret = round_down ((CONFIG_MEM_LINUX_SYS_SIZE- 0x1000000 - LINUX_KERNEL_IMG_MAX_SIZE)/2 + CONFIG_CIPHER_ADDR, 0x100000);//25MB;
     }
-    return ret;    
+    return ret;
 }
 
-#define USE_UBOOT_BOOTARGS 
+#define USE_UBOOT_BOOTARGS
 #define OPENSBI_DTB_ADDR ( CONFIG_MEM_LINUX_SYS_BASE +0x2000000)
 #define RAMDISK_ADDR ( CONFIG_MEM_LINUX_SYS_BASE +0x2000000 + 0X100000)
 
@@ -112,7 +112,7 @@ char *board_fdt_chosen_bootargs(void){
         if(g_bootmod == SYSCTL_BOOT_SDIO0)
             bootargs = "root=/dev/mmcblk0p2 loglevel=8 rw rootdelay=4 rootfstype=ext4 console=ttyS0,115200  earlycon=sbi";
         else if(g_bootmod == SYSCTL_BOOT_SDIO1)
-            bootargs = "root=/dev/mmcblk0p2 loglevel=8 rw rootdelay=4 rootfstype=ext4 console=ttyS0,115200  earlycon=sbi";
+            bootargs = "root=/dev/mmcblk1p2 loglevel=8 rw rootdelay=4 rootfstype=ext4 console=ttyS0,115200  earlycon=sbi";
         else  if(g_bootmod == SYSCTL_BOOT_NORFLASH)
             //bootargs = "root=/dev/mtdblock9 rw rootwait rootfstype=jffs2 console=ttyS0,115200 earlycon=sbi";
             //bootargs = "ubi.mtd=9 rootfstype=ubifs rw root=ubi0_0 console=ttyS0,115200 earlycon=sbi";
@@ -121,14 +121,14 @@ char *board_fdt_chosen_bootargs(void){
     //printf("%s\n",bootargs);
     return bootargs;
 }
-#endif 
+#endif
 static int k230_boot_decomp_to_load_addr(image_header_t *pUh, ulong des_len, ulong data , ulong *plen)
 {
     int ret = 0;
-    K230_dbg("imge: %s load to %x  compress =%x  src %lx len=%lx \n", image_get_name(pUh), image_get_load(pUh), image_get_comp(pUh), data, *plen);    
+    K230_dbg("imge: %s load to %x  compress =%x  src %lx len=%lx \n", image_get_name(pUh), image_get_load(pUh), image_get_comp(pUh), data, *plen);
 
     //设计要求必须gzip压缩，调试可以不压缩；
-    if (image_get_comp(pUh) == IH_COMP_GZIP) {        
+    if (image_get_comp(pUh) == IH_COMP_GZIP) {
         ret = gunzip((void *)(ulong)image_get_load(pUh), des_len, (void *)data, plen);
         if(ret){
             printf("unzip fialed ret =%x\n", ret);
@@ -138,7 +138,7 @@ static int k230_boot_decomp_to_load_addr(image_header_t *pUh, ulong des_len, ulo
         memmove((void *)(ulong)image_get_load(pUh), (void *)data, *plen);
     }
     flush_cache(image_get_load(pUh), *plen);
-    K230_dbg("imge: %s load to %x  compress =%x  src %lx len=%lx  \n", image_get_name(pUh), image_get_load(pUh), image_get_comp(pUh), data, *plen);    
+    K230_dbg("imge: %s load to %x  compress =%x  src %lx len=%lx  \n", image_get_name(pUh), image_get_load(pUh), image_get_comp(pUh), data, *plen);
     return ret;
 }
 static int  de_reset_big_core(ulong core_run_addr)
@@ -158,17 +158,17 @@ static int  de_reset_big_core(ulong core_run_addr)
 
     writel(0x10001000, (void*)0x9110100cULL); //清 done bit
     writel(0x10001, (void*)0x9110100cULL); //设置 reset bit
-    //printf("0x9110100c =%x\n", readl( (void*)0x9110100cULL));    
-    writel(0x10000, (void *)0x9110100cULL); ////清 reset bit  
+    //printf("0x9110100c =%x\n", readl( (void*)0x9110100cULL));
+    writel(0x10000, (void *)0x9110100cULL); ////清 reset bit
     //printf("0x9110100c =%x\n", readl( (void*)0x9110100cULL));
     //printf("reset big hart\n");
     return 0;
 }
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param pUh  image_header_t *
- * @return int 
+ * @return int
  */
 static int k230_boot_rtt_uimage(image_header_t *pUh)
 {
@@ -210,12 +210,12 @@ static int k230_boot_linux_uimage(image_header_t *pUh)
         #ifdef USE_UBOOT_BOOTARGS
         len = fdt_shrink_to_minimum((void*)dtb,0x100);
         ret = fdt_chosen((void*)dtb);
-        #endif 
+        #endif
         memmove((void*)OPENSBI_DTB_ADDR, (void *)dtb, len);
 
         #ifndef CONFIG_SPL_BUILD
         //run_command("fdt addr 0x91e7000;fdt print;", 0);
-        #endif 
+        #endif
 
         if(rd_len > 0x100 )
             memmove((void*)RAMDISK_ADDR, (void *)rd, rd_len);
@@ -224,17 +224,17 @@ static int k230_boot_linux_uimage(image_header_t *pUh)
 
         cleanup_before_linux();//flush cache，
         kernel = (void (*)(ulong, void *))img_load_addr;
-        //do_timeinfo(0,0,0,0); 
+        //do_timeinfo(0,0,0,0);
         kernel(0, (void*)OPENSBI_DTB_ADDR);
 
     }
     return ret;
 }
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param pUh  image_header_t *
- * @return int 
+ * @return int
  */
 static int k230_boot_paramter_uimage(image_header_t *pUh)
 {
@@ -246,10 +246,10 @@ static int k230_boot_paramter_uimage(image_header_t *pUh)
     return ret;
 }
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param pUh  image_header_t *
- * @return int 
+ * @return int
  */
 static int k230_boot_uboot_uimage(image_header_t *pUh)
 {
@@ -267,7 +267,7 @@ static int k230_boot_uboot_uimage(image_header_t *pUh)
         asm volatile(".long 0x0170000b\n":::"memory");
 
         uboot = (void (*)(ulong, void *))(ulong)image_get_load(pUh);
-        //do_timeinfo(0,0,0,0); 
+        //do_timeinfo(0,0,0,0);
         #if defined(CONFIG_LINUX_RUN_CORE_ID) && (CONFIG_LINUX_RUN_CORE_ID == 1)
         de_reset_big_core(image_get_load(pUh));
 
@@ -276,7 +276,7 @@ static int k230_boot_uboot_uimage(image_header_t *pUh)
             asm volatile("wfi");
         }
 
-        #endif 
+        #endif
         uboot(0, (void*)OPENSBI_DTB_ADDR);
     }
     return 0;
@@ -297,15 +297,15 @@ int k230_img_boot_sys_bin(firmware_head_s * fhBUff)
     if (!image_check_magic(pUh)){
         printf("bad magic \n");
         return -3;
-    }        
+    }
     //解压缩，引导；
-     if ( (0 == strcmp(image_get_name(pUh), "linux") ) || (0 == strcmp(image_get_name(pUh), "Linux") ) ){ 
+     if ( (0 == strcmp(image_get_name(pUh), "linux") ) || (0 == strcmp(image_get_name(pUh), "Linux") ) ){
         ret = k230_boot_linux_uimage(pUh);
-    }else if(0 == strcmp(image_get_name(pUh), "rtt")){        
-        ret = k230_boot_rtt_uimage(pUh);       
-    }else if(0 == strcmp(image_get_name(pUh), "uboot")){        
-        ret = k230_boot_uboot_uimage(pUh);       
-    } else  {        
+    }else if(0 == strcmp(image_get_name(pUh), "rtt")){
+        ret = k230_boot_rtt_uimage(pUh);
+    }else if(0 == strcmp(image_get_name(pUh), "uboot")){
+        ret = k230_boot_uboot_uimage(pUh);
+    } else  {
         k230_boot_paramter_uimage(pUh);
         return 0;
     }
@@ -352,29 +352,29 @@ static int k230_check_and_get_plain_data_securiy(firmware_head_s *pfh, ulong *pp
 
         //使用公钥验证mac签名
         char *gcm_tag = (char *)(pfh+1) + pfh->length - 16;
-        ret = pufs_rsa_p1v15_verify(pfh->verify.rsa.signature, 
-                                    RSA2048, 
-                                    pfh->verify.rsa.n, 
-                                    pfh->verify.rsa.e, 
-                                    gcm_tag, 
+        ret = pufs_rsa_p1v15_verify(pfh->verify.rsa.signature,
+                                    RSA2048,
+                                    pfh->verify.rsa.n,
+                                    pfh->verify.rsa.e,
+                                    gcm_tag,
                                     16);
         if (ret ) {
             printf("rsa verify error \n");
             return -9;
-        } 
+        }
 
-        //gcm解密,同时保证完整性；获取明文        
+        //gcm解密,同时保证完整性；获取明文
         ret = pufs_dec_gcm((uint8_t *)pplaint, &outlen, (const uint8_t *)(pfh+1), pfh->length - 16,
              AES, OTPKEY, OTPKEY_2, 256, (const uint8_t *)gcm_iv, 12, NULL, 0, gcm_tag, 16);
         if (ret )  {
             printf("dec gcm error ret=%x \n",ret);
             return -10;
-        }            
+        }
 
-        //pUimgh = (image_header_t *)(pplaint);    
-        if(pplain_addr) 
+        //pUimgh = (image_header_t *)(pplaint);
+        if(pplain_addr)
             *pplain_addr = (ulong)pplaint;
-        
+
     }else if (pfh->crypto_type == CHINESE_SECURITY){
         K230_dbg("CHINESE_SECURITY sm\n");
         if(SUCCESS != cb_pufs_read_otp(puk_hash_otp, 32, OTP_BLOCK_SM2_PUK_HASH_ADDR)){
@@ -395,32 +395,32 @@ static int k230_check_and_get_plain_data_securiy(firmware_head_s *pfh, ulong *pp
             return -8;
         }
 
-        //SM2 解密hash验签        
+        //SM2 解密hash验签
         puk.qlen = sig.qlen = 32;
         memcpy(puk.x, pfh->verify.sm2.pukx, puk.qlen);
         memcpy(puk.y, pfh->verify.sm2.puky, puk.qlen);
         memcpy(sig.r, pfh->verify.sm2.r, sig.qlen);
         memcpy(sig.s, pfh->verify.sm2.s, sig.qlen);
-        if(cb_pufs_sm2_verify(sig,  (const uint8_t *)(pfh+1), pfh->length, 
+        if(cb_pufs_sm2_verify(sig,  (const uint8_t *)(pfh+1), pfh->length,
                                 pfh->verify.sm2.id, pfh->verify.sm2.idlen, puk) != SUCCESS){
-            printf("sm verify error\n");                                    
+            printf("sm verify error\n");
             return -11;
         }
 
         //SM4 CBC 解密
-        if(cb_pufs_dec_cbc((uint8_t *)pplaint, &outlen, (const uint8_t *)(pfh+1), pfh->length, 
+        if(cb_pufs_dec_cbc((uint8_t *)pplaint, &outlen, (const uint8_t *)(pfh+1), pfh->length,
             SM4, OTPKEY, OTPKEY_4, 128, (const uint8_t *)sm4_iv, 0) != SUCCESS){
-            printf("dec cbc  error\n");     
+            printf("dec cbc  error\n");
             return -12;
-        } 
-        if(pplain_addr) 
-            *pplain_addr = (ulong)pplaint;     
+        }
+        if(pplain_addr)
+            *pplain_addr = (ulong)pplaint;
     }
     else if(pfh->crypto_type == GCM_ONLY) {
         K230_dbg(" POC GCM_ONLY \n");
         char *gcm_tag = (char *)(pfh+1) + pfh->length - 16;
 
-        //gcm解密,同时保证完整性；获取明文        
+        //gcm解密,同时保证完整性；获取明文
         ret = pufs_dec_gcm_poc((uint8_t *)pplaint, &outlen, (const uint8_t *)(pfh+1), pfh->length - 16,
              AES, SSKEY, (const uint8_t *)gcm_key, 256, (const uint8_t *)gcm_iv, 12, NULL, 0, (uint8_t *)gcm_tag, 16);
         if (ret )  {
@@ -428,10 +428,10 @@ static int k230_check_and_get_plain_data_securiy(firmware_head_s *pfh, ulong *pp
             return -10;
         }
 
-        if(pplain_addr) 
+        if(pplain_addr)
             *pplain_addr = (ulong)pplaint;
-    }           
-    else 
+    }
+    else
         return -10;
 
     return 0;
@@ -441,7 +441,7 @@ static int k230_check_and_get_plain_data_securiy(firmware_head_s *pfh, ulong *pp
 static int k230_check_and_get_plain_data(firmware_head_s *pfh, ulong *pplain_addr)
 {
 
-    uint32_t otp_msc = 0;    
+    uint32_t otp_msc = 0;
     int ret = 0;
     pufs_dgst_st md;
 
@@ -450,7 +450,7 @@ static int k230_check_and_get_plain_data(firmware_head_s *pfh, ulong *pplain_add
         return CMD_RET_FAILURE;
     }
 
-    if(pfh->crypto_type == NONE_SECURITY){ 
+    if(pfh->crypto_type == NONE_SECURITY){
         //printf(" NONE_SECURITY \n");
         if(SUCCESS != cb_pufs_read_otp((uint8_t *)&otp_msc, OTP_BLOCK_PRODUCT_MISC_BYTES, OTP_BLOCK_PRODUCT_MISC_ADDR)){
             printf("otp read error \n");
@@ -459,30 +459,30 @@ static int k230_check_and_get_plain_data(firmware_head_s *pfh, ulong *pplain_add
         if(otp_msc & 0x1){
             printf(" NONE_SECURITY not support  %x \n", pfh->crypto_type);
             return -5;
-        }       
+        }
         //校验完整性
         #ifdef  CONFIG_K230_PUFS
 		cb_pufs_hash(&md, (const uint8_t*)(pfh + 1), pfh->length, SHA_256);
-        #else 
+        #else
         sha256_csum_wd((const uint8_t*)(pfh + 1), pfh->length, md.dgst, CHUNKSZ_SHA256);
-        #endif   
+        #endif
 
         if(memcmp(md.dgst, pfh->verify.none_sec.signature, SHA256_SUM_LEN) ){
             printf("sha256 error ");
-            return -3; 
-        }   
-            
+            return -3;
+        }
 
-        if(pplain_addr) 
-            *pplain_addr = (ulong)pfh + sizeof(*pfh) ; 
 
-        ret = 0;    
+        if(pplain_addr)
+            *pplain_addr = (ulong)pfh + sizeof(*pfh) ;
+
+        ret = 0;
 	} else if((pfh->crypto_type  == CHINESE_SECURITY)|| (pfh->crypto_type  == INTERNATIONAL_SECURITY) || (pfh->crypto_type  == GCM_ONLY))
         ret = k230_check_and_get_plain_data_securiy(pfh, pplain_addr);
     else  {
         printf("error crypto type =%x\n", pfh->crypto_type);
         return -9;
-    } 
+    }
     return ret;
 }
 
@@ -504,7 +504,7 @@ __weak ulong get_blk_start_by_boot_firmre_type(en_boot_sys_t sys)
 		blk_s = UBOOT_SYS_IN_IMG_OFF_SEC;
 		break;
     default:break;
-	} 
+	}
     return blk_s;
 }
 
@@ -547,7 +547,7 @@ static int k230_load_sys_from_mmc_or_sd(en_boot_sys_t sys, ulong buff)//(ulong o
     }
 
     data_sect = DIV_ROUND_UP(pfh->length + sizeof(*pfh), BLKSZ) - HD_BLK_NUM;
-	
+
     ret = blk_dread(pblk_desc, blk_s + HD_BLK_NUM, data_sect, (char *)buff + HD_BLK_NUM * BLKSZ);
     if(ret != data_sect)
         return 6;
@@ -562,48 +562,48 @@ __weak ulong get_flash_offset_by_boot_firmre_type(en_boot_sys_t sys)
 	case BOOT_SYS_LINUX:
         #ifdef CONFIG_SPI_NOR_LK_BASE
 		offset = CONFIG_SPI_NOR_LK_BASE;
-        #endif 
+        #endif
 		break;
 	case BOOT_SYS_RTT:
         #ifdef CONFIG_SPI_NOR_RTTK_BASE
 		offset = CONFIG_SPI_NOR_RTTK_BASE;
-        #endif 
+        #endif
 		break;
     case BOOT_QUICK_BOOT_CFG:
         #ifdef CONFIG_SPI_NOR_QUICK_BOOT_CFG_BASE
 		offset = CONFIG_SPI_NOR_QUICK_BOOT_CFG_BASE;
-        #endif 
+        #endif
 		break;
     case BOOT_FACE_DB:
         #ifdef CONFIG_SPI_NOR_FACE_DB_CFG_BASE
 		offset = CONFIG_SPI_NOR_FACE_DB_CFG_BASE;
-        #endif 
+        #endif
 		break;
     case BOOT_SENSOR_CFG:
         #ifdef  CONFIG_SPI_NOR_SENSOR_CFG_CFG_BASE
 		offset = CONFIG_SPI_NOR_SENSOR_CFG_CFG_BASE;
-        #endif 
+        #endif
 		break;
     case BOOT_AI_MODE:
         #ifdef CONFIG_SPI_NOR_AI_MODE_CFG_BASE
 		offset = CONFIG_SPI_NOR_AI_MODE_CFG_BASE;
-        #endif 
+        #endif
 		break;
     case BOOT_SPECKLE:
         #ifdef CONFIG_SPI_NOR_SPECKLE_CFG_BASE
 		offset = CONFIG_SPI_NOR_SPECKLE_CFG_BASE;
-        #endif 
+        #endif
 		break;
     case BOOT_RTAPP:
         #ifdef CONFIG_SPI_NOR_RTT_APP_BASE
 		offset = CONFIG_SPI_NOR_RTT_APP_BASE;
-        #endif 
+        #endif
 		break;
     case BOOT_SYS_UBOOT:
 		offset = UBOOT_SYS_IN_SPI_NOR_OFF;
 		break;
     default:break;
-	} 
+	}
     return offset;
 }
 static int k230_load_sys_from_spi_nor( en_boot_sys_t sys, ulong buff)
@@ -662,7 +662,7 @@ __weak ulong get_nand_start_by_boot_firmre_type(en_boot_sys_t sys)
 		blk_s = UBOOT_SYS_IN_SPI_NAND_OFF;
 		break;
     default:break;
-	} 
+	}
     return blk_s;
 }
 
@@ -767,7 +767,7 @@ static int k230_load_sys_from_spi_nand( en_boot_sys_t sys, ulong buff)
 int k230_img_load_sys_from_dev(en_boot_sys_t sys, ulong buff)
 {
     int ret = 0;
-    
+
     if( (g_bootmod == SYSCTL_BOOT_SDIO1) || (g_bootmod == SYSCTL_BOOT_SDIO0) ){ //sd
         ret = k230_load_sys_from_mmc_or_sd(sys, buff);
     }else if(g_bootmod == SYSCTL_BOOT_NANDFLASH){ //spi nand
@@ -787,14 +787,14 @@ __weak int k230_img_load_boot_sys_auot_boot(en_boot_sys_t sys)
     k230_img_load_boot_sys(BOOT_AI_MODE);
     k230_img_load_boot_sys(BOOT_SPECKLE);
     k230_img_load_boot_sys(BOOT_RTAPP);
-    #endif 
+    #endif
 
 
     #if  defined(CONFIG_SUPPORT_RTSMART)
-    ret += k230_img_load_boot_sys(BOOT_SYS_RTT); 
-    #endif  
+    ret += k230_img_load_boot_sys(BOOT_SYS_RTT);
+    #endif
 
-    
+
     #if  defined(CONFIG_SUPPORT_RTSMART) && !defined(CONFIG_SUPPORT_LINUX)
     if(ret == 0)
     {
@@ -803,23 +803,23 @@ __weak int k230_img_load_boot_sys_auot_boot(en_boot_sys_t sys)
             asm volatile("wfi");
         }
     }
-    #endif 
+    #endif
 
 
 
     #if  defined(CONFIG_SUPPORT_LINUX)
     ret += k230_img_load_boot_sys(BOOT_SYS_LINUX);
-    #endif 
-    
+    #endif
+
     return ret;
 }
 /**
- * @brief 
- * 
- * @param bmode 
- * @param sys 
- * @param buff 
- * @return int 
+ * @brief
+ *
+ * @param bmode
+ * @param sys
+ * @param buff
+ * @return int
  */
 int k230_img_load_boot_sys(en_boot_sys_t sys)
 {
@@ -838,4 +838,3 @@ int k230_img_load_boot_sys(en_boot_sys_t sys)
     }
     return ret;
 }
-

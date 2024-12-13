@@ -32,16 +32,23 @@ help:sync
 	@echo "   make CONF=k230_canmv_defconfig  -build k230 linux sdk user k230_canmv_defconfig config "
 	@[ -d $(BR_SRC_DIR) ] && echo "buildroot usage:" || exit 0
 	@[ -d $(BR_SRC_DIR) ] && make --no-print-directory -C $(BR_SRC_DIR)  help  || exit 0
-	@echo "make uboot-rebuild #rebuild uboot"
-	@echo "make uboot-dirclean #uboot clean"
-	@echo "make linux-rebuild opensbi-rebuild #rebuild linux,rebuild opensbi"
-	@echo "make linux-dirclean #linux clean"
-	@echo "sdk build usage:"
-	@echo "    make CONF=k230_canmv_defconfig    -build k230 linux sdk user k230_canmv_defconfig"
-	@echo "                                      -CONF can be $$(ls $(BR_OVERLAY_DIR)/configs | tr '\n' '/')"
+	@echo "often use command example:"
+	@echo "    make uboot-rebuild  #rebuild uboot"
+	@echo "    make uboot-dirclean #uboot clean"
+	@echo "    make linux-rebuild  #rebuild linux"
+	@echo "    make linux-dirclean #linux clean"
+	@echo "    make show-conf      #show support config,and current use config"
+	@echo ""
 	@echo "dcoker build and run example:"
-	@echo "		docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker "
-	@echo '		docker run -it --rm  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -v /opt/toolchain:/opt/toolchain -w $$(pwd) wjx/d:latest '
+	@echo "    docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker "
+	@echo '    docker run -it --rm  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -v /opt/toolchain:/opt/toolchain -w $$(pwd) wjx/d:latest '
+	@echo ""
+	@echo "sdk build usage example:"
+	@echo "    make CONF=k230_canmv_defconfig   BR2_PRIMARY_SITE=https://kendryte-download.canaan-creative.com/k230/downloads/dl/"
+	@echo "          #note:k230_canmv_defconfig need replace, BR2_PRIMARY_SITE=xxxx is option"
+	@echo ""
+	@echo ""
+
 
 .PHONY:sync
 sync:

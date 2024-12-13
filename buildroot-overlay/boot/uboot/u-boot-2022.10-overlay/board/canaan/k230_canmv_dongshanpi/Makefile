@@ -27,12 +27,18 @@ obj-y += board.o
 
 obj-$(CONFIG_CANMV_LPDDR3_2133) += gen_pilpddr3_2133.o   #ddr_init_2133.c
 
-$(obj)/gen_pilpddr3_2133.c: $(src)/k230pi_ddr_init_2133.c   $(srctree)/arch/riscv/cpu/k230/ddr.sh
-	($(srctree)/arch/riscv/cpu/k230/ddr.sh $< $@ 0x50000 0x53fff 0x54000 0x54359  || exit 1)
+obj-$(CONFIG_CANMV_DONGSHANPI_LPDDR3_2133) += gen_canmv_ddr_2133.lex.o
 
+$(obj)/gen_canmv_ddr_2133.lex.c: $(src)/canmv_ddr_init_2133.c   $(srctree)/arch/riscv/cpu/k230/ddr.sh
+	$(Q)($(srctree)/arch/riscv/cpu/k230/ddr.sh $< $@ 0x50000 0x53fff 0x54000 0x54359 || exit 1)
+
+obj-$(CONFIG_CANMV_DONGSHANPI_LPDDR3_1866) += gen_canmv_ddr_1866.lex.o
+
+$(obj)/gen_canmv_ddr_1866.lex.c: $(src)/canmv_ddr_init_1866.c    $(srctree)/arch/riscv/cpu/k230/ddr.sh
+	$(Q)($(srctree)/arch/riscv/cpu/k230/ddr.sh $< $@ 0x50000 0x53fff 0x54000 0x54359 || exit 1)
 
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/
-EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_common  
+EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_common
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_crypto
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_dma
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_ka
@@ -43,4 +49,3 @@ EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_ecp
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_sm2
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_sp38a
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_sp38d
-

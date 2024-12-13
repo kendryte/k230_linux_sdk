@@ -146,18 +146,50 @@ __weak int ddr_init_training(void)
 	return 0;
 }
 
-int dram_init(void)
+u32 detect_ddr_size(void)
 {
-#ifndef CONFIG_SPL
-	ddr_init_training();
-#endif
-	return fdtdec_setup_mem_size_base();
+    u64 ddr_size = 0;
+    u64 readv0,readv1 = 0;
+    ulong ddr_detect_pattern[]={0x1234567887654321, 0x1122334455667788};
+
+
+    gd->ram_base = 0;
+    gd->ram_size  = 0x8000000;
+
+    writeq(ddr_detect_pattern[0], 0);
+    writeq(ddr_detect_pattern[0], 0+8);
+    flush_dcache_range(0, 0+CONFIG_SYS_CACHELINE_SIZE);
+
+    for(ddr_size = 128*1024*1024; ddr_size <= (u64)(1*1024*1024*1024); ddr_size=ddr_size<<1 ){
+        invalidate_dcache_range(ddr_size, ddr_size + CONFIG_SYS_CACHELINE_SIZE);
+        readv0 = readq(ddr_size);
+
+        if(readv0 == ddr_detect_pattern[0]){//再次确认下
+            writeq(ddr_detect_pattern[1], ddr_size+8);
+            flush_dcache_range(ddr_size, ddr_size+CONFIG_SYS_CACHELINE_SIZE);
+            invalidate_dcache_range(0, 0 + CONFIG_SYS_CACHELINE_SIZE);
+
+            readv1 = readq(0+8);
+            if(readv1 == ddr_detect_pattern[1]){
+                //printf("get ddr size=%lx\n", ddr_size);
+                break;
+            }
+        }
+        //printf("ddr size=%lx %lx,%lx \n", ddr_size,readv0,readv1);
+    }
+    gd->ram_size = ddr_size;
+    //printf("ddr detect error %x\n\n", ddr_size);
+    return ddr_size;
 }
 
-int dram_init_banksize(void)
+
+int dram_init(void)
 {
-	return fdtdec_setup_memory_banksize();
+    ddr_init_training();
+    detect_ddr_size();
+    return 0;
 }
+
 
 ulong board_get_usable_ram_top(ulong total_size)
 {

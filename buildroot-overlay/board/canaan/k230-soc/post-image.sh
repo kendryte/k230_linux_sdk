@@ -1,13 +1,6 @@
 #!/bin/bash
 set -e
-DTB="k230-canmv.dtb"
-LINUX_DIR=${BUILD_DIR}/linux-6.6.22
-rootfs_ext4_file=""
 
-[ $# -ge 2 ] && DTB="$2.dtb"
-[ $# -ge 3 ] && LINUX_DIR="$3"
-[ $# -ge 4 ] && rootfs_ext4_file="$4"
-#echo "${DTB}, ${rootfs_ext4_file}"
 
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
@@ -147,7 +140,7 @@ gen_uboot_bin()
 gen_linux_bin ()
 {
 	local mkimage="${UBOOT_BUILD_DIR}/tools/mkimage"
-
+	local first_dtb="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | cut -d / -f2 | tr -d '"' |  cut -d ' ' -f1).dtb"
 	local CONFIG_MEM_LINUX_SYS_BASE=$(cat ${UBOOT_BUILD_DIR}/board/canaan/common/sdk_autoconf.h | grep CONFIG_MEM_LINUX_SYS_BASE | awk '{print $3}')
 
 	cd  "${BINARIES_DIR}/";
@@ -167,7 +160,7 @@ gen_linux_bin ()
 	# sed -i "s/linux,initrd-end = <0x0 .*/linux,initrd-end = <0x0 $ROOTFS_END>;/g" hw/k230.dts.txt
 
 	# ${LINUX_BUILD_DIR}/scripts/dtc/dtc -I dts -q -O dtb hw/k230.dts.txt  >k230.dtb;
-	ln -s ${DTB} k.dtb
+	ln -s ${first_dtb} k.dtb
 	k230_gzip fw_payload.bin;
 	echo a>rd;
 	${mkimage} -A riscv -O linux -T multi -C gzip -a ${CONFIG_MEM_LINUX_SYS_BASE} -e ${CONFIG_MEM_LINUX_SYS_BASE} -n linux -d fw_payload.bin.gz:rd:k.dtb  ulinux.bin;
@@ -217,12 +210,12 @@ gen_env_bin()
 	cd  "${BINARIES_DIR}/";
 	local default_env_file=${env_dir}/default.env;
 
-	if [ ${DTB} == "k230-canmv-01studio.dtb" ]; then
-		default_env_file=${env_dir}/01studio.env;
-	fi
-	if [ ${DTB} == "k230-canmv.dtb" ]; then
-		default_env_file=${env_dir}/k230_canmv.env;
-	fi
+	# if [ ${DTB} == "k230-canmv-01studio.dtb" ]; then
+	# 	default_env_file=${env_dir}/01studio.env;
+	# fi
+	# if [ ${DTB} == "k230-canmv.dtb" ]; then
+	# 	default_env_file=${env_dir}/k230_canmv.env;
+	# fi
 
 	if [ ${CONF} == "k230d_canmv_ilp32_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_ilp32_defconfig" ]; then
 		sed -i 's/^bootcmd=.*$/bootcmd=run bnuttx;run blinuxilp32;/g' ${default_env_file}
@@ -235,16 +228,18 @@ gen_env_bin()
 }
 gen_boot_ext4()
 {
+	local first_dtb="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | cut -d / -f2 | tr -d '"' |  cut -d ' ' -f1).dtb"
+	echo "${first_dtb}"
 	cd  "${BINARIES_DIR}/";
-	mkdir -p boot;
+	rm boot; mkdir -p boot;
 
 	cp ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/boot/nuttx-7000000-uart2.bin  boot/;
 	cp Image boot/;
 	[ ! -f "Image_ilp32" ] ||  cp Image_ilp32 boot/;
-	cp ${DTB} boot;
-	cd boot; rm -rf k.dtb;ln -s ${DTB} k.dtb; cd -;
+	cp *.dtb boot;
+	cd boot; rm -rf k.dtb;ln -s ${first_dtb} k.dtb; cd -;
 	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  boot/fw_jump_add_uboot_head.bin
-	rm -rf boot.ext4 ;fakeroot mkfs.ext4 -d boot  -r 1 -N 0 -m 1 -L "boot" -O ^64bit boot.ext4 45M
+	rm -rf boot.ext4 ;fakeroot mkfs.ext4 -d boot  -r 1 -N 0 -m 1 -L "boot" -O ^64bit boot.ext4 80M
 }
 
 gen_uboot_bin
