@@ -18,6 +18,7 @@ include_directories(${usr_root}/include)
 include_directories(${usr_root}/include/libdrm)
 include_directories(${usr_root}/include/opencv4)
 include_directories(${sdk_root}/output/k230_canmv_defconfig/build/freetype-2.13.2/include)
+include_directories(${sdk_root}/output/k230_canmv_defconfig/host/riscv64-buildroot-linux-gnu/sysroot/usr/include/alsa)
 include_directories(./common)
 
 link_directories(${usr_root}/lib/)

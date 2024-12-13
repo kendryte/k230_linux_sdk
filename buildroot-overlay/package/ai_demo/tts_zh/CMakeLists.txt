@@ -1,0 +1,11 @@
+# include_directories(paddlespeech_zhfrontend)
+# include_directories(paddlespeech_zhfrontend/pypinyin)
+# include_directories(paddlespeech_zhfrontend/zh_normalization)
+# include_directories(paddlespeech_zhfrontend/cppjieba/include)
+# include_directories(paddlespeech_zhfrontend/cppjieba/deps)
+# include_directories(paddlespeech_zhfrontend/cppjieba/deps/limonp/include)
+include_directories(include)
+
+# add_subdirectory(paddlespeech_zhfrontend)
+add_subdirectory(src)
+add_subdirectory(tts_src)
