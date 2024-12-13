@@ -13,6 +13,7 @@ AIC8800_SUPPORTS_IN_SOURCE_BUILD = NO
 
 define AIC8800_INSTALL_TARGET_CMDS
 	mkdir -p $(TARGET_DIR)/lib/firmware/
+	mkdir -p $(TARGET_DIR)/etc/init.d/
 	cp -rf $(@D)/fw/* $(TARGET_DIR)/lib/firmware/
 	cp $(@D)/S100aic8800   $(TARGET_DIR)/etc/init.d/
 endef

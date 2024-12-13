@@ -23,6 +23,7 @@
 #include <env_internal.h>
 #include <linux/delay.h>
 #include <platform.h>
+#include "../common/k230_board_common.h"
 
 void ddr_init_2667(void);
 int ddr_init_training(void)
@@ -75,6 +76,8 @@ int board_late_init(void)
 	usb_ctl3 |= USB_IDPULLUP0;
 	usb_ctl3 |= (USB_DMPULLDOWN0 | USB_DPPULLDOWN0);
 	writel(usb_ctl3, ( volatile void __iomem *)(SDIO0_BASE_ADDR + 0x9c));
+
+	env_set_ulong("mmc_boot_dev_num", g_bootmod - SYSCTL_BOOT_SDIO0);
 
 	//printf("usb_ctl3 =%x\n",usb_ctl3);
     return 0;

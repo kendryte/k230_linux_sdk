@@ -21,6 +21,7 @@
 // #include "sdk_autoconf.h"
 // #include "k230_board_common.h"
 #include <env_internal.h>
+#include "../common/k230_board_common.h"
 
 //必须实现；board_r 会调用；
 int board_init(void)
@@ -63,4 +64,10 @@ void quick_boot_board_init(void)
     u32 usb0_otg_en_gpio52_data = readl((void*)(GPIO_BASE_ADDR1 + 0x0));
     usb0_otg_en_gpio52_data |= 1 << (52 - 32);
     writel(usb0_otg_en_gpio52_data, (void*)(GPIO_BASE_ADDR1 + 0x0));
+}
+
+int board_late_init(void)
+{
+    env_set_ulong("mmc_boot_dev_num", g_bootmod - SYSCTL_BOOT_SDIO0);
+    return 0;
 }

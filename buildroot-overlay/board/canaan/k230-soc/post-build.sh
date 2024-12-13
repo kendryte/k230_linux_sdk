@@ -4,7 +4,7 @@
 #BUILDROOT_DIR=${PWD}
 set -e
 rootfs_dir="$1"
-DTB="$2.dtb"
+
 
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
 K230_SDK_ROOT=$(dirname $(dirname ${BASE_DIR}))

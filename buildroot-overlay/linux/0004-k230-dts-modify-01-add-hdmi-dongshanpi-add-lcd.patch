@@ -1,0 +1,548 @@
+From 218af157e00c9d9f696e5998f512d63cf026260b Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Thu, 12 Dec 2024 10:46:30 +0000
+Subject: [PATCH] k230:dts modify:01 add hdmi,dongshanpi add lcd
+
+Signed-off-by: wangjianxin <wangjianxin@canaan-creative.com>
+---
+ .../dts/canaan/bananapi-canmv-k230d-zero.dts  |   2 +
+ .../dts/canaan/display-ili9806-480x800.dtsi   | 169 ++++++++++++++++++
+ .../dts/canaan/k230-canmv-01studio-lcd.dts    | 110 ++++++++++++
+ .../boot/dts/canaan/k230-canmv-01studio.dts   |  19 ++
+ .../boot/dts/canaan/k230-canmv-dongshanpi.dts | 121 +++++++++++++
+ arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts |   2 +
+ arch/riscv/boot/dts/canaan/k230-canmv.dts     |   2 +
+ arch/riscv/boot/dts/canaan/k230-evb.dts       |   2 +
+ arch/riscv/boot/dts/canaan/k230d-canmv.dts    |   2 +
+ 9 files changed, 429 insertions(+)
+ create mode 100644 arch/riscv/boot/dts/canaan/display-ili9806-480x800.dtsi
+ create mode 100644 arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+ create mode 100644 arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+
+diff --git a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+index 78fc9716a..89b28a37a 100644
+--- a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
++++ b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+@@ -12,6 +12,8 @@ / {
+ 
+ 	aliases {
+ 		serial2 = &uart2;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 	};
+ 
+ 	chosen {
+diff --git a/arch/riscv/boot/dts/canaan/display-ili9806-480x800.dtsi b/arch/riscv/boot/dts/canaan/display-ili9806-480x800.dtsi
+new file mode 100644
+index 000000000..39be4e735
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/display-ili9806-480x800.dtsi
+@@ -0,0 +1,169 @@
++// SPDX-License-Identifier: GPL-2.0
++&vo {
++	vth_line = <10>;
++};
++
++&dsi {
++	ports {
++		port@1 {
++			reg = <1>;
++			dsi_out_st7701: endpoint {
++				remote-endpoint = <&st7701_in>;
++			};
++		};
++	};
++
++	lcd: panel@0 {
++		compatible = "canaan,universal";
++		reg = <0>;
++
++		panel-width-mm = <480>;
++		panel-height-mm = <800>;
++		panel-dsi-lane = <2>;
++
++		panel-init-sequence = [
++			39 00 06 ff ff 98 06 04 01
++			39 00 02 08 10
++			39 00 02 21 01
++			39 00 02 30 02
++			39 00 02 31 01
++			39 00 02 40 16
++			39 00 02 41 33
++			39 00 02 42 00
++			39 00 02 43 85
++			39 00 02 44 8b
++			39 00 02 45 1b
++			39 00 02 50 78
++			39 00 02 51 78
++			39 00 02 52 00
++			39 00 02 53 60
++			39 00 02 60 07
++			39 00 02 61 00
++			39 00 02 62 07
++			39 00 02 63 00
++			39 00 02 a0 00
++			39 00 02 a1 0b
++			39 00 02 a2 12
++			39 00 02 a3 0c
++			39 00 02 a4 05
++			39 00 02 a5 0c
++			39 00 02 a6 07
++			39 00 02 a7 16
++			39 00 02 a8 06
++			39 00 02 a9 0a
++			39 00 02 aa 0f
++			39 00 02 ab 06
++			39 00 02 ac 0e
++			39 00 02 ad 1a
++			39 00 02 ae 12
++			39 00 02 af 00
++			39 00 02 c0 00
++			39 00 02 c1 0b
++			39 00 02 c2 12
++			39 00 02 c3 0c
++			39 00 02 c4 05
++			39 00 02 c5 0c
++			39 00 02 c6 07
++			39 00 02 c7 16
++			39 00 02 c8 06
++			39 00 02 c9 0a
++			39 00 02 ca 0f
++			39 00 02 cb 06
++			39 00 02 cc 0e
++			39 00 02 cd 1a
++			39 00 02 ce 12
++			39 00 02 cf 00
++			39 00 06 ff ff 98 06 04 06
++			39 00 02 00 a0
++			39 00 02 01 05
++			39 00 02 02 00
++			39 00 02 03 00
++			39 00 02 04 01
++			39 00 02 05 01
++			39 00 02 06 88
++			39 00 02 07 04
++			39 00 02 08 01
++			39 00 02 09 90
++			39 00 02 0a 04
++			39 00 02 0b 01
++			39 00 02 0c 01
++			39 00 02 0d 01
++			39 00 02 0e 00
++			39 00 02 0f 00
++			39 00 02 10 55
++			39 00 02 11 50
++			39 00 02 12 01
++			39 00 02 13 85
++			39 00 02 14 85
++			39 00 02 15 c0
++			39 00 02 16 0b
++			39 00 02 17 00
++			39 00 02 18 00
++			39 00 02 19 00
++			39 00 02 1a 00
++			39 00 02 1b 00
++			39 00 02 1c 00
++			39 00 02 1d 00
++			39 00 02 20 01
++			39 00 02 21 23
++			39 00 02 22 45
++			39 00 02 23 67
++			39 00 02 24 01
++			39 00 02 25 23
++			39 00 02 26 45
++			39 00 02 27 67
++			39 00 02 30 02
++			39 00 02 31 22
++			39 00 02 32 11
++			39 00 02 33 aa
++			39 00 02 34 bb
++			39 00 02 35 66
++			39 00 02 36 00
++			39 00 02 37 22
++			39 00 02 38 22
++			39 00 02 39 22
++			39 00 02 3a 22
++			39 00 02 3b 22
++			39 00 02 3c 22
++			39 00 02 3d 20
++			39 00 02 3e 22
++			39 00 02 3f 22
++			39 00 02 40 22
++			39 00 02 53 1a
++			39 00 06 ff ff 98 06 04 07
++			39 00 02 17 12
++			39 00 01 21
++			39 00 02 02 77
++			39 00 06 ff ff 98 06 04 00
++			39 00 02 35 00
++			39 00 01 11
++			39 ff 01 29
++		];
++
++		display-timings {
++				timing-0 {
++				clock-frequency = <39600000>;
++				hactive = <480>;
++				vactive = <800>;
++				hfront-porch = <80>;
++				hback-porch = <20>;
++				hsync-len = <20>;
++				vfront-porch = <220>;
++				vback-porch = <70>;
++				vsync-len = <10>;
++			};
++		};
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++				st7701_in: endpoint {
++					remote-endpoint = <&dsi_out_st7701>;
++				};
++			};
++		};
++	};
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+new file mode 100644
+index 000000000..f840d3c30
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -0,0 +1,110 @@
++// SPDX-License-Identifier: GPL-2.0 OR MIT
++/*
++ * Copyright (C) 2024 Yangyu Chen <cyy@cyyself.name>
++ */
++
++#include "k230.dtsi"
++#include "display-st7701-480x800.dtsi"
++
++/
++{
++	model = "Canaan CanMV-K230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++
++	aliases {
++		serial3 = &uart3;
++		i2c0 = &i2c4;
++		i2c1 = &i2c3;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	ddr: memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x40000000>;
++	};
++
++	sound {
++		status                      = "okay";
++		compatible                  = "canaan,k230-audio-inno";
++		canaan,model                = "K230_I2S_INNO";
++		canaan,k230-i2s-controller  = <&i2s>;
++		canaan,k230-audio-codec     = <&inno_codec>;
++	};
++};
++
++&uart0 {
++	status = "okay";
++};
++&uart3 {
++	status = "okay";
++};
++&mmc_sd0{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	rx_delay_line = <0x0d>;
++	tx_delay_line = <0xb0>;
++	clocks = <&sd0_cclk_gate>,<&sd0_cclk_gate>;
++	clock-names = "core", "bus";
++};
++&mmc_sd1{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	mshc_ctrl_r = <0x00>;
++};
++&usb0 {
++	status = "okay";
++};
++&usb1 {
++	dr_mode = "host";
++	status = "okay";
++};
++
++
++&i2c4
++{
++	status = "okay";
++};
++
++
++
++&vo {
++	vth_line = <10>;
++};
++&mipi0
++{
++	// set to csi2
++	id = <2>;
++	reg = <0x0 0x9000a800 0x0 0x800>;
++	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
++			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
++	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++};
++
++&i2c3
++{
++	status = "okay";
++
++	touchscreen@38
++	{
++		compatible = "edt,edt-ft5306";
++		reg = <0x38>;
++		reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_LOW>;
++		interrupt-parent = <&gpio0_ports>;
++		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++	};
++};
++
++&lcd
++{
++	dsi_reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_HIGH>;
++	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+index f22eaf7b2..13a580788 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+@@ -11,6 +11,10 @@ / {
+ 
+ 	aliases {
+ 		serial3 = &uart3;
++		i2c0 = &i2c4;
++		i2c1 = &i2c3;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 	};
+ 
+ 	chosen {
+@@ -88,6 +92,10 @@ lt9611_out: endpoint {
+ 		};
+ 	};
+ };
++&i2c4
++{
++	status = "okay";
++};
+ 
+ &dsi {
+ 	ports {
+@@ -117,3 +125,14 @@ hdmi_connector_in: endpoint {
+ &vo {
+ 	vth_line = <10>;
+ };
++&mipi0
++{
++	// set to csi2
++	id = <2>;
++	reg = <0x0 0x9000a800 0x0 0x800>;
++	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
++			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
++	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+new file mode 100644
+index 000000000..c4cb6d1e8
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+@@ -0,0 +1,121 @@
++// SPDX-License-Identifier: GPL-2.0 OR MIT
++/*
++ * Copyright (C) 2024 Yangyu Chen <cyy@cyyself.name>
++ */
++
++#include "k230.dtsi"
++#include "display-ili9806-480x800.dtsi"
++
++/ {
++	model = "Canaan CanMV-K230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++
++	aliases {
++		serial3 = &uart3;
++		i2c0 = &i2c4;
++		i2c1 = &i2c3;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	ddr: memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x40000000>;
++	};
++
++	sound {
++		status                      = "okay";
++		compatible                  = "canaan,k230-audio-inno";
++		canaan,model                = "K230_I2S_INNO";
++		canaan,k230-i2s-controller  = <&i2s>;
++		canaan,k230-audio-codec     = <&inno_codec>;
++	};
++};
++
++&usb0 {
++	status = "okay";
++};
++
++&usb1 {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&mmc_sd0{
++	status = "okay";
++	io_fixed_1v8;
++	rx_delay_line = <0x0d>;
++	tx_delay_line = <0x40>;
++};
++
++&mmc_sd1{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	mshc_ctrl_r = <0x00>;
++	};
++
++&uart0 {
++	status = "okay";
++};
++&uart3 {
++	status = "okay";
++};
++
++&mmc_sd1{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	mshc_ctrl_r = <0x00>;
++};
++&usb0 {
++	status = "okay";
++};
++&usb1 {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&i2c4 {
++	status = "okay";
++};
++
++
++
++&vo {
++	vth_line = <10>;
++};
++&mipi0 {
++	// set to csi2
++	id = <2>;
++	reg = <0x0 0x9000a800 0x0 0x800>;
++	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset
++			  K230_RESET_CSI2_REG_OFFSET
++			  K230_RESET_CSI2_TYPE
++			  K230_RESET_CSI2_DONE_BIT
++			  K230_RESET_CSI2_ASSERT_BIT>,
++			 <&sysctl_reset
++			  K230_RESET_M2_REG_OFFSET
++			  K230_RESET_M2_TYPE
++			  K230_RESET_M2_DONE_BIT
++			  K230_RESET_M2_ASSERT_BIT>;
++};
++&i2c3 {
++	status = "okay";
++	touchscreen@38 {
++		compatible = "edt,edt-ft5306";
++		reg = <0x38>;
++		reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_LOW>;
++		interrupt-parent = <&gpio0_ports>;
++		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++	};
++};
++&lcd {
++	dsi_reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_HIGH>;
++	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+index 0c5ccd51a..c0edcc0e6 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+@@ -12,6 +12,8 @@ / {
+ 
+ 	aliases {
+ 		serial3 = &uart3;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 	};
+ 
+ 	chosen {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv.dts b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+index ad65843be..5b51bdc60 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+@@ -11,6 +11,8 @@ / {
+ 
+ 	aliases {
+ 		serial3 = &uart3;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 	};
+ 
+ 	chosen {
+diff --git a/arch/riscv/boot/dts/canaan/k230-evb.dts b/arch/riscv/boot/dts/canaan/k230-evb.dts
+index 3792b9377..3e17c92ad 100644
+--- a/arch/riscv/boot/dts/canaan/k230-evb.dts
++++ b/arch/riscv/boot/dts/canaan/k230-evb.dts
+@@ -12,6 +12,8 @@ / {
+ 
+ 	aliases {
+ 		serial3 = &uart3;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 	};
+ 
+ 	chosen {
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv.dts b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+index 8e6811108..c0f0d097e 100644
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+@@ -12,6 +12,8 @@ / {
+ 
+ 	aliases {
+ 		serial2 = &uart2;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 	};
+ 
+ 	chosen {
+-- 
+2.34.1
+

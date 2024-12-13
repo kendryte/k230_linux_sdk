@@ -120,7 +120,6 @@ __weak void quick_boot_board_init(void)
 {
 	/* Nothing to do! */
 }
-int ddr_init_training(void);
 //weak;
 int spl_board_init_f(void)
 {
@@ -130,7 +129,7 @@ int spl_board_init_f(void)
     g_bootmod = sysctl_boot_get_boot_mode();
 
     record_boot_time_info_to_sram("ds");
-    ddr_init_training();
+    dram_init();
     record_boot_time_info_to_sram("dd");
     /* Clear the BSS. */
     //record_boot_time_info_to_sram("bs");
