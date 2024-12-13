@@ -453,6 +453,23 @@ for subdir in $(ls -d */); do
             cp -a ${kmodel_root_dir}/utils/you.bin ${k230_bin}/$subdir_name
             cp -a shell/demo_mix.sh ${k230_bin}/$subdir_name
       fi
+
+      if [ "$subdir_name" = "tts_zh" ]; then
+            cp out/bin/tts_zh.elf ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/zh_fastspeech_1.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/zh_fastspeech_2.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/hifigan.kmodel ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/wav_play.elf ${k230_bin}/$subdir_name 
+            cp -ar ${kmodel_root_dir}/utils/file ${k230_bin}/$subdir_name 
+            cp -a shell/tts_zh.sh ${k230_bin}/$subdir_name
+      fi
+
+      if [ "$subdir_name" = "kws" ]; then
+            cp out/bin/kws.elf ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/kmodel/kws.kmodel ${k230_bin}/$subdir_name
+            cp -ar ${kmodel_root_dir}/utils/reply_wav/ ${k230_bin}/$subdir_name
+            cp -a shell/kws.sh ${k230_bin}/$subdir_name
+      fi
       rm -rf out/*
 done
 
