@@ -43,3 +43,10 @@ int board_late_init(void)
     return 0;
 }
 #endif
+
+
+char *fdt_chosen_bootargs(void)
+{
+    char *bootargs = "root=/dev/mmcblk0p2 loglevel=8 rw rootdelay=4 rootfstype=ext4 console=ttyS0,115200  earlycon=sbi";
+	return bootargs;
+}

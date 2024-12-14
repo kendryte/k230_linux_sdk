@@ -37,7 +37,7 @@ help:sync
 	@echo "    make uboot-dirclean #uboot clean"
 	@echo "    make linux-rebuild  #rebuild linux"
 	@echo "    make linux-dirclean #linux clean"
-	@echo "    make show-conf      #show support config,and current use config"
+	@echo "    make list_def      #show support config,and current use config"
 	@echo ""
 	@echo "dcoker build and run example:"
 	@echo "    docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker "
@@ -49,12 +49,36 @@ help:sync
 	@echo ""
 	@echo ""
 
+.PHONY:list_def
+list_def:
+	@echo "current config:"
+	@echo "	$$(cat .last_conf | cut -d = -f2)"
+	@echo "Available all configs and board note:"
+	@echo "	k230_canmv_defconfig                  --canmv 1.0/1.1 board"
+	@echo "	k230_canmv_v3_defconfig               --canmv v3 board"
+	@echo "	k230_canmv_01studio_defconfig         --01studio board"
+	@echo "	k230_canmv_dongshanpi_defconfig       --dongshanpi board"
+	@echo "	k230_canmv_lckfb_defconfig            --lushanpi ,jialichaung board"
+	@echo "	BPI-CanMV-K230D-Zero_defconfig        --bananapi k230d"
+	@echo "	k230d_canmv_ilp32_defconfig           --k230d canmv new32 board,plct use"
+	@echo "	k230d_canmv_defconfig                 --k230d canmv board"
+	@echo "	BPI-CanMV-K230D-Zero_ilp32_defconfig  --plct use,new 32 board,"
+	@echo "	k230_evb_defconfig                    --k230 evb board"
+	@echo ""
+
+
+
+
+
+
+
+
 
 .PHONY:sync
 sync:
 	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
 
-this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig   debian ubuntu openouler  debian_rootfs ubuntu_rootfs
+this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig   debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@
 	@( if [ $@ = linux-savedefconfig ];then \
