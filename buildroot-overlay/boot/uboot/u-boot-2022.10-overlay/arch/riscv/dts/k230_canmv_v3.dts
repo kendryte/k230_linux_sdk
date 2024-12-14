@@ -35,8 +35,8 @@
 #include "k230.dtsi"
 
 / {
-	model = "kendryte k230 canmv v2";
-	compatible = "kendryte,k230_canmv_v2";
+	model = "kendryte k230 canmv v3";
+	compatible = "kendryte,k230_canmv_v3";
 
 	memory@0 {
 		device_type = "memory";
@@ -67,8 +67,8 @@
 		u-boot,dm-pre-reloc;
 		pinctrl-single,pins = <
 
-		// SW3
-		(IO0 ) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO0_IO1 <<MSC | 0<<IE | 1<<OE | 1<<PU | 0<<PD | 2<<DS | 0<<ST )
+		// boot
+		(IO0 ) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO0_IO1 <<MSC | 0<<IE | 1<<OE | 1<<PU | 0<<PD | 2<<DS | 0<<ST )
 		// boot1
 		(IO1 ) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO0_IO1 <<MSC | 0<<IE | 1<<OE | 1<<PU | 0<<PD | 2<<DS | 0<<ST )
 
@@ -87,7 +87,7 @@
 		(IO7 ) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST )
 		(IO8 ) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST )
 
-		// gpio_csi0 
+		// gpio_csi0
 		(IO9 ) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST )
 		(IO10) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 8<<DS | 1<<ST )
 
@@ -175,13 +175,13 @@
 		(IO57) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO50_IO61<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
 		(IO58) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO50_IO61<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
 		(IO59) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO50_IO61<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
-		
+
 		//gpio_csi1
 		(IO60) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO50_IO61<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
 		//gpio_csi0
 		(IO61) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO50_IO61<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
 
-		// ext jp 
+		// ext jp
 		(IO62) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO62_IO63<<MSC | 1<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST )
 		(IO63) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO62_IO63<<MSC | 1<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST )
 		>;
