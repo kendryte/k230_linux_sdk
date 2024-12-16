@@ -104,14 +104,16 @@ EOF
 
 echo "a"> /first_boot_flag
 cat << 'EOF' > /etc/profile.d/disk.sh
+bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
 if [ -f /first_boot_flag ]; then
     echo "first boot flag"
-    sd_size=$(parted /dev/mmcblk0 print | grep mmcblk0 | cut -d: -f2)
-    parted /dev/mmcblk0 resizepart 2 ${sd_size}; resize2fs /dev/mmcblk0p2
+    sd_size=$(parted ${bootddev} print | grep ${bootddev} | cut -d: -f2)
+    parted ${bootddev} resizepart 2 ${sd_size}; resize2fs ${bootddev}p2
     rm -rf /first_boot_flag
 else
     echo "not exit flag"
 fi
+mount ${bootddev}p1 /boot
 EOF
 echo "PermitRootLogin yes" >> etc/ssh/sshd_config
 
@@ -164,14 +166,17 @@ apt-get install ssh  parted
 echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 echo "a" >/first_boot_flag
 cat << 'EOF' > /etc/profile.d/disk.sh
+bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
 if [ -f /first_boot_flag ]; then
     echo "first boot flag"
-    sd_size=$(parted /dev/mmcblk0 print | grep mmcblk0 | cut -d: -f2)
-    parted /dev/mmcblk0 resizepart 2 ${sd_size}; resize2fs /dev/mmcblk0p2
+    sd_size=$(parted ${bootddev} print | grep ${bootddev} | cut -d: -f2)
+    parted ${bootddev} resizepart 2 ${sd_size}; resize2fs ${bootddev}p2
     rm -rf /first_boot_flag
 else
     echo "not exit flag"
 fi
+mount ${bootddev}p1 /boot
+dhcpcd
 EOF
 
 exit
@@ -319,9 +324,9 @@ fi
 
 
 if [ "${distribution_type}" =  "debian" ] ;then
-    distribution_rootfs_replace  debian   debian13  ${DISTR_DOWN_URI}/debian13.tar.gz  "96f2f71ce0533a344f7bee459179bca6"
+    distribution_rootfs_replace  debian   debian13  ${DISTR_DOWN_URI}/debian13.tar.gz  "aeeda080980a6f998526e8e49e786891"
 elif [ "${distribution_type}" =  "ubuntu" ] ;then
-    distribution_rootfs_replace  ubuntu   ubuntu24  ${DISTR_DOWN_URI}/ubuntu24.tar.gz "bbbb3352943016748092ebed8d59b90b"
+    distribution_rootfs_replace  ubuntu   ubuntu24  ${DISTR_DOWN_URI}/ubuntu24.tar.gz "32176750a7b7c283af60d5af8abbac63"
 elif [ "${distribution_type}" =  "debian_rootfs" ] ;then
     debian_gen_rootfs
 elif [ "${distribution_type}" =  "ubuntu_rootfs" ] ;then
