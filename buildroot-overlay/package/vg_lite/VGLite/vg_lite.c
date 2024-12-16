@@ -2995,6 +2995,8 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
                                 vg_lite_color_t color,
                                 vg_lite_filter_t filter)
 {
+    if (source->memory)
+        thead_csi_dcache_clean_invalid_range(source->memory, source->stride * source->height);
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
     vg_lite_point_t point_min, point_max, temp;
