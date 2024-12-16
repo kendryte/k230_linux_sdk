@@ -8,7 +8,7 @@ SOURCES = vg_lite_dump.c \
 		  ../VGLiteKernel/linux/vg_lite_ioctl.c \
 		  ../VGLiteKernel/linux/vg_lite_os.c
 
-CFLAG := -mcpu=c908v -I../inc -I../VGLiteKernel -I. -Wno-missing-braces -D_GNU_SOURCE -g $(CFLAGS) 
+CFLAG := -O3 -mcpu=c908v -I../inc -I../VGLiteKernel -I. -Wno-missing-braces -D_GNU_SOURCE -g $(CFLAGS) 
 
 LIBS += m
 LDFLAGS += $(addprefix -l,$(LIBS))
