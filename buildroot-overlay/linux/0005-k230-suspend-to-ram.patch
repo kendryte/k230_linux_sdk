@@ -1,0 +1,30 @@
+From 94f9cef799620b59098a2a2eecc8cdb6746de743 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Thu, 19 Dec 2024 10:28:05 +0000
+Subject: [PATCH] k230:suspend to ram
+
+---
+ arch/riscv/boot/dts/canaan/k230.dtsi | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230.dtsi b/arch/riscv/boot/dts/canaan/k230.dtsi
+index fd72e2cee..7dacd68e4 100644
+--- a/arch/riscv/boot/dts/canaan/k230.dtsi
++++ b/arch/riscv/boot/dts/canaan/k230.dtsi
+@@ -18,6 +18,13 @@ aliases {
+ 		serial0 = &uart0;
+ 	};
+ 
++	chosen {
++		opensbi-domains {
++          compatible = "opensbi,domain,config";
++          system-suspend-test;
++      };
++	};
++
+ 	cpus {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+-- 
+2.25.1
+
