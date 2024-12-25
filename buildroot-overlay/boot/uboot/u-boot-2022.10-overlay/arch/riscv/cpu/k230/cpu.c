@@ -116,21 +116,21 @@ static int k230_boot_baremetal(struct cmd_tbl *cmdtp, int flag, int argc,
 	if(boot_cpu)
 	{
 		writel(boot_address, (void*)0x91102104ULL);//cpu1_hart_rstvec
-		udelay(100);
+		//udelay(100);
 		writel(0x10001000,(void*)0x9110100c);
-		udelay(100);
+		//udelay(100);
 		writel(0x10001,(void*)0x9110100c);
-		udelay(100);
+		//udelay(100);
 		writel(0x10000,(void*)0x9110100c);
 	}
 	else
 	{
 		writel(boot_address, (void*)0x91102100ULL);//cpu0_hart_rstvec
-		udelay(100);
+		//udelay(100);
 		writel(0x10001000,(void*)0x91101004ULL);
-		udelay(100);
+		//udelay(100);
 		writel(0x10001,(void*)0x91101004ULL);
-		udelay(100);
+		//udelay(100);
 		writel(0x10000,(void*)0x91101004ULL);
 	}
 

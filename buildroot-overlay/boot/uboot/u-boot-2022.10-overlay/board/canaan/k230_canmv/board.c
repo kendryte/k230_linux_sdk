@@ -59,7 +59,7 @@ int ddr_init_training(void)
 	#elif  defined(CONFIG_LPDDR4_2667)
 		printf("CONFIG_LPDDR4_2667 \n");
 		ddr_init_2667();
-	#elif  defined(CONFIG_LPDDR4_3200)
+	#elif  defined(CONFIG_LPDDR4_3200) ||  defined(CONFIG_CANMV_V3_LPDDR4_3200)
 		printf("CONFIG_LPDDR4_3200 \n");
 		ddr4_init_3200();
 	#elif  defined(CONFIG_SIPLP4_3200_WODT)

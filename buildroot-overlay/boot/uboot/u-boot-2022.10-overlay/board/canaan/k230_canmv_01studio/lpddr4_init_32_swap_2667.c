@@ -653,57 +653,60 @@ reg_write(   DDR_REG_BASE +  0x000200cb*4+0x02000000 , 0x000061f0 );
 reg_write(   DDR_REG_BASE +  0x00020060*4+0x02000000 , 0x00000002 );
 
 //swap
-reg_write(   DDR_REG_BASE + 0x20100*4+0x02000000,0x5); //CA0
-reg_write(   DDR_REG_BASE + 0x20101*4+0x02000000,0x4); //CA1
-reg_write(   DDR_REG_BASE + 0x20102*4+0x02000000,0x3); //CA2
-reg_write(   DDR_REG_BASE + 0x20103*4+0x02000000,0x2); //CA3
-reg_write(   DDR_REG_BASE + 0x20104*4+0x02000000,0x1); //CA4
-reg_write(   DDR_REG_BASE + 0x20105*4+0x02000000,0x0); //CA5
+reg_write(   DDR_REG_BASE + 0x20100*4+0x02000000,0x5); //颗粒的CAA0---k230的M19管脚内部是CAA5(封装为DDR_CA4_CAA0)
+reg_write(   DDR_REG_BASE + 0x20101*4+0x02000000,0x4); //颗粒的CAA1---k230的L16管脚内部是CAA4(封装为DDR_CA5_CAA1)
+reg_write(   DDR_REG_BASE + 0x20102*4+0x02000000,0x3); //颗粒的CAA2---k230的N19管脚内部是CAA3(封装为DDR_CA5_CAA2)
+reg_write(   DDR_REG_BASE + 0x20103*4+0x02000000,0x2); //颗粒的CAA3---k230的N20管脚内部是CAA2(封装为DDR_CA5_CAA3)
+reg_write(   DDR_REG_BASE + 0x20104*4+0x02000000,0x1); //颗粒的CAA4---k230的M18管脚内部是CAA1(封装为DDR_CA5_CAA4)
+reg_write(   DDR_REG_BASE + 0x20105*4+0x02000000,0x0); //颗粒的CAA5---k230的P19管脚内部是CAA0(封装为DDR_CA5_CAA5)
 
-reg_write(   DDR_REG_BASE + 0x110a0*4+0x02000000,0x4); //
-reg_write(   DDR_REG_BASE + 0x110a1*4+0x02000000,0x7); //
-reg_write(   DDR_REG_BASE + 0x110a2*4+0x02000000,0x6); //
-reg_write(   DDR_REG_BASE + 0x110a3*4+0x02000000,0x0); //
-reg_write(   DDR_REG_BASE + 0x110a4*4+0x02000000,0x2); //
-reg_write(   DDR_REG_BASE + 0x110a5*4+0x02000000,0x1); //
-reg_write(   DDR_REG_BASE + 0x110a6*4+0x02000000,0x5); //
-reg_write(   DDR_REG_BASE + 0x110a7*4+0x02000000,0x3); //
+reg_write(   DDR_REG_BASE + 0x20110*4+0x02000000,0x0); //颗粒的CAB0---k230的E20管脚内部是CAB0(封装为DDR_NC_CAB0)
+reg_write(   DDR_REG_BASE + 0x20111*4+0x02000000,0x1); //颗粒的CAB1---k230的G19管脚内部是CAB1(封装为DDR_NC_CAB1)
+reg_write(   DDR_REG_BASE + 0x20112*4+0x02000000,0x2); //颗粒的CAB2---k230的G18管脚内部是CAB2(封装为DDR_NC_CAB2)
+reg_write(   DDR_REG_BASE + 0x20113*4+0x02000000,0x3); //颗粒的CAB3---k230的H17管脚内部是CAB3(封装为DDR_NC_CAB3)
+reg_write(   DDR_REG_BASE + 0x20114*4+0x02000000,0x4); //颗粒的CAB4---k230的F17管脚内部是CAB4(封装为DDR_NC_CAB4)
+reg_write(   DDR_REG_BASE + 0x20115*4+0x02000000,0x5); //颗粒的CAB5---k230的F19管脚内部是CAB5(封装为DDR_NC_CAB5)
 
-//reg_write(   DDR_REG_BASE + 0x110a0*4+0x02000000,0x4); //lndq =1
-//reg_write(   DDR_REG_BASE + 0x110a1*4+0x02000000,0x1); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x110a2*4+0x02000000,0x7); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x110a3*4+0x02000000,0x0); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x110a4*4+0x02000000,0x2); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x110a5*4+0x02000000,0x3); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x110a6*4+0x02000000,0x6); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x110a7*4+0x02000000,0x5); //CA1 =0
 
-reg_write(   DDR_REG_BASE + 0x130a0*4+0x02000000,0x3); //
-reg_write(   DDR_REG_BASE + 0x130a1*4+0x02000000,0x4); //
-reg_write(   DDR_REG_BASE + 0x130a2*4+0x02000000,0x0); //
-reg_write(   DDR_REG_BASE + 0x130a3*4+0x02000000,0x2); //
-reg_write(   DDR_REG_BASE + 0x130a4*4+0x02000000,0x1); //
-reg_write(   DDR_REG_BASE + 0x130a5*4+0x02000000,0x5); //
-reg_write(   DDR_REG_BASE + 0x130a6*4+0x02000000,0x6); //
-reg_write(   DDR_REG_BASE + 0x130a7*4+0x02000000,0x7); //
+// k230内部第0字节(dbyte0) 寄存器基地址是  DR_REG_BASE + 0x100a0*4+0x02000000
+reg_write(   DDR_REG_BASE + 0x100a0*4+0x02000000,0x4); //颗粒的DQA0---k230的Y16管脚(第0字节的BIT_4,封装名DDR_DQ28_DQA3)
+reg_write(   DDR_REG_BASE + 0x100a1*4+0x02000000,0x5); //颗粒的DQA1---k230的V16管脚(第0字节的BIT_5,封装名DDR_DQ29_DQA2)
+reg_write(   DDR_REG_BASE + 0x100a2*4+0x02000000,0x0); //颗粒的DQA2---k230的U17管脚(第0字节的BIT_0,封装名DDR_DQ24_DQA7)
+reg_write(   DDR_REG_BASE + 0x100a3*4+0x02000000,0x6); //颗粒的DQA3---k230的V16管脚(第0字节的BIT_6,封装名DDR_DQ30_DQA1)
+reg_write(   DDR_REG_BASE + 0x100a4*4+0x02000000,0x7); //颗粒的DQA4---k230的U16管脚(第0字节的BIT_7,封装名DDR_DQ31_DQA0)
+reg_write(   DDR_REG_BASE + 0x100a5*4+0x02000000,0x2); //颗粒的DQA5---k230的V18管脚(第0字节的BIT_2,封装名DDR_DQ26_DQA5)
+reg_write(   DDR_REG_BASE + 0x100a6*4+0x02000000,0x3); //颗粒的DQA6---k230的W18管脚(第0字节的BIT_3,封装名DDR_DQ27_DQA4)
+reg_write(   DDR_REG_BASE + 0x100a7*4+0x02000000,0x1); //颗粒的DQA7---k230的Y18管脚(第0字节的BIT_1,封装名DDR_DQ25_DQA6)
 
-//reg_write(   DDR_REG_BASE + 0x130a0*4+0x02000000,0x3); //lndq =1
-//reg_write(   DDR_REG_BASE + 0x130a1*4+0x02000000,0x0); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x130a2*4+0x02000000,0x2); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x130a3*4+0x02000000,0x1); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x130a4*4+0x02000000,0x6); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x130a5*4+0x02000000,0x7); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x130a6*4+0x02000000,0x5); //CA1 =0
-//reg_write(   DDR_REG_BASE + 0x130a7*4+0x02000000,0x4); //CA1 =0
+// k230内部第1字节(dbyte1) 寄存器基地址是  DR_REG_BASE + 0x110a0*4+0x02000000
+reg_write(   DDR_REG_BASE + 0x110a0*4+0x02000000,0x4); //颗粒的DQA8----k230的W19管脚(第1字节的BIT_4,封装名DDR_DQ12_DQA12)
+reg_write(   DDR_REG_BASE + 0x110a1*4+0x02000000,0x7); //颗粒的DQA9----k230的T17管脚(第1字节的BIT_7,封装名DDR_DQ15_DQA15)
+reg_write(   DDR_REG_BASE + 0x110a2*4+0x02000000,0x6); //颗粒的DQA10---k230的P16管脚(第1字节的BIT_6,封装名DDR_DQ14_DQA14)
+reg_write(   DDR_REG_BASE + 0x110a3*4+0x02000000,0x0); //颗粒的DQA11---k230的R17管脚(第1字节的BIT_0,封装名DDR_DQ8_DQA8)
+reg_write(   DDR_REG_BASE + 0x110a4*4+0x02000000,0x2); //颗粒的DQA12---k230的R18管脚(第1字节的BIT_2,封装名DDR_DQ10_DQA10)
+reg_write(   DDR_REG_BASE + 0x110a5*4+0x02000000,0x1); //颗粒的DQA13---k230的T18管脚(第1字节的BIT_1,封装名DDR_DQ9_DQA9)
+reg_write(   DDR_REG_BASE + 0x110a6*4+0x02000000,0x5); //颗粒的DQA14---k230的U18管脚(第1字节的BIT_5,封装名DDR_DQ13_DQA13)A
+reg_write(   DDR_REG_BASE + 0x110a7*4+0x02000000,0x3); //颗粒的DQA15---k230的U20管脚(第1字节的BIT_3,封装名DDR_DQ11_DQA11)
 
-reg_write(   DDR_REG_BASE + 0x120a0*4+0x02000000,0x3); //
-reg_write(   DDR_REG_BASE + 0x120a1*4+0x02000000,0x0); //
-reg_write(   DDR_REG_BASE + 0x120a2*4+0x02000000,0x2); //
-reg_write(   DDR_REG_BASE + 0x120a3*4+0x02000000,0x5); //
-reg_write(   DDR_REG_BASE + 0x120a4*4+0x02000000,0x4); //
-reg_write(   DDR_REG_BASE + 0x120a5*4+0x02000000,0x1); //
-reg_write(   DDR_REG_BASE + 0x120a6*4+0x02000000,0x7); //
-reg_write(   DDR_REG_BASE + 0x120a7*4+0x02000000,0x6); //
+// k230内部第3字节(dbyte3) 寄存器基地址是  DR_REG_BASE + 0x130a0*4+0x02000000
+reg_write(   DDR_REG_BASE + 0x130a0*4+0x02000000,0x3); //颗粒的DQB0---k230的A14管脚(第3字节的BIT_3,DDR_DQ19_DQB3)
+reg_write(   DDR_REG_BASE + 0x130a1*4+0x02000000,0x4); //颗粒的DQB1---k230的A17管脚(第3字节的BIT_4,DDR_DQ20_DQB4)
+reg_write(   DDR_REG_BASE + 0x130a2*4+0x02000000,0x0); //颗粒的DQB2---k230的C14管脚(第3字节的BIT_0,DDR_DQ16_DQB0)
+reg_write(   DDR_REG_BASE + 0x130a3*4+0x02000000,0x2); //颗粒的DQB3---k230的B14管脚(第3字节的BIT_2,DDR_DQ18_DQB2)
+reg_write(   DDR_REG_BASE + 0x130a4*4+0x02000000,0x1); //颗粒的DQB4---k230的D14管脚(第3字节的BIT_1,DDR_DQ17_DQB1)
+reg_write(   DDR_REG_BASE + 0x130a5*4+0x02000000,0x5); //颗粒的DQB5---k230的B16管脚(第3字节的BIT_5,DDR_DQ21_DQB5)
+reg_write(   DDR_REG_BASE + 0x130a6*4+0x02000000,0x6); //颗粒的DQB6---k230的C16管脚(第3字节的BIT_6,DDR_DQ22_DQB6)
+reg_write(   DDR_REG_BASE + 0x130a7*4+0x02000000,0x7); //颗粒的DQB7---k230的B17管脚(第3字节的BIT_7,DDR_DQ23_DQB7)
+
+// k230内部第2字节(dbyte3) 寄存器基地址是  DR_REG_BASE + 0x120a0*4+0x02000000
+reg_write(   DDR_REG_BASE + 0x120a0*4+0x02000000,0x3); //颗粒的DQB8----k230的C18管脚(第2字节的BIT_3,DDR_DQ3_DQB12)
+reg_write(   DDR_REG_BASE + 0x120a1*4+0x02000000,0x0); //颗粒的DQB9----k230的C17管脚(第2字节的BIT_0,DDR_DQ0_DQB15)
+reg_write(   DDR_REG_BASE + 0x120a2*4+0x02000000,0x2); //颗粒的DQB10---k230的D17管脚(第2字节的BIT_2,DDR_DQ2_DQB13)
+reg_write(   DDR_REG_BASE + 0x120a3*4+0x02000000,0x5); //颗粒的DQB11---k230的E17管脚(第2字节的BIT_5,DDR_DQ5_DQB10)
+reg_write(   DDR_REG_BASE + 0x120a4*4+0x02000000,0x4); //颗粒的DQB12---k230的E18管脚(第2字节的BIT_4,DDR_DQ4_DQB11)
+reg_write(   DDR_REG_BASE + 0x120a5*4+0x02000000,0x1); //颗粒的DQB13---k230的D16管脚(第2字节的BIT_1,DDR_DQ1_DQB14)
+reg_write(   DDR_REG_BASE + 0x120a6*4+0x02000000,0x7); //颗粒的DQB14---k230的C19管脚(第2字节的BIT_7,DDR_DQ7_DQB8)
+reg_write(   DDR_REG_BASE + 0x120a7*4+0x02000000,0x6); //颗粒的DQB15---k230的B19管脚(第2字节的BIT_0,DDR_DQ6_DQB9)
 
 
 

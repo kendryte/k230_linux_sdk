@@ -27,6 +27,7 @@
 //#include <k230.h>
 //#include <core_rv64.h>
 #include <linux/delay.h>
+#define LP4_DEFALUT_2GB_PARAME
 #define               DDR_REG_BASE 0x98000000
 
 #define reg_write( addr,v)                       \
@@ -76,11 +77,20 @@ reg_write( DDR_REG_BASE +  0x00000030 , 0x00000020 );
 reg_write( DDR_REG_BASE +  0x00000034 , 0x00408a04 );
 reg_write( DDR_REG_BASE +  0x00000038 , 0x0e0e0002 );
 reg_write( DDR_REG_BASE +  0x0000003c , 0x00000060 );
-reg_write( DDR_REG_BASE +  0x00000050 , 0x98210000 );
-reg_write( DDR_REG_BASE +  0x00000054 , 0x005a0050 );
+#ifdef  LP4_DEFALUT_2GB_PARAME
+reg_write( DDR_REG_BASE +  0x00000050 , 0x98210002 );//0x98210002,0x98210000 //2G, 1G
+reg_write( DDR_REG_BASE +  0x00000054 , 0x98210002 );//0x98210002,0x004b0043
 reg_write( DDR_REG_BASE +  0x00000060 , 0x00000001 );
-reg_write( DDR_REG_BASE +  0x00000064 , 0x00610068 );
-reg_write( DDR_REG_BASE +  0x00000068 , 0x00300000 );
+reg_write( DDR_REG_BASE +  0x00000064 , 0x006100e0 );//0x006100e0,0x00510057
+reg_write( DDR_REG_BASE +  0x00000068 , 0x00480000 );//0x00480000,0x00280000
+#else
+reg_write( DDR_REG_BASE +  0x00000050 , 0x98210000 );//0x98210002,0x98210000 //2G, 1G
+reg_write( DDR_REG_BASE +  0x00000054 , 0x005a0050 );//0x98210002,0x004b0043
+reg_write( DDR_REG_BASE +  0x00000060 , 0x00000001 );
+reg_write( DDR_REG_BASE +  0x00000064 , 0x00610068 );//0x006100e0,0x00510057
+reg_write( DDR_REG_BASE +  0x00000068 , 0x00300000 );//0x00480000,0x00280000
+#endif
+
 reg_write( DDR_REG_BASE +  0x000000c0 , 0x00000000 );
 reg_write( DDR_REG_BASE +  0x000000d0 , 0xc0020002 );
 reg_write( DDR_REG_BASE +  0x000000d4 , 0x00010002 );
@@ -104,7 +114,11 @@ reg_write( DDR_REG_BASE +  0x0000011c , 0x00000402 );
 reg_write( DDR_REG_BASE +  0x00000120 , 0x00000101 );
 reg_write( DDR_REG_BASE +  0x00000130 , 0x00020000 );
 reg_write( DDR_REG_BASE +  0x00000134 , 0x0c100002 );
-reg_write( DDR_REG_BASE +  0x00000138 , 0x0000006e );
+#ifdef LP4_DEFALUT_2GB_PARAME
+reg_write( DDR_REG_BASE +  0x00000138 , 0x000000e6 );//0x000000e6, 0x0000005c
+#else
+reg_write( DDR_REG_BASE +  0x00000138 , 0x0000006e );//0x000000e6, 0x0000005c
+#endif
 reg_write( DDR_REG_BASE +  0x0000013c , 0x80000000 );
 reg_write( DDR_REG_BASE +  0x00000144 , 0x00a00050 );
 reg_write( DDR_REG_BASE +  0x00000180 , 0xc3200018 );
@@ -126,7 +140,7 @@ reg_write( DDR_REG_BASE +  0x00000208 , 0x00000000 );
 reg_write( DDR_REG_BASE +  0x0000020c , 0x00000000 );
 reg_write( DDR_REG_BASE +  0x00000210 , 0x00001f1f );
 reg_write( DDR_REG_BASE +  0x00000214 , 0x070f0707 );
-reg_write( DDR_REG_BASE +  0x00000218 , 0x0f0f0707 );
+reg_write( DDR_REG_BASE +  0x00000218 , 0x0f070707 ); // 8gb,1GB
 reg_write( DDR_REG_BASE +  0x0000021c , 0x00000f0f );
 reg_write( DDR_REG_BASE +  0x00000224 , 0x07070707 );
 reg_write( DDR_REG_BASE +  0x00000228 , 0x07070707 );
@@ -465,60 +479,57 @@ reg_write(   DDR_REG_BASE +0x20060*4 +0x02000000,0x2);
 
 
 //swap
-reg_write(   DDR_REG_BASE + 0x20100*4+0x02000000,0x5); //颗粒的CAA0---k230的M19管脚内部是CAA5(封装为DDR_CA4_CAA0)
-reg_write(   DDR_REG_BASE + 0x20101*4+0x02000000,0x4); //颗粒的CAA1---k230的L16管脚内部是CAA4(封装为DDR_CA5_CAA1)
-reg_write(   DDR_REG_BASE + 0x20102*4+0x02000000,0x3); //颗粒的CAA2---k230的N19管脚内部是CAA3(封装为DDR_CA5_CAA2)
-reg_write(   DDR_REG_BASE + 0x20103*4+0x02000000,0x2); //颗粒的CAA3---k230的N20管脚内部是CAA2(封装为DDR_CA5_CAA3)
-reg_write(   DDR_REG_BASE + 0x20104*4+0x02000000,0x1); //颗粒的CAA4---k230的M18管脚内部是CAA1(封装为DDR_CA5_CAA4)
-reg_write(   DDR_REG_BASE + 0x20105*4+0x02000000,0x0); //颗粒的CAA5---k230的P19管脚内部是CAA0(封装为DDR_CA5_CAA5)
+reg_write(   DDR_REG_BASE + 0x20100*4+0x02000000,0x5); //CA0
+reg_write(   DDR_REG_BASE + 0x20101*4+0x02000000,0x4); //CA1
+reg_write(   DDR_REG_BASE + 0x20102*4+0x02000000,0x3); //CA2
+reg_write(   DDR_REG_BASE + 0x20103*4+0x02000000,0x2); //CA3
+reg_write(   DDR_REG_BASE + 0x20104*4+0x02000000,0x1); //CA4
+reg_write(   DDR_REG_BASE + 0x20105*4+0x02000000,0x0); //CA5
 
-reg_write(   DDR_REG_BASE + 0x20110*4+0x02000000,0x0); //颗粒的CAB0---k230的E20管脚内部是CAB0(封装为DDR_NC_CAB0)
-reg_write(   DDR_REG_BASE + 0x20111*4+0x02000000,0x1); //颗粒的CAB1---k230的G19管脚内部是CAB1(封装为DDR_NC_CAB1)
-reg_write(   DDR_REG_BASE + 0x20112*4+0x02000000,0x2); //颗粒的CAB2---k230的G18管脚内部是CAB2(封装为DDR_NC_CAB2)
-reg_write(   DDR_REG_BASE + 0x20113*4+0x02000000,0x3); //颗粒的CAB3---k230的H17管脚内部是CAB3(封装为DDR_NC_CAB3)
-reg_write(   DDR_REG_BASE + 0x20114*4+0x02000000,0x4); //颗粒的CAB4---k230的F17管脚内部是CAB4(封装为DDR_NC_CAB4)
-reg_write(   DDR_REG_BASE + 0x20115*4+0x02000000,0x5); //颗粒的CAB5---k230的F19管脚内部是CAB5(封装为DDR_NC_CAB5)
+reg_write(   DDR_REG_BASE + 0x100a0*4+0x02000000,0x4); //
+reg_write(   DDR_REG_BASE + 0x100a1*4+0x02000000,0x5); //
+reg_write(   DDR_REG_BASE + 0x100a2*4+0x02000000,0x0); //
+reg_write(   DDR_REG_BASE + 0x100a3*4+0x02000000,0x6); //
+reg_write(   DDR_REG_BASE + 0x100a4*4+0x02000000,0x7); //
+reg_write(   DDR_REG_BASE + 0x100a5*4+0x02000000,0x2); //
+reg_write(   DDR_REG_BASE + 0x100a6*4+0x02000000,0x3); //
+reg_write(   DDR_REG_BASE + 0x100a7*4+0x02000000,0x1); //
 
-// k230内部第0字节(dbyte0) 寄存器基地址是  DR_REG_BASE + 0x100a0*4+0x02000000
-reg_write(   DDR_REG_BASE + 0x100a0*4+0x02000000,0x7); //颗粒的DQA0---k230的U16管脚(第0字节的BIT_7,封装名DDR_DQ31_DQA0)
-reg_write(   DDR_REG_BASE + 0x100a1*4+0x02000000,0x6); //颗粒的DQA1---k230的V16管脚(第0字节的BIT_6,封装名DDR_DQ30_DQA1)
-reg_write(   DDR_REG_BASE + 0x100a2*4+0x02000000,0x5); //颗粒的DQA2---k230的V16管脚(第0字节的BIT_5,封装名DDR_DQ29_DQA2)
-reg_write(   DDR_REG_BASE + 0x100a3*4+0x02000000,0x4); //颗粒的DQA3---k230的Y16管脚(第0字节的BIT_4,封装名DDR_DQ28_DQA3)
-reg_write(   DDR_REG_BASE + 0x100a4*4+0x02000000,0x3); //颗粒的DQA4---k230的W18管脚(第0字节的BIT_3,封装名DDR_DQ27_DQA4)
-reg_write(   DDR_REG_BASE + 0x100a5*4+0x02000000,0x2); //颗粒的DQA5---k230的V18管脚(第0字节的BIT_2,封装名DDR_DQ26_DQA5)
-reg_write(   DDR_REG_BASE + 0x100a6*4+0x02000000,0x1); //颗粒的DQA6---k230的Y18管脚(第0字节的BIT_1,封装名DDR_DQ25_DQA6)
-reg_write(   DDR_REG_BASE + 0x100a7*4+0x02000000,0x0); //颗粒的DQA7---k230的U17管脚(第0字节的BIT_0,封装名DDR_DQ24_DQA7)
+reg_write(   DDR_REG_BASE + 0x110a0*4+0x02000000,0x4); //
+reg_write(   DDR_REG_BASE + 0x110a1*4+0x02000000,0x7); //
+reg_write(   DDR_REG_BASE + 0x110a2*4+0x02000000,0x6); //
+reg_write(   DDR_REG_BASE + 0x110a3*4+0x02000000,0x0); //
+reg_write(   DDR_REG_BASE + 0x110a4*4+0x02000000,0x2); //
+reg_write(   DDR_REG_BASE + 0x110a5*4+0x02000000,0x1); //
+reg_write(   DDR_REG_BASE + 0x110a6*4+0x02000000,0x5); //
+reg_write(   DDR_REG_BASE + 0x110a7*4+0x02000000,0x3); //
 
-// k230内部第1字节(dbyte1) 寄存器基地址是  DR_REG_BASE + 0x110a0*4+0x02000000
-reg_write(   DDR_REG_BASE + 0x110a0*4+0x02000000,0x0); //颗粒的DQA8----k230的R17管脚(第1字节的BIT_0,封装名DDR_DQ8_DQA8)
-reg_write(   DDR_REG_BASE + 0x110a1*4+0x02000000,0x1); //颗粒的DQA9----k230的T18管脚(第1字节的BIT_1,封装名DDR_DQ9_DQA9)
-reg_write(   DDR_REG_BASE + 0x110a2*4+0x02000000,0x2); //颗粒的DQA10---k230的R18管脚(第1字节的BIT_2,封装名DDR_DQ10_DQA10)
-reg_write(   DDR_REG_BASE + 0x110a3*4+0x02000000,0x3); //颗粒的DQA11---k230的U20管脚(第1字节的BIT_3,封装名DDR_DQ11_DQA11)
-reg_write(   DDR_REG_BASE + 0x110a4*4+0x02000000,0x4); //颗粒的DQA12---k230的W19管脚(第1字节的BIT_4,封装名DDR_DQ12_DQA12)
-reg_write(   DDR_REG_BASE + 0x110a5*4+0x02000000,0x5); //颗粒的DQA13---k230的U18管脚(第1字节的BIT_5,封装名DDR_DQ13_DQA13)
-reg_write(   DDR_REG_BASE + 0x110a6*4+0x02000000,0x6); //颗粒的DQA14---k230的P16管脚(第1字节的BIT_6,封装名DDR_DQ14_DQA14)
-reg_write(   DDR_REG_BASE + 0x110a7*4+0x02000000,0x7); //颗粒的DQA15---k230的T17管脚(第1字节的BIT_7,封装名DDR_DQ15_DQA15)
+reg_write(   DDR_REG_BASE + 0x130a0*4+0x02000000,0x3); //
+reg_write(   DDR_REG_BASE + 0x130a1*4+0x02000000,0x4); //
+reg_write(   DDR_REG_BASE + 0x130a2*4+0x02000000,0x0); //
+reg_write(   DDR_REG_BASE + 0x130a3*4+0x02000000,0x2); //
+reg_write(   DDR_REG_BASE + 0x130a4*4+0x02000000,0x1); //
+reg_write(   DDR_REG_BASE + 0x130a5*4+0x02000000,0x5); //
+reg_write(   DDR_REG_BASE + 0x130a6*4+0x02000000,0x6); //
+reg_write(   DDR_REG_BASE + 0x130a7*4+0x02000000,0x7); //
 
-//// k230内部第3字节(dbyte3) 寄存器基地址是  DR_REG_BASE + 0x130a0*4+0x02000000
-reg_write(   DDR_REG_BASE + 0x130a0*4+0x02000000,0x1); //颗粒的DQB0---k230的D14管脚(第3字节的BIT_1,DDR_DQ17_DQB1)
-reg_write(   DDR_REG_BASE + 0x130a1*4+0x02000000,0x3); //颗粒的DQB1---k230的A14管脚(第3字节的BIT_3,DDR_DQ19_DQB3)
-reg_write(   DDR_REG_BASE + 0x130a2*4+0x02000000,0x2); //颗粒的DQB2---k230的B14管脚(第3字节的BIT_2,DDR_DQ18_DQB2)
-reg_write(   DDR_REG_BASE + 0x130a3*4+0x02000000,0x0); //颗粒的DQB3---k230的C14管脚(第3字节的BIT_0,DDR_DQ16_DQB0)
-reg_write(   DDR_REG_BASE + 0x130a4*4+0x02000000,0x7); //颗粒的DQB4---k230的B17管脚(第3字节的BIT_7,DDR_DQ23_DQB7)
-reg_write(   DDR_REG_BASE + 0x130a5*4+0x02000000,0x6); //颗粒的DQB5---k230的C16管脚(第3字节的BIT_6,DDR_DQ22_DQB6)
-reg_write(   DDR_REG_BASE + 0x130a6*4+0x02000000,0x4); //颗粒的DQB6---k230的A17管脚(第3字节的BIT_4,DDR_DQ20_DQB4)
-reg_write(   DDR_REG_BASE + 0x130a7*4+0x02000000,0x5); //颗粒的DQB7---k230的B16管脚(第3字节的BIT_5,DDR_DQ21_DQB5)
+//reg_write(   DDR_REG_BASE + 0x130a0*4+0x02000000,0x3); //lndq =1
+//reg_write(   DDR_REG_BASE + 0x130a1*4+0x02000000,0x0); //CA1 =0
+//reg_write(   DDR_REG_BASE + 0x130a2*4+0x02000000,0x2); //CA1 =0
+//reg_write(   DDR_REG_BASE + 0x130a3*4+0x02000000,0x1); //CA1 =0
+//reg_write(   DDR_REG_BASE + 0x130a4*4+0x02000000,0x6); //CA1 =0
+//reg_write(   DDR_REG_BASE + 0x130a5*4+0x02000000,0x7); //CA1 =0
+//reg_write(   DDR_REG_BASE + 0x130a6*4+0x02000000,0x5); //CA1 =0
+//reg_write(   DDR_REG_BASE + 0x130a7*4+0x02000000,0x4); //CA1 =0
 
-
-// k230内部第2字节(dbyte3) 寄存器基地址是  DR_REG_BASE + 0x120a0*4+0x02000000
-reg_write(   DDR_REG_BASE + 0x120a0*4+0x02000000,0x2); //颗粒的DQB8----k230的D17管脚(第2字节的BIT_2,DDR_DQ2_DQB13)
-reg_write(   DDR_REG_BASE + 0x120a1*4+0x02000000,0x1); //颗粒的DQB9----k230的D16管脚(第2字节的BIT_1,DDR_DQ1_DQB14)
-reg_write(   DDR_REG_BASE + 0x120a2*4+0x02000000,0x4); //颗粒的DQB10---k230的E18管脚(第2字节的BIT_4,DDR_DQ4_DQB11)
-reg_write(   DDR_REG_BASE + 0x120a3*4+0x02000000,0x5); //颗粒的DQB11---k230的E17管脚(第2字节的BIT_5,DDR_DQ5_DQB10)
-reg_write(   DDR_REG_BASE + 0x120a4*4+0x02000000,0x0); //颗粒的DQB12---k230的C17管脚(第2字节的BIT_0,DDR_DQ0_DQB15)
-reg_write(   DDR_REG_BASE + 0x120a5*4+0x02000000,0x3); //颗粒的DQB13---k230的C18管脚(第2字节的BIT_3,DDR_DQ3_DQB12)
-reg_write(   DDR_REG_BASE + 0x120a6*4+0x02000000,0x7); //颗粒的DQB14---k230的C19管脚(第2字节的BIT_7,DDR_DQ7_DQB8)
-reg_write(   DDR_REG_BASE + 0x120a7*4+0x02000000,0x6); //颗粒的DQB15---k230的B19管脚(第2字节的BIT_6,DDR_DQ6_DQB9)
+reg_write(   DDR_REG_BASE + 0x120a0*4+0x02000000,0x3); //
+reg_write(   DDR_REG_BASE + 0x120a1*4+0x02000000,0x0); //
+reg_write(   DDR_REG_BASE + 0x120a2*4+0x02000000,0x2); //
+reg_write(   DDR_REG_BASE + 0x120a3*4+0x02000000,0x5); //
+reg_write(   DDR_REG_BASE + 0x120a4*4+0x02000000,0x4); //
+reg_write(   DDR_REG_BASE + 0x120a5*4+0x02000000,0x1); //
+reg_write(   DDR_REG_BASE + 0x120a6*4+0x02000000,0x7); //
+reg_write(   DDR_REG_BASE + 0x120a7*4+0x02000000,0x6); //
 
 
 
@@ -35616,20 +35627,20 @@ reg_write( DDR_REG_BASE +  0x0000060 , 0x00000000 );
 reg_write( DDR_REG_BASE +  0x0000050 , 0x98210000 );
 
 
-   {
-         unsigned long add,i;
-         //add = DDR_REG_BASE +0x5401b*4+0x02000000; printf("MR12-CA add =%lx value =%lx\n",add,readl(add));
-         //add = DDR_REG_BASE +0x5401c*4+0x02000000; printf("MR14-DQ add =%lx value =%lx\n",add,readl(add));
+//    {
+//          unsigned long add,i;
+//          //add = DDR_REG_BASE +0x5401b*4+0x02000000; printf("MR12-CA add =%lx value =%lx\n",add,readl(add));
+//          //add = DDR_REG_BASE +0x5401c*4+0x02000000; printf("MR14-DQ add =%lx value =%lx\n",add,readl(add));
 
-         for(i=0;i<8;i++)
-         {add = DDR_REG_BASE +  0x00010040*4+0x02000000+i*0x100*4; printf("dbyte0 add =%lx value =%x\n",add,readl((void*)add));}
-         for(i=0;i<8;i++)
-         {add = DDR_REG_BASE +  0x00011040*4+0x02000000+i*0x100*4; printf("dbyte1 add =%lx value =%x\n",add,readl((void*)add));}
-         for(i=0;i<8;i++)
-         {add = DDR_REG_BASE +  0x00012040*4+0x02000000+i*0x100*4; printf("dbyte2 add =%lx value =%x\n",add,readl((void*)add));}
-         for(i=0;i<8;i++)
-         {add = DDR_REG_BASE +  0x00013040*4+0x02000000+i*0x100*4; printf("dbyte3 add =%lx value =%x\n",add,readl((void*)add)); }
-     }
+//          for(i=0;i<8;i++)
+//          {add = DDR_REG_BASE +  0x00010040*4+0x02000000+i*0x100*4; printf("dbyte0 add =%lx value =%x\n",add,readl((void*)add));}
+//          for(i=0;i<8;i++)
+//          {add = DDR_REG_BASE +  0x00011040*4+0x02000000+i*0x100*4; printf("dbyte1 add =%lx value =%x\n",add,readl((void*)add));}
+//          for(i=0;i<8;i++)
+//          {add = DDR_REG_BASE +  0x00012040*4+0x02000000+i*0x100*4; printf("dbyte2 add =%lx value =%x\n",add,readl((void*)add));}
+//          for(i=0;i<8;i++)
+//          {add = DDR_REG_BASE +  0x00013040*4+0x02000000+i*0x100*4; printf("dbyte3 add =%lx value =%x\n",add,readl((void*)add)); }
+//      }
 
 }
 
