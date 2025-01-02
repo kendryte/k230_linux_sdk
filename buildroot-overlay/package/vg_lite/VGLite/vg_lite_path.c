@@ -2394,7 +2394,7 @@ vg_lite_error_t vg_lite_draw(vg_lite_buffer_t* target,
         return VG_LITE_NO_CONTEXT;
     if ((target->width <= width) && (target->height <= height))
     {
-        ts_is_fullscreen = 1;
+        // ts_is_fullscreen = 1;
         point_min.x = 0;
         point_min.y = 0;
         point_max.x = target->width;
@@ -2804,7 +2804,7 @@ vg_lite_error_t vg_lite_draw_pattern(vg_lite_buffer_t* target,
         return VG_LITE_NO_CONTEXT;
     if ((target->width <= width) && (target->height <= height))
     {
-        ts_is_fullscreen = 1;
+        // ts_is_fullscreen = 1;
         point_min.x = 0;
         point_min.y = 0;
         point_max.x = target->width;
