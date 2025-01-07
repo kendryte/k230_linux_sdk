@@ -58,7 +58,7 @@ list_def:
 	@echo "	k230_canmv_v3_defconfig               --canmv v3 board"
 	@echo "	k230_canmv_01studio_defconfig         --01studio board"
 	@echo "	k230_canmv_dongshanpi_defconfig       --dongshanpi board"
-	@echo "	k230_canmv_lckfb_defconfig            --lushanpi ,jialichaung board"
+	@echo "	k230_canmv_lckfb_defconfig            --lushanpi ,jialichuang board"
 	@echo "	BPI-CanMV-K230D-Zero_defconfig        --bananapi k230d"
 	@echo "	k230d_canmv_ilp32_defconfig           --k230d canmv new32 board,plct use"
 	@echo "	k230d_canmv_defconfig                 --k230d canmv board"
