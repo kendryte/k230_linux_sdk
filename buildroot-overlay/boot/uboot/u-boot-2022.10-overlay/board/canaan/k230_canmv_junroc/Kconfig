@@ -1,0 +1,39 @@
+if TARGET_K230_CANMV_JUNROC
+
+config SYS_CPU
+	default "k230"
+
+config SYS_VENDOR
+    default "canaan"
+
+config SYS_BOARD
+    default "k230_canmv_junroc"
+
+config SYS_CONFIG_NAME
+    default "k230_evb"
+
+
+config BOARD_SPECIFIC_OPTIONS # dummy
+	def_bool y
+	select RISCV_THEAD
+choice
+	prompt "ddr typy freq"
+    default CANMV_JUNROC_LPDDR4_2667
+
+config CANMV_JUNROC_LPDDR3_2133
+	bool  2133
+config CANMV_JUNROC_LPDDR3_1600
+	bool  1600
+config CANMV_JUNROC_LPDDR3_800
+	bool 800
+config CANMV_JUNROC_LPDDR4_2667
+	bool LP4_2667
+config CANMV_JUNROC_LPDDR4_3200
+	bool LP4_3200
+
+config CANMV_01_LPDDR4_1600_WITHOUT_ODT
+	bool "canmv  LP4_1600 WITHOUT ODT,"
+	help
+		"CANMV V3,lushanpai,01studio"
+endchoice
+endif
