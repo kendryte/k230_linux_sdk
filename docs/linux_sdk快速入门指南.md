@@ -27,11 +27,11 @@ cd k230_linux_sdk
 >gitee上仓库地址是 git@gitee.com:kendryte/k230_linux_sdk.git
 
 ### 安装交叉工具链
-下载Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz （下载地址1：https://www.xrvm.cn/community/download?id=4333581795569242112 ，下载地址2：https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1721095219235/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz）文件，并解压缩到/opt/toolchain目录  (参考命令如下):
+下载Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2-20240712.tar.gz （下载地址1：https://www.xrvm.cn/community/download?id=4352528597269942272 ，下载地址2：https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource/1836682/1725612383347/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2-20240904.tar.gz）文件，并解压缩到/opt/toolchain目录  (参考命令如下):
 
 ```bash
 mkdir -p /opt/toolchain;
-tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz -C /opt/toolchain;
+tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2-20240712.tar.gz -C /opt/toolchain;
 ```
 > 安装新32位交叉工具链（下载地址：https://github.com/ruyisdk/riscv-gnu-toolchain-rv64ilp32/releases/download/2024.06.25/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25-nightly.tar.gz）(可选, 只有k230d_canmv_ilp32_defconfig配置需要)
 >
@@ -330,7 +330,7 @@ int main()
 编译程序
 
 ```shell
-/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-gcc hello.c  -o hello
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2/bin/riscv64-unknown-linux-gnu-gcc hello.c  -o hello
 ```
 
 
@@ -494,7 +494,7 @@ int main() {
 编译：
 
 ```bash
-/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-gcc  -march=rv64gcv_xtheadc rvv.c -o rvv
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2/bin/riscv64-unknown-linux-gnu-gcc  -march=rv64gcv_xtheadc rvv.c -o rvv
 ```
 
 开发板上运行：

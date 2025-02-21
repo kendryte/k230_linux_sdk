@@ -4,12 +4,12 @@
 
 ## Install toolchain and dependencies
 
-download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz toolchan from  `https://www.xrvm.cn/community/download?id=4333581795569242112`
+download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2-20240712.tar.gz toolchan from  `https://www.xrvm.cn/community/download?id=4333581795569242112`
 uncompress the toolchain to the /opt/toolchain(Refer command):
 
 ```bash
 mkdir -p /opt/toolchain;
-tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz -C /opt/toolchain;
+tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.2-20240712.tar.gz -C /opt/toolchain;
 ```
 
 install dependencies(Refer command):
