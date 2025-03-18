@@ -1,0 +1,5 @@
+config BR2_PACKAGE_K230_NOC
+    bool "k230 noc "
+    default n
+    help
+        k230 noc probe qos

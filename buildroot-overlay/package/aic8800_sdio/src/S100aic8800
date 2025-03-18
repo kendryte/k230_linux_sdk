@@ -4,7 +4,7 @@
 start() {
 	# Create any missing keys
 	modprobe  aic8800_bsp.ko  aic_fw_path="/lib/firmware/aic8800D80"
-	modprobe aic8800_fdrv.ko
+	modprobe aic8800_fdrv.ko aicwf_dbg_level=1
 
 	echo "OK"
 }
