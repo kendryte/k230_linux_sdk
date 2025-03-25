@@ -47,7 +47,7 @@
 };
 
 &mmc0 {
-	status = "disabled";
+	status = "okay";
 };
 
 &mmc1 {
@@ -95,7 +95,7 @@
 		(IO11) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 8<<DS | 1<<ST )
 		(IO12) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 8<<DS | 1<<ST )
 
-		// RGB_MCLK -> OV5647
+		// TODO user key
 		(IO13) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST )
 
 		// ext jp
@@ -108,7 +108,7 @@
 		(IO20) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
 
 
-		// cam2 rst,gpio
+		// TODO user led
 		(IO21) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
 		// lcd_rst
 		(IO22) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )

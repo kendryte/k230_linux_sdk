@@ -63,6 +63,10 @@ config TARGET_K230_SIPLP4
 	bool "Support sip lp4"
 	select SYS_CACHE_SHIFT_6
 
+config TARGET_K230_CANMV_JUNROC
+	bool "Support k230_CANMV(JUNROC)"
+    select SYS_CACHE_SHIFT_6
+
 endchoice
 
 config SYS_ICACHE_OFF
@@ -105,6 +109,7 @@ source "board/canaan/k230_canmv_dongshanpi/Kconfig"
 source "board/canaan/k230d_canmv/Kconfig"
 source "board/canaan/k230_unsiplp4/Kconfig"
 source "board/canaan/k230_siplp4/Kconfig"
+source "board/canaan/k230_canmv_junroc/Kconfig"
 
 
 # platform-specific options below
