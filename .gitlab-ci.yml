@@ -990,14 +990,44 @@ build-image:
   rules:
     # MR open
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+     # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  timeout: 60m
+  script:
+    - *show_vars
+    - *check_build_result
+    - !reference [.common, build_image]
+    - !reference [.common, save_image]
+    - !reference [.common, save_tftp]
+    - cat $CI_PROJECT_DIR/build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+build-image_all:
+  stage: build_src
+  needs: [build_setup]
+  parallel:
+    matrix:
+      - CONF:
+        - k230_canmv_defconfig
+        - k230d_canmv_defconfig
+        - BPI-CanMV-K230D-Zero_defconfig
+        - k230_canmv_01studio_defconfig
+        - k230_canmv_lckfb_defconfig
+        - k230_canmv_v3_defconfig
+  variables:
+    DST_BASE: /data1/k230/gitlab-ci/images/${CI_PROJECT_NAME}
+    SRC_DIR: ./output/${CONF}/images
+  rules:
+    # MR open
+    # - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     # release job
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
     # pre-release job
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
     # manual job
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG !~ /^v\d+\.\d+.*$/
-    # daily build
-    - if: $CI_PIPELINE_SOURCE == "schedule"
   timeout: 60m
   script:
     - *show_vars
