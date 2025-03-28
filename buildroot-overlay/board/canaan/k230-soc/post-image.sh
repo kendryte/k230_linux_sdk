@@ -27,9 +27,15 @@ gz_file_add_ver()
 	local storage="$(echo "$f" | sed -nE "s#[^-]*-([^\.]*).*#\1#p")"
 
 	if [ "${CONF}" = "k230_canmv_defconfig" ] ; then
-		canaan_site_name="CanMV-K230";
+		canaan_site_name="CanMV-K230_V1P0_P1";
 	elif [ "${CONF}" = "k230_evb_defconfig" ] ; then
 		canaan_site_name="EVB-K230";
+	elif [ "${CONF}" = "k230_canmv_01studio_defconfig" ] ; then
+		canaan_site_name="CanMV-K230_01studio";
+	elif [ "${CONF}" = "k230_canmv_lckfb_defconfig" ] ; then
+		canaan_site_name="CanMV-K230_LCKFB";
+	elif [ "${CONF}" = "k230_canmv_v3_defconfig" ] ; then
+		canaan_site_name="CanMV-K230_V3P0";
 	else
 		canaan_site_name="${CONF%%_defconfig}"	;
 	fi
