@@ -2857,6 +2857,7 @@ menu "canaan package"
 	endmenu
 	source "package/aic8800/Config.in"
 	source "package/aic8800_sdio/Config.in"
+	source "package/ws73/Config.in"
 	source "package/bluez_inc/Config.in"
 	source "package/helloworld_cmake/Config.in"
 endmenu

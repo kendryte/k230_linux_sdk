@@ -1,0 +1,60 @@
+# nearlink app
+
+typeattribute nearlink coredomain;
+
+app_domain(nearlink)
+net_domain(nearlink)
+
+# Allow access to net_admin ioctls
+allowxperm nearlink self:udp_socket ioctl priv_sock_ioctls;
+
+wakelock_use(nearlink);
+
+# Data file accesses.
+allow nearlink nearlink_data_file:dir create_dir_perms;
+allow nearlink nearlink_data_file:notdevfile_class_set create_file_perms;
+
+# Socket creation under /data/misc/nearlink.
+allow nearlink self:netlink_socket create_socket_perms_no_ioctl;
+allow nearlink self:global_capability_class_set net_admin;
+allow nearlink self:global_capability2_class_set wake_alarm;
+
+# tethering
+allow nearlink self:packet_socket create_socket_perms_no_ioctl;
+allow nearlink self:global_capability_class_set { net_admin net_raw net_bind_service };
+allow nearlink self:tun_socket create_socket_perms_no_ioctl;
+allow nearlink tun_device:chr_file rw_file_perms;
+allow nearlink efs_file:dir search;
+
+# allow nearlink to access uhid device for HID profile
+allow nearlink uhid_device:chr_file rw_file_perms;
+
+
+allow nearlink audioserver_service:service_manager find;
+allow nearlink drmserver_service:service_manager find;
+allow nearlink mediaserver_service:service_manager find;
+allow nearlink radio_service:service_manager find;
+allow nearlink app_api_service:service_manager find;
+allow nearlink system_api_service:service_manager find;
+
+# already open bugreport file descriptors may be shared with
+allow nearlink shell_data_file:file read;
+
+# Nearlink audio needs RT scheduling to meet deadlines, allow sys_nice
+allow nearlink self:global_capability_class_set sys_nice;
+
+# Nearlink A2DP offload requires binding with audio HAL
+hal_client_domain(nearlink, hal_audio)
+
+read_runtime_log_tags(nearlink)
+
+###
+### Neverallow rules
+###
+### These are things that the nearlink app should NEVER be able to do
+###
+
+# Superuser capabilities.
+# Nearlink requires net_{admin,raw,bind_service} and wake_alarm and block_suspend and sys_nice.
+neverallow nearlink self:global_capability_class_set ~{ net_admin net_raw net_bind_service sys_nice};
+neverallow nearlink self:global_capability2_class_set ~{ wake_alarm block_suspend };

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (c) @CompanyNameMagicTag 2023. All rights reserved.
+-->
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:settings="http://schemas.android.com/apk/res-auto"
+    android:title="@string/bluetooth_pairing_pref_title">
+
+    <Preference
+        android:key="sle_pair_rename_devices"
+        android:summary="@string/summary_placeholder"
+        android:title="@string/nearlink_device_name"
+        settings:controller="com.android.settings.nearlink.NearlinkDeviceRenamePreferenceController" />
+
+    <com.android.settings.nearlink.NearlinkProgressCategory
+        android:key="available_devices"
+        android:title="@string/nearlink_paired_device_title" />
+
+    <com.android.settingslib.widget.FooterPreference />
+
+</PreferenceScreen>

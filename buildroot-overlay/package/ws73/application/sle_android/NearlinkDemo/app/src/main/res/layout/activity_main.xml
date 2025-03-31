@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <Switch
+        android:id="@+id/swOpen"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="星闪" />
+
+    <LinearLayout
+        android:id="@+id/renameLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设备名称" />
+
+        <TextView
+            android:id="@+id/sleName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAlignment="viewEnd" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/readdressLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="设备地址" />
+
+        <TextView
+            android:id="@+id/sleAddress"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:textAlignment="viewEnd" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/black" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="15dp"
+        android:columnCount="5"
+        android:orientation="horizontal"
+        android:rowCount="4"
+        android:useDefaultMargins="true">
+
+        <Button
+            android:id="@+id/btn_enablesle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="enable"
+            android:textAllCaps="false"
+            android:textSize="20dp" />
+
+        <Button
+            android:id="@+id/btn_disablesle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="disable"
+            android:textAllCaps="false"
+            android:textSize="20dp" />
+
+        <Button
+            android:id="@+id/btn_startAnnounce"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Announce"
+            android:textAllCaps="false"
+            android:textSize="20dp" />
+
+        <Button
+            android:id="@+id/btn_stopAnnounce"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="stop Announce"
+            android:textAllCaps="false"
+            android:textSize="14dp" />
+
+        <Button
+            android:id="@+id/btn_startseek"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="start seek"
+            android:textAllCaps="false"
+            android:textSize="20dp" />
+
+        <Button
+            android:id="@+id/btn_stopseek"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="stop seek"
+            android:textAllCaps="false"
+            android:textSize="20dp" />
+
+        <Button
+            android:id="@+id/btn_getState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="get state"
+            android:textAllCaps="false"
+            android:textSize="20dp" />
+
+        <EditText
+            android:id="@+id/txt_moduleName"
+            android:layout_width="100dp"
+            android:layout_height="20dp"
+            android:background="@drawable/edit_background"
+            android:maxLines="5"></EditText>
+
+        <EditText
+            android:id="@+id/txt_testMethodName"
+            android:layout_width="100dp"
+            android:layout_height="20dp"
+            android:background="@drawable/edit_background"
+            android:maxLines="5"></EditText>
+
+        <Button
+            android:id="@+id/btn_executeTestMethod"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="execute test"
+            android:textAllCaps="false"
+            android:textSize="20dp" />
+    </GridLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="@color/black" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/contentLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="10dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="设备列表" />
+
+                    <Button
+                        android:id="@+id/btnRefresh"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="刷新" />
+                </LinearLayout>
+
+                <ListView
+                    android:id="@+id/deviceList"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <EditText
+                    android:id="@+id/etLog"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:editable="false"
+                    android:gravity="left|top"
+                    android:scrollbars="vertical" />
+
+                <Button
+                    android:id="@+id/btn_clear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="清理" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnFold"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:background="@drawable/ic_arrow_expend" />
+    </RelativeLayout>
+
+
+</LinearLayout>

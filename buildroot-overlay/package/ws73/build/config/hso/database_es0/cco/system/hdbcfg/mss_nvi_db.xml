@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<DebugKits>
+    <GROUP FEATURE="1&lt;&lt;0,1&lt;&lt;5" ID="0x1" NAME="Application" PARAM_DEF_FILE="../nv/nv_app_struct_def.txt" USEDMODE="0">
+	</GROUP>
+</DebugKits>

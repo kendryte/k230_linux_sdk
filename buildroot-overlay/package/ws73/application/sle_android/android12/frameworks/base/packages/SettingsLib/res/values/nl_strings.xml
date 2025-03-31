@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Nearlink settings.  Message when connected unconnected. [CHAR LIMIT=40] -->
+    <string name="nearlink_unconnected">Unconnected</string>
+    <!-- Nearlink settings.  Message when connected to a device. [CHAR LIMIT=40] -->
+    <string name="nearlink_connected">Connected<xliff:g id="active_device">%1$s</xliff:g></string>
+    <!-- Nearlink settings.  Message when connecting to a device -->
+    <string name="nearlink_connecting">Connecting\u2026</string>
+    <!-- Nearlink settings.  Message when a device is disconnected -->
+    <string name="nearlink_disconnected">Disconnected</string>
+    <!-- Nearlink settings.  Message when disconnecting from a device -->
+    <string name="nearlink_disconnecting">Disconnecting\u2026</string>
+
+    <string name="nearlink_unpaired">Unpaired</string>
+    <string name="nearlink_pairing">Pairing\u2026</string>
+    <string name="nearlink_paired">Paired</string>
+
+    <string name="nearlink_state_connected">Connected</string>
+
+    <!-- Nearlink settings. Connection options screen. The summary
+         for the HID checkbox preference that describes how checking it
+         will set the HID profile as preferred. -->
+    <string name="nearlink_hid_profile_summary_use_for">Use for input</string>
+    <!-- Nearlink settings. Connection options screen. The summary for the HID checkbox preference when HID is connected. -->
+    <string name="nearlink_hid_profile_summary_connected">Connected to input device</string>
+    <!-- Message for the error dialog when NL pairing fails because the PIN /
+    Passkey entered is incorrect. -->
+    <string name="nearlink_pairing_pin_error_message">Couldn\'t pair with <xliff:g id="device_name">%1$s</xliff:g> because of an incorrect PIN or passkey.</string>
+    <!-- Message for the error dialog when NL pairing fails because the other device rejected the pairing. -->
+    <string name="nearlink_pairing_rejected_error_message">Pairing rejected by <xliff:g id="device_name">%1$s</xliff:g>.</string>
+    <!-- Message for the error dialog when NL pairing fails because the other device is down. -->
+    <string name="nearlink_pairing_device_down_error_message">Can\'t communicate with <xliff:g id="device_name">%1$s</xliff:g>.</string>
+    <!-- Message for the error dialog when NL pairing fails generically. -->
+    <string name="nearlink_pairing_error_message">Couldn\'t pair with <xliff:g id="device_name">%1$s</xliff:g>.</string>
+
+    <!-- Message for telling the user the kind of NL device being displayed in list. [CHAR LIMIT=30 BACKUP_MESSAGE_ID=4875089335641234463] -->
+    <string name="nearlink_talkback_computer">Computer</string>
+    <!-- Message for telling the user the kind of NL device being displayed in list. [CHAR LIMIT=30 BACKUP_MESSAGE_ID=4260255181240622896] -->
+    <string name="nearlink_talkback_phone">Phone</string>
+    <!-- Message for telling the user the kind of NL device being displayed in list. [CHAR LIMIT=30 BACKUP_MESSAGE_ID=5165842622743212268] -->
+    <string name="nearlink_talkback_input_peripheral">Input Peripheral</string>
+    <!-- Message for telling the user the kind of NL device being displayed in list. [CHAR LIMIT=30 BACKUP_MESSAGE_ID=551146170554589119] -->
+    <string name="nearlink_talkback_imaging">Imaging</string>
+    <!-- Message for telling the user the kind of NL device being displayed in list. [CHAR LIMIT=30 BACKUP_MESSAGE_ID=5140152177885220949] -->
+    <string name="nearlink_talkback_headset">Headset</string>
+    <!-- Message for telling the user the kind of NL device being displayed in list. [CHAR LIMIT=30 BACKUP_MESSAGE_ID=26580326066627664] -->
+    <string name="nearlink_talkback_headphone">Headphone</string>
+    <!-- Message for telling the user the kind of NL device being displayed in list. [CHAR LIMIT=30 BACKUP_MESSAGE_ID=5615463912185280812] -->
+    <string name="nearlink_talkback_nearlink">Nearlink</string>
+
+    <!-- Connected devices settings. Message when Nearlink is connected and active, showing remote device status and battery level. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_active_battery_level">Active, <xliff:g id="battery_level_as_percentage">%1$s</xliff:g> battery</string>
+    <!-- Connected devices settings. Message when Nearlink is connected but not in use, showing remote device battery level. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_battery_level"><xliff:g id="battery_level_as_percentage">%1$s</xliff:g> battery</string>
+    <!-- Connected devices settings. Message when Nearlink is connected and active but no battery information, showing remote device status. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_active_no_battery_level">Active</string>
+    <!-- Nearlink settings.  Message when connected to a device, showing remote device battery level. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_connected_battery_level">Connected, battery <xliff:g id="battery_level_as_percentage">%1$s</xliff:g><xliff:g id="active_device">%2$s</xliff:g></string>
+
+    <!-- Summaries for Android Auto Nearlink Audio Active Device status. [CHAR LIMIT=50]-->
+    <string-array name="nearlink_audio_active_device_summaries" >
+        <!-- Status message when the device is not Active. -->
+        <item></item>
+        <!-- Status message when the device is Active for Media and Phone. -->
+        <item>, active</item>
+        <!-- Status message when the device is Active for Media only. -->
+        <item>, active (media)</item>
+        <!-- Status message when the device is Active for Phone only. -->
+        <item>, active (phone)</item>
+    </string-array>
+
+    <!-- Nearlink settings. The user-visible string that is used whenever referring to the HID profile. -->
+    <string name="nearlink_profile_hid">Input device</string>
+</resources>

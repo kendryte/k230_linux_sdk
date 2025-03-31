@@ -1,0 +1,80 @@
+cc_library_shared {
+    name: "libnearlink-binder",
+    product_variables: {
+        pdk: {
+            enabled: false,
+        },
+    },
+    srcs: [
+        "android/nearlink/INearlink.aidl",
+        "android/nearlink/INearlinkAnnounceCallback.aidl",
+        "android/nearlink/INearlinkCallback.aidl",
+        "android/nearlink/INearlinkConnection.aidl",
+        "android/nearlink/INearlinkConnectionCallback.aidl",
+        "android/nearlink/INearlinkDiscovery.aidl",
+        "android/nearlink/INearlinkEnableCallback.aidl",
+        "android/nearlink/INearlinkHidHost.aidl",
+        "android/nearlink/INearlinkManager.aidl",
+        "android/nearlink/INearlinkManagerCallback.aidl",
+        "android/nearlink/INearlinkProfileServiceConnection.aidl",
+        "android/nearlink/INearlinkSeekCallback.aidl",
+        "android/nearlink/INearlinkSsapClient.aidl",
+        "android/nearlink/INearlinkSsapClientCallback.aidl",
+        "android/nearlink/INearlinkSsapServer.aidl",
+        "android/nearlink/INearlinkSsapServerCallback.aidl",
+        "android/nearlink/INearlinkStateChangeCallback.aidl",
+     ],
+    export_include_dirs: [ "./"],
+    aidl: {
+        export_aidl_headers: true,
+        include_dirs: [
+            "frameworks/native/aidl/binder",
+
+             /* required for android.os.ParcelUuid, and android.os.ParcelFileDescriptor */
+            "frameworks/base/core/java",
+            "system/nl/binder",
+        ],
+    },
+    include_dirs: [
+        "libnativehelper/include/nativehelper",
+    ],
+    shared_libs: [
+        "libandroid_runtime",
+        "libbinder",
+        "libchrome",
+        "libnativehelper",
+        "libcutils",
+        "libutils",
+        "liblog",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wextra",
+        "-Wno-unused-parameter",
+    ],
+}
+
+// AIDL interface between libnearlink-binder and framework.jar
+filegroup {
+    name: "libnearlink-binder-aidl",
+    srcs: [
+        "android/nearlink/INearlink.aidl",
+        "android/nearlink/INearlinkAnnounceCallback.aidl",
+        "android/nearlink/INearlinkCallback.aidl",
+        "android/nearlink/INearlinkConnection.aidl",
+        "android/nearlink/INearlinkConnectionCallback.aidl",
+        "android/nearlink/INearlinkDiscovery.aidl",
+        "android/nearlink/INearlinkEnableCallback.aidl",
+        "android/nearlink/INearlinkHidHost.aidl",
+        "android/nearlink/INearlinkManager.aidl",
+        "android/nearlink/INearlinkManagerCallback.aidl",
+        "android/nearlink/INearlinkProfileServiceConnection.aidl",
+        "android/nearlink/INearlinkSeekCallback.aidl",
+        "android/nearlink/INearlinkSsapClient.aidl",
+        "android/nearlink/INearlinkSsapClientCallback.aidl",
+        "android/nearlink/INearlinkSsapServer.aidl",
+        "android/nearlink/INearlinkSsapServerCallback.aidl",
+        "android/nearlink/INearlinkStateChangeCallback.aidl",
+    ],
+}

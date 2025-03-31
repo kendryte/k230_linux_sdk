@@ -1,0 +1,4298 @@
+diff -uprN wpa_supplicant-master-2.10/src/common/defs.h wpa_supplicant-trunk-2.10/src/common/defs.h
+--- wpa_supplicant-master-2.10/src/common/defs.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/common/defs.h	2023-10-19 14:02:04.000000000 +0800
+@@ -210,6 +210,38 @@ static inline int wpa_alg_bip(enum wpa_a
+ 		alg == WPA_ALG_BIP_GMAC_256 ||
+ 		alg == WPA_ALG_BIP_CMAC_256;
+ }
++enum wpa_cipher {
++	CIPHER_NONE,
++	CIPHER_WEP40,
++	CIPHER_TKIP,
++	CIPHER_CCMP,
++	CIPHER_WEP104,
++	CIPHER_GCMP,
++#ifdef CONFIG_WAPI
++    CIPHER_SMS4
++#endif
++
++};
++
++enum wpa_key_mgmt {
++	KEY_MGMT_802_1X,
++	KEY_MGMT_PSK,
++	KEY_MGMT_NONE,
++	KEY_MGMT_802_1X_NO_WPA,
++	KEY_MGMT_WPA_NONE,
++	KEY_MGMT_FT_802_1X,
++	KEY_MGMT_FT_PSK,
++	KEY_MGMT_802_1X_SHA256,
++	KEY_MGMT_PSK_SHA256,
++	KEY_MGMT_WPS,
++	KEY_MGMT_SAE,
++	KEY_MGMT_FT_SAE,
++#ifdef CONFIG_WAPI
++	KEY_MGMT_WAPI_PSK,
++	KEY_MGMT_WAPI_CERT,
++#endif
++	KEY_MGMT_CCKM
++};
+ 
+ /**
+  * enum wpa_states - wpa_supplicant state
+diff -uprN wpa_supplicant-master-2.10/src/common/ieee802_11_defs.h wpa_supplicant-trunk-2.10/src/common/ieee802_11_defs.h
+--- wpa_supplicant-master-2.10/src/common/ieee802_11_defs.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/common/ieee802_11_defs.h	2023-10-19 14:02:04.000000000 +0800
+@@ -323,6 +323,7 @@
+ #define WLAN_EID_RSNI 65
+ #define WLAN_EID_MEASUREMENT_PILOT_TRANSMISSION 66
+ #define WLAN_EID_BSS_AVAILABLE_ADM_CAPA 67
++#define WLAN_EID_WAPI 68
+ #define WLAN_EID_BSS_AC_ACCESS_DELAY 68 /* note: also used by WAPI */
+ #define WLAN_EID_TIME_ADVERTISEMENT 69
+ #define WLAN_EID_RRM_ENABLED_CAPABILITIES 70
+@@ -1799,6 +1800,10 @@ enum plink_action_field {
+ 
+ #define VENDOR_HT_CAPAB_OUI_TYPE 0x33 /* 00-90-4c:0x33 */
+ 
++#ifdef CONFIG_WAPI
++#define WLAN_AKM_SUITE_WAPI_PSK         0x000FAC11
++#define WLAN_AKM_SUITE_WAPI_CERT        0x000FAC12
++#endif
+ 
+ /* IEEE 802.11v - WNM Action field values */
+ enum wnm_action {
+diff -uprN wpa_supplicant-master-2.10/src/common/wpa_common.c wpa_supplicant-trunk-2.10/src/common/wpa_common.c
+--- wpa_supplicant-master-2.10/src/common/wpa_common.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/common/wpa_common.c	2023-10-19 14:02:04.000000000 +0800
+@@ -2394,6 +2394,12 @@ const char * wpa_key_mgmt_txt(int key_mg
+ 		return "DPP";
+ 	case WPA_KEY_MGMT_PASN:
+ 		return "PASN";
++#ifdef CONFIG_WAPI
++	case WPA_KEY_MGMT_WAPI_PSK:
++		return "WAPI-PSK";
++	case WPA_KEY_MGMT_WAPI_CERT:
++		return "WAPI-CERT";
++#endif
+ 	default:
+ 		return "UNKNOWN";
+ 	}
+@@ -2758,6 +2764,11 @@ int wpa_pick_pairwise_cipher(int ciphers
+ 		return WPA_CIPHER_TKIP;
+ 	if (none_allowed && (ciphers & WPA_CIPHER_NONE))
+ 		return WPA_CIPHER_NONE;
++#ifdef CONFIG_WAPI
++	if (ciphers & WPA_CIPHER_SMS4)
++		return WPA_CIPHER_SMS4;
++#endif
++
+ 	return -1;
+ }
+ 
+@@ -2776,6 +2787,10 @@ int wpa_pick_group_cipher(int ciphers)
+ 		return WPA_CIPHER_GTK_NOT_USED;
+ 	if (ciphers & WPA_CIPHER_TKIP)
+ 		return WPA_CIPHER_TKIP;
++#ifdef CONFIG_WAPI
++	if (ciphers & WPA_CIPHER_SMS4)
++		return  WPA_CIPHER_SMS4;
++#endif
+ 	return -1;
+ }
+ 
+@@ -2830,6 +2845,10 @@ int wpa_parse_cipher(const char *value)
+ 			val |= WPA_CIPHER_BIP_GMAC_256;
+ 		else if (os_strcmp(start, "BIP-CMAC-256") == 0)
+ 			val |= WPA_CIPHER_BIP_CMAC_256;
++#ifdef CONFIG_WAPI
++		else if (os_strcmp(start, "SMS4") == 0)
++			val |= WPA_CIPHER_SMS4;
++#endif
+ 		else {
+ 			os_free(buf);
+ 			return -1;
+@@ -2921,6 +2940,18 @@ int wpa_write_ciphers(char *start, char
+ 		pos += ret;
+ 	}
+ 
++#ifdef CONFIG_WAPI
++	if (ciphers & WPA_CIPHER_SMS4) {
++		ret = os_snprintf(pos, end - pos, "%sSMS4",
++			pos == start ? "" : " ");
++		if (ret < 0 || ret >= end - pos) {
++			end[-1] = '\0';
++			return -1;
++		}
++		pos += ret;
++	}
++#endif
++
+ 	return pos - start;
+ }
+ 
+diff -uprN wpa_supplicant-master-2.10/src/common/wpa_common.h wpa_supplicant-trunk-2.10/src/common/wpa_common.h
+--- wpa_supplicant-master-2.10/src/common/wpa_common.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/common/wpa_common.h	2023-10-19 14:02:04.000000000 +0800
+@@ -33,7 +33,15 @@ WPA_CIPHER_GCMP_256 | WPA_CIPHER_CCMP_25
+ (WPA_CIPHER_CCMP | WPA_CIPHER_GCMP | \
+ WPA_CIPHER_GCMP_256 | WPA_CIPHER_CCMP_256 | \
+ WPA_CIPHER_GTK_NOT_USED)
+-#else /* CONFIG_NO_TKIP */
++#elif defined CONFIG_WAPI
++#define WPA_ALLOWED_PAIRWISE_CIPHERS \
++(WPA_CIPHER_CCMP | WPA_CIPHER_GCMP | WPA_CIPHER_TKIP | WPA_CIPHER_NONE | \
++WPA_CIPHER_GCMP_256 | WPA_CIPHER_CCMP_256 | WPA_CIPHER_SMS4)
++#define WPA_ALLOWED_GROUP_CIPHERS \
++(WPA_CIPHER_CCMP | WPA_CIPHER_GCMP | WPA_CIPHER_TKIP | \
++WPA_CIPHER_GCMP_256 | WPA_CIPHER_CCMP_256 | \
++WPA_CIPHER_GTK_NOT_USED | WPA_CIPHER_SMS4)
++#else
+ #define WPA_ALLOWED_PAIRWISE_CIPHERS \
+ (WPA_CIPHER_CCMP | WPA_CIPHER_GCMP | WPA_CIPHER_TKIP | WPA_CIPHER_NONE | \
+ WPA_CIPHER_GCMP_256 | WPA_CIPHER_CCMP_256)
+@@ -42,6 +50,7 @@ WPA_CIPHER_GCMP_256 | WPA_CIPHER_CCMP_25
+ WPA_CIPHER_GCMP_256 | WPA_CIPHER_CCMP_256 | \
+ WPA_CIPHER_GTK_NOT_USED)
+ #endif /* CONFIG_NO_TKIP */
++
+ #define WPA_ALLOWED_GROUP_MGMT_CIPHERS \
+ (WPA_CIPHER_AES_128_CMAC | WPA_CIPHER_BIP_GMAC_128 | WPA_CIPHER_BIP_GMAC_256 | \
+ WPA_CIPHER_BIP_CMAC_256)
+diff -uprN wpa_supplicant-master-2.10/src/drivers/driver.h wpa_supplicant-trunk-2.10/src/drivers/driver.h
+--- wpa_supplicant-master-2.10/src/drivers/driver.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/drivers/driver.h	2023-10-19 14:02:04.000000000 +0800
+@@ -33,6 +33,10 @@
+ #define HOSTAPD_CHAN_HT40PLUS 0x00000010
+ #define HOSTAPD_CHAN_HT40MINUS 0x00000020
+ #define HOSTAPD_CHAN_HT40 0x00000040
++#ifdef CONFIG_WAPI
++#define SSID_MAX_WAPI_IE_LEN 100
++#endif
++
+ #define HOSTAPD_CHAN_SURVEY_LIST_INITIALIZED 0x00000080
+ 
+ #define HOSTAPD_CHAN_DFS_UNKNOWN 0x00000000
+diff -uprN wpa_supplicant-master-2.10/src/drivers/driver_nl80211_android.c wpa_supplicant-trunk-2.10/src/drivers/driver_nl80211_android.c
+--- wpa_supplicant-master-2.10/src/drivers/driver_nl80211_android.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/drivers/driver_nl80211_android.c	2023-10-19 14:02:04.000000000 +0800
+@@ -19,7 +19,9 @@
+ #include "utils/common.h"
+ #include "driver_nl80211.h"
+ #include "android_drv.h"
+-
++#ifdef CONNECTIVITY_SET_P2P_IE_PATCH
++#include "wpa_supplicant_i.h"
++#endif
+ 
+ typedef struct android_wifi_priv_cmd {
+ 	char *buf;
+@@ -170,17 +172,117 @@ int wpa_driver_set_p2p_ps(void *priv, in
+ 	return -1;
+ }
+ 
++#endif /* ANDROID_LIB_STUB */
++#endif /* ANDROID_P2P */
++
++#ifdef CONNECTIVITY_SET_P2P_IE_PATCH
++int wpa_driver_nl80211_driver_cmd(void *priv, char *cmd, char *buf,
++				  size_t buf_len)
++{
++	struct i802_bss *bss = priv;
++	struct wpa_driver_nl80211_data *drv = bss->drv;
++	struct ifreq ifr;
++	android_wifi_priv_cmd priv_cmd;
++	int ret = 0;
++
++	if (bss->ifindex <= 0 && bss->wdev_id > 0) {
++		/* DRIVER CMD received on the DEDICATED P2P Interface which doesn't
++		 * have an NETDEVICE associated with it. So we have to re-route the
++		 * command to the parent NETDEVICE
++		 */
++		struct wpa_supplicant *wpa_s = (struct wpa_supplicant *)(drv->ctx);
++
++		wpa_printf(MSG_DEBUG, "Re-routing DRIVER cmd to parent iface");
++		if (wpa_s && wpa_s->parent) {
++			/* Update the nl80211 pointers corresponding to parent iface */
++			bss = wpa_s->parent->drv_priv;
++			drv = bss->drv;
++			wpa_printf(MSG_DEBUG, "Re-routing command to iface: %s"
++					      " cmd (%s)", bss->ifname, cmd);
++		}
++	}
++	os_memcpy(buf, cmd, strlen(cmd) + 1);
++	memset(&ifr, 0, sizeof(ifr));
++	memset(&priv_cmd, 0, sizeof(priv_cmd));
++	os_strlcpy(ifr.ifr_name, bss->ifname, IFNAMSIZ);
++	priv_cmd.buf = buf;
++	priv_cmd.used_len = buf_len;
++	priv_cmd.total_len = buf_len;
++	ifr.ifr_data = (void *)&priv_cmd;
++
++	if ((ret = ioctl(drv->global->ioctl_sock, SIOCDEVPRIVATE + 1, &ifr)) < 0) {
++		wpa_printf(MSG_ERROR, "%s: failed to issue private command: %s", __func__, cmd);
++		wpa_driver_send_hang_msg(drv);
++	} else {
++		drv_errors = 0;
++		ret = 0;
++		if ((os_strcasecmp(cmd, "LINKSPEED") == 0) ||
++			(os_strcasecmp(cmd, "RSSI") == 0) ||
++			(os_strcasecmp(cmd, "GETBAND") == 0) ||
++			(os_strncasecmp(cmd, "WLS_BATCHING", 12) == 0))
++			ret = strlen(buf);
++		wpa_printf(MSG_DEBUG, "%s %s len = %d, %zu", __func__, buf, ret, strlen(buf));
++	}
++	return ret;
++}
+ 
+ int wpa_driver_set_ap_wps_p2p_ie(void *priv, const struct wpabuf *beacon,
+ 				 const struct wpabuf *proberesp,
+ 				 const struct wpabuf *assocresp)
+ {
+-	return 0;
+-}
++	char *buf;
++	const struct wpabuf *ap_wps_p2p_ie = NULL;
++	char *_cmd = "SET_AP_WPS_P2P_IE";
++	char *pbuf;
++	int ret = 0;
++	int i, buf_len;
++	struct cmd_desc {
++		int cmd;
++		const struct wpabuf *src;
++	} cmd_arr[] = {
++		{0x1, beacon},
++		{0x2, proberesp},
++		{0x4, assocresp},
++		{-1, NULL}
++	};
++
++	wpa_printf(MSG_DEBUG, "%s: Entry", __func__);
++	for (i = 0; cmd_arr[i].cmd != -1; i++) {
++		ap_wps_p2p_ie = cmd_arr[i].src;
++		if (ap_wps_p2p_ie) {
++			buf_len = strlen(_cmd) + 3 + wpabuf_len(ap_wps_p2p_ie);
++			buf = os_zalloc(buf_len);
++			if (NULL == buf) {
++				wpa_printf(MSG_ERROR, "%s: Out of memory",
++				__func__);
++				ret = -1;
++				break;
++			}
++		} else {
++		continue;
++		}
++		pbuf = buf;
++		pbuf += snprintf(pbuf, buf_len - wpabuf_len(ap_wps_p2p_ie),
++				"%s %d",_cmd, cmd_arr[i].cmd);
++		*pbuf++ = '\0';
++		os_memcpy(pbuf, wpabuf_head(ap_wps_p2p_ie), wpabuf_len(ap_wps_p2p_ie));
++		ret = wpa_driver_nl80211_driver_cmd(priv, buf, buf, buf_len);
++		os_free(buf);
++		if (ret < 0)
++			break;
++	}
+ 
+-#endif /* ANDROID_LIB_STUB */
+-#endif /* ANDROID_P2P */
++	return ret;
++}
+ 
++#elif defined(ANDROID_P2P) && defined(ANDROID_LIB_STUB)
++int wpa_driver_set_ap_wps_p2p_ie(void *priv, const struct wpabuf *beacon,
++				 const struct wpabuf *proberesp,
++				 const struct wpabuf *assocresp)
++{
++	return 0;
++}
++#endif
+ 
+ int android_nl_socket_set_nonblocking(struct nl_sock *handle)
+ {
+diff -uprN wpa_supplicant-master-2.10/src/drivers/driver_nl80211.c wpa_supplicant-trunk-2.10/src/drivers/driver_nl80211.c
+--- wpa_supplicant-master-2.10/src/drivers/driver_nl80211.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/drivers/driver_nl80211.c	2023-10-19 14:02:04.000000000 +0800
+@@ -3368,8 +3368,11 @@ static int wpa_driver_nl80211_set_key(st
+ 				       key_flag == KEY_FLAG_PAIRWISE_RX ?
+ 				       NL80211_KEY_NO_TX : NL80211_KEY_SET_TX))
+ 				goto fail;
+-		} else if ((key_flag & KEY_FLAG_GROUP_MASK) ==
+-			   KEY_FLAG_GROUP_RX) {
++		} else if ((key_flag & KEY_FLAG_GROUP_MASK) == KEY_FLAG_GROUP_RX
++#ifdef CONFIG_WAPI
++			&& alg != WPA_ALG_SMS4
++#endif
++        ) {
+ 			wpa_printf(MSG_DEBUG, "   RSN IBSS RX GTK");
+ 			if (nla_put_u32(key_msg, NL80211_KEY_TYPE,
+ 					NL80211_KEYTYPE_GROUP))
+@@ -6175,6 +6178,10 @@ static int nl80211_connect_common(struct
+ 			ver |= NL80211_WPA_VERSION_1;
+ 		if (params->wpa_proto & WPA_PROTO_RSN)
+ 			ver |= NL80211_WPA_VERSION_2;
++#ifdef CONFIG_WAPI
++		else if (params->wpa_ie[0] == WLAN_EID_WAPI)
++			ver = NL80211_WAPI_VERSION_1;
++#endif
+ 
+ 		wpa_printf(MSG_DEBUG, "  * WPA Versions 0x%x", ver);
+ 		if (nla_put_u32(msg, NL80211_ATTR_WPA_VERSIONS, ver))
+@@ -6221,7 +6228,12 @@ static int nl80211_connect_common(struct
+ 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_FILS_SHA256 ||
+ 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_FILS_SHA384 ||
+ 	    params->key_mgmt_suite == WPA_KEY_MGMT_OWE ||
+-	    params->key_mgmt_suite == WPA_KEY_MGMT_DPP) {
++	    params->key_mgmt_suite == WPA_KEY_MGMT_DPP
++#ifdef CONFIG_WAPI
++		|| params->key_mgmt_suite == WPA_KEY_MGMT_WAPI_PSK
++		|| params->key_mgmt_suite == WPA_KEY_MGMT_WAPI_CERT
++#endif
++	    ) {
+ 		int mgmt = RSN_AUTH_KEY_MGMT_PSK_OVER_802_1X;
+ 
+ 		switch (params->key_mgmt_suite) {
+@@ -6279,6 +6291,14 @@ static int nl80211_connect_common(struct
+ 		case WPA_KEY_MGMT_DPP:
+ 			mgmt = RSN_AUTH_KEY_MGMT_DPP;
+ 			break;
++#ifdef CONFIG_WAPI
++		case WPA_KEY_MGMT_WAPI_PSK:
++			mgmt = WLAN_AKM_SUITE_WAPI_PSK;
++			break;
++		case WPA_KEY_MGMT_WAPI_CERT:
++			mgmt = WLAN_AKM_SUITE_WAPI_CERT;
++			break;
++#endif
+ 		case WPA_KEY_MGMT_PSK:
+ 		default:
+ 			mgmt = RSN_AUTH_KEY_MGMT_PSK_OVER_802_1X;
+@@ -12198,8 +12218,10 @@ const struct wpa_driver_ops wpa_driver_n
+ #ifdef ANDROID_P2P
+ 	.set_noa = wpa_driver_set_p2p_noa,
+ 	.get_noa = wpa_driver_get_p2p_noa,
+-	.set_ap_wps_ie = wpa_driver_set_ap_wps_p2p_ie,
+ #endif /* ANDROID_P2P */
++#if defined CONNECTIVITY_SET_P2P_IE_PATCH || defined ANDROID_P2P
++	.set_ap_wps_ie = wpa_driver_set_ap_wps_p2p_ie,
++#endif
+ #ifdef ANDROID
+ #ifndef ANDROID_LIB_STUB
+ 	.driver_cmd = wpa_driver_nl80211_driver_cmd,
+diff -uprN wpa_supplicant-master-2.10/src/drivers/driver_nl80211.h wpa_supplicant-trunk-2.10/src/drivers/driver_nl80211.h
+--- wpa_supplicant-master-2.10/src/drivers/driver_nl80211.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/drivers/driver_nl80211.h	2023-10-19 14:02:04.000000000 +0800
+@@ -311,11 +311,13 @@ extern int wpa_driver_nl80211_driver_eve
+ int wpa_driver_set_p2p_noa(void *priv, u8 count, int start, int duration);
+ int wpa_driver_get_p2p_noa(void *priv, u8 *buf, size_t len);
+ int wpa_driver_set_p2p_ps(void *priv, int legacy_ps, int opp_ps, int ctwindow);
++#endif /* ANDROID_P2P */
++#endif /* ANDROID */
++#if defined CONNECTIVITY_SET_P2P_IE_PATCH || defined ANDROID || defined ANDROID_P2P
+ int wpa_driver_set_ap_wps_p2p_ie(void *priv, const struct wpabuf *beacon,
+ 				 const struct wpabuf *proberesp,
+ 				 const struct wpabuf *assocresp);
+-#endif /* ANDROID_P2P */
+-#endif /* ANDROID */
++#endif
+ 
+ 
+ /* driver_nl80211_scan.c */
+diff -uprN wpa_supplicant-master-2.10/src/drivers/drivers.mak wpa_supplicant-trunk-2.10/src/drivers/drivers.mak
+--- wpa_supplicant-master-2.10/src/drivers/drivers.mak	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/drivers/drivers.mak	2023-10-19 14:02:04.000000000 +0800
+@@ -42,6 +42,10 @@ endif
+ 
+ ifdef CONFIG_DRIVER_NL80211
+ DRV_CFLAGS += -DCONFIG_DRIVER_NL80211
++ifdef CONNECTIVITY_SET_P2P_IE_PATCH
++DRV_CFLAGS += -I$(abspath ../wpa_supplicant/)
++DRV_OBJS += ../src/drivers/driver_nl80211_android.o
++endif
+ DRV_OBJS += ../src/drivers/driver_nl80211.o
+ DRV_OBJS += ../src/drivers/driver_nl80211_capa.o
+ DRV_OBJS += ../src/drivers/driver_nl80211_event.o
+diff -uprN wpa_supplicant-master-2.10/src/drivers/nl80211_copy.h wpa_supplicant-trunk-2.10/src/drivers/nl80211_copy.h
+--- wpa_supplicant-master-2.10/src/drivers/nl80211_copy.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/drivers/nl80211_copy.h	2023-10-19 14:02:04.000000000 +0800
+@@ -4757,6 +4757,9 @@ enum nl80211_wpa_versions {
+ 	NL80211_WPA_VERSION_1 = 1 << 0,
+ 	NL80211_WPA_VERSION_2 = 1 << 1,
+ 	NL80211_WPA_VERSION_3 = 1 << 2,
++#ifdef CONFIG_WAPI
++	NL80211_WAPI_VERSION_1 = 1 << 7,
++#endif
+ };
+ 
+ /**
+diff -uprN wpa_supplicant-master-2.10/src/l2_packet/l2_packet.h wpa_supplicant-trunk-2.10/src/l2_packet/l2_packet.h
+--- wpa_supplicant-master-2.10/src/l2_packet/l2_packet.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/l2_packet/l2_packet.h	2023-10-19 14:02:04.000000000 +0800
+@@ -29,6 +29,12 @@ struct l2_packet_data;
+ #pragma pack(push, 1)
+ #endif /* _MSC_VER */
+ 
++#ifdef CONFIG_WAPI
++#ifndef ETH_P_WAI
++#define ETH_P_WAI       0x88b4
++#endif
++#endif
++
+ struct l2_ethhdr {
+ 	u8 h_dest[ETH_ALEN];
+ 	u8 h_source[ETH_ALEN];
+diff -uprN wpa_supplicant-master-2.10/src/p2p/p2p.c wpa_supplicant-trunk-2.10/src/p2p/p2p.c
+--- wpa_supplicant-master-2.10/src/p2p/p2p.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/p2p/p2p.c	2023-10-19 14:02:04.000000000 +0800
+@@ -249,6 +249,21 @@ void p2p_go_neg_failed(struct p2p_data *
+ 	p2p->cfg->go_neg_completed(p2p->cfg->cb_ctx, &res);
+ }
+ 
++#ifdef CONNECTIVITY_SINGLE_VAP_PATCH
++static int p2p_get_group_flag(struct p2p_data *p2p)
++{
++	size_t i;
++	struct p2p_group *group;
++
++	for (i = 0; i < p2p->num_groups; i++) {
++		group = p2p->groups[i];
++		if (os_memcmp(p2p_group_get_interface_addr(group),
++			p2p->cfg->dev_addr, ETH_ALEN) == 0)
++			return 1;
++	}
++	return 0;
++}
++#endif
+ 
+ static void p2p_listen_in_find(struct p2p_data *p2p, int dev_disc)
+ {
+@@ -287,7 +302,14 @@ static void p2p_listen_in_find(struct p2
+ 		p2p_set_timeout(p2p, 0, 0);
+ 		return;
+ 	}
+-
++#ifdef CONNECTIVITY_SINGLE_VAP_PATCH
++	/* If the functions as the GO, no listening is required.*/
++	if (p2p_get_group_flag(p2p) == 1) {
++		p2p_dbg(p2p, "p2p_listen_in_find go no response");
++		p2p_set_timeout(p2p, 0, 0);
++		return;
++	}
++#endif
+ 	ies = p2p_build_probe_resp_ies(p2p, NULL, 0);
+ 	if (ies == NULL)
+ 		return;
+@@ -335,8 +357,16 @@ int p2p_listen(struct p2p_data *p2p, uns
+ 		p2p_dbg(p2p, "p2p_scan running - delay start of listen state");
+ 		p2p->start_after_scan = P2P_AFTER_SCAN_LISTEN;
+ 		return 0;
+-	}
++    }
+ 
++#ifdef CONNECTIVITY_SINGLE_VAP_PATCH
++	/* If the functions as the GO, no listening is required.*/
++	if (p2p_get_group_flag(p2p) == 1) {
++		p2p_dbg(p2p, "p2p_listen go no response");
++		p2p_set_state(p2p, P2P_LISTEN_ONLY);
++		return 0;
++	}
++#endif
+ 	ies = p2p_build_probe_resp_ies(p2p, NULL, 0);
+ 	if (ies == NULL)
+ 		return -1;
+@@ -2241,8 +2271,19 @@ struct wpabuf * p2p_build_probe_resp_ies
+ 
+ 	/* P2P IE */
+ 	len = p2p_buf_add_ie_hdr(buf);
++#ifdef CONNECTIVITY_SINGLE_VAP_PATCH
++	u8 group_capab = 0;
++	if (p2p->num_groups > 0) {
++		group_capab |= P2P_GROUP_CAPAB_GROUP_OWNER;
++	}
++	p2p_buf_add_capability(buf, p2p->dev_capab &
++		~P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY, group_capab);
++	p2p_dbg(p2p, "p2p_build_probe_resp_ies:num_group:%ld.group_capab:%x",
++		p2p->num_groups, group_capab);
++#else 
+ 	p2p_buf_add_capability(buf, p2p->dev_capab &
+ 			       ~P2P_DEV_CAPAB_CLIENT_DISCOVERABILITY, 0);
++#endif
+ 	if (p2p->ext_listen_interval)
+ 		p2p_buf_add_ext_listen_timing(buf, p2p->ext_listen_period,
+ 					      p2p->ext_listen_interval);
+@@ -3573,10 +3614,23 @@ void p2p_scan_ie(struct p2p_data *p2p, s
+ 
+ 	if (dev_id)
+ 		p2p_buf_add_device_id(ies, dev_id);
++#ifdef CONNECTIVITY_SINGLE_VAP_PATCH
++	/* If as GO, change probe_req listening channel to AP networking */
++	if (p2p_get_group_flag(p2p) == 1) {
++		p2p_buf_add_listen_channel(ies, p2p->cfg->country,
++			p2p->op_reg_class, p2p->op_channel);
++	} else {
++		if (p2p->cfg->reg_class && p2p->cfg->channel) {
++			p2p_buf_add_listen_channel(ies, p2p->cfg->country,
++				p2p->cfg->reg_class, p2p->cfg->channel);
++		}
++	}
++#else
+ 	if (p2p->cfg->reg_class && p2p->cfg->channel)
+ 		p2p_buf_add_listen_channel(ies, p2p->cfg->country,
+ 					   p2p->cfg->reg_class,
+ 					   p2p->cfg->channel);
++#endif
+ 	if (p2p->ext_listen_interval)
+ 		p2p_buf_add_ext_listen_timing(ies, p2p->ext_listen_period,
+ 					      p2p->ext_listen_interval);
+diff -uprN wpa_supplicant-master-2.10/src/utils/os.h wpa_supplicant-trunk-2.10/src/utils/os.h
+--- wpa_supplicant-master-2.10/src/utils/os.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/utils/os.h	2023-10-19 14:02:04.000000000 +0800
+@@ -8,7 +8,9 @@
+ 
+ #ifndef OS_H
+ #define OS_H
+-
++#ifdef CONFIG_WAPI
++#include <string.h>
++#endif
+ typedef long os_time_t;
+ 
+ /**
+diff -uprN wpa_supplicant-master-2.10/src/utils/wpabuf.h wpa_supplicant-trunk-2.10/src/utils/wpabuf.h
+--- wpa_supplicant-master-2.10/src/utils/wpabuf.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/utils/wpabuf.h	2023-10-19 14:02:04.000000000 +0800
+@@ -188,4 +188,24 @@ static inline void wpabuf_put_str(struct
+ 	wpabuf_put_data(dst, str, os_strlen(str));
+ }
+ 
++#ifdef CONFIG_WAPI
++static inline void wpabuf_reset(struct wpabuf *buf)
++{
++	buf->used = 0;
++}
++
++static inline void * wpabuf_free_keep_extdata(struct wpabuf *buf)
++{
++	void* ext_data;
++
++	if (NULL == buf) {
++		return NULL;
++	}
++	ext_data = buf->buf;
++	os_free(buf);
++
++	return ext_data;
++}
++#endif
++
+ #endif /* WPABUF_H */
+diff -uprN wpa_supplicant-master-2.10/src/utils/wpa_debug.c wpa_supplicant-trunk-2.10/src/utils/wpa_debug.c
+--- wpa_supplicant-master-2.10/src/utils/wpa_debug.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/src/utils/wpa_debug.c	2023-10-19 14:02:04.000000000 +0800
+@@ -26,6 +26,9 @@ static FILE *wpa_debug_tracing_file = NU
+ #define WPAS_TRACE_PFX "wpas <%d>: "
+ #endif /* CONFIG_DEBUG_LINUX_TRACING */
+ 
++#ifdef CONNECTIVITY_LOG_PATCH
++#include <sys/stat.h>
++#endif /* CONNECTIVITY_LOG_PATCH */
+ 
+ int wpa_debug_level = MSG_INFO;
+ int wpa_debug_show_keys = 0;
+@@ -206,6 +209,23 @@ void wpa_debug_close_linux_tracing(void)
+  *
+  * Note: New line '\n' is added to the end of the text when printing to stdout.
+  */
++#ifdef CONNECTIVITY_LOG_PATCH
++static char *last_path = NULL;
++
++/* 定义log 文件大小，修改大小为300k */
++unsigned long g_wpa_debug_log_file_size = (300 * 1024);
++unsigned long wpa_debug_get_file_size(const char *path)
++{
++	unsigned long filesize = -1;
++	struct stat statbuff;
++	if(stat(path, &statbuff) < 0) {
++		return filesize;
++	} else {
++		filesize = statbuff.st_size;
++	}
++	return filesize;
++}
++
+ void wpa_printf(int level, const char *fmt, ...)
+ {
+ 	va_list ap;
+@@ -222,8 +242,41 @@ void wpa_printf(int level, const char *f
+ 			va_start(ap, fmt);
+ 			vsyslog(syslog_priority(level), fmt, ap);
+ 			va_end(ap);
+-		}
++		} else {
+ #endif /* CONFIG_DEBUG_SYSLOG */
++#ifdef CONFIG_DEBUG_FILE
++			if (out_file) {
++				va_start(ap, fmt);
++				/* 如果log 文件大于规定大小，则将log 文件备份为 last_path.tar.gz */
++				/* 然后重新从头开始记录log 到last_path 中 */
++				/* 例如原来的log 文件名为hostapd.log， 备份为hostapd.log.tar.gz */
++				/* 重新重头开始记录log 到hostapd.log 中 */
++				unsigned long filesize;
++				filesize = wpa_debug_get_file_size(last_path);
++
++				if ((filesize != -1) &&
++					(filesize > g_wpa_debug_log_file_size)) {
++					/* 备份log 文件 */
++					char cmd[128];
++
++					/* 清空原log.tar.gz 文件内容，直接压缩覆盖 */
++					snprintf(cmd, sizeof(cmd), "tar zcvf %s.tar.gz %s",
++						last_path, last_path);
++					system(cmd);
++					/* 清空原log 文件内容 */
++					snprintf(cmd, sizeof(cmd), "rm %s", last_path);
++					system(cmd);
++					snprintf(cmd, sizeof(cmd), "touch %s", last_path);
++					system(cmd);
++					/* 重新打开log 文件 */
++					if (wpa_debug_reopen_file() < 0) {
++						printf("%s[%d]: wpa_debug_reopen_file failed!\r\n",
++							__func__, __LINE__);
++					}
++				}
++				va_end(ap);
++			}
++#endif /* CONFIG_DEBUG_FILE */
+ 		wpa_debug_print_timestamp();
+ #ifdef CONFIG_DEBUG_FILE
+ 		if (out_file) {
+@@ -240,6 +293,9 @@ void wpa_printf(int level, const char *f
+ 			va_end(ap);
+ 		}
+ #endif /* CONFIG_ANDROID_LOG */
++#ifdef CONFIG_DEBUG_SYSLOG
++		}
++#endif /* CONFIG_DEBUG_SYSLOG */
+ 	}
+ 
+ #ifdef CONFIG_DEBUG_LINUX_TRACING
+@@ -253,7 +309,55 @@ void wpa_printf(int level, const char *f
+ 	}
+ #endif /* CONFIG_DEBUG_LINUX_TRACING */
+ }
++#else
++void wpa_printf(int level, const char *fmt, ...)
++{
++	va_list ap;
+ 
++	if (level >= wpa_debug_level) {
++#ifdef CONFIG_ANDROID_LOG
++		va_start(ap, fmt);
++		__android_log_vprint(wpa_to_android_level(level),
++				     ANDROID_LOG_NAME, fmt, ap);
++		va_end(ap);
++#else /* CONFIG_ANDROID_LOG */
++#ifdef CONFIG_DEBUG_SYSLOG
++		if (wpa_debug_syslog) {
++			va_start(ap, fmt);
++			vsyslog(syslog_priority(level), fmt, ap);
++			va_end(ap);
++		}
++#endif /* CONFIG_DEBUG_SYSLOG */
++		wpa_debug_print_timestamp();
++#ifdef CONFIG_DEBUG_FILE
++		if (out_file) {
++			va_start(ap, fmt);
++			vfprintf(out_file, fmt, ap);
++			fprintf(out_file, "\n");
++			va_end(ap);
++		}
++#endif /* CONFIG_DEBUG_FILE */
++		if (!wpa_debug_syslog && !out_file) {
++			va_start(ap, fmt);
++			vprintf(fmt, ap);
++			printf("\n");
++			va_end(ap);
++		}
++#endif /* CONFIG_ANDROID_LOG */
++	}
++
++#ifdef CONFIG_DEBUG_LINUX_TRACING
++	if (wpa_debug_tracing_file != NULL) {
++		va_start(ap, fmt);
++		fprintf(wpa_debug_tracing_file, WPAS_TRACE_PFX, level);
++		vfprintf(wpa_debug_tracing_file, fmt, ap);
++		fprintf(wpa_debug_tracing_file, "\n");
++		fflush(wpa_debug_tracing_file);
++		va_end(ap);
++	}
++#endif /* CONFIG_DEBUG_LINUX_TRACING */
++}
++#endif
+ 
+ static void _wpa_hexdump(int level, const char *title, const u8 *buf,
+ 			 size_t len, int show, int only_syslog)
+@@ -520,10 +624,11 @@ void wpa_hexdump_ascii_key(int level, co
+ 	_wpa_hexdump_ascii(level, title, buf, len, wpa_debug_show_keys);
+ }
+ 
+-
++#ifndef CONNECTIVITY_LOG_PATCH
+ #ifdef CONFIG_DEBUG_FILE
+ static char *last_path = NULL;
+ #endif /* CONFIG_DEBUG_FILE */
++#endif /* CONNECTIVITY_LOG_PATCH */
+ 
+ int wpa_debug_reopen_file(void)
+ {
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/config.c wpa_supplicant-trunk-2.10/wpa_supplicant/config.c
+--- wpa_supplicant-master-2.10/wpa_supplicant/config.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/config.c	2023-10-19 14:02:04.000000000 +0800
+@@ -568,12 +568,21 @@ static int wpa_config_parse_psk(const st
+ 			len = pos - value;
+ 		else
+ 			len = os_strlen(value);
++#ifdef CONFIG_WAPI
++		if (len < 8 || len > 64) {
++			wpa_printf(MSG_ERROR, "Line %d: Invalid passphrase "
++				"length %lu (expected: 8..64) '%s'.",
++				line, (unsigned long) len, value);
++			return -1;
++		}
++#else
+ 		if (len < 8 || len > 63) {
+ 			wpa_printf(MSG_ERROR, "Line %d: Invalid passphrase "
+ 				   "length %lu (expected: 8..63) '%s'.",
+ 				   line, (unsigned long) len, value);
+ 			return -1;
+ 		}
++#endif
+ 		wpa_hexdump_ascii_key(MSG_MSGDUMP, "PSK (ASCII passphrase)",
+ 				      (u8 *) value, len);
+ 		if (has_ctrl_char((u8 *) value, len)) {
+@@ -643,7 +652,12 @@ static char * wpa_config_write_psk(const
+ 			os_strlen(ssid->passphrase));
+ 
+ 	if (ssid->psk_set)
++#ifdef CONFIG_WAPI
++		return wpa_config_write_string_hex(ssid->psk, (ssid->psk_set==1) ? PMK_LEN : ssid->psk_set);
++#else
++
+ 		return wpa_config_write_string_hex(ssid->psk, PMK_LEN);
++#endif
+ 
+ 	return NULL;
+ }
+@@ -679,6 +693,12 @@ static int wpa_config_parse_proto(const
+ 			val |= WPA_PROTO_RSN;
+ 		else if (os_strcmp(start, "OSEN") == 0)
+ 			val |= WPA_PROTO_OSEN;
++#ifdef CONFIG_WAPI
++		else if (os_strcmp(start, "WAPI") == 0) {
++			val |= WPA_PROTO_WAPI;
++			wpa_printf(MSG_DEBUG, "WAPI network\n");
++		}
++#endif
+ 		else {
+ 			wpa_printf(MSG_ERROR, "Line %d: invalid proto '%s'",
+ 				   line, start);
+@@ -740,6 +760,17 @@ static char * wpa_config_write_proto(con
+ 			return buf;
+ 		pos += ret;
+ 	}
++#ifdef CONFIG_WAPI
++	if (ssid->proto & WPA_PROTO_WAPI) {
++		ret = os_snprintf(pos, end - pos, "%sWAPI",
++			pos == buf ? "" : " ");
++		if (ret < 0 || ret >= end - pos) {
++			wpa_printf(MSG_ERROR, "%s:%d, snprintf failed, ret=%d", __func__, __LINE__, ret);
++			return buf;
++		}
++		pos += ret;
++	}
++#endif
+ 
+ 	if (pos == buf) {
+ 		os_free(buf);
+@@ -783,6 +814,13 @@ static int wpa_config_parse_key_mgmt(con
+ 			val |= WPA_KEY_MGMT_NONE;
+ 		else if (os_strcmp(start, "WPA-NONE") == 0)
+ 			val |= WPA_KEY_MGMT_WPA_NONE;
++#ifdef CONFIG_WAPI
++		else if (os_strcmp(start, "WAPI-PSK") == 0)
++			val |= WPA_KEY_MGMT_WAPI_PSK;
++		else if (os_strcmp(start, "WAPI-CERT") == 0)
++			val |= WPA_KEY_MGMT_WAPI_CERT;
++#endif
++
+ #ifdef CONFIG_IEEE80211R
+ 		else if (os_strcmp(start, "FT-PSK") == 0)
+ 			val |= WPA_KEY_MGMT_FT_PSK;
+@@ -927,6 +965,32 @@ static char * wpa_config_write_key_mgmt(
+ 		pos += ret;
+ 	}
+ 
++#ifdef CONFIG_WAPI
++	if (ssid->key_mgmt & WPA_KEY_MGMT_WAPI_PSK) {
++		ret = os_snprintf(pos, end - pos, "%sWAPI-PSK",
++			pos == buf ? "" : " ");
++
++		if (os_snprintf_error(end - pos, ret)) {
++			end[-1] = '\0';
++			wpa_printf(MSG_ERROR, "%s:%d, snprintf failed, ret=%d", __func__, __LINE__, ret);
++			return buf;
++		}
++		pos += ret;
++	}
++
++	if (ssid->key_mgmt & WPA_KEY_MGMT_WAPI_CERT) {
++		ret = os_snprintf(pos, end - pos, "%sWAPI-CERT",
++			pos == buf ? "" : " ");
++
++		if (os_snprintf_error(end - pos, ret)) {
++			end[-1] = '\0';
++			wpa_printf(MSG_ERROR, "%s:%d, snprintf failed, ret=%d", __func__, __LINE__, ret);
++			return buf;
++		}
++		pos += ret;
++	}
++#endif
++
+ #ifdef CONFIG_IEEE80211R
+ 	if (ssid->key_mgmt & WPA_KEY_MGMT_FT_PSK) {
+ 		ret = os_snprintf(pos, end - pos, "%sFT-PSK",
+@@ -2509,6 +2573,12 @@ static const struct parse_data ssid_fiel
+ 	{ STRe(openssl_ciphers, openssl_ciphers) },
+ 	{ INTe(erp, erp) },
+ #endif /* IEEE8021X_EAPOL */
++#ifdef CONFIG_WAPI
++	{ STR(wapi_as_cert)},
++	{ STR(wapi_user_cert)},
++	{ INT(psk_key_type)},
++	{ INT(cert_index)},
++#endif
+ #ifdef CONFIG_WEP
+ 	{ FUNC_KEY(wep_key0) },
+ 	{ FUNC_KEY(wep_key1) },
+@@ -2823,6 +2893,11 @@ void wpa_config_free_ssid(struct wpa_ssi
+ #ifdef CONFIG_HT_OVERRIDES
+ 	os_free(ssid->ht_mcs);
+ #endif /* CONFIG_HT_OVERRIDES */
++#ifdef CONFIG_WAPI
++	os_free(ssid->wapi_as_cert);
++	os_free(ssid->wapi_user_cert);
++#endif
++
+ #ifdef CONFIG_MESH
+ 	os_free(ssid->mesh_basic_rates);
+ #endif /* CONFIG_MESH */
+@@ -2967,7 +3042,9 @@ void wpa_config_free(struct wpa_config *
+ #endif /* CONFIG_MBO */
+ 	os_free(config->dpp_name);
+ 	os_free(config->dpp_mud_url);
+-
++#ifdef CONFIG_WAPI
++	os_free(config->wapi_type);
++#endif
+ 	os_free(config);
+ }
+ 
+@@ -3191,6 +3268,25 @@ int wpa_config_set(struct wpa_ssid *ssid
+ 			}
+ 			ret = -1;
+ 		}
++
++#ifdef CONFIG_WAPI
++		else{
++			if(os_strncmp(var, "wep_key", os_strlen("wep_key")) != 0
++					&& os_strcmp(var, "psk") != 0
++					&& os_strcmp(var, "password") != 0) {
++				wpa_printf(MSG_EXCESSIVE, "parse(%s, %s) succeeded\n", var, value);
++			}
++
++			if (os_strcmp(var, "wapi_as_cert")==0) {
++					wpa_printf(MSG_EXCESSIVE, "ssid->wapi_as_cert=%s\n",
++							   ssid->wapi_as_cert);
++			}
++			if (os_strcmp(var, "wapi_user_cert")==0) {
++					wpa_printf(MSG_EXCESSIVE, "ssid->wapi_user_cert=%s\n",
++							   ssid->wapi_user_cert);
++			}
++		}
++#endif
+ #ifdef CONFIG_SAE
+ 		if (os_strcmp(var, "ssid") == 0 ||
+ 		    os_strcmp(var, "psk") == 0 ||
+@@ -3399,6 +3495,13 @@ char * wpa_config_get_no_key(struct wpa_
+  */
+ void wpa_config_update_psk(struct wpa_ssid *ssid)
+ {
++#ifdef CONFIG_WAPI
++	/* Don't update for WAPI */
++	if (((ssid->proto & WPA_PROTO_WAPI) == WPA_PROTO_WAPI)
++		&& (ssid->key_mgmt & (WPA_KEY_MGMT_WAPI_PSK|WPA_KEY_MGMT_WAPI_CERT)))
++		return;
++#endif
++
+ #ifndef CONFIG_NO_PBKDF2
+ 	pbkdf2_sha1(ssid->passphrase, ssid->ssid, ssid->ssid_len, 4096,
+ 		    ssid->psk, PMK_LEN);
+@@ -5124,6 +5227,9 @@ static const struct global_parse_data gl
+ 	{ STR_RANGE(device_name, 0, WPS_DEV_NAME_MAX_LEN),
+ 	  CFG_CHANGED_DEVICE_NAME },
+ 	{ STR_RANGE(manufacturer, 0, 64), CFG_CHANGED_WPS_STRING },
++#ifdef CONFIG_WAPI
++	{ STR_RANGE(wapi_type, 0, 64), CFG_CHANGED_WPS_STRING },
++#endif
+ 	{ STR_RANGE(model_name, 0, 32), CFG_CHANGED_WPS_STRING },
+ 	{ STR_RANGE(model_number, 0, 32), CFG_CHANGED_WPS_STRING },
+ 	{ STR_RANGE(serial_number, 0, 32), CFG_CHANGED_WPS_STRING },
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/config_file.c wpa_supplicant-trunk-2.10/wpa_supplicant/config_file.c
+--- wpa_supplicant-master-2.10/wpa_supplicant/config_file.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/config_file.c	2023-10-19 14:02:04.000000000 +0800
+@@ -24,12 +24,30 @@
+ #include "eap_peer/eap_methods.h"
+ #include "eap_peer/eap.h"
+ #include "utils/config.h"
++#ifdef CONFIG_WAPI
++struct wpa_supplicant;
++#include "drivers/driver.h"
++#include "utils/list.h"
++#include "bss.h"
++#include "wapi/wapi.h"
++#endif
+ 
+ 
+ static int wpa_config_validate_network(struct wpa_ssid *ssid, int line)
+ {
+ 	int errors = 0;
+ 
++#ifdef CONFIG_WAPI
++	if (ssid->key_mgmt & (WPA_KEY_MGMT_WAPI_PSK|WPA_KEY_MGMT_WAPI_CERT)) {
++		if (ssid->group_cipher!=WPA_CIPHER_SMS4) {
++			ssid->group_cipher = WPA_CIPHER_SMS4;
++		}
++		if (ssid->pairwise_cipher!=WPA_CIPHER_SMS4) {
++			ssid->pairwise_cipher = WPA_CIPHER_SMS4;
++		}
++	}
++#endif
++
+ 	if (ssid->passphrase) {
+ 		if (ssid->psk_set) {
+ 			wpa_printf(MSG_ERROR, "Line %d: both PSK and "
+@@ -679,6 +697,19 @@ static void wpa_config_write_network(FIL
+ 	write_proto(f, ssid);
+ 	write_key_mgmt(f, ssid);
+ 	INT_DEF(bg_scan_period, DEFAULT_BG_SCAN_PERIOD);
++#ifdef CONFIG_WAPI
++	if ( ssid->key_mgmt == WPA_KEY_MGMT_WAPI_PSK ) {
++		/* WAPI PSK network */
++		INT(psk_key_type);
++	}
++	if ( ssid->key_mgmt == WPA_KEY_MGMT_WAPI_CERT ) {
++		/* WAPI CERT network */
++		INT(cert_index);
++		STR(wapi_as_cert);
++		STR(wapi_user_cert);
++	}
++#endif
++
+ 	write_pairwise(f, ssid);
+ 	write_group(f, ssid);
+ 	write_group_mgmt(f, ssid);
+@@ -1138,6 +1169,10 @@ static void wpa_config_write_global(FILE
+ 		fprintf(f, "model_number=%s\n", config->model_number);
+ 	if (config->serial_number)
+ 		fprintf(f, "serial_number=%s\n", config->serial_number);
++#ifdef CONFIG_WAPI
++	if (config->wapi_type)
++		fprintf(f, "wapi_type=%s\n", config->wapi_type);
++#endif
+ 	{
+ 		char _buf[WPS_DEV_TYPE_BUFSIZE], *buf;
+ 		buf = wps_dev_type_bin2str(config->device_type,
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/config.h wpa_supplicant-trunk-2.10/wpa_supplicant/config.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/config.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/config.h	2023-10-19 14:02:04.000000000 +0800
+@@ -720,6 +720,10 @@ struct wpa_config {
+ 	 */
+ 	char *model_name;
+ 
++#ifdef CONFIG_WAPI
++	char *wapi_type;
++#endif
++
+ 	/**
+ 	 * model_number - Model Number (WPS)
+ 	 * Additional device description (up to 32 ASCII characters)
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/config_ssid.h wpa_supplicant-trunk-2.10/wpa_supplicant/config_ssid.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/config_ssid.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/config_ssid.h	2023-10-19 14:02:04.000000000 +0800
+@@ -17,8 +17,19 @@
+ #define DEFAULT_EAP_WORKAROUND ((unsigned int) -1)
+ #define DEFAULT_EAPOL_FLAGS (EAPOL_FLAG_REQUIRE_KEY_UNICAST | \
+ 			     EAPOL_FLAG_REQUIRE_KEY_BROADCAST)
+-#define DEFAULT_PROTO (WPA_PROTO_WPA | WPA_PROTO_RSN)
+ #define DEFAULT_KEY_MGMT (WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_IEEE8021X)
++
++#ifdef CONFIG_WAPI
++#define DEFAULT_PROTO (WPA_PROTO_WPA | WPA_PROTO_RSN | WPA_PROTO_WAPI)
++#ifdef CONFIG_NO_TKIP
++#define DEFAULT_PAIRWISE (WPA_CIPHER_CCMP | WPA_CIPHER_SMS4)
++#define DEFAULT_GROUP (WPA_CIPHER_CCMP | WPA_CIPHER_SMS4)
++#else
++#define DEFAULT_PAIRWISE (WPA_CIPHER_CCMP | WPA_CIPHER_TKIP | WPA_CIPHER_SMS4)
++#define DEFAULT_GROUP (WPA_CIPHER_CCMP | WPA_CIPHER_TKIP | WPA_CIPHER_SMS4)
++#endif
++#else
++#define DEFAULT_PROTO (WPA_PROTO_WPA | WPA_PROTO_RSN)
+ #ifdef CONFIG_NO_TKIP
+ #define DEFAULT_PAIRWISE (WPA_CIPHER_CCMP)
+ #define DEFAULT_GROUP (WPA_CIPHER_CCMP)
+@@ -26,8 +37,15 @@
+ #define DEFAULT_PAIRWISE (WPA_CIPHER_CCMP | WPA_CIPHER_TKIP)
+ #define DEFAULT_GROUP (WPA_CIPHER_CCMP | WPA_CIPHER_TKIP)
+ #endif /* CONFIG_NO_TKIP */
++#endif
+ #define DEFAULT_FRAGMENT_SIZE 1398
+ 
++
++#ifdef CONFIG_WAPI
++#define WAPI_KEY_TYPE_ASCII             0
++#define WAPI_KEY_TYPE_HEX               1
++#endif
++
+ #define DEFAULT_BG_SCAN_PERIOD -1
+ #define DEFAULT_MESH_MAX_RETRIES 2
+ #define DEFAULT_MESH_RETRY_TIMEOUT 40
+@@ -193,7 +211,11 @@ struct wpa_ssid {
+ 	/**
+ 	 * psk - WPA pre-shared key (256 bits)
+ 	 */
++#ifdef CONFIG_WAPI
++	u8 psk[64];
++#else
+ 	u8 psk[32];
++#endif
+ 
+ 	/**
+ 	 * psk_set - Whether PSK field is configured
+@@ -845,6 +867,12 @@ struct wpa_ssid {
+ 	 * dereferences since it may not be updated in all cases.
+ 	 */
+ 	void *parent_cred;
++#ifdef CONFIG_WAPI
++	char *wapi_as_cert;
++	char *wapi_user_cert;
++	int   cert_index;
++	int   psk_key_type;
++#endif
+ 
+ #ifdef CONFIG_MACSEC
+ 	/**
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/ctrl_iface.c wpa_supplicant-trunk-2.10/wpa_supplicant/ctrl_iface.c
+--- wpa_supplicant-master-2.10/wpa_supplicant/ctrl_iface.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/ctrl_iface.c	2023-10-19 14:02:04.000000000 +0800
+@@ -2755,6 +2755,90 @@ static char * wpa_supplicant_cipher_txt(
+ 	return pos;
+ }
+ 
++#ifdef CONFIG_WAPI
++
++#define WAPI_OUI                ((int)0x00721400)
++
++typedef enum _WAPI_AKM
++{
++    WAPI_AKML_RESV = 0,
++    WAPI_AKML_CERT,
++    WAPI_AKML_PSK
++}WAPI_AKM;
++
++
++#define WAPI_AKM_PSK            ((WAPI_AKML_PSK << 24)  | WAPI_OUI)
++
++#define WAPI_AKM_CERT           ((WAPI_AKML_CERT << 24) | WAPI_OUI)
++
++
++#define WAPIIE_ELEMENT_ID_LEN 1
++#define WAPIIE_LENGHTH_LEN    1
++#define WAPIIE_VERSION_LEN    2
++#define WAPIIE_AKM_CNT_LEN    2
++#define WAPIIE_AKM_SUIT_LEN   4
++
++#define WAPIIE_AKM_SUIT_PSK     0x00147202
++#define WAPIIE_AKM_SUIT_CERT    0x00147201
++#define MY_GET32(p) ((((*p) << 24) & 0xff000000) | (((*(p+1)) << 16) & 0xff0000) | (((*(p+2)) << 8)& 0xff00) | ((*(p+3)) & 0xff))
++
++static char * wpa_supplicant_wapi_ie_txt(char *pos, char *end, const u8 *ie, size_t ie_len)
++{
++	int i, ret;
++	u8 *ie_hdr = (u8 *)ie, *p_akm_auit_cnt, *p_akm;
++	u16 akm_suit_cnt = 0;
++
++	char *old_pos = pos;
++
++	#define WAPI_HEAD_LEN (WAPIIE_ELEMENT_ID_LEN + WAPIIE_LENGHTH_LEN + WAPIIE_VERSION_LEN + 2)
++	if (ie_len < WAPI_HEAD_LEN) {
++		/* ensure ie_len much more length */
++		wpa_printf(MSG_ERROR,"ie_len is too short,ie_len=%zu(<6)", ie_len);
++		return old_pos;
++	}
++
++	p_akm_auit_cnt = ie_hdr + (WAPIIE_ELEMENT_ID_LEN + WAPIIE_LENGHTH_LEN + WAPIIE_VERSION_LEN);
++	akm_suit_cnt = ((*p_akm_auit_cnt) | ((*(p_akm_auit_cnt + 1)) << 8 & 0xff00)) & 0xffff;
++
++	wpa_printf(MSG_DEBUG,"wpa_supplicant_wapi_ie_txt,ie_len=%zu,akm_suit_cnt=%d", ie_len, akm_suit_cnt);
++
++	if (2 < akm_suit_cnt) {
++		wpa_printf(MSG_ERROR,"akm_suit_cnt(%d > 2) is error.", akm_suit_cnt);
++		return old_pos;
++	}
++	if((size_t)(WAPI_HEAD_LEN + akm_suit_cnt * 4) > ie_len) {
++		wpa_printf(MSG_ERROR,"ie_len(%zu) is short,the right len should more than:%d",
++					ie_len, (WAPI_HEAD_LEN + akm_suit_cnt * 4));
++		return old_pos;
++	}
++
++	p_akm = (p_akm_auit_cnt + WAPIIE_AKM_CNT_LEN);
++	for (i = 0; i < akm_suit_cnt; i++) {
++		if (WAPIIE_AKM_SUIT_PSK == MY_GET32(p_akm)) {
++			ret = os_snprintf(pos, end - pos, "[WAPI-PSK]");/*lint !e732*/
++			if (os_snprintf_error(end - pos, ret)) {/*lint !e732*/
++				wpa_printf(MSG_ERROR, "%s:%d, snprintf failed, ret=%d", __func__, __LINE__, ret);
++				return pos;
++			}
++			pos += ret;
++		} else if (WAPIIE_AKM_SUIT_CERT == MY_GET32(p_akm)) {
++			ret = os_snprintf(pos, end - pos, "[WAPI-CERT]");/*lint !e732*/
++			if (os_snprintf_error(end - pos, ret)) {/*lint !e732*/
++				wpa_printf(MSG_ERROR, "%s:%d, snprintf failed, ret=%d", __func__, __LINE__, ret);
++				return pos;
++			}
++			pos += ret;
++		}
++		else {
++			wpa_printf(MSG_ERROR,"unknow wpai akm_suit");
++			return old_pos;
++		}
++
++		p_akm += WAPIIE_AKM_SUIT_LEN;
++	}
++	return pos;
++}
++#endif
+ 
+ static char * wpa_supplicant_ie_txt(char *pos, char *end, const char *proto,
+ 				    const u8 *ie, size_t ie_len)
+@@ -2992,6 +3076,9 @@ static int wpa_supplicant_ctrl_iface_sca
+ 	char *pos, *end;
+ 	int ret;
+ 	const u8 *ie, *ie2, *osen_ie, *p2p, *mesh, *owe, *rsnxe;
++#ifdef CONFIG_WAPI
++	const u8 *ie3;
++#endif
+ 
+ 	mesh = wpa_bss_get_ie(bss, WLAN_EID_MESH_ID);
+ 	p2p = wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE);
+@@ -3018,18 +3105,26 @@ static int wpa_supplicant_ctrl_iface_sca
+ 		pos = wpa_supplicant_ie_txt(pos, end, mesh ? "RSN" : "WPA2",
+ 					    ie2, 2 + ie2[1]);
+ 	}
+-	rsnxe = wpa_bss_get_ie(bss, WLAN_EID_RSNX);
+-	if (ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_SAE_H2E)) {
+-		ret = os_snprintf(pos, end - pos, "[SAE-H2E]");
+-		if (os_snprintf_error(end - pos, ret))
+-			return -1;
+-		pos += ret;
++#ifdef CONFIG_WAPI
++	ie3 = wpa_bss_get_ie(bss, WLAN_EID_WAPI); /*TODO: confirm*/
++	if (ie3) {
++		pos = wpa_supplicant_wapi_ie_txt(pos, end, ie3, 2 + ie3[1]);
+ 	}
+-	if (ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_SAE_PK)) {
+-		ret = os_snprintf(pos, end - pos, "[SAE-PK]");
+-		if (os_snprintf_error(end - pos, ret))
+-			return -1;
+-		pos += ret;
++#endif
++	rsnxe = wpa_bss_get_ie(bss, WLAN_EID_RSNX);
++	if (rsnxe && rsnxe[1] >= 1) {
++		if (rsnxe[2] & BIT(WLAN_RSNX_CAPAB_SAE_H2E)) {
++			ret = os_snprintf(pos, end - pos, "[SAE-H2E]");
++			if (os_snprintf_error(end - pos, ret))
++				return -1;
++			pos += ret;
++		}
++		if (rsnxe[2] & BIT(WLAN_RSNX_CAPAB_SAE_PK)) {
++			ret = os_snprintf(pos, end - pos, "[SAE-PK]");
++			if (os_snprintf_error(end - pos, ret))
++				return -1;
++			pos += ret;
++		}
+ 	}
+ 	osen_ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
+ 	if (osen_ie)
+@@ -3044,7 +3139,11 @@ static int wpa_supplicant_ctrl_iface_sca
+ 		pos += ret;
+ 	}
+ 	pos = wpa_supplicant_wps_ie_txt(wpa_s, pos, end, bss);
+-	if (!ie && !ie2 && !osen_ie && (bss->caps & IEEE80211_CAP_PRIVACY)) {
++	if (!ie && !ie2 && !osen_ie &&
++#ifdef CONFIG_WAPI
++	!ie3 &&
++#endif
++	(bss->caps & IEEE80211_CAP_PRIVACY)) {
+ 		ret = os_snprintf(pos, end - pos, "[WEP]");
+ 		if (os_snprintf_error(end - pos, ret))
+ 			return -1;
+@@ -4161,6 +4260,9 @@ static int ctrl_iface_get_capability_key
+ 		if (strict)
+ 			return 0;
+ 		len = os_strlcpy(buf, "WPA-PSK WPA-EAP IEEE8021X WPA-NONE "
++#ifdef CONFIG_WAPI
++				"WAPI-PSK "
++#endif
+ 				 "NONE", buflen);
+ 		if (len >= buflen)
+ 			return -1;
+@@ -4205,6 +4307,16 @@ static int ctrl_iface_get_capability_key
+ 			return pos - buf;
+ 		pos += ret;
+ 	}
++#ifdef CONFIG_WAPI
++	if (capa->key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_WAPI_PSK) {
++		ret = os_snprintf(pos, end - pos, " WAPI-PSK");
++		if (os_snprintf_error(end - pos, ret)) {
++			wpa_printf(MSG_ERROR, "%s:%d, snprintf failed, ret=%d", __func__, __LINE__, ret);
++			return pos - buf;
++		}
++		pos += ret;
++	}
++#endif
+ 
+ 	if (key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_WAPI_PSK) {
+ 		ret = os_snprintf(pos, end - pos, " WAPI-PSK");
+@@ -4952,6 +5064,9 @@ static int print_bss_info(struct wpa_sup
+ 	int ret;
+ 	char *pos, *end;
+ 	const u8 *ie, *ie2, *osen_ie, *mesh, *owe, *rsnxe;
++#ifdef CONFIG_WAPI
++	const u8 *ie3;
++#endif
+ 
+ 	pos = buf;
+ 	end = buf + buflen;
+@@ -5071,18 +5186,27 @@ static int print_bss_info(struct wpa_sup
+ 			pos = wpa_supplicant_ie_txt(pos, end,
+ 						    mesh ? "RSN" : "WPA2", ie2,
+ 						    2 + ie2[1]);
++
++#ifdef CONFIG_WAPI
++		ie3 = wpa_bss_get_ie(bss, WLAN_EID_WAPI);
++		if (ie3)
++			pos = wpa_supplicant_wapi_ie_txt(pos, end, ie3, 2 + ie3[1]);
++#endif
++
+ 		rsnxe = wpa_bss_get_ie(bss, WLAN_EID_RSNX);
+-		if (ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_SAE_H2E)) {
+-			ret = os_snprintf(pos, end - pos, "[SAE-H2E]");
+-			if (os_snprintf_error(end - pos, ret))
+-				return -1;
+-			pos += ret;
+-		}
+-		if (ieee802_11_rsnx_capab(rsnxe, WLAN_RSNX_CAPAB_SAE_PK)) {
+-			ret = os_snprintf(pos, end - pos, "[SAE-PK]");
+-			if (os_snprintf_error(end - pos, ret))
+-				return -1;
+-			pos += ret;
++		if (rsnxe && rsnxe[1] >= 1) {
++			if (rsnxe[2] & BIT(WLAN_RSNX_CAPAB_SAE_H2E)) {
++				ret = os_snprintf(pos, end - pos, "[SAE-H2E]");
++				if (os_snprintf_error(end - pos, ret))
++					return -1;
++				pos += ret;
++			}
++			if (rsnxe[2] & BIT(WLAN_RSNX_CAPAB_SAE_PK)) {
++				ret = os_snprintf(pos, end - pos, "[SAE-PK]");
++				if (os_snprintf_error(end - pos, ret))
++					return -1;
++				pos += ret;
++			}
+ 		}
+ 		osen_ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
+ 		if (osen_ie)
+@@ -5099,6 +5223,9 @@ static int print_bss_info(struct wpa_sup
+ 		}
+ 		pos = wpa_supplicant_wps_ie_txt(wpa_s, pos, end, bss);
+ 		if (!ie && !ie2 && !osen_ie &&
++#ifdef CONFIG_WAPI
++			!ie3 &&
++#endif
+ 		    (bss->caps & IEEE80211_CAP_PRIVACY)) {
+ 			ret = os_snprintf(pos, end - pos, "[WEP]");
+ 			if (os_snprintf_error(end - pos, ret))
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/defconfig wpa_supplicant-trunk-2.10/wpa_supplicant/defconfig
+--- wpa_supplicant-master-2.10/wpa_supplicant/defconfig	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/defconfig	2023-10-19 14:02:04.000000000 +0800
+@@ -474,6 +474,9 @@ CONFIG_DEBUG_SYSLOG=y
+ # IEEE 802.11ac (Very High Throughput) support (mainly for AP mode)
+ CONFIG_IEEE80211AC=y
+ 
++# IEEE 802.11ax support (mainly for AP mode)
++#CONFIG_IEEE80211AX=y
++
+ # Wireless Network Management (IEEE Std 802.11v-2011)
+ # Note: This is experimental and not complete implementation.
+ #CONFIG_WNM=y
+@@ -633,3 +636,18 @@ CONFIG_DPP2=y
+ # design is still subject to change. As such, this should not yet be enabled in
+ # production use.
+ #CONFIG_PASN=y
++
++# Implementation of Complement Function (wpa_driver_set_ap_wps_p2p_ie)
++#CONNECTIVITY_SET_P2P_IE_PATCH=y
++
++# patch for P2P single VAP
++#CONNECTIVITY_SINGLE_VAP_PATCH=y
++
++#patch for wpa log
++#CONNECTIVITY_LOG_PATCH=y
++
++#patch for wapi
++#CONFIG_WAPI=y
++
++# Support Roaming with the WPA3 encryption mode
++#CONFIG_ROAM_EXTRA_SUPPORT=y
+\ No newline at end of file
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/events.c wpa_supplicant-trunk-2.10/wpa_supplicant/events.c
+--- wpa_supplicant-master-2.10/wpa_supplicant/events.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/events.c	2023-10-19 14:02:04.000000000 +0800
+@@ -51,6 +51,9 @@
+ #include "wmm_ac.h"
+ #include "dpp_supplicant.h"
+ 
++#ifdef CONFIG_WAPI
++#include "wapi/wapi.h"
++#endif
+ 
+ #define MAX_OWE_TRANSITION_BSS_SELECT_COUNT 5
+ 
+@@ -252,7 +255,14 @@ static int wpa_supplicant_select_config(
+ 	wpa_supplicant_update_current_bss(wpa_s);
+ 
+ 	wpa_supplicant_rsn_supp_set_config(wpa_s, wpa_s->current_ssid);
++#ifdef CONFIG_WAPI
++	/* WAPI do WAPI's EAP process */
++	if (WPA_PROTO_WAPI != wpa_s->current_ssid->proto) {
++#endif
+ 	wpa_supplicant_initiate_eapol(wpa_s);
++#ifdef CONFIG_WAPI
++	}
++#endif
+ 	if (old_ssid != wpa_s->current_ssid)
+ 		wpas_notify_network_changed(wpa_s);
+ 
+@@ -322,6 +332,10 @@ void wpa_supplicant_mark_disassoc(struct
+ 
+ 	if (bssid_changed)
+ 		wpas_notify_bssid_changed(wpa_s);
++#ifdef CONFIG_WAPI
++	if ((wpa_s->key_mgmt != WPA_KEY_MGMT_WAPI_PSK) &&
++		(wpa_s->key_mgmt != WPA_KEY_MGMT_WAPI_CERT)) {
++#endif
+ 
+ 	eapol_sm_notify_portEnabled(wpa_s->eapol, false);
+ 	eapol_sm_notify_portValid(wpa_s->eapol, false);
+@@ -329,6 +343,10 @@ void wpa_supplicant_mark_disassoc(struct
+ 	    wpa_s->key_mgmt == WPA_KEY_MGMT_OWE ||
+ 	    wpa_s->key_mgmt == WPA_KEY_MGMT_DPP || wpa_s->drv_authorized_port)
+ 		eapol_sm_notify_eap_success(wpa_s->eapol, false);
++#ifdef CONFIG_WAPI
++	}
++#endif
++
+ 	wpa_s->drv_authorized_port = 0;
+ 	wpa_s->ap_ies_from_associnfo = 0;
+ 	wpa_s->current_ssid = NULL;
+@@ -549,6 +567,12 @@ static int wpa_supplicant_match_privacy(
+ 	if (ssid->key_mgmt & WPA_KEY_MGMT_OSEN)
+ 		privacy = 1;
+ 
++#ifdef CONFIG_WAPI
++	/*this codes for fixing wapi issue after CL935256*/
++	if (ssid->key_mgmt & (WPA_KEY_MGMT_WAPI_PSK|WPA_KEY_MGMT_WAPI_CERT))
++		privacy = 1;
++#endif
++
+ 	if (bss->caps & IEEE80211_CAP_PRIVACY)
+ 		return privacy;
+ 	return !privacy;
+@@ -566,6 +590,9 @@ static int wpa_supplicant_ssid_bss_match
+ #ifdef CONFIG_WEP
+ 	int wep_ok;
+ #endif /* CONFIG_WEP */
++#ifdef CONFIG_WAPI
++	const u8 *wapi_ie;
++#endif
+ 
+ 	ret = wpas_wps_ssid_bss_match(wpa_s, ssid, bss);
+ 	if (ret >= 0)
+@@ -728,6 +755,20 @@ static int wpa_supplicant_ssid_bss_match
+ 				"   selected based on WPA IE");
+ 		return 1;
+ 	}
++#ifdef CONFIG_WAPI
++    /* ����ѡ��RSN WPA�����ѡ��WAPI */
++	wapi_ie = wpa_bss_get_ie(bss, WLAN_EID_WAPI);
++	while ((ssid->proto & WPA_PROTO_WAPI) && wapi_ie) {
++		proto_match++;
++        /* ����WAPIԪ�� */
++		if (wapi_parse_wapi_ie(wapi_ie, 2 + wapi_ie[1], &ie)) {
++			wpa_dbg(wpa_s, MSG_DEBUG, "   skip WAPI IE - parse failed");
++			break;
++		}
++
++		return 1;
++	} /* end while wapi */
++#endif
+ 
+ 	if ((ssid->key_mgmt & WPA_KEY_MGMT_IEEE8021X_NO_WPA) && !wpa_ie &&
+ 	    !rsn_ie) {
+@@ -1146,6 +1187,9 @@ static bool wpa_scan_res_ok(struct wpa_s
+ 	u8 rsnxe_capa = 0;
+ #endif /* CONFIG_SAE */
+ 	const u8 *ie;
++#ifdef CONFIG_WAPI
++	u8 wapi_ie_len;
++#endif
+ 
+ 	ie = wpa_bss_get_vendor_ie(bss, WPA_IE_VENDOR_TYPE);
+ 	wpa = ie && ie[1];
+@@ -1154,6 +1198,18 @@ static bool wpa_scan_res_ok(struct wpa_s
+ 	if (ie && wpa_parse_wpa_ie_rsn(ie, 2 + ie[1], &data) == 0 &&
+ 	    (data.key_mgmt & WPA_KEY_MGMT_OSEN))
+ 		rsn_osen = true;
++#ifdef CONFIG_WAPI
++    /* ��ȡWAPI��ϢԪ�� */
++	ie = wpa_bss_get_ie(bss, WLAN_EID_WAPI);
++	wapi_ie_len = ie ? ie[1] : 0;
++
++	if ( 0 != wapi_ie_len ) {
++	    wpa_dbg(wpa_s, MSG_DEBUG, " : " MACSTR " supports WAPI! wapi_ie_len=%u",
++			MAC2STR(bss->bssid),wapi_ie_len);
++	}
++	/* ����wpa/wpa2ʱ��֤����wpa_supplicant_ssid_bss_match*/
++	wpa = wpa || wapi_ie_len > 0;
++#endif
+ 	ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
+ 	osen = ie != NULL;
+ 
+@@ -1477,6 +1533,9 @@ struct wpa_ssid * wpa_scan_res_match(str
+ 	u8 wpa_ie_len, rsn_ie_len;
+ 	const u8 *ie;
+ 	struct wpa_ssid *ssid;
++#ifdef CONFIG_WAPI
++	u8 wapi_ie_len;
++#endif /* CONFIG_WAPI */
+ 	int osen;
+ 	const u8 *match_ssid;
+ 	size_t match_ssid_len;
+@@ -1487,6 +1546,16 @@ struct wpa_ssid * wpa_scan_res_match(str
+ 
+ 	ie = wpa_bss_get_ie(bss, WLAN_EID_RSN);
+ 	rsn_ie_len = ie ? ie[1] : 0;
++#ifdef CONFIG_WAPI
++    /* ��ȡWAPI��ϢԪ�� */
++	ie = wpa_bss_get_ie(bss, WLAN_EID_WAPI);
++	wapi_ie_len = ie ? ie[1] : 0;
++
++	if ( 0 != wapi_ie_len ) {
++	   wpa_dbg(wpa_s, MSG_DEBUG, "%d: " MACSTR " supports WAPI! wapi_ie_len=%u",
++			i, MAC2STR(bss->bssid),wapi_ie_len);
++	 }
++#endif
+ 
+ 	ie = wpa_bss_get_vendor_ie(bss, OSEN_IE_VENDOR_TYPE);
+ 	osen = ie != NULL;
+@@ -2750,6 +2819,30 @@ static int wpa_supplicant_use_own_rsne_p
+ 		return -1;
+ 	}
+ 
++#ifdef CONFIG_ROAM_EXTRA_SUPPORT
++	/*
++	 * Update PMK in wpa_sm and the driver if roamed to WPA/WPA2 PSK from a
++	 * different AKM.
++	 */
++	if (wpa_s->key_mgmt != ie.key_mgmt &&
++	    wpa_key_mgmt_wpa_psk_no_sae(ie.key_mgmt)) {
++		if (!ssid->psk_set) {
++			wpa_dbg(wpa_s, MSG_INFO,
++				"No PSK available for association");
++			wpas_auth_failed(wpa_s, "NO_PSK_AVAILABLE");
++			return -1;
++		}
++
++		wpa_sm_set_pmk(wpa_s->wpa, ssid->psk, PMK_LEN, NULL, NULL);
++		if (wpa_s->conf->key_mgmt_offload &&
++		    (wpa_s->drv_flags & WPA_DRIVER_FLAGS_KEY_MGMT_OFFLOAD) &&
++		    wpa_drv_set_key(wpa_s, 0, NULL, 0, 0, NULL, 0,
++				    ssid->psk, PMK_LEN, KEY_FLAG_PMK))
++			wpa_dbg(wpa_s, MSG_ERROR,
++				"WPA: Cannot set PMK for key management offload");
++	}
++#endif
++
+ 	wpa_s->key_mgmt = ie.key_mgmt;
+ 	wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_KEY_MGMT, wpa_s->key_mgmt);
+ 	wpa_dbg(wpa_s, MSG_DEBUG, "WPA: using KEY_MGMT %s and proto %d",
+@@ -3358,6 +3451,15 @@ static void wpa_supplicant_event_assoc(s
+ 		wpa_supplicant_scard_init(wpa_s, wpa_s->current_ssid);
+ 	}
+ 	wpa_sm_notify_assoc(wpa_s->wpa, bssid);
++#ifdef CONFIG_WAPI
++	if ((wpa_s->key_mgmt == WPA_KEY_MGMT_WAPI_PSK)
++		|| (wpa_s->key_mgmt == WPA_KEY_MGMT_WAPI_CERT)) {
++		wapi_supplicant_event(wpa_s,EVENT_ASSOC,data);
++		wpas_wps_notify_assoc(wpa_s, bssid);
++		return;
++	}
++    /* �������802.11i��ȫ���� EAP���� */
++#endif /* CONFIG_WAPI */
+ 	if (wpa_s->l2)
+ 		l2_packet_notify_auth_start(wpa_s->l2);
+ 
+@@ -3557,6 +3659,13 @@ static void wpa_supplicant_event_disasso
+ 		return;
+ 	}
+ 
++#ifdef CONFIG_WAPI
++	if (wpa_s->key_mgmt == WPA_KEY_MGMT_WAPI_PSK ||
++		wpa_s->key_mgmt == WPA_KEY_MGMT_WAPI_CERT) {
++		wapi_supplicant_event(wpa_s, EVENT_DISASSOC, NULL);
++	}
++#endif
++
+ 	bssid = wpa_s->bssid;
+ 	if (is_zero_ether_addr(bssid))
+ 		bssid = wpa_s->pending_bssid;
+@@ -3929,6 +4038,14 @@ wpa_supplicant_event_interface_status(st
+ 		if (!any_interfaces(wpa_s->global->ifaces))
+ 			eloop_terminate();
+ #endif /* CONFIG_TERMINATE_ONLASTIF */
++
++#ifdef CONFIG_WAPI
++		if(NULL != wpa_s->pst_wapi) {
++			l2_packet_deinit(wpa_s->pst_wapi->pst_wapi_l2);
++			wpa_s->pst_wapi->pst_wapi_l2 = NULL;
++		}
++#endif
++
+ 		break;
+ 	}
+ }
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/Makefile wpa_supplicant-trunk-2.10/wpa_supplicant/Makefile
+--- wpa_supplicant-master-2.10/wpa_supplicant/Makefile	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/Makefile	2023-10-19 14:02:04.000000000 +0800
+@@ -425,6 +425,10 @@ ifdef CONFIG_NO_ROAMING
+ CFLAGS += -DCONFIG_NO_ROAMING
+ endif
+ 
++ifdef CONFIG_ROAM_EXTRA_SUPPORT
++CFLAGS += -DCONFIG_ROAM_EXTRA_SUPPORT
++endif
++
+ include ../src/drivers/drivers.mak
+ ifdef CONFIG_AP
+ OBJS_d += $(DRV_BOTH_OBJS)
+@@ -1879,7 +1883,24 @@ endif
+ ifdef CONFIG_NO_TKIP
+ CFLAGS += -DCONFIG_NO_TKIP
+ endif
++ifdef CONNECTIVITY_SET_P2P_IE_PATCH
++CFLAGS += -DCONNECTIVITY_SET_P2P_IE_PATCH
++endif
++
++ifdef CONNECTIVITY_SINGLE_VAP_PATCH
++CFLAGS += -DCONNECTIVITY_SINGLE_VAP_PATCH
++endif
++
++ifdef CONNECTIVITY_LOG_PATCH
++CFLAGS += -DCONNECTIVITY_LOG_PATCH
++endif
+ 
++ifdef CONFIG_WAPI
++CFLAGS += -DCONFIG_WAPI
++CFLAGS += -I$(abspath wapi)
++CFLAGS += -I$(abspath ../src/drivers)
++OBJS += wapi/wapi.o
++endif
+ dynamic_eap_methods: $(EAPDYN)
+ 
+ _OBJS_VAR := OBJS_priv
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/sme.c wpa_supplicant-trunk-2.10/wpa_supplicant/sme.c
+--- wpa_supplicant-master-2.10/wpa_supplicant/sme.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/sme.c	2023-10-19 14:02:04.000000000 +0800
+@@ -1190,6 +1190,10 @@ void sme_external_auth_trigger(struct wp
+ 		wpa_s->sme.sae.state = SAE_NOTHING;
+ 		wpa_s->sme.sae.send_confirm = 0;
+ 		wpa_s->sme.sae_group_index = 0;
++#ifdef CONFIG_ROAM_EXTRA_SUPPORT
++		if (wpa_s->current_ssid)
++			wpa_s->current_ssid->key_mgmt |= WPA_KEY_MGMT_SAE;
++#endif
+ 		if (sme_handle_external_auth_start(wpa_s, data) < 0)
+ 			sme_send_external_auth_status(wpa_s,
+ 					      WLAN_STATUS_UNSPECIFIED_FAILURE);
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/hash.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/hash.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/hash.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/hash.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,81 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : hash.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : hash相关接口定义
++ */
++
++
++
++#ifndef __WAPI_HASH_H__
++#define __WAPI_HASH_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Other Header File Including
++ */
++
++
++
++#include "types.h"
++#include "wai_lib.h"
++/*
++ * 2 Macro Definition
++ */
++
++
++/*
++ * 3 Enum Type Definition
++ */
++
++
++/*
++ * 4 Global Variable Declaring
++ */
++
++
++
++/*
++ * 5 Message Header Definition
++ */
++
++
++/*
++ * 6 Message Definition
++ */
++
++
++/*
++ * 7 STRUCT Type Definition
++ */
++
++
++/*
++ * 8 UNION Type Definition
++ */
++
++
++/*
++ * 9 OTHERS Definition
++ */
++
++
++/*
++ * 10 Function Declare
++ */
++
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
++
++#endif /* end of Hash */
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/types.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/types.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/types.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/types.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,99 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : type.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : 基本类型定义
++ */
++
++
++#ifndef __TYPES_H__
++#define __TYPES_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Other Header File Including
++ */
++
++
++/*
++ * 2 Macro Definition
++ */
++#define WAPI_SUCCESS    0
++#define WAPI_FAILED     -1
++#define WAIFAILED      -2
++
++#ifdef WAPI_STUB
++#ifndef STATIC
++#define STATIC
++#endif
++#else /* WAPI_STUB */
++#ifndef STATIC
++#define STATIC static
++#endif
++#endif /* WAPI_STUB */
++
++typedef unsigned char    uint8;
++typedef unsigned short   uint16;
++typedef unsigned int     uint32;
++typedef char             int8;
++typedef short            int16;
++typedef int              int32;
++
++
++
++
++
++/*
++ * 3 Enum Type Definition
++ */
++
++
++/*
++ * 4 Global Variable Declaring
++ */
++
++
++/*
++ * 5 Message Header Definition
++ */
++
++
++/*
++ * 6 Message Definition
++ */
++
++
++/*
++ * 7 STRUCT Type Definition
++ */
++
++
++/*
++ * 8 UNION Type Definition
++ */
++
++
++/*
++ * 9 OTHERS Definition
++ */
++
++
++/*
++ * 10 Function Declare
++ */
++
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
++
++#endif /* end of types.h */
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_asn1.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_asn1.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_asn1.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_asn1.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,73 @@
++/*
++ * ASN.1 DER parsing
++ * Copyright (c) 2006, Jouni Malinen <j@w1.fi>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Alternatively, this software may be distributed under the terms of BSD
++ * license.
++ *
++ * See README and COPYING for more details.
++ */
++
++#ifndef ASN1_H
++#define ASN1_H
++
++
++#define ASN1_TAG_EOC		0x00 /* not used with DER */
++#define ASN1_TAG_BOOLEAN	0x01
++#define ASN1_TAG_INTEGER	0x02
++#define ASN1_TAG_BITSTRING	0x03
++#define ASN1_TAG_OCTETSTRING	0x04
++#define ASN1_TAG_NULL		0x05
++#define ASN1_TAG_OID		0x06
++#define ASN1_TAG_OBJECT_DESCRIPTOR	0x07 /* not yet parsed */
++#define ASN1_TAG_EXTERNAL	0x08 /* not yet parsed */
++#define ASN1_TAG_REAL		0x09 /* not yet parsed */
++#define ASN1_TAG_ENUMERATED	0x0A /* not yet parsed */
++#define ASN1_TAG_UTF8STRING	0x0C /* not yet parsed */
++#define ANS1_TAG_RELATIVE_OID	0x0D
++#define ASN1_TAG_SEQUENCE	0x10 /* shall be constructed */
++#define ASN1_TAG_SET		0x11
++#define ASN1_TAG_NUMERICSTRING	0x12 /* not yet parsed */
++#define ASN1_TAG_PRINTABLESTRING	0x13
++#define ASN1_TAG_TG1STRING	0x14 /* not yet parsed */
++#define ASN1_TAG_VIDEOTEXSTRING	0x15 /* not yet parsed */
++#define ASN1_TAG_IA5STRING	0x16
++#define ASN1_TAG_UTCTIME	0x17
++#define ASN1_TAG_GENERALIZEDTIME	0x18 /* not yet parsed */
++#define ASN1_TAG_GRAPHICSTRING	0x19 /* not yet parsed */
++#define ASN1_TAG_VISIBLESTRING	0x1A
++#define ASN1_TAG_GENERALSTRING	0x1B /* not yet parsed */
++#define ASN1_TAG_UNIVERSALSTRING	0x1C /* not yet parsed */
++#define ASN1_TAG_BMPSTRING	0x1D /* not yet parsed */
++
++#define ASN1_CLASS_UNIVERSAL		0
++#define ASN1_CLASS_APPLICATION		1
++#define ASN1_CLASS_CONTEXT_SPECIFIC	2
++#define ASN1_CLASS_PRIVATE		3
++
++
++struct asn1_hdr {
++	const unsigned char *payload;
++	unsigned char identifier, class, constructed;
++	unsigned int tag, length;
++};
++
++#define ASN1_MAX_OID_LEN 20
++struct asn1_oid {
++	unsigned long oid[ASN1_MAX_OID_LEN];
++	unsigned int len;
++};
++
++
++int asn1_get_next(const unsigned char *buf, unsigned int len, struct asn1_hdr *hdr);
++int asn1_parse_oid(const unsigned char *buf, unsigned int len, struct asn1_oid *oid);
++int asn1_get_oid(const unsigned char *buf, unsigned int len, struct asn1_oid *oid,
++		 const unsigned char **next);
++void asn1_oid_to_str(struct asn1_oid *oid, char *buf, unsigned int len);
++unsigned long asn1_bit_string_to_long(const unsigned char *buf, unsigned int len);
++
++#endif /* ASN1_H */
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_call_back.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_call_back.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_call_back.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_call_back.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,63 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : wai_call_back.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : wai_call_back接口定义
++ */
++
++#ifndef __WAPI_CALL_BACK_H__
++#define __WAPI_CALL_BACK_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++struct wapi_iface_funcs_stru {
++	unsigned char *(*base64_decode)(const unsigned char *src, size_t len,
++					size_t *out_len);
++	int (*eloop_cancel_timeout)(eloop_timeout_handler handler,
++				    void *eloop_data, void *user_data);
++	int (*eloop_register_timeout)(unsigned int secs, unsigned int usecs,
++				      eloop_timeout_handler handler,
++				      void *eloop_data, void *user_data);
++	int (*l2_packet_send)(struct l2_packet_data *l2, const u8 *dst_addr,
++			      u16 proto, const u8 *buf, size_t len);
++	int (*os_mktime)(int year, int month, int day, int hour, int min,
++			 int sec, os_time_t *t);
++	void *(*os_zalloc)(size_t size);
++	int (*os_get_random)(unsigned char *buf, size_t len);
++	void *(*wpabuf_put)(struct wpabuf *buf, size_t len);
++	void (*wpabuf_put_u8)(struct wpabuf *buf, u8 data);
++	void (*wpabuf_put_be16)(struct wpabuf *buf, u16 data);
++	void (*wpabuf_put_data)(struct wpabuf *buf, const void *data,
++				size_t len);
++	void (*wpabuf_put_buf)(struct wpabuf *dst,const struct wpabuf *src);
++	struct wpabuf *(*wpabuf_alloc)(size_t len);
++	void (*wpabuf_free)(struct wpabuf *buf);
++	struct wpabuf *(*wpabuf_alloc_ext_data)(u8 *data, size_t len);
++	int (*__android_log_vprint)(int prio, const char *tag, const char *fmt,
++				    va_list ap);
++	void (*wpa_hexdump_ascii)(int level, const char *title, const void *buf,
++				  size_t len);
++	void (*wpa_supplicant_set_state)(struct wpa_supplicant *wpa_s,
++					 enum wpa_states state);
++	void (*wpa_supplicant_deauthenticate)(struct wpa_supplicant *wpa_s,
++					      int reason_code);
++	void (*wpa_supplicant_cancel_auth_timeout)(struct wpa_supplicant *wpa_s);
++	void (*wapi_notify_wrong_msg)(struct wpa_supplicant  *pst_wpa);
++
++};
++
++__attribute__((visibility ("default"))) int wapi_iface_funcs_init(
++	struct wapi_iface_funcs_stru *wapi_iface_call_back);
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
++
++#endif /* end of wai_call_back.h */
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_cert.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_cert.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_cert.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_cert.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,237 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : wai_cert.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : wai_cert对应头文件，证书相关接口
++ */
++
++#ifndef __WAI_CERT_H__
++#define __WAI_CERT_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Other Header File Including
++ */
++#include "types.h"
++#include "wai_asn1.h"
++
++
++/*
++ * 2 Macro Definition
++ */
++
++#define LENGTH_OF_VALIDATE              8
++#define LENGTH_OF_PBKEY_VALUE           49
++#define MIN_LENGTH_OF_ID                6
++#define MAX_LENGTH_OF_ID                256
++#define MAX_OID_LEN                     20
++
++#define MAX_BYTE_DATA_LEN               256
++#define WAPI_CERT_X509_V3               2
++#define WAPI_CERT_MAX_NAME_ATTRIBUTES   20
++
++#define WAPI_CERT_ISSUE_ID              0
++#define WAPI_CERT_SUBJECT_ID            1
++
++#define WAPI_CERT_SIGN_LEN              48
++#define WAPI_CERT_SIGN_HALF_LEN         24
++
++/*
++ * 3 Enum Type Definition
++ */
++
++
++/*
++ * 4 Global Variable Declaring
++ */
++
++
++/*
++ * 5 Message Header Definition
++ */
++
++
++/*
++ * 6 Message Definition
++ */
++
++
++/*
++ * 7 STRUCT Type Definition
++ */
++
++
++struct wapi_cert_algorithm_identifier {
++    struct asn1_oid st_oid;
++};
++
++struct wapi_cert_name_attr {
++    enum wapi_cert_name_attr_type {
++        WAPI_CERT_NAME_ATTR_NOT_USED,
++        WAPI_CERT_NAME_ATTR_DC,
++        WAPI_CERT_NAME_ATTR_CN,
++        WAPI_CERT_NAME_ATTR_C,
++        WAPI_CERT_NAME_ATTR_L,
++        WAPI_CERT_NAME_ATTR_ST,
++        WAPI_CERT_NAME_ATTR_O,
++        WAPI_CERT_NAME_ATTR_OU
++    } em_type;
++    int8 *pc_value;
++};
++
++struct wapi_cert_name {
++    struct wapi_cert_name_attr      st_attr[WAPI_CERT_MAX_NAME_ATTRIBUTES];
++    uint32              ul_num_attr;
++    int8                *pc_email; /* emailAddress */
++
++    /* from alternative name extension */
++    int8                *pc_alt_email; /* rfc822Name */
++    int8                *pc_dns; /* dNSName */
++    int8                *pc_uri; /* uniformResourceIdentifier */
++    uint8               *puc_ip; /* iPAddress */
++    uint32              ul_ip_len; /* IPv4: 4, IPv6: 16 */
++    struct asn1_oid     st_rid; /* registeredID */
++};
++
++typedef struct _id_stru
++{
++    uint8               uc_length;
++    uint8              *pauc_cont;
++}id_stru;
++
++typedef struct _tlv_stru
++{
++    uint8               uc_type;
++    uint16              us_length;
++    uint8               auc_value[MAX_OID_LEN];
++}tlv_stru;
++
++typedef struct _public_key_stru
++{
++    uint16              us_length;
++    uint8               uc_flag;
++    tlv_stru            st_param;
++    uint8               auc_value[LENGTH_OF_PBKEY_VALUE];
++}pbkey_stru;
++
++typedef struct _sign_alg_stru
++{
++    uint8              uc_flag;
++    uint16             us_param_length;
++    uint32             auc_param[MAX_OID_LEN];
++}sign_alg_stru;
++
++typedef struct _cert_stru
++{
++    uint16              us_version;
++    id_stru             st_serial_num;
++    sign_alg_stru       st_sign_alg;
++    id_stru             st_issuer;
++    uint32              ul_not_before_time;
++    uint32              ul_not_after_time;
++    id_stru             st_subject;
++    pbkey_stru          st_subject_key;
++    sign_alg_stru       st_sign_val_alg;
++    uint32              us_sign_length;
++    uint8              *puc_sign_val;
++}cert_stru;
++
++typedef struct _wapi_cert_private_key
++{
++    uint8           uc_tVersion;
++    uint8           uc_lVersion;
++    uint8           uc_vVersion;
++    uint8           uc_verpad;
++
++    uint8           uc_tPrivateKey;
++    uint8           uc_lPrivateKey;
++    uint8           auc_prikeypad[2];
++    uint8           auc_vPrivateKey[MAX_BYTE_DATA_LEN];
++
++    uint8           uc_tSPrivateKeyAlgorithm;
++    uint8           uc_lSPrivateKeyAlgorithm;
++    uint8           uc_tOID;
++    uint8           uc_lOID;
++    uint8           auc_vOID[MAX_BYTE_DATA_LEN];
++
++    uint8           uc_tSPubkey;
++    uint8           uc_lSPubkey;
++    uint8           uc_tPubkey;
++    uint8           uc_lPubkey;
++    uint8           uc_vPubkey[MAX_BYTE_DATA_LEN];
++}wapi_cert_private_key;
++
++typedef struct _cert_stru_ext {
++	uint16                  us_version;
++	unsigned long           ulong_serial_number;
++	struct wapi_cert_algorithm_identifier st_signature;
++
++	struct wapi_cert_name   st_issuer;
++	struct wapi_cert_name   st_subject;
++
++	uint8                   *puc_serial_number;
++	uint32                  ul_serial_number_len;
++	uint8                   *puc_issuer_str;
++	uint32                  ul_issuer_str_len;
++	uint8                   *puc_subject_str;
++	uint32                  ul_subject_str_len;
++
++	os_time_t               long_not_before;
++	os_time_t               long_not_after;
++
++	struct wapi_cert_algorithm_identifier st_public_key_alg;
++	uint8                   *puc_public_key;
++	uint32                  ul_public_key_len;
++	struct wapi_cert_algorithm_identifier st_signature_alg;
++	uint8                   *puc_sign_value;
++	uint32                  ul_sign_value_len;
++
++	const uint8             *puc_cert_start;
++	uint32                  ul_cert_len;
++	const uint8             *puc_tbs_cert_start;
++	uint32                  ul_tbs_cert_len;
++}cert_stru_ext;
++
++/*
++ * 8 UNION Type Definition
++ */
++
++
++/*
++ * 9 OTHERS Definition
++ */
++
++
++/*
++ * 10 Function Declare
++ */
++
++extern uint8 *wapi_cert_get_certificate_buf(uint8 *puc_cert_buf,
++					    uint32 ul_cert_buf_len,
++					    size_t *pul_der_len);
++extern __attribute__((visibility ("default"))) cert_stru *wapi_cert_parse_certificate(
++	uint8 *puc_cert_buf, uint32 ul_cert_buf_len);
++extern __attribute__((visibility ("default"))) int32  wapi_cert_parse_ecprivkey(
++	uint8 *puc_cert_buf, uint32 ul_cert_buf_len,
++	uint8 *puc_priv_key_buf, uint32 *pul_priv_key_len);
++extern __attribute__((visibility ("default"))) int32 wapi_cert_verify_certificate(
++	uint8 *puc_cert_buf, uint32 ul_cert_buf_len,
++	uint8 *puc_asu_pubkey, uint32 ul_asu_pubkey_len);
++extern __attribute__((visibility ("default"))) void wapi_cert_free_certificate(
++	cert_stru *pst_cert);
++
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
++
++#endif /* end of wai_cert.h */
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_ec.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_ec.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_ec.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_ec.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,123 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : wai_ec.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : wai_ec对应头文件
++ */
++
++
++#ifndef __WAI_EC_H__
++#define __WAI_EC_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Other Header File Including
++ */
++#include "types.h"
++#include <utils/common.h>
++#include <stdlib.h>
++#include <utils/os.h>
++
++/*
++ * 2 Macro Definition
++ */
++
++
++
++/*
++ * 3 Enum Type Definition
++ */
++
++
++/*
++ * 4 Global Variable Declaring
++ */
++
++
++/*
++ * 5 Message Header Definition
++ */
++
++
++/*
++ * 6 Message Definition
++ */
++
++
++/*
++ * 7 STRUCT Type Definition
++ */
++
++typedef struct {
++	int32   l_field_type;
++	uint32  ul_seed_len;
++	uint32  ul_param_len;
++	uint32  ul_cofactor;
++} WAPI_EC_CURVE_DATA;
++
++
++/*
++ * 8 UNION Type Definition
++ */
++
++
++/*
++ * 9 OTHERS Definition
++ */
++
++#define DGST_TO_SIGN_LENTH          32
++
++#define RANDOM_HEX_LENTH            16
++
++#define WAPI_CERT_PUBKEY_LEN        49
++
++#define WAPI_CERT_SIGN_LEN          48
++#define WAPI_CERT_SIGN_R_LEN        24
++#define WAPI_CERT_SIGN_S_LEN        24
++
++#define BN2OCT_STRING_LENTH         24
++#define ECDH_SHAREKEY_LENTH         24
++
++
++/*
++ * 10 Function Declare
++ */
++int32 wapi_generate_temp_keygroup(uint8 *puc_asue_pubkey,
++				   uint32 *pul_asue_pubkey_len,
++				   uint8 *puc_asue_privkey,
++				   uint32 *pul_asue_privkey_len);
++
++int32 wapi_ecc192_sign(const uint8 *puc_digest, uint32 ul_digest_length,
++			uint8 *puc_priv_key, uint32 ul_priv_key_len,
++			uint8 *puc_sign_string, uint32 *pul_sign_length);
++
++int32 wapi_ecc192_verify_signature(const uint8 *puc_digest,
++				uint32 ul_digest_length, uint8 *puc_signature,
++				uint32 ul_signature_len, uint8 *puc_pub_key,
++				uint32 ul_pub_key_len);
++
++int32 __attribute__((visibility ("default"))) wapi_ecc192_verify_keygroup(
++	uint8 *puc_pub_key, uint32 ul_pub_key_len,
++	uint8 *puc_priv_key, uint32 ul_priv_key_len);
++
++int32 wapi_ecdh_compute_key(uint8 *puc_asue_priv_key,
++			    uint32 ul_asue_priv_key_len, uint8 *puc_ae_pub_key,
++			    uint32 ul_ae_pub_key_len, uint8 *puc_sharekey,
++			    uint32 *pul_sharekey_len);
++
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
++
++#endif /* end of wai_ec.h */
++
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_lib.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_lib.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_lib.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_lib.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,84 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : wai_lib.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : lib库包含
++ */
++
++#ifndef __WAI_LIB_H__
++#define __WAI_LIB_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Other Header File Including
++ */
++#include <stdlib.h>
++#include <dlfcn.h>
++#include <openssl/ossl_typ.h>
++
++
++/*
++ * 2 Macro Definition
++ */
++#define ECDSA_F_ECDSA_DO_SIGN	  101
++#define BN_is_zero(a)             ((a)->top == 0)
++#define BN_is_negative(a)         ((a)->neg != 0)
++#define BN_CTX_POOL_SIZE          16
++#define NID_X9_62_prime_field	  406
++
++
++/*
++ * 3 Enum Type Definition
++ */
++
++
++/*
++ * 4 Global Variable Declaring
++ */
++
++
++/*
++ * 5 Message Header Definition
++ */
++
++
++/*
++ * 6 Message Definition
++ */
++
++
++/*
++ * 7 STRUCT Type Definition
++ */
++
++
++/*
++ * 8 UNION Type Definition
++ */
++
++
++/*
++ * 9 OTHERS Definition
++ */
++
++
++/*
++ * 10 Function Declare
++ */
++
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
++
++#endif /* end of wai_lib.h */
++
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_rxtx.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_rxtx.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_rxtx.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_rxtx.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,137 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : wai_rxtx.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : tx rx相关接口
++ */
++
++
++#ifndef __WAI_RXTX_H__
++#define __WAI_RXTX_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Other Header File Including
++ */
++#include "types.h"
++#include "wpabuf.h"
++
++
++/*
++ * 2 Macro Definition
++ */
++
++#define WAI_FRAME_MAX_SIZE  (32*1024 - sizeof(struct wpabuf))
++#define WAI_FRAME_INIT_SIZE (4096 - sizeof(struct wpabuf))
++
++
++#ifndef MIN
++#define MIN(x,y) ((x)<(y)?(x):(y))
++#endif
++
++#define WAI_VERSION         1
++#define WAI_TYPE            1
++
++/*
++ * 3 Enum Type Definition
++ */
++
++
++
++/*
++ * 4 Global Variable Declaring
++ */
++
++
++/*
++ * 5 Message Header Definition
++ */
++
++
++/*
++ * 6 Message Definition
++ */
++
++
++/*
++ * 7 STRUCT Type Definition
++ */
++
++#ifdef WIN32
++#define __attribute__(x)
++#pragma pack(1)
++#endif
++typedef struct _wai_hdr_stru {
++
++	uint8 auVersion[2];
++	uint8 ucType;
++	uint8 ucSubtype;
++	uint8 auReserve[2];
++	uint8 auLength[2];
++	uint8 auFrameSeq[2];
++	uint8 ucFragSeq;
++	uint8 ucMoreFrag;
++} __attribute__((packed)) wai_hdr_stru;
++#ifdef WIN32
++#pragma pack( )
++#endif
++
++#define ETH_MTU         1500UL
++#define WAI_MTU         (ETH_MTU - sizeof(wai_hdr_stru))
++
++/*
++ * 8 UNION Type Definition
++ */
++
++
++/*
++ * 9 OTHERS Definition
++ */
++
++
++/*
++ * 10 Function Declare
++ */
++
++
++STATIC void  wai_defrag_firstfrag(struct wapi_supplicant_stru *pst_wapi,
++				  struct wpabuf *pst_waibuf, uint16 usFrameSeq,
++				  uint8 ucFragSeq);
++STATIC struct wpabuf *wai_defrag_nextfrag(struct wapi_supplicant_stru *pst_wapi,
++					   struct wpabuf *pst_waibuf,
++					   uint16 usFrameSeq, uint8 ucFragSeq,
++					   uint8 ucMoreFrag);
++STATIC struct wpabuf *wai_defrag_nonfrag(struct wapi_supplicant_stru *pst_wapi,
++					 struct wpabuf *pst_waibuf,
++					 uint16 usFrameSeq);
++STATIC struct wpabuf *wai_defrag(struct wpa_supplicant *pst_wpa,
++				 struct wpabuf *pst_waibuf);
++
++STATIC int32 wai_copy2fragbuf(struct wapi_supplicant_stru *pst_wapi,
++			      struct wpabuf *pst_newfrag, uint32 ul_1stfrag);
++STATIC int32 wai_check_valid_frame(struct wpa_supplicant *pst_wpa,
++				   const uint8 *pauc_src_mac,
++				   const uint8 *pauc_buf, uint32 ul_datalen);
++
++extern __attribute__((visibility ("default"))) void  wai_rx_packet(void *pv_ctx,
++	const uint8 *pauc_src_mac, const uint8 *pauc_buf, uint32 ul_datalen);
++extern int32 wai_tx_packet(struct wpa_supplicant *pst_wpa,
++	const uint8 *pauc_buf, uint32 ul_datalen);
++extern int32 __attribute__((visibility ("default"))) wai_cleanup_fragbuf(
++	struct wapi_supplicant_stru *pst_wapi);
++
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
++
++#endif /* end of wai_rxtx.h */
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_sm.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_sm.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wai_sm.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wai_sm.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,287 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : wai_sm.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : wai_sm头文件，状态机相关
++ */
++
++
++#ifndef __WAI_SM_H__
++#define __WAI_SM_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Other Header File Including
++ */
++#include "types.h"
++#include "wai_cert.h"
++#include "wpa_supplicant_i.h"
++
++/*
++ * 2 Macro Definition
++ */
++#define WAI_FLAG_BK_UPDATE          BIT(0)
++#define WAI_FLAG_PRE_AUTH           BIT(1)
++#define WAI_FLAG_CERT_REQ           BIT(2)
++#define WAI_FLAG_OPT_FIELD          BIT(3)
++#define WAI_FLAG_USK_UPDATE         BIT(4)
++#define WAI_FLAG_STAKEY_NEG         BIT(5)
++#define WAI_FLAG_STAKEY_DEL         BIT(6)
++#define WAI_FLAG_RESERVED           BIT(7)
++
++
++#define MAX_CERT_BUFF_SIZE          2048
++#define CERT_X509V3                 1
++#define CERT_GBW                    2
++
++#define ECDH_PARAM_FLAG_OID         1
++
++#define WAI_USK_NUMBER              2
++
++#define MAX_KEYDATA_SIZE            256
++#define SERIAL_NUM_SIZE             4
++
++/* �ֶγ��ȶ��� */
++#define WAI_AUTH_ID_SIZE            32
++#define WAI_FLAG_SIZE               1
++#define WAI_ID_FLAG_SIZE            2
++#define WAI_ID_LENGTH_SIZE          2
++#define WAI_LOCAL_MAX_ID_SIZE       3048
++#define WAI_CERT_FLAG_SIZE          2
++#define WAI_CERT_LENGTH_SIZE        2
++#define WAI_ECDHPARAM_FLAG_SIZE     1
++#define WAI_ECDHPARAM_LENGTH_SIZE   2
++#define WAI_CHALLENGE_SIZE          32
++#define WAI_ACCESS_RESULT_SIZE      1
++#define WAI_KEY_LENGTH_SIZE         1
++#define WAI_ATTRIB_TYPE_SIZE        1
++#define WAI_ATTRIB_LENGTH_SIZE      2
++#define WAI_BKID_SIZE               16
++#define WAI_BK_SIZE                 16
++#define WAI_ADDID_SIZE              12
++#define WAI_USKID_SIZE              1
++#define WAI_MSKID_SIZE              1
++#define WAI_MSK_ANNO_ID_SIZE        16
++#define WAI_IV_LEN	                16
++#define WAI_DATA_SERIAL_NUMBER      16
++#define WAI_MIC_SIZE                20
++#define WAI_MSK_SIZE                32
++#define WAI_NMK_SIZE                16
++#define WAI_MAX_TX_COUNT            3
++
++#define WAI_SIGN_PARA_TYPE_SIZE     1
++#define WAI_SIGN_PARA_LEN           2
++#define WAI_SIGN_VALUE_LEN          2
++#define WAI_SIGN_ALG_LEN            2
++#define WAI_SIGN_ALG_ID             1
++#define WAI_SIGN_ALG_PARA_ID_LEN    1
++#define WAI_SIGN_ALG_PARA_VALUE_LEN 2
++
++#define WAPI_IE_ID_SIZE             1
++#define WAPI_IE_LENGTH_SIZE         1
++#define WAPI_IE_MIN_SIZE            16
++#define WAPI_IE_MAX_SIZE            255
++#define WAI_SUBKEY_SIZE             16
++#define ECDH_KEY_SIZE               24
++
++#define WAI_BK_DERIVATION_SIZE      48
++#define WAI_USK_DERIVATION_SIZE     96
++#define MAX_SIGNATURE_SIZE          1024
++
++
++#define WAIATTRIB_TYPE_SIGNATURE    1
++#define WAIATTRIB_TYPE_VERIFY_RST   2
++#define WAIATTRIB_TYPE_IDENT_LIST   3
++
++#define WAPIRC_CERT_FAILED          32
++
++#define WAI_BK_TXT      "base key expansion for key and additional nonce"
++#define WAI_USK_TEXT    "pairwise key expansion for unicast and additional keys and nonce"
++#define WAI_MSK_TEXT    "multicast or station key expansion for station unicast and multicast and broadcast"
++#define WAI_PSK_TEXT    "preshared key expansion for authentication and key negotiation"
++
++
++/*
++ * 3 Enum Type Definition
++ */
++
++typedef enum {
++	WAISM_INIT = 0,
++	WAISM_ALREADY_ASSOC,
++	WAISM_ACCESSAUTH_REQ,
++	WAISM_ACCESSAUTH_RES,
++	WAISM_USKNEG_RES,
++	WAISM_USKNEG_CONFIRM,
++	WAISM_FINSHED
++} wai_state_enum;
++
++typedef enum _wai_frame_enum {
++	WAI_PREAUTH_START             = 1,
++	WAI_STAKEY_REQUEST            = 2,
++	WAI_AUTH_ACTIVE               = 3,
++	WAI_ACCESS_AUTH_REQUEST       = 4,
++	WAI_ACCESS_AUTH_RESPONSE      = 5,
++	WAI_CERT_AUTH_REQUEST         = 6,
++	WAI_CERT_AUTH_RESPONSE        = 7,
++	WAI_USK_NEGOTIATION_REQUEST   = 8,
++	WAI_USK_NEGOTIATION_RESPONSE  = 9,
++	WAI_USK_NEGOTIATION_CONFIRM   = 10,
++	WAI_MSK_ANNOUNCEMENT          = 11,
++	WAI_MSK_ANNOUNCEMENT_RESPONSE = 12,
++	WAI_SUBTYPE_MAX               = 13
++} wai_frame_enum;
++
++
++
++
++
++/*
++ * 4 Global Variable Declaring
++ */
++
++
++/*
++ * 5 Message Header Definition
++ */
++
++
++/*
++ * 6 Message Definition
++ */
++
++
++/*
++ * 7 STRUCT Type Definition
++ */
++
++struct wpa_supplicant;
++typedef int32 (*wai_dispose_func)(struct wpa_supplicant *pst_wpa,
++				  const uint8 *pauc_payload,
++				  uint32 ul_payload_len);
++typedef struct _wai_sm_stru {
++	wai_dispose_func wai_dispose_func[WAI_SUBTYPE_MAX+1];
++} wai_sm_stru;
++
++typedef struct _value_string_stru {
++	uint32          ul_value;
++	const char     *str;
++} value_string_stru;
++
++typedef struct _signature_stru {
++	uint8   *pauc_ident;
++	uint16   us_ident_len;
++	uint8   *pauc_alg;
++	uint16   us_alg_len;
++	uint8   *pauc_sign_value;
++	uint16   us_sign_value_len;
++} signature_stru;
++
++typedef struct _cert_verify_result_stru {
++	uint8   *pauc_N1;
++	uint8   *pauc_N2;
++	uint8    uc_result1;
++	uint8   *pauc_cert1;
++	uint32   ul_cert1_len;
++	uint8    uc_result2;
++	uint8   *pauc_cert2;
++	uint32   ul_cert2_len;
++} cert_verify_result_stru;
++
++typedef struct _wai_attrib_descriptor_stru {
++	uint8    uc_attrib_type;
++	uint16   us_attrib_length;
++	union {
++		signature_stru          st_signature;
++		cert_verify_result_stru st_cert_verify_result;
++	} un_attrib;
++} wai_attrib_descriptor_stru;
++
++/* BKSA struct */
++typedef struct _wapi_bksa_stru {
++	uint8   auc_bkid[WAI_BKID_SIZE];
++	uint8   auc_bk[WAI_BK_SIZE];
++	uint8   auc_ae_mac[ETH_ALEN];
++	uint8   auc_asue_mac[ETH_ALEN];
++	uint32  ul_akmp;
++} wapi_bksa_stru;
++
++typedef struct _wapi_usk_stru {
++	uint8  auc_uek[WAI_SUBKEY_SIZE];
++	uint8  auc_uck[WAI_SUBKEY_SIZE];
++	uint8  auc_mak[WAI_SUBKEY_SIZE];
++	uint8  auc_kek[WAI_SUBKEY_SIZE];
++} wapi_usk_stru;
++
++
++/* USKSA struct */
++typedef struct _wapi_usksa_stru {
++	uint8 uc_uskid;
++	wapi_usk_stru st_usk[2];
++	int32 ul_ucast_suite;
++	uint8 auc_ae_mac[ETH_ALEN];
++	uint8 auc_asue_mac[ETH_ALEN];
++} wapi_usksa_stru;
++
++/* MSKSA struct */
++typedef struct _wapi_msksa_stru {
++	uint8 uc_direction;
++	uint8 uc_mskid;
++	uint8 auc_msk[WAI_MSK_SIZE];
++	uint8 auc_msk_ann_id[WAI_IV_LEN];
++	int32 uc_ucast_suite;
++	uint8 auc_ae_mac[ETH_ALEN];
++} wapi_msksa_stru;
++
++
++typedef struct _wai_auth_req_param_stru {
++	const uint8          *pauc_authid;
++	cert_stru            *pst_ae_cert;
++	cert_stru            *pst_asue_cert;
++	uint8                *pauc_ecdh;
++	uint16                us_ecdh_len;
++} wai_authreq_param_stru;
++
++
++/*
++ * 8 UNION Type Definition
++ */
++
++
++/*
++ * 9 OTHERS Definition
++ */
++
++
++/*
++ * 10 Function Declare
++ */
++struct wapi_supplicant_stru;
++int32  wai_certauth_bk_derivation(struct wapi_supplicant_stru *pst_wapi,
++				   uint8 *pauc_ae_pubkey, uint8 uc_ae_pubkey_len,
++				   uint8 *pauc_nae);
++int32  wai_usk_derivation(struct wapi_supplicant_stru *pst_wapi,
++			  uint8 *pauc_usk_nae);
++int32  wai_msk_derivation(uint8 *pauc_msk_nmk, uint32 ul_nmk_len,
++			  uint8 *pauc_out_bk, uint32 ul_outkey_len);
++__attribute__((visibility ("default"))) int32  wai_psk_derivation(
++	uint8 *pauc_password, uint32 ul_ps_len, uint8 *pauc_out_bk);
++void  wai_tx_timeout(void *eloop_ctx, void *timeout_ctx);
++int32  wai_sm_process(struct wpa_supplicant *pst_wpa,
++		      struct wpabuf *pst_waibuf);
++wai_sm_stru * get_wai_sm();
++
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
++
++#endif /* end of wai_sm.h */
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wapi.c wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wapi.c
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wapi.c	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wapi.c	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,907 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : wapi.c
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : wapi主文件
++ */
++
++
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Header File Including
++ */
++#include "utils/includes.h"
++#include "utils/common.h"
++#include "utils/os.h"               /* for os_funcs etc */
++#include "utils/eloop.h"
++#include "utils/base64.h"
++#include "wpa_supplicant_i.h"       /* for wpa_supplicant */
++#include "utils/wpabuf.h"
++#include "l2_packet/l2_packet.h"    /* for L2 functions   */
++#include "common/wpa_common.h"      /* for wpa_ie_data */
++#include "common/defs.h"
++#include "common/wpa_ctrl.h"
++#include "driver_i.h"
++#include "driver.h"
++#include "bss.h"
++
++
++
++#include "types.h"
++#include "wapi.h"
++#include "wai_rxtx.h"
++#include "hash.h"
++#include "wai_ec.h"
++#include "wai_cert.h"
++#include "wai_call_back.h"
++#ifdef ANDROID
++#include <keystore/keystore_get.h>
++#define KEYSTORE_MESSAGE_SIZE 65535
++#endif
++#ifdef CONFIG_ANDROID_LOG
++#include <android/log.h>
++#endif
++#include <limits.h>
++
++/*
++ * 2 Global Variable Definition
++ */
++int32 wapi_event_process(struct wapi_supplicant_stru *pst_wapi,
++			 conn_status_enum en_action, uint8* puc_assoc_ie,
++			 int32 uc_assoc_ie_len);
++static int32 wapi_psk_derivate(struct wpa_supplicant *pst_wpa,
++			       struct wpa_ssid *pst_ssid);
++static int32 wapi_read_cert(const char *pc_cert_file, uint8 *puc_cert_buf,
++			    uint32 *pul_buf_len);
++
++static int32 wapi_config_associate_parm(struct wpa_supplicant  *pst_wpa,
++					struct wpa_bss *pst_bss,
++					struct wpa_ssid *pst_ssid,
++                                        struct wpa_driver_associate_params *pst_params);
++int32 wapi_init_ie(struct wpa_supplicant *pst_wpa);
++static int32 wapi_cert_parse(struct wpa_supplicant *pst_wpa);
++void wapi_notify_wrong_msg(struct wpa_supplicant  *pst_wpa);
++int wapi_deinit_dlhandle(void);
++
++/* ��wapi���л�ȡ���ӣ����ڴ˽ṹ�������ĺ����� */
++struct wapi_iface_dll_cb_stru {
++	void *dl_handle;
++	int (*wapi_iface_funcs_init)(struct wapi_iface_funcs_stru * wapi_iface_cb);
++	void (*wai_rx_packet)(void *pv_ctx, const uint8 *pauc_src_mac,
++			      const uint8 *pauc_buf,uint32 ul_datalen);
++	void (*wapi_cert_free_certificate)(cert_stru *pst_cert);
++	int32 (*wai_cleanup_fragbuf)(struct wapi_supplicant_stru *pst_wapi);
++	int32  (*wapi_cert_parse_ecprivkey)(uint8 *puc_cert_buf,
++					    uint32 ul_cert_buf_len,
++					    uint8 *puc_priv_key_buf,
++					    uint32 *pul_priv_key_len);
++	cert_stru *(*wapi_cert_parse_certificate)(uint8 *puc_cert_buf,
++						  uint32 ul_cert_buf_len);
++	int32 (*wapi_ecc192_verify_keygroup)(uint8 *puc_pub_key,
++					     uint32 ul_pub_key_len,
++					     uint8 *puc_priv_key,
++					     uint32 ul_priv_key_len);
++	int32 (*wapi_cert_verify_certificate)(uint8 *puc_cert_buf,
++					      uint32 ul_cert_buf_len,
++					      uint8 *puc_asu_pubkey,
++					      uint32 ul_asu_pubkey_len);
++	int32 (*wai_psk_derivation)(uint8 *pauc_password, uint32 ul_ps_len,
++				    uint8 *pauc_out_bk);
++	int32 (*KD_HMAC_SHA256)(const uint8  *pauc_data,
++				uint32        ul_datalen,
++				const uint8  *pauc_key,
++				uint32        ul_keylen,
++				uint8        *pauc_out,
++				uint32        ul_out_len);
++};
++struct wapi_iface_dll_cb_stru wapi_iface_dll_cb;
++
++/*
++ * 3 Function Definition
++ */
++void wapi_supplicant_init(struct wpa_supplicant *pst_wpa)
++{
++}
++
++void wapi_supplicant_deinit(struct wpa_supplicant *pst_wpa)
++{
++}
++
++int32  wapi_init_iface(struct wpa_supplicant *pst_wpa)
++{
++	struct wapi_supplicant_stru *pst_wapi = NULL;
++	uint32                       ul_loop;
++
++	if (pst_wpa == NULL) {
++		wpa_printf(MSG_WARNING,"wpa struct is null");
++		return WAPI_FAILED;
++	}
++
++	pst_wapi  = (struct wapi_supplicant_stru *)os_zalloc(sizeof(struct wapi_supplicant_stru));
++	if (pst_wapi == NULL) {
++		wpa_printf(MSG_WARNING,"Malloc wapi_s memory failed");
++
++		return WAPI_FAILED;
++	}
++
++	for (ul_loop = 0; ul_loop < 20; ul_loop++) {
++		pst_wapi->pst_wapi_l2 = l2_packet_init(
++                                        pst_wpa->ifname,
++                                        wpa_drv_get_mac_addr(pst_wpa),
++                                        ETH_TYPE_WAI,
++                                        wapi_iface_dll_cb.wai_rx_packet,
++                                        pst_wpa,
++                                        0);
++
++		wpa_printf(MSG_DEBUG,"Initial WAPI L2 packet");
++		if (pst_wapi->pst_wapi_l2 != NULL)
++			break;
++		os_sleep(3, 0);
++	} /* end for */
++
++	if (pst_wapi->pst_wapi_l2 == NULL) {
++		wpa_printf(MSG_WARNING,"Failed to initialize L2 initerface");
++		os_free(pst_wapi);
++
++		return WAPI_FAILED;
++	}
++
++	if (l2_packet_get_own_addr(pst_wapi->pst_wapi_l2,
++				   pst_wapi->auc_own_mac) != 0) {
++		wpa_printf(MSG_WARNING,"Failed to get own L2 address");
++		l2_packet_deinit(pst_wapi->pst_wapi_l2);
++		os_free(pst_wapi);
++
++		return WAPI_FAILED;
++	}
++
++	pst_wapi->en_state = WAISM_INIT;
++	pst_wapi->us_nextframeseq = 1;
++	pst_wapi->uc_nextfragseq  = 0;
++	pst_wpa->pst_wapi = pst_wapi;
++	pst_wapi->pst_wpa = pst_wpa;
++	pst_wapi->st_usksa.uc_uskid =0;
++	pst_wapi->st_msksa.uc_mskid =0;
++
++	wpa_printf(MSG_DEBUG,"wapi iface init sucess");
++
++	return WAPI_SUCCESS;
++}
++
++int32 wapi_deinit_iface(struct wpa_supplicant* pst_wpa)
++{
++    struct wapi_supplicant_stru *pst_wapi = NULL;
++
++    if (NULL == pst_wpa) {
++        wpa_printf(MSG_WARNING,"wapi deinit iface! pst_wpa struct is null");
++        return WAPI_FAILED;
++    }
++
++    if (NULL == pst_wpa->pst_wapi) {
++        wpa_printf(MSG_WARNING,"wapi deinit iface!pst_wapi struct is null");
++        return WAPI_FAILED;
++    }
++
++    pst_wapi = pst_wpa->pst_wapi;
++    if (NULL != pst_wapi->pst_wapi_l2) {
++        l2_packet_deinit(pst_wapi->pst_wapi_l2);
++        pst_wapi->pst_wapi_l2 = NULL;
++    }
++
++    if (NULL != pst_wapi->pst_ae_cert) {
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_wapi->pst_ae_cert);
++        pst_wapi->pst_ae_cert = NULL;
++    }
++
++    if(NULL != pst_wapi->pst_asue_cert) {
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_wapi->pst_asue_cert);
++        pst_wapi->pst_asue_cert = NULL;
++    }
++
++    if(NULL != pst_wapi->pst_as_cert) {
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_wapi->pst_as_cert);
++        pst_wapi->pst_as_cert = NULL;
++    }
++
++    wapi_iface_dll_cb.wai_cleanup_fragbuf(pst_wapi);
++
++    if (NULL != pst_wapi->pst_tx_framebuf) {
++        wpabuf_free(pst_wapi->pst_tx_framebuf);
++        pst_wapi->pst_tx_framebuf = NULL;
++    }
++    wapi_deinit_dlhandle();
++    os_free(pst_wapi);
++    pst_wpa->pst_wapi = NULL;
++
++    return WAPI_SUCCESS;
++}
++
++int32 wapi_parse_wapi_ie(const uint8 *pauc_wapi_ie, uint32 ul_ie_len, struct wpa_ie_data *pst_ie_data)
++{
++    /* TODO */
++    return 0;
++}
++
++int32 wapi_supplicant_event_assoc(struct wpa_supplicant  *pst_wpa,
++                                             struct wpa_bss         *pst_bss,
++                                             struct wpa_ssid        *pst_ssid,
++                                             struct wpa_driver_associate_params *pst_params)
++
++{
++    struct wapi_supplicant_stru *pst_wapi = NULL;
++#ifdef ANDROID
++    int32                        l_result;
++    int32                        l_length;
++    uint8_t                     *pvalue = NULL;
++#endif
++
++    if ((NULL == pst_wpa) || (NULL == pst_wpa->pst_wapi) ||
++        (NULL == pst_bss) || (NULL == pst_ssid) || (NULL == pst_params)) {
++        wpa_printf(MSG_WARNING, "null pointer, pst_wpa=%p, pst_bss=%p, pst_ssid=%p,pst_params=%p,",
++                   pst_wpa, pst_bss, pst_ssid, pst_params);
++        return WAPI_FAILED;
++    }
++
++    pst_wapi = pst_wpa->pst_wapi;
++
++    os_memcpy(pst_wapi->auc_own_mac, pst_wpa->own_addr, ETH_ALEN);
++
++    os_memcpy(pst_wapi->auc_addid, pst_bss->bssid, ETH_ALEN);
++    os_memcpy(&pst_wapi->auc_addid[ETH_ALEN], pst_wapi->auc_own_mac, ETH_ALEN);
++
++    if(WPA_KEY_MGMT_WAPI_PSK & (unsigned int)(pst_wpa->key_mgmt)) {
++        pst_wapi->en_auth_type = AUTH_TYPE_WAPI_PSK;
++		pst_params->key_mgmt_suite = KEY_MGMT_WAPI_PSK;
++
++        if( WAPI_SUCCESS != wapi_psk_derivate(pst_wpa,pst_ssid) ) {
++            wpa_printf(MSG_WARNING,"fail to derivate psk");
++            wapi_notify_wrong_msg(pst_wpa);
++            return WAPI_FAILED;
++        }
++    }
++    else if(WPA_KEY_MGMT_WAPI_CERT & (unsigned int)(pst_wpa->key_mgmt)) {
++#ifdef ANDROID
++        pst_wapi->en_auth_type = AUTH_TYPE_WAPI_CERT;
++        pst_params->key_mgmt_suite = KEY_MGMT_WAPI_CERT;
++        if (pst_ssid->wapi_as_cert && strncmp("keystore://", pst_ssid->wapi_as_cert, 11) == 0) {
++		    l_length = (int32)keystore_get(&pst_ssid->wapi_as_cert[11], strlen(pst_ssid->wapi_as_cert)-11, &pvalue);
++
++    		if ( WAPI_FAILED == l_length ) {
++    			wpa_printf(MSG_ERROR,"%s: Could not open %s\n", __FUNCTION__, pst_ssid->wapi_as_cert);
++    			wapi_notify_wrong_msg(pst_wpa);
++    			return WAPI_FAILED;
++    		}
++
++            os_memcpy(pst_wapi->auc_as_certfile,pvalue,l_length);
++            pst_wapi->ul_as_certfile_len = (uint32)l_length;
++            free(pvalue);
++            pvalue = NULL;
++        } else {
++            l_result = wapi_read_cert((int8 *)pst_ssid->wapi_as_cert,
++                                           pst_wapi->auc_as_certfile,
++                                           &(pst_wapi->ul_as_certfile_len));
++            if ( WAPI_FAILED == l_result) {
++                 wpa_printf(MSG_ERROR,"ERROR wapi_read_cert,pst_ssid->wapi_as_cert: %s", pst_ssid->wapi_as_cert);
++                 wapi_notify_wrong_msg(pst_wpa);
++                 return WAPI_FAILED;
++            }
++       }
++
++        if (pst_ssid->wapi_user_cert && strncmp("keystore://", pst_ssid->wapi_user_cert, 11) == 0) {
++		    memset(pst_wapi->auc_user_certfile, 0, 2048);
++		    l_length = (int32)keystore_get(&pst_ssid->wapi_user_cert[11], strlen(pst_ssid->wapi_user_cert)-11, &pvalue);
++
++    		if ( WAPI_FAILED == l_length ) {
++    			wpa_printf(MSG_ERROR, "%s: Could not open %s\n", __FUNCTION__, pst_ssid->wapi_user_cert);
++                wapi_notify_wrong_msg(pst_wpa);
++    			return WAPI_FAILED;
++    		}
++
++            os_memcpy(pst_wapi->auc_user_certfile,pvalue,l_length);
++
++            pst_wapi->ul_user_certfile_len = (uint32)l_length;
++            free(pvalue);
++            pvalue = NULL;
++
++        } else {
++            l_result = wapi_read_cert((int8 *)pst_ssid->wapi_user_cert,
++                                       pst_wapi->auc_user_certfile,
++                                       &(pst_wapi->ul_user_certfile_len));
++            if ( WAPI_FAILED == l_result ) {
++                wpa_printf(MSG_ERROR, "ERROR wapi_read_cert,pst_ssid->wapi_user_cert: %s\n", pst_ssid->wapi_user_cert);
++                wapi_notify_wrong_msg(pst_wpa);
++                return WAPI_FAILED;
++            }
++        }
++        if( WAPI_SUCCESS != wapi_cert_parse(pst_wpa)) {
++            wpa_printf(MSG_WARNING,"wapi_cert_parse fail");
++            wapi_notify_wrong_msg(pst_wpa);
++            return WAPI_FAILED;
++        }
++#endif
++    } else { /* no WAPI */
++       pst_wpa->pst_wapi->en_auth_type= AUTH_TYPE_NONE_WAPI;
++    }
++
++    if( WAPI_SUCCESS != wapi_init_ie(pst_wpa) ) {
++       wpa_printf(MSG_WARNING,"fail to init ie");
++       wapi_iface_dll_cb.wapi_cert_free_certificate(pst_wapi->pst_asue_cert);
++       pst_wapi->pst_asue_cert = NULL;
++       wapi_iface_dll_cb.wapi_cert_free_certificate(pst_wapi->pst_as_cert);
++       pst_wapi->pst_as_cert = NULL;
++       return WAPI_FAILED;
++    }
++
++    if( WAPI_SUCCESS != wapi_config_associate_parm(pst_wpa,pst_bss,pst_ssid,pst_params)) {
++        wpa_printf(MSG_WARNING,"fail to configurate associating param");
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_wapi->pst_asue_cert);
++        pst_wapi->pst_asue_cert = NULL;
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_wapi->pst_as_cert);
++        pst_wapi->pst_as_cert = NULL;
++        return WAPI_FAILED;
++    }
++
++    return WAPI_SUCCESS;
++}
++
++int32 wapi_supplicant_event_disassoc(struct wpa_supplicant *pst_wpa,uint16 us_reason)
++{
++    struct wapi_supplicant_stru *pst_wapi = NULL;
++    uint8                        auc_bssid[ETH_ALEN];
++
++    if ((NULL == pst_wpa) || (NULL == pst_wpa->pst_wapi))
++    {
++        wpa_printf(MSG_WARNING,"pst_wpa or pst_wpa->pst_wapi is null");
++        return WAPI_FAILED;
++    }
++
++    pst_wapi = pst_wpa->pst_wapi;
++
++    wpa_drv_get_bssid(pst_wpa, auc_bssid);
++
++    memcpy(pst_wapi->auc_own_mac, pst_wpa->own_addr, ETH_ALEN);
++    memcpy(pst_wapi->auc_bssid,auc_bssid,ETH_ALEN);
++
++    pst_wapi->en_state = WAISM_INIT;
++    wpa_printf(MSG_DEBUG,"WAI_Msg_Input  success");
++
++    return WAPI_SUCCESS;
++}
++
++int32 wapi_supplicant_event(struct wpa_supplicant *pst_wpa,
++                                    enum wpa_event_type en_event,
++                                    void *data)
++{
++    struct wapi_supplicant_stru *pst_wapi = NULL;
++    uint8                        auc_bssid[ETH_ALEN];
++
++    if ((NULL == pst_wpa) || (NULL == pst_wpa->pst_wapi))
++    {
++        wpa_printf(MSG_WARNING,"null pointer, pst_wpa=%p", pst_wpa);
++        return WAPI_FAILED;
++    }
++
++    pst_wapi  =  pst_wpa->pst_wapi;
++
++    switch (en_event) {
++        case EVENT_ASSOC:
++        {
++            wpa_drv_get_bssid(pst_wpa, auc_bssid);
++            memcpy(pst_wapi->auc_own_mac, pst_wpa->own_addr, ETH_ALEN);
++            memcpy(pst_wapi->auc_bssid,auc_bssid,ETH_ALEN);
++
++            if(pst_wapi->uc_wapi_ie_len) {
++                wpa_printf(MSG_DEBUG,"start to call wapi_event_process function\n");
++                wapi_event_process(pst_wapi,CONN_ASSOC, pst_wapi->auc_wapi_ie,pst_wapi->uc_wapi_ie_len);
++            } else {
++                wpa_printf(MSG_DEBUG,"start to call wapi_event_process function, wapi ie len is 0.\n");
++            }
++            break;
++        }
++        case EVENT_DISASSOC:
++            pst_wapi->en_state = WAISM_INIT;
++            break;
++        default:
++            wpa_printf(MSG_DEBUG,"event is unknown");
++            break;
++    }
++
++   return WAPI_SUCCESS;
++}
++
++static  int32 wapi_drv_get_bssid(struct wpa_supplicant *pst_wpa, uint8 *puc_bssid)
++{
++	if (pst_wpa->driver->get_bssid) {
++		return pst_wpa->driver->get_bssid(pst_wpa->drv_priv, puc_bssid);
++	}
++	return WAPI_FAILED;
++}
++
++static int32 wapi_read_cert(const char *pc_cert_file, uint8 *puc_cert_buf, uint32 *pul_buf_len)
++{
++    FILE *file = NULL;
++    int32    l_id = 0;
++    char real_path[PATH_MAX] = {0};
++
++    if (NULL == pc_cert_file)
++    {
++        wpa_printf(MSG_ERROR, "Error: pc_cert_file is null certificate");
++        return WAPI_FAILED;
++    }
++
++    if (strlen(pc_cert_file) > PATH_MAX || realpath(pc_cert_file, real_path) == NULL) {
++        wpa_printf(MSG_ERROR, "Error: convert pc_cert_file to real path failed");
++        return WAPI_FAILED;
++    }
++
++    file = fopen((int8 *)real_path, "rb");
++    if (NULL == file)
++    {
++        wpa_printf(MSG_ERROR,"Open file: %s Error", real_path);
++        perror("Open cert file Error");
++        return WAPI_FAILED;
++    }
++
++    while (!feof(file))
++    {
++        puc_cert_buf[l_id++] = (uint8)fgetc(file);
++        if (l_id >= MAX_CERT_BUFF_SIZE) {
++            wpa_printf(MSG_ERROR,"cert buf too small, buf_len = %d, i = %d", MAX_CERT_BUFF_SIZE, l_id);
++            fclose(file);
++            return WAPI_FAILED;
++        }
++    }
++
++   *pul_buf_len = (uint32)l_id;
++    fclose(file);
++    return WAPI_SUCCESS;
++
++}
++
++static int32 wapi_cert_parse(struct wpa_supplicant *pst_wpa)
++{
++    struct wapi_supplicant_stru *pst_wapi = NULL;
++    cert_stru                   *pst_asue_cert = NULL;
++    cert_stru                   *pst_as_cert = NULL;
++    int32                        l_ret;
++    if ((NULL == pst_wpa) || (NULL == pst_wpa->pst_wapi))
++    {
++        wpa_printf(MSG_WARNING,"pst_wapi is null");
++        return WAPI_FAILED;
++    }
++
++    pst_wapi = pst_wpa->pst_wapi;
++
++    l_ret = wapi_iface_dll_cb.wapi_cert_parse_ecprivkey(pst_wapi->auc_user_certfile,
++                                           pst_wapi->ul_user_certfile_len,
++                                           pst_wapi->auc_asue_cert_privkey,
++                                           &pst_wapi->ul_asue_cert_privkey_len);
++    if( WAPI_FAILED == l_ret )
++    {
++        wpa_printf(MSG_WARNING,"wapi_certificate_parse_privkey fail");
++        return WAPI_FAILED;
++    }
++
++    pst_asue_cert = wapi_iface_dll_cb.wapi_cert_parse_certificate(pst_wapi->auc_user_certfile,
++                                                    pst_wapi->ul_user_certfile_len);
++    if( NULL == pst_asue_cert )
++    {
++        wpa_printf(MSG_WARNING,"parse wapi asue certificate fail");
++        return WAPI_FAILED;
++    }
++
++    pst_wapi->pst_asue_cert = pst_asue_cert;
++
++    pst_as_cert =wapi_iface_dll_cb.wapi_cert_parse_certificate(pst_wapi->auc_as_certfile,
++                                                    pst_wapi->ul_as_certfile_len);
++    if( NULL == pst_as_cert )
++    {
++        wpa_printf(MSG_WARNING,"parse wapi ae certificate fail");
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_asue_cert);
++        pst_wapi->pst_asue_cert = NULL;
++        return WAPI_FAILED;
++    }
++
++    pst_wapi->pst_as_cert = pst_as_cert;
++
++    l_ret = wapi_iface_dll_cb.wapi_ecc192_verify_keygroup(pst_wapi->pst_asue_cert->st_subject_key.auc_value,
++                                        pst_wapi->pst_asue_cert->st_subject_key.us_length,
++                                        pst_wapi->auc_asue_cert_privkey,
++                                        pst_wapi->ul_asue_cert_privkey_len);
++    if( WAPI_FAILED == l_ret)
++    {
++        wpa_printf(MSG_WARNING,"wapi_ecc192_verify_keygroup fail");
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_asue_cert);
++        pst_wapi->pst_asue_cert = NULL;
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_as_cert);
++        pst_wapi->pst_as_cert = NULL;
++        return WAPI_FAILED;
++    }
++
++    l_ret = wapi_iface_dll_cb.wapi_cert_verify_certificate(pst_wapi->auc_user_certfile,
++                            pst_wapi->ul_user_certfile_len,
++                            pst_wapi->pst_as_cert->st_subject_key.auc_value,
++                            pst_wapi->pst_as_cert->st_subject_key.us_length);
++    if( WAPI_FAILED == l_ret)
++    {
++        wpa_printf(MSG_WARNING,"verify ause certificate fail");
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_asue_cert);
++        pst_wapi->pst_asue_cert = NULL;
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_as_cert);
++        pst_wapi->pst_as_cert = NULL;
++
++        return WAPI_FAILED;
++    }
++
++    l_ret = wapi_iface_dll_cb.wapi_cert_verify_certificate(pst_wapi->auc_as_certfile,
++                            pst_wapi->ul_as_certfile_len,
++                            pst_wapi->pst_as_cert->st_subject_key.auc_value,
++                            pst_wapi->pst_as_cert->st_subject_key.us_length);
++    if( WAPI_FAILED == l_ret)
++    {
++        wpa_printf(MSG_WARNING,"verify as certificate fail");
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_asue_cert);
++        pst_wapi->pst_asue_cert = NULL;
++        wapi_iface_dll_cb.wapi_cert_free_certificate(pst_as_cert);
++        pst_wapi->pst_as_cert = NULL;
++
++        return WAPI_FAILED;
++    }
++
++    return WAPI_SUCCESS;
++}
++
++static int32 wapi_psk_derivate(struct wpa_supplicant *pst_wpa,struct wpa_ssid *pst_ssid)
++{
++    struct wapi_supplicant_stru *pst_wapi = NULL;
++    size_t                       l_len;
++    int32                        l_ret;
++    int32                        psk_len;
++    uint8                        auc_buff[128];
++
++    if ((NULL == pst_wpa) || (NULL == pst_wpa->pst_wapi))
++    {
++        wpa_printf(MSG_WARNING,"pst_wapi is null");
++        return WAPI_FAILED;
++    }
++
++    pst_wapi = pst_wpa->pst_wapi;
++
++    if (pst_ssid->passphrase == NULL && !pst_ssid->psk_set)
++    {
++        wpa_printf(MSG_ERROR," WAPI PSK passphrase %p psk_set %d\n",pst_ssid->passphrase, pst_ssid->psk_set);
++        return WAPI_FAILED;
++    }
++
++
++    if (pst_ssid->psk_set)
++    {
++        pst_wapi->st_auth_psk_type.ul_key_length= (uint32)pst_ssid->psk_set;
++        os_memset(pst_wapi->st_auth_psk_type.uc_key_val, 0, sizeof(pst_wapi->st_auth_psk_type.uc_key_val));
++        os_memcpy(pst_wapi->st_auth_psk_type.uc_key_val, pst_ssid->psk, pst_ssid->psk_set);
++    }
++    else
++    {
++        l_len = os_strlen(pst_ssid->passphrase);
++        pst_wapi->st_auth_psk_type.ul_key_length = (uint32)l_len;
++        os_memset(pst_wapi->st_auth_psk_type.uc_key_val, 0, sizeof(pst_wapi->st_auth_psk_type.uc_key_val));
++        os_memcpy(pst_wapi->st_auth_psk_type.uc_key_val, pst_ssid->passphrase, l_len);
++    }
++
++    os_memset(pst_wapi->uc_bk,0,WAI_BK_SIZE);
++    os_memset(auc_buff,0,128);
++
++    if ( KEY_TYPE_ASCII == pst_ssid->psk_key_type)
++    {
++        l_ret = wapi_iface_dll_cb.wai_psk_derivation((uint8*)pst_wapi->st_auth_psk_type.uc_key_val,
++                                    pst_wapi->st_auth_psk_type.ul_key_length, pst_wapi->uc_bk);
++    }
++    else
++    {
++        if (pst_wapi->st_auth_psk_type.ul_key_length % 2)
++        {
++            wpa_printf(MSG_WARNING,"ul_key_length mod 2 is not zero");
++            return WAPI_FAILED;
++        }
++
++        psk_len = (int32)(pst_wapi->st_auth_psk_type.ul_key_length / 2);
++        if (hexstr2bin((const char *)(pst_wapi->st_auth_psk_type.uc_key_val), auc_buff, psk_len) ||
++                   pst_wapi->st_auth_psk_type.uc_key_val[psk_len * 2] != '\0')
++        {
++            wpa_printf(MSG_ERROR, "Invalid PSK ");
++            return WAPI_FAILED;
++        }
++
++        l_ret = wapi_iface_dll_cb.wai_psk_derivation(auc_buff, (uint32)psk_len,
++                                   pst_wapi->uc_bk);
++
++    }
++
++    return l_ret;
++
++}
++
++static int32 wapi_config_associate_parm(struct wpa_supplicant  *pst_wpa,
++                                             struct wpa_bss         *pst_bss,
++                                             struct wpa_ssid        *pst_ssid,
++                                             struct wpa_driver_associate_params *pst_params)
++{
++    uint8                       *puc_wapi_ie;
++    uint8                       *puc_ie_ssid;
++    enum wpa_cipher              en_cipher_pairwise;
++    enum wpa_cipher              en_cipher_group;
++    en_cipher_pairwise = WPA_CIPHER_NONE;
++    en_cipher_group    = WPA_CIPHER_NONE;
++
++    if(pst_bss){
++        puc_ie_ssid =(uint8 *)wpa_bss_get_ie(pst_bss, 0); /* WLAN_EID_SSID */
++        pst_params->ssid = puc_ie_ssid+2;
++        pst_params->ssid_len=puc_ie_ssid[1];
++        pst_params->bssid=pst_bss->bssid;
++
++        puc_wapi_ie=(uint8 *)wpa_bss_get_ie(pst_bss, 68); /* WLAN_EID_WAPI */
++        if(puc_wapi_ie)
++        {
++            pst_wpa->pst_wapi->uc_wapi_ie_len = puc_wapi_ie[1]+2;
++            if(puc_wapi_ie[1])
++            {
++                os_memcpy(pst_wpa->pst_wapi->auc_wapi_ie,puc_wapi_ie,puc_wapi_ie[1]+2);
++            }
++            pst_wpa->pst_wapi->auc_wapi_ie[1] += 2;
++            pst_wpa->pst_wapi->uc_wapi_ie_len += 2;
++            pst_wpa->pst_wapi->auc_wapi_ie[pst_wpa->pst_wapi->uc_wapi_ie_len - 2] = 0;
++            pst_wpa->pst_wapi->auc_wapi_ie[pst_wpa->pst_wapi->uc_wapi_ie_len - 1] = 0;
++        }
++
++        pst_params->freq.freq = pst_bss->freq;
++    }else{
++        pst_params->ssid=pst_ssid->ssid;
++        pst_params->ssid_len=pst_ssid->ssid_len;
++        puc_wapi_ie=NULL;
++    }
++
++    pst_params->mode = 0;                                  /* Modes of operation: Let the driver decides */
++    pst_params->wpa_ie_len=(pst_wpa->pst_wapi->uc_wapi_ie_len);
++    pst_params->wpa_ie=pst_wpa->pst_wapi->auc_wapi_ie;
++
++    pst_params->pairwise_suite = en_cipher_pairwise;
++    pst_params->group_suite = en_cipher_group;
++
++    if (!os_memcmp(pst_wpa->bssid, "\x00\x00\x00\x00\x00\x00", ETH_ALEN)) {
++        if(wpa_drv_associate(pst_wpa, pst_params)) {
++            wpa_printf(MSG_WARNING,"wapi_supplicant_associate failed\n");
++            wpas_connection_failed(pst_wpa, pst_wpa->pending_bssid);
++            wpa_supplicant_set_state(pst_wpa, WPA_DISCONNECTED);
++            os_memset(pst_wpa->pending_bssid, 0, ETH_ALEN);
++            pst_wpa->current_bss = NULL;
++            pst_wpa->current_ssid = NULL;
++
++            return WAPI_FAILED;
++        }
++        wpa_supplicant_req_auth_timeout(pst_wpa, 10, 0);/* Timeout for IEEE 802.11 authentication and association */
++    }
++
++    return WAPI_SUCCESS;
++}
++
++int32 wapi_init_ie(struct wpa_supplicant *pst_wpa)
++{
++	struct wapi_supplicant_stru *pst_wapi = NULL;
++	uint8 auc_wapi_ie[] = {
++	     0x44, 0x16, 0x01, 0x00, 0x01, 0x00, 0x00, 0x14,
++	     0x72, 0x01, 0x01, 0x00, 0x00, 0x14, 0x72, 0x01,
++	     0x00, 0x14, 0x72, 0x01, 0x00, 0x00, 0x00, 0x00
++	};/* little endian*/
++
++
++    if ((NULL == pst_wpa) || (NULL == pst_wpa->pst_wapi))
++    {
++        wpa_printf(MSG_WARNING,"pst_wapi is null");
++        return WAPI_FAILED;
++    }
++
++	pst_wapi = pst_wpa->pst_wapi;
++
++    os_memset(pst_wapi->auc_assoc_wapi_ie, 0, sizeof(pst_wapi->auc_assoc_wapi_ie));
++    pst_wapi->uc_assoc_wapi_ie_len = 0;
++
++    if (AUTH_TYPE_NONE_WAPI == pst_wapi->en_auth_type)
++    {
++        wpa_printf(MSG_DEBUG,"open, needn't set wapi-ie");
++        return WAPI_SUCCESS;
++    }
++
++	if (AUTH_TYPE_WAPI_PSK == pst_wapi->en_auth_type)
++	{
++		auc_wapi_ie[9] = 2;
++	}
++
++	os_memcpy(pst_wapi->auc_assoc_wapi_ie, auc_wapi_ie, sizeof(auc_wapi_ie));
++	pst_wapi->uc_assoc_wapi_ie_len = sizeof(auc_wapi_ie);
++
++	return WAPI_SUCCESS;
++}
++
++int32 wapi_event_process(struct wapi_supplicant_stru *pst_wapi, conn_status_enum en_action,uint8* puc_assoc_ie, int32 uc_assoc_ie_len)
++{
++   uint8 auc_ann_id[] = {
++            0x5c, 0x36, 0x5c,0x36,0x5c,0x36,0x5c,0x36,
++			0x5c,0x36,0x5c,0x36,0x5c,0x36,0x5c,0x35
++			};
++
++   if ((NULL == pst_wapi) || (NULL == puc_assoc_ie))
++   {
++      wpa_printf(MSG_WARNING,"param is null");
++      return WAPI_FAILED;
++   }
++
++   if (CONN_ASSOC == en_action) {
++
++         if (AUTH_TYPE_WAPI_PSK == pst_wapi->en_auth_type)
++          {
++             uint8 uc_bkid[WAI_BKID_SIZE] = {0};
++
++             wapi_iface_dll_cb.KD_HMAC_SHA256(pst_wapi->auc_addid, WAI_ADDID_SIZE,
++                pst_wapi->uc_bk, WAI_BK_SIZE, uc_bkid, WAI_BKID_SIZE);
++
++
++             os_memcpy(pst_wapi->st_bksa.auc_bk, pst_wapi->uc_bk, WAI_BK_SIZE);
++             os_memcpy(pst_wapi->st_bksa.auc_bkid, uc_bkid, WAI_BKID_SIZE);
++             os_memcpy(pst_wapi->st_bksa.auc_ae_mac,pst_wapi->auc_bssid,ETH_ALEN);
++             os_memcpy(pst_wapi->st_bksa.auc_asue_mac,pst_wapi->auc_own_mac,ETH_ALEN);
++             /* akmp todo */
++         }
++
++         if (AUTH_TYPE_NONE_WAPI != pst_wapi->en_auth_type)
++         {
++            if (uc_assoc_ie_len >= (int32)sizeof(pst_wapi->auc_wapi_ie)-1)
++                uc_assoc_ie_len = (int32)sizeof(pst_wapi->auc_wapi_ie)-1;
++
++            os_memcpy(pst_wapi->auc_wapi_ie, puc_assoc_ie, uc_assoc_ie_len);
++            pst_wapi->uc_wapi_ie_len = uc_assoc_ie_len;
++         }
++
++
++      pst_wapi->us_nextframeseq = 1;
++      pst_wapi->uc_nextfragseq  = 0;
++	  pst_wapi->us_txframe_seq  =0;
++      memcpy(pst_wapi->st_msksa.auc_msk_ann_id, auc_ann_id, WAI_IV_LEN);
++      pst_wapi->st_usksa.uc_uskid = 0;                                       /* uskid */
++
++      pst_wapi->en_state = WAISM_ALREADY_ASSOC;
++
++   }else if (CONN_DISASSOC == en_action){
++       pst_wapi->en_state = WAISM_INIT;
++   }
++
++   return WAPI_SUCCESS;
++
++}
++
++static void wapi_notify_handler(void *eloop_ctx, void *timeout_ctx)
++{
++    struct wpa_supplicant *pst_wpa = eloop_ctx;
++    wpa_msg(pst_wpa, MSG_ERROR, "WPA: pre-shared key may be incorrect");
++    wpa_msg(pst_wpa, MSG_WARNING, WPA_EVENT_DISCONNECTED "- Disconnect event - remove keys");
++}
++
++void wapi_notify_wrong_msg(struct wpa_supplicant  *pst_wpa)
++{
++    if(NULL == pst_wpa)
++    {
++       wpa_printf(MSG_WARNING,"pst_wpa is null");
++       return;
++    }
++    if(pst_wpa) {
++        /* Give some time for GUI to update current network id
++         * before we noitfy  wrong psk message
++         */
++        eloop_cancel_timeout(wapi_notify_handler, pst_wpa, NULL);
++        eloop_register_timeout(0, 200000, wapi_notify_handler, pst_wpa, NULL);
++    }
++}
++
++int wapi_init_dlhandle(void )
++{
++    const char *dlerr = NULL;
++
++    if(wapi_iface_dll_cb.dl_handle)
++    {
++        wpa_printf(MSG_ERROR,"WAPI LIB is already opened");
++        return 0;
++    }
++
++    dlerr = dlerror(); /* clear the last error. */
++
++    wpa_printf(MSG_INFO,"dlopen LIBWAPIPATH is %s", LIBWAPI_PATH);
++    wapi_iface_dll_cb.dl_handle = dlopen(LIBWAPI_PATH, RTLD_LAZY);
++
++    dlerr = dlerror();
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wai_rx_packet, "wai_rx_packet");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wapi_iface_funcs_init, "wapi_iface_funcs_init");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wapi_cert_free_certificate, "wapi_cert_free_certificate");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wai_cleanup_fragbuf, "wai_cleanup_fragbuf");
++    //wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wapi_ecc_deinit_dlhandle, "wapi_ecc_deinit_dlhandle");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wai_psk_derivation, "wai_psk_derivation");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wapi_cert_parse_ecprivkey, "wapi_cert_parse_ecprivkey");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wapi_cert_verify_certificate, "wapi_cert_verify_certificate");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wapi_ecc192_verify_keygroup, "wapi_ecc192_verify_keygroup");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wapi_cert_parse_certificate, "wapi_cert_parse_certificate");
++    //wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.wapi_crypto_init_dlhandle, "wapi_crypto_init_dlhandle");
++
++    //wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.HMAC_SHA256, "HMAC_SHA256");
++    wapi_get_func_from_dl(wapi_iface_dll_cb.dl_handle, wapi_iface_dll_cb.KD_HMAC_SHA256, "KD_HMAC_SHA256");
++
++    return 0;
++}
++int wapi_deinit_dlhandle(void)
++{
++    if(NULL == wapi_iface_dll_cb.dl_handle)
++    {
++        wpa_printf(MSG_ERROR,"WAPI LIB is already closed!");
++        return 0;
++    }
++
++    dlclose(wapi_iface_dll_cb.dl_handle);
++    wapi_iface_dll_cb.dl_handle = NULL;
++    os_memset(&wapi_iface_dll_cb, 0, sizeof(wapi_iface_dll_cb));
++    return 0;
++}
++
++int32 wapi_call_back_init()
++
++{
++    struct wapi_iface_funcs_stru wapi_cb;
++
++
++	wpa_printf(MSG_ERROR,"wapi_call_back_init enter!");
++	wapi_cb.base64_decode=base64_decode;
++	wapi_cb.eloop_cancel_timeout=eloop_cancel_timeout;
++	wapi_cb.eloop_register_timeout=eloop_register_timeout;
++	wapi_cb.l2_packet_send=l2_packet_send;
++	wapi_cb.os_mktime=os_mktime;
++	wapi_cb.os_zalloc=os_zalloc;
++	wapi_cb.os_get_random=os_get_random;
++	wapi_cb.wpabuf_put=wpabuf_put;
++	wapi_cb.wpabuf_put_u8=wpabuf_put_u8;
++	wapi_cb.wpabuf_put_be16=wpabuf_put_be16;
++	wapi_cb.wpabuf_put_data=wpabuf_put_data;
++	wapi_cb.wpabuf_put_buf=wpabuf_put_buf;
++	wapi_cb.wpabuf_alloc=wpabuf_alloc;
++	wapi_cb.wpabuf_free=wpabuf_free;
++	wapi_cb.wpabuf_alloc_ext_data=wpabuf_alloc_ext_data;
++#ifdef ANDROID
++	wapi_cb.__android_log_vprint=__android_log_vprint;
++#endif
++	wapi_cb.wpa_hexdump_ascii=wpa_hexdump_ascii;
++	wapi_cb.wpa_supplicant_set_state=wpa_supplicant_set_state;
++	wapi_cb.wpa_supplicant_deauthenticate=wpa_supplicant_deauthenticate;
++	wapi_cb.wpa_supplicant_cancel_auth_timeout=wpa_supplicant_cancel_auth_timeout;
++    wapi_cb.wapi_notify_wrong_msg=wapi_notify_wrong_msg;
++
++	if(wapi_iface_dll_cb.wapi_iface_funcs_init(&wapi_cb))
++	{
++		wpa_printf(MSG_ERROR, "wapi_iface_funcs_init fail");
++		return -WAPI_FAILED;
++	}
++	return WAPI_SUCCESS;
++
++
++}
++
++
++
++#ifdef __cplusplus
++    #if __cplusplus
++        }
++    #endif
++#endif
++
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wapi/wapi.h wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wapi.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wapi/wapi.h	1970-01-01 08:00:00.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wapi/wapi.h	2023-10-19 14:02:04.000000000 +0800
+@@ -0,0 +1,207 @@
++/*
++ * Copyright (c) CompanyNameMagicTag. 2023-2023. All rights reserved.
++ * 文 件 名   : wapi.h
++ * 作    者   : CompanyName
++ * 生成日期   : 2023年1月11日
++ * 功能描述   : wapi对应头文件
++ */
++
++#ifndef __WAPI_H__
++#define __WAPI_H__
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++
++/*
++ * 1 Other Header File Including
++ */
++#include "common/wpa_common.h"
++#include "drivers/driver.h"
++#include "types.h"
++#include "wai_sm.h"                 /* for wai_state_enum */
++
++
++/*
++ * 2 Macro Definition
++ */
++#define ETH_TYPE_WAI            0x88B4
++
++#define wapi_get_func_from_dl(dl_handle, fun, fun_name) do{\
++fun= dlsym(dl_handle, fun_name);\
++    dlerr = dlerror();\
++    if ((dlerr != NULL) || (NULL ==  fun))\
++    {\
++        wpa_printf(MSG_INFO,"dlsym %s failed,error is %s", fun_name, dlerr);\
++        dlclose(dl_handle);\
++        dl_handle = NULL;\
++        dlerr = dlerror();\
++        if (dlerr != NULL)\
++        {\
++            wpa_printf(MSG_INFO,"dlclose failed,error is %s", dlerr);\
++        }\
++      return -1;\
++    }\
++}while(0);
++
++#if defined(__LP64__)
++#define LIBWAPI_PATH "/vendor/lib64/libwifi_wapi.so"
++#else
++#define LIBWAPI_PATH "/lib/libwifi_wapi.so"
++#endif
++
++
++
++/*
++ * 3 Enum Type Definition
++ */
++
++
++/*
++ * 4 Global Variable Declaring
++ */
++
++
++/*
++ * 5 Message Header Definition
++ */
++
++
++/*
++ * 6 Message Definition
++ */
++
++
++/*
++ * 7 STRUCT Type Definition
++ */
++struct wpa_supplicant;
++struct l2_packet_data;
++struct wpabuf;
++struct wpa_ie_data;
++struct wpa_bss;
++struct wpa_driver_associate_params;
++
++typedef enum _auth_type_enum{
++    AUTH_TYPE_NONE_WAPI = 0,	/* no WAPI */
++    AUTH_TYPE_WAPI_CERT,		/* Certificate */
++    AUTH_TYPE_WAPI_PSK		    /* Pre-PSK */
++}auth_type_enum;
++
++typedef enum {
++    KEY_TYPE_ASCII = 0,		    /* ascii */
++    KEY_TYPE_HEX		        /* HEX */
++}key_type_enum;
++
++typedef enum {
++    CONN_ASSOC = 0,
++    CONN_DISASSOC
++}conn_status_enum;
++
++
++/* Pre-PSK */
++typedef struct _auth_type_psk_stru{
++    key_type_enum en_key_type;	       /* Pre-PSK: Key type */
++    uint32        ul_key_length;	       /* Pre-PSK: key length */
++    uint8         uc_key_val[128];      /* Pre-PSK: value */
++}auth_type_psk_stru;
++
++
++
++/* wapi ���ؽṹ */
++struct wapi_supplicant_stru
++{
++    struct wpa_supplicant *pst_wpa;
++    struct l2_packet_data *pst_wapi_l2;
++
++    wai_state_enum         en_state;
++
++    struct wpabuf         *pst_fragbuf;
++    uint16                 us_nextframeseq;
++    uint8                  uc_nextfragseq;
++    uint16                 us_txframe_seq;
++
++    uint8                  auc_own_mac[ETH_ALEN];
++    uint8                  auc_bssid[ETH_ALEN];
++
++    uint8                  auc_wapi_ie[WAPI_IE_MAX_SIZE];
++    int32                  uc_wapi_ie_len;
++    uint8                  auc_assoc_wapi_ie[WAPI_IE_MAX_SIZE];
++    int32                  uc_assoc_wapi_ie_len;
++
++    uint8                  uc_wai_flag;
++    uint8                  auc_next_authid[WAI_AUTH_ID_SIZE];
++
++    uint8                  auc_bk_nasue[WAI_CHALLENGE_SIZE];
++    uint8                  auc_usk_nasue[WAI_CHALLENGE_SIZE];
++    uint8                  auc_usk_next_nae[WAI_CHALLENGE_SIZE];
++
++    uint8                  auc_asue_pubkey[MAX_KEYDATA_SIZE];
++    uint32                 ul_asue_pubkey_len;
++    uint8                  auc_asue_privkey[MAX_KEYDATA_SIZE];
++    uint32                 ul_asue_privkey_len;
++    uint8                  auc_asue_cert_privkey[MAX_KEYDATA_SIZE];
++    uint32                 ul_asue_cert_privkey_len;
++
++    cert_stru             *pst_asue_cert;
++    cert_stru             *pst_ae_cert;
++    cert_stru             *pst_as_cert;
++
++    uint8                  auc_as_certfile[2048];
++    uint32                 ul_as_certfile_len;
++	uint8                  auc_user_certfile[2048];
++	uint32                 ul_user_certfile_len;
++
++    wapi_bksa_stru         st_bksa;
++    wapi_usksa_stru        st_usksa;
++    wapi_msksa_stru        st_msksa;
++
++    uint8                  auc_addid[WAI_ADDID_SIZE];              /* ADDID( MAC || MAC ) */
++
++    auth_type_enum         en_auth_type;
++    auth_type_psk_stru     st_auth_psk_type;
++
++    struct wpabuf         *pst_tx_framebuf;
++    uint32                 ul_tx_count;
++
++    uint8                  uc_bk[WAI_BK_SIZE];
++
++};
++
++/*
++ * 8 UNION Type Definition
++ */
++
++
++/*
++ * 9 OTHERS Definition
++ */
++
++
++/*
++ * 10 Function Declare
++ */
++
++int32 wapi_deinit_iface(struct wpa_supplicant* pst_wpa);
++int32 wapi_init_iface(struct wpa_supplicant* pst_wpa);
++int32 wapi_parse_wapi_ie(const uint8 *pauc_wapi_ie, uint32 ul_ie_len, struct wpa_ie_data *pst_ie_data );
++void wapi_supplicant_deinit(struct wpa_supplicant *pst_wpa);
++void wapi_supplicant_init(struct wpa_supplicant *pst_wpa);
++int32 wapi_supplicant_event_assoc(struct wpa_supplicant *pst_wpa,struct wpa_bss *pst_bss,
++		                          struct wpa_ssid *pst_ssid, struct wpa_driver_associate_params *pst_params);
++int32 wapi_supplicant_event_disassoc(struct wpa_supplicant *pst_wpa,uint16 us_reason);
++int32 wapi_supplicant_event(struct wpa_supplicant *pst_wpa, enum wpa_event_type en_event,void *data);
++void  wapi_notify_wrong_msg(struct wpa_supplicant  *pst_wpa);
++int32 wapi_call_back_init();
++int wapi_init_dlhandle(void );
++
++#ifdef __cplusplus
++	#if __cplusplus
++		}
++	#endif
++#endif
++
++#endif /* end of wapi.h */
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wpa_supplicant.c wpa_supplicant-trunk-2.10/wpa_supplicant/wpa_supplicant.c
+--- wpa_supplicant-master-2.10/wpa_supplicant/wpa_supplicant.c	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wpa_supplicant.c	2023-10-19 14:02:04.000000000 +0800
+@@ -69,6 +69,10 @@
+ #include "ap/hostapd.h"
+ #endif /* CONFIG_MESH */
+ 
++#ifdef CONFIG_WAPI
++#include "wapi/wapi.h"  /* for wapi_supplicant_init etc */
++#endif /* CONFIG_WAPI */
++
+ const char *const wpa_supplicant_version =
+ "wpa_supplicant v" VERSION_STR "\n"
+ "Copyright (c) 2003-2022, Jouni Malinen <j@w1.fi> and contributors";
+@@ -223,6 +227,16 @@ static void wpa_supplicant_timeout(void
+ 		bssid = wpa_s->pending_bssid;
+ 	wpa_msg(wpa_s, MSG_INFO, "Authentication with " MACSTR " timed out.",
+ 		MAC2STR(bssid));
++
++#ifdef CONFIG_WAPI
++	if (wpa_s->wpa_state > WPA_ASSOCIATING &&
++		(wpa_s->key_mgmt == WPA_KEY_MGMT_PSK ||
++		wpa_s->key_mgmt == WPA_KEY_MGMT_WAPI_PSK ||
++		wpa_s->key_mgmt == WPA_KEY_MGMT_WAPI_CERT)) {
++		wpa_msg(wpa_s, MSG_INFO, "WPA: 4-Way Handshake failed - "
++				"pre-shared key may be incorrect");
++	}
++#endif
+ 	wpa_bssid_ignore_add(wpa_s, bssid);
+ 	wpa_sm_notify_disassoc(wpa_s->wpa);
+ 	wpa_supplicant_deauthenticate(wpa_s, WLAN_REASON_DEAUTH_LEAVING);
+@@ -1192,7 +1206,15 @@ int wpa_supplicant_reload_configuration(
+ 		 */
+ 		eapol_sm_notify_eap_success(wpa_s->eapol, false);
+ 	}
++#ifdef CONFIG_WAPI
++	if ((wpa_s->key_mgmt != WPA_KEY_MGMT_WAPI_PSK) &&
++		(wpa_s->key_mgmt != WPA_KEY_MGMT_WAPI_CERT)) {
++#endif
++
+ 	eapol_sm_notify_config(wpa_s->eapol, NULL, NULL);
++#ifdef CONFIG_WAPI
++	}
++#endif
+ 	wpa_sm_set_config(wpa_s->wpa, NULL);
+ 	wpa_sm_pmksa_cache_flush(wpa_s->wpa, NULL);
+ 	wpa_sm_set_fast_reauth(wpa_s->wpa, wpa_s->conf->fast_reauth);
+@@ -1398,6 +1420,26 @@ int wpa_supplicant_set_suites(struct wpa
+ 		wpa_dbg(wpa_s, MSG_DEBUG, "RSN: using OSEN (within RSN)");
+ 		proto = WPA_PROTO_RSN;
+ #endif /* CONFIG_HS20 */
++#ifdef CONFIG_WAPI
++	} else if (((ssid->proto & WPA_PROTO_WAPI) ||
++				(ssid->key_mgmt & (WPA_KEY_MGMT_WAPI_PSK | WPA_KEY_MGMT_WAPI_CERT))) &&
++				(bss && wpa_bss_get_ie(bss, WLAN_EID_WAPI))) {
++		wpa_dbg(wpa_s, MSG_DEBUG, "WAPI: input proto:%x, key_mgmt:%x, group:%x, pairwise:%x",
++				ssid->proto, ssid->key_mgmt,
++				ssid->group_cipher, ssid->pairwise_cipher);
++		if (ssid->proto != WPA_PROTO_WAPI) {
++			ssid->proto = WPA_PROTO_WAPI;
++		}
++
++		ssid->pairwise_cipher = ssid->group_cipher = WPA_CIPHER_SMS4;
++
++		os_memset(&ie, 0, sizeof(ie));
++		ie.proto = WPA_PROTO_WAPI;
++		ie.pairwise_cipher = ie.group_cipher = WPA_CIPHER_SMS4;
++		ie.key_mgmt = WPA_KEY_MGMT_WAPI_PSK | WPA_KEY_MGMT_WAPI_CERT;
++		wpa_msg(wpa_s, MSG_DEBUG, "WPA: using WAPI");
++		proto = WPA_PROTO_WAPI;
++#endif
+ 	} else if (bss) {
+ 		wpa_msg(wpa_s, MSG_WARNING, "WPA: Failed to select WPA/RSN");
+ 		wpa_dbg(wpa_s, MSG_DEBUG,
+@@ -1440,6 +1482,10 @@ int wpa_supplicant_set_suites(struct wpa
+ 			proto = WPA_PROTO_OSEN;
+ 		else if (ssid->proto & WPA_PROTO_RSN)
+ 			proto = WPA_PROTO_RSN;
++#ifdef CONFIG_WAPI
++		else if (ssid->proto & WPA_PROTO_WAPI)
++			proto = WPA_PROTO_WAPI;
++#endif
+ 		else
+ 			proto = WPA_PROTO_WPA;
+ 		if (wpa_supplicant_suites_from_ai(wpa_s, ssid, &ie) < 0) {
+@@ -1653,6 +1699,14 @@ int wpa_supplicant_set_suites(struct wpa
+ 		wpa_s->key_mgmt = WPA_KEY_MGMT_OWE;
+ 		wpa_dbg(wpa_s, MSG_DEBUG, "RSN: using KEY_MGMT OWE");
+ #endif /* CONFIG_OWE */
++#ifdef CONFIG_WAPI
++	} else if (sel & WPA_KEY_MGMT_WAPI_PSK) {
++		wpa_s->key_mgmt = WPA_KEY_MGMT_WAPI_PSK;
++		wpa_msg(wpa_s, MSG_DEBUG, "WPA: using KEY_MGMT WAPI-PSK");
++	} else if (sel & WPA_KEY_MGMT_WAPI_CERT) {
++		wpa_s->key_mgmt = WPA_KEY_MGMT_WAPI_CERT;
++		wpa_msg(wpa_s, MSG_DEBUG, "WPA: using KEY_MGMT WAPI-CERT");
++#endif
+ 	} else {
+ 		wpa_msg(wpa_s, MSG_WARNING, "WPA: Failed to select "
+ 			"authenticated key management type");
+@@ -1726,11 +1780,16 @@ int wpa_supplicant_set_suites(struct wpa
+ 		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_EXT_KEY_ID, 0);
+ 		wpa_sm_set_param(wpa_s->wpa, WPA_PARAM_USE_EXT_KEY_ID, 0);
+ 	}
+-
+-	if (wpa_sm_set_assoc_wpa_ie_default(wpa_s->wpa, wpa_ie, wpa_ie_len)) {
+-		wpa_msg(wpa_s, MSG_WARNING, "WPA: Failed to generate WPA IE");
+-		return -1;
++#ifdef CONFIG_WAPI
++	if (proto != WPA_PROTO_WAPI) {
++#endif
++		if (wpa_sm_set_assoc_wpa_ie_default(wpa_s->wpa, wpa_ie, wpa_ie_len)) {
++			wpa_msg(wpa_s, MSG_WARNING, "WPA: Failed to generate WPA IE");
++			return -1;
++		}
++#ifdef CONFIG_WAPI
+ 	}
++#endif
+ 
+ 	wpa_s->rsnxe_len = sizeof(wpa_s->rsnxe);
+ 	if (wpa_sm_set_assoc_rsnxe_default(wpa_s->wpa, wpa_s->rsnxe,
+@@ -3024,6 +3083,17 @@ static u8 * wpas_populate_assoc_ies(
+ 			params->wps = WPS_MODE_OPEN;
+ 		wpa_s->wpa_proto = 0;
+ #endif /* CONFIG_WPS */
++#ifdef CONFIG_WAPI
++	} else if (ssid->key_mgmt & (WPA_KEY_MGMT_WAPI_PSK | WPA_KEY_MGMT_WAPI_CERT)) {
++		wpa_ie_len = max_wpa_ie_len;
++		wpa_dbg(wpa_s, MSG_DEBUG, "wpas_start_assoc_cb::set wapi");
++		if (ssid->passphrase)
++		{
++			ssid->psk_set = 0;
++			wpa_dbg(wpa_s, MSG_DEBUG, "wpas_start_assoc_cb::wapi set passphrase, clear psk_set to 0.");
++		}
++		wpa_supplicant_set_suites(wpa_s, bss, ssid, wpa_ie, &wpa_ie_len);
++#endif
+ 	} else {
+ 		wpa_supplicant_set_non_wpa_policy(wpa_s, ssid);
+ 		wpa_ie_len = 0;
+@@ -3141,6 +3211,11 @@ static u8 * wpas_populate_assoc_ies(
+ 	else
+ 		wpa_drv_get_ext_capa(wpa_s, WPA_IF_STATION);
+ 
++#ifdef CONFIG_WAPI
++	if (ssid->key_mgmt & (WPA_KEY_MGMT_WAPI_PSK | WPA_KEY_MGMT_WAPI_CERT)) {
++		wpa_printf(MSG_INFO, "wapi associate,ignore this extended capabilities ie.");
++	} else {
++#endif
+ 	if (!bss || wpa_bss_get_ie(bss, WLAN_EID_EXT_CAPAB)) {
+ 		u8 ext_capab[18];
+ 		int ext_capab_len;
+@@ -3157,6 +3232,9 @@ static u8 * wpas_populate_assoc_ies(
+ 			os_memcpy(pos, ext_capab, ext_capab_len);
+ 		}
+ 	}
++#ifdef CONFIG_WAPI
++	}
++#endif
+ 
+ #ifdef CONFIG_HS20
+ 	if (is_hs20_network(wpa_s, ssid, bss)) {
+@@ -3947,6 +4025,23 @@ static void wpas_start_assoc_cb(struct w
+ 	else
+ 		params.uapsd = -1;
+ 
++#ifdef CONFIG_WAPI
++	if (ssid->key_mgmt & (WPA_KEY_MGMT_WAPI_PSK | WPA_KEY_MGMT_WAPI_CERT)) {
++		params.drop_unencrypted = 0;
++		if (0 != wapi_supplicant_event_assoc(wpa_s, bss, ssid, &params)) {
++			wpa_printf(MSG_ERROR,"wapi_supplicant_event_assoc fail,now disassociate");
++			wpa_supplicant_deauthenticate(wpa_s, 15);
++			return;
++		}
++		old_ssid = wpa_s->current_ssid;
++		wpa_s->current_ssid = ssid;
++		wpa_s->current_bss = bss;
++		if (old_ssid != wpa_s->current_ssid)
++			wpas_notify_network_changed(wpa_s);
++		return;
++	}
++#endif
++
+ #ifdef CONFIG_HT_OVERRIDES
+ 	os_memset(&htcaps, 0, sizeof(htcaps));
+ 	os_memset(&htcaps_mask, 0, sizeof(htcaps_mask));
+@@ -4091,7 +4186,14 @@ static void wpa_supplicant_clear_connect
+ 	old_ssid = wpa_s->current_ssid;
+ 	wpa_supplicant_mark_disassoc(wpa_s);
+ 	wpa_sm_set_config(wpa_s->wpa, NULL);
+-	eapol_sm_notify_config(wpa_s->eapol, NULL, NULL);
++#ifdef CONFIG_WAPI
++	if (wpa_s->key_mgmt != WPA_KEY_MGMT_WAPI_PSK &&
++		wpa_s->key_mgmt != WPA_KEY_MGMT_WAPI_CERT) {
++#endif
++		eapol_sm_notify_config(wpa_s->eapol, NULL, NULL);
++#ifdef CONFIG_WAPI
++	}
++#endif
+ 	if (old_ssid != wpa_s->current_ssid)
+ 		wpas_notify_network_changed(wpa_s);
+ 
+@@ -4168,6 +4270,12 @@ void wpa_supplicant_deauthenticate(struc
+ 		if (zero_addr)
+ 			addr = NULL;
+ 	}
++#ifdef CONFIG_WAPI
++	if (wpa_s->key_mgmt == WPA_KEY_MGMT_WAPI_PSK ||
++		wpa_s->key_mgmt == WPA_KEY_MGMT_WAPI_CERT) {
++		wapi_supplicant_event_disassoc(wpa_s, reason_code);
++	}
++#endif
+ 
+ 	wpa_supplicant_clear_connection(wpa_s, addr);
+ }
+@@ -5289,7 +5397,9 @@ int wpa_supplicant_driver_init(struct wp
+ 
+ 	if (wpa_supplicant_update_mac_addr(wpa_s) < 0)
+ 		return -1;
+-
++#ifdef CONFIG_WAPI
++	wapi_supplicant_init(wpa_s);
++#endif
+ 	wpa_dbg(wpa_s, MSG_DEBUG, "Own MAC address: " MACSTR,
+ 		MAC2STR(wpa_s->own_addr));
+ 	os_memcpy(wpa_s->perm_addr, wpa_s->own_addr, ETH_ALEN);
+@@ -6554,6 +6664,11 @@ static int wpa_supplicant_init_iface(str
+ 		   iface->ctrl_interface ? iface->ctrl_interface : "N/A",
+ 		   iface->bridge_ifname ? iface->bridge_ifname : "N/A");
+ 
++#ifdef CONFIG_WAPI
++	if (NULL != strstr(wpa_s->ifname, "wlan")) {
++		wpa_s->pst_wapi = NULL;
++	}
++#endif
+ 	if (iface->confname) {
+ #ifdef CONFIG_BACKEND_FILE
+ 		wpa_s->confname = os_rel2abs_path(iface->confname);
+@@ -6744,6 +6859,15 @@ static int wpa_supplicant_init_iface(str
+ 	if (wpa_s->max_remain_on_chan == 0)
+ 		wpa_s->max_remain_on_chan = 1000;
+ 
++#ifdef CONFIG_WAPI
++	if (NULL != strstr(wpa_s->ifname, "wlan0")) {
++		wpa_msg(wpa_s, MSG_DEBUG, "wapi iface %s init! ", wpa_s->ifname);
++		if (wapi_init_dlhandle()|| wapi_call_back_init()||wapi_init_iface(wpa_s)) {
++			return -1;
++		}
++	}
++#endif
++
+ 	/*
+ 	 * Only take p2p_mgmt parameters when P2P Device is supported.
+ 	 * Doing it here as it determines whether l2_packet_init() will be done
+@@ -6832,8 +6956,8 @@ static int wpa_supplicant_init_iface(str
+ 	}
+ 
+ 	if ((!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_DEDICATED_P2P_DEVICE) ||
+-	     wpa_s->p2p_mgmt) &&
+-	    wpas_p2p_init(wpa_s->global, wpa_s) < 0) {
++		wpa_s->p2p_mgmt) &&
++		wpas_p2p_init(wpa_s->global, wpa_s) < 0) {
+ 		wpa_msg(wpa_s, MSG_ERROR, "Failed to init P2P");
+ 		return -1;
+ 	}
+@@ -6909,6 +7033,9 @@ static void wpa_supplicant_deinit_iface(
+ {
+ 	struct wpa_global *global = wpa_s->global;
+ 	struct wpa_supplicant *iface, *prev;
++#ifdef CONFIG_WAPI
++	int    rst = 0;
++#endif
+ 
+ 	if (wpa_s == wpa_s->parent)
+ 		wpas_p2p_group_remove(wpa_s, "*");
+@@ -6949,6 +7076,12 @@ static void wpa_supplicant_deinit_iface(
+ 	}
+ 
+ 	wpa_supplicant_cleanup(wpa_s);
++#ifdef CONFIG_WAPI
++	if(NULL != strstr(wpa_s->ifname, "wlan0")) {
++		rst = wapi_deinit_iface(wpa_s);
++		wpa_msg(wpa_s, MSG_DEBUG, "wapi iface %s deinit! rst=%d ", wpa_s->ifname, rst);
++	}
++#endif
+ 	wpas_p2p_deinit_iface(wpa_s);
+ 
+ 	wpas_ctrl_radio_work_flush(wpa_s);
+@@ -7524,6 +7657,10 @@ void wpa_supplicant_deinit(struct wpa_gl
+ 
+ 	eloop_destroy();
+ 
++#ifdef CONFIG_WAPI
++	wapi_supplicant_deinit(global->ifaces);
++#endif
++
+ 	if (global->params.pid_file) {
+ 		os_daemonize_terminate(global->params.pid_file);
+ 		os_free(global->params.pid_file);
+diff -uprN wpa_supplicant-master-2.10/wpa_supplicant/wpa_supplicant_i.h wpa_supplicant-trunk-2.10/wpa_supplicant/wpa_supplicant_i.h
+--- wpa_supplicant-master-2.10/wpa_supplicant/wpa_supplicant_i.h	2022-06-23 13:10:28.000000000 +0800
++++ wpa_supplicant-trunk-2.10/wpa_supplicant/wpa_supplicant_i.h	2023-10-19 14:02:04.000000000 +0800
+@@ -717,6 +717,9 @@ struct wpa_supplicant {
+ 	const void *binder_object_key;
+ #endif /* CONFIG_CTRL_IFACE_BINDER */
+ 	char bridge_ifname[16];
++#ifdef CONFIG_WAPI
++	struct wapi_supplicant_stru  *pst_wapi;
++#endif /* CONFIG_WAPI */
+ 
+ 	char *confname;
+ 	char *confanother;

@@ -1,0 +1,1 @@
+savedcmd_/home/jyh/ws73_sdk_linux_ws73_1.10.110/driver/wifi/wifi_soc.o := /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-ld -melf64lriscv -z noexecstack   -r -o /home/jyh/ws73_sdk_linux_ws73_1.10.110/driver/wifi/wifi_soc.o @/home/jyh/ws73_sdk_linux_ws73_1.10.110/driver/wifi/wifi_soc.mod 

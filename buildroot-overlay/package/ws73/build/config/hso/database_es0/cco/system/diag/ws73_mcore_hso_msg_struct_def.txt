@@ -1,0 +1,304 @@
+#include "base_datatype_def.txt"
+typedef enum {
+    EXT_UART_IDX_0,
+    EXT_UART_IDX_1,
+    EXT_UART_IDX_2,
+    EXT_UART_IDX_3,
+    EXT_UART_IDX_LP,
+    EXT_UART_IDX_MAX,
+    EXT_UART_IDX_INVALID_ID = 0xFF,
+} ext_uart_idx;
+typedef enum {
+    EXT_DMA_PERIPHERAL_MEMORY = 0,
+    EXT_DMA_PERIPHERAL_UART0_TX = 1,
+    EXT_DMA_PERIPHERAL_UART0_RX = 2,
+    EXT_DMA_PERIPHERAL_UART1_TX = 3,
+    EXT_DMA_PERIPHERAL_UART1_RX = 4,
+    EXT_DMA_PERIPHERAL_MAX_NUM,
+} ext_dma_peripheral;
+typedef enum {
+    EXT_DMA_CHANNEL_NONE = 0xFF,
+    EXT_DMA_CHANNEL_0 = 0,
+    EXT_DMA_CHANNEL_1,
+    EXT_DMA_CHANNEL_MAX_NUM,
+} ext_dma_channel;
+typedef enum {
+    EXT_DMA_CH_PRIORITY_HIGHEST = 0,
+    EXT_DMA_CH_PRIORITY_HIGH_1 = 1,
+    EXT_DMA_CH_PRIORITY_HIGH_2 = 2,
+    EXT_DMA_CH_PRIORITY_LOWEST = 3,
+    EXT_DMA_CH_PRIORITY_RESERVED = 0xFF
+} ext_dma_ch_priority;
+typedef enum {
+    EXT_CLK_CPU = 0,
+    EXT_CLK_TIMER0 = 1,
+    EXT_CLK_TIMER1 = 2,
+    EXT_CLK_TIMER2 = 3,
+    EXT_CLK_WDT = 4,
+    EXT_CLK_GPIO = 5,
+    EXT_CLK_TSENSOR = 6,
+    EXT_CLK_ID_MAX,
+    EXT_CLK_ID_INVALID_ID = 0xFFFFFFFF,
+} ext_clk_id;
+typedef struct {
+    td_u32 reg_base_addr;
+    td_u32 irq_number;
+    td_u32 channel_max_num;
+    td_u32 peripheral_max_num;
+    td_u32 lowest_priority;
+} ext_dma_device;
+td_void dma_resource_init(td_void);
+td_void uapi_malloc_resource_init(td_void);
+td_void hrtimer_resource_init(td_void);
+td_void uapi_tsensor_resource_init(td_void);
+td_void uapi_io_resource_init(td_void);
+td_void io_pulldown_cfg(td_void);
+td_void pmu_cmu_vset_cfg(td_void);
+td_void init_uart_pinmux_io(td_void);
+typedef enum {
+    EXT_DMA_POWER_OF_BURST_0 = 0,
+    EXT_DMA_POWER_OF_BURST_1 = 1,
+    EXT_DMA_POWER_OF_BURST_2 = 2,
+    EXT_DMA_POWER_OF_BURST_3 = 3,
+    EXT_DMA_POWER_OF_BURST_4 = 4,
+    EXT_DMA_POWER_OF_BURST_5 = 5,
+    EXT_DMA_POWER_OF_BURST_6 = 6,
+    EXT_DMA_POWER_OF_BURST_7 = 7,
+    EXT_DMA_POWER_OF_BURST_8 = 8,
+    EXT_DMA_POWER_OF_BURST_9 = 9,
+    EXT_DMA_POWER_OF_BURST_10 = 10,
+} ext_dma_power_of_burst;
+typedef struct {
+    ext_dma_power_of_burst power_of_burst;
+    td_bool use_burst;
+    td_u8 pad[3];
+} ext_dma_peripheral_feature;
+typedef td_void (*ext_dma_transfer_peripheral_prepare_callback)(ext_dma_peripheral src, ext_dma_peripheral dst);
+typedef td_void (*ext_dma_transfer_peripheral_finish_callback)(ext_dma_peripheral src, ext_dma_peripheral dst);
+typedef struct {
+    ext_dma_peripheral src_periph;
+    ext_dma_peripheral dst_periph;
+    ext_dma_peripheral_feature feature;
+    ext_dma_transfer_peripheral_prepare_callback transfer_prepare;
+    ext_dma_transfer_peripheral_finish_callback transfer_finish;
+} ext_dma_peripheral_config;
+typedef enum {
+    EXT_DMA_DATA_WIDTH_BYTE = 0x0,
+    EXT_DMA_DATA_WIDTH_HALFWORD = 0x1,
+    EXT_DMA_DATA_WIDTH_WORD = 0x2,
+    EXT_DMA_DATA_WIDTH_MAX = 0x3,
+} ext_dma_data_width;
+typedef enum {
+    EXT_DMA_CH_TRANSFER_TYPE_MEM_TO_MEM = 0,
+    EXT_DMA_CH_TRANSFER_TYPE_MEM_TO_PERIPHERAL = 1,
+    EXT_DMA_CH_TRANSFER_TYPE_PERIPHERAL_TO_MEM = 2,
+    EXT_DMA_CH_TRANSFER_TYPE_PERIPHERAL_TO_PERIPHERAL = 3,
+    EXT_DMA_CH_TRANSFER_TYPE_MAX
+} ext_dma_ch_transfer_type;
+typedef enum {
+    EXT_DMA_CH_CYCLE_TYPE_SINGLE = 0,
+    EXT_DMA_CH_CYCLE_TYPE_BATCHED_PART = 1,
+    EXT_DMA_CH_CYCLE_TYPE_BATCHED_END = 2,
+    EXT_DMA_CH_CYCLE_TYPE_MAX
+} ext_dma_ch_cycle_type;
+typedef enum {
+    EXT_DMA_INTERRUPT_DONE,
+    EXT_DMA_INTERRUPT_ERR,
+    EXT_DMA_INTERRUPT_MAX
+} ext_dma_interrupt;
+typedef td_void (*ext_dma_transfer_callback)(ext_dma_interrupt intr);
+typedef struct {
+        td_u32 src_addr;
+        td_u32 dst_addr;
+        td_u16 transfer_num;
+        ext_dma_data_width data_width;
+        ext_dma_ch_cycle_type cycle_type;
+} ext_dma_ch_user_config;
+ext_errno uapi_dma_init(td_void);
+td_void uapi_dma_deinit(td_void);
+ext_errno uapi_dma_open_ch(ext_dma_channel *ch, ext_dma_ch_priority pri,
+                           const ext_dma_peripheral_config *config);
+ext_errno uapi_dma_close_ch(ext_dma_channel ch);
+ext_errno uapi_dma_transfer(ext_dma_channel ch, const ext_dma_ch_user_config *user_cfg,
+                            ext_dma_transfer_callback callback, td_bool block);
+typedef enum {
+    EXT_UART_DATA_BIT_5 = 5,
+    EXT_UART_DATA_BIT_6,
+    EXT_UART_DATA_BIT_7,
+    EXT_UART_DATA_BIT_8,
+} ext_uart_data_bit;
+typedef enum {
+    EXT_UART_PARITY_NONE,
+    EXT_UART_PARITY_ODD,
+    EXT_UART_PARITY_EVEN,
+} ext_uart_parity;
+typedef enum {
+    EXT_UART_STOP_BIT_1 = 1,
+    EXT_UART_STOP_BIT_2,
+} ext_uart_stop_bit;
+typedef enum {
+    EXT_UART_FLOW_CTRL_NONE = 0x0,
+    EXT_UART_FLOW_CTS = 0x1,
+    EXT_UART_FLOW_RTS = 0x2,
+    EXT_UART_FLOW_CTRL_RTS_CTS = EXT_UART_FLOW_CTS | EXT_UART_FLOW_RTS,
+    EXT_UART_FLOW_CTRL_SOFT = 0x4,
+} ext_uart_flow_ctrl;
+typedef enum {
+    EXT_UART_ERR_FRAM = 0x1,
+    EXT_UART_ERR_PARITY = 0x2,
+    EXT_UART_ERR_BREAK = 0x4,
+    EXT_UART_ERR_OVER_RUN = 0x8,
+} ext_uart_err_type;
+typedef struct {
+    td_u32 baud_rate;
+    td_u8 data_bits;
+    td_u8 stop_bits;
+    td_u8 parity;
+    td_u8 pad;
+} ext_uart_attr;
+typedef struct {
+    td_bool tx_use_dma;
+    td_u8 tx_dma_ch_priority;
+    td_u16 rx_buf_size;
+    td_u16 tx_buf_size;
+} ext_uart_extra_attr;
+typedef struct {
+    ext_dma_ch_cycle_type cycle_type;
+    ext_dma_transfer_callback done_callback;
+} ext_uart_write_dma_config;
+typedef enum {
+    EXT_UART_NOTIFY_RX_MASK_IDLE = 0x1,
+    EXT_UART_NOTIFY_RX_SUFFICIENT_DATA = 0x2,
+    EXT_UART_NOTIFY_RX_ERR = 0x4,
+    EXT_UART_NOTIFY_RX_DATA = 0x8,
+    EXT_UART_NOTIFY_TX_FINISH = 0x10,
+    EXT_UART_NOTIFY_ALL_MASK = 0x1F,
+} ext_uart_rx_hook_type;
+typedef td_void(*ext_uart_rx_hook)(ext_uart_rx_hook_type type, td_u16 data);
+ext_errno uapi_uart_init(ext_uart_idx id, TD_CONST ext_uart_attr *attr, TD_CONST ext_uart_extra_attr *advance_attr);
+ext_errno uapi_uart_set_attr(ext_uart_idx id, ext_uart_attr *attr);
+ext_errno uapi_uart_get_attr(ext_uart_idx id, ext_uart_attr *attr);
+td_s32 uapi_uart_read(ext_uart_idx id, td_u8 *data, td_u32 len);
+td_s32 uapi_uart_write(ext_uart_idx id, TD_CONST td_u8 *data, td_u32 len);
+ext_errno uapi_uart_deinit(ext_uart_idx id);
+ext_errno uapi_uart_register_rx_callback(ext_uart_idx id,
+                                         td_u32 hook_mask,
+                                         td_u16 sufficient_cnt,
+                                         ext_uart_rx_hook hook);
+td_bool uapi_uart_has_pending_transmissions(ext_uart_idx id);
+ext_errno uapi_uart_flush_rx_data(ext_uart_idx id);
+td_s32 uapi_uart_write_by_dma(ext_uart_idx id, TD_CONST td_u8 *data, td_u16 len, ext_uart_write_dma_config *dma_cfg);
+ext_errno uapi_uart_set_flow_ctrl(ext_uart_idx id, ext_uart_flow_ctrl type);
+ext_errno uapi_uart_set_software_flow_ctrl_level(ext_uart_idx id, td_u16 lower_water_margin, td_u16 upper_water_margin);
+ext_errno uapi_uart_set_tx_timeout(ext_uart_idx id, td_u32 block_ms);
+ext_errno uapi_uart_set_rx_timeout(ext_uart_idx id, td_u32 block_ms);
+td_s32 uapi_uart_get_rx_data_count(ext_uart_idx id);
+typedef td_u32 (*diag_cmd_f_prv)(td_u16 cmd_id, td_pvoid cmd_param, td_u16 cmd_param_size, td_u8 option);
+typedef struct {
+    td_u16 min_id;
+    td_u16 max_id;
+    diag_cmd_f_prv fn_input_cmd;
+} ext_diag_cmd_reg_obj;
+td_u32 diag_register_cmd_prv(TD_CONST ext_diag_cmd_reg_obj *cmd_tbl, td_u16 cmd_num);
+td_bool diag_is_connect_prv(td_void);
+td_u32 diag_report_packet_prv(td_u16 cmd_id, td_u8 instance_id, TD_CONST td_pbyte packet,
+    td_u16 pakcet_size, td_bool sync);
+td_u32 diag_init_prv(td_void);
+typedef struct {
+} diag_log_msg0;
+typedef struct {
+    td_u32 data0;
+} diag_log_msg1;
+typedef struct {
+    td_u32 data0;
+    td_u32 data1;
+} diag_log_msg2;
+typedef struct {
+    td_u32 data0;
+    td_u32 data1;
+    td_u32 data2;
+} diag_log_msg3;
+typedef struct {
+    td_u32 data0;
+    td_u32 data1;
+    td_u32 data2;
+    td_u32 data3;
+} diag_log_msg4;
+typedef enum {
+    APPLICATION_CORE = 0,
+    PROTOCOL_CORE,
+    SECURITY_CORE,
+} core_type;
+typedef struct {
+    td_u32 data0[5];
+    td_u32 data1;
+} user_define_struct1;
+typedef struct {
+    td_u32 data0;
+    td_u32 data1;
+    user_define_struct1 data2;
+} user_define_struct0;
+td_u32 diag_log_msg0_prv(td_u32 msg_id, td_u32 src_mod, td_u32 dest_mod);
+td_u32 diag_log_msg1_prv(td_u32 msg_id, td_u32 src_mod, td_u32 dest_mod, td_u32 d0);
+td_u32 diag_log_msg2_prv(td_u32 msg_id, td_u32 src_mod, td_u32 dest_mod, td_u32 d0, td_u32 d1);
+td_u32 diag_log_msg3_prv(td_u32 msg_id, td_u32 src_mod, td_u32 dest_mod, diag_log_msg3 log_msg);
+td_u32 diag_log_msg4_prv(td_u32 msg_id, td_u32 src_mod, td_u32 dest_mod, diag_log_msg4 log_msg);
+td_u32 diag_log_msg_buffer_prv(td_u32 msg_id, td_u32 src_mod, td_u32 dest_mod, td_pvoid buffer, td_u16 size);
+td_void dms_regist_app_uart_rx_prv(td_pvoid fun1, td_pvoid fun2);
+td_void dms_regist_app_uart_cb_prv(td_pvoid fun);
+typedef unsigned char td_uchar;
+typedef unsigned char td_u8;
+typedef unsigned short td_u16;
+typedef unsigned int td_u32;
+typedef unsigned long long td_u64;
+typedef unsigned long td_ulong;
+typedef char td_char;
+typedef signed char td_s8;
+typedef short td_s16;
+typedef int td_s32;
+typedef long long td_s64;
+typedef long td_slong;
+typedef float td_float;
+typedef double td_double;
+typedef void td_void;
+typedef td_u8 td_bool;
+typedef td_u32 td_handle;
+typedef td_u8 td_byte;
+typedef td_byte* td_pbyte;
+typedef void* td_pvoid;
+typedef volatile td_u32 td_u32_reg;
+typedef unsigned long td_size_t;
+typedef signed long td_ssize_t;
+typedef unsigned long td_length_t;
+typedef unsigned long long td_mem_size_t;
+typedef long long td_mem_handle_t;
+typedef unsigned int td_fr32;
+typedef unsigned int uintptr_t;
+typedef uintptr_t td_uintptr_t;
+typedef unsigned int td_phys_addr_t;
+typedef unsigned int td_virt_addr_t;
+typedef unsigned int td_phys_addr_bit32;
+typedef struct {
+    td_u32 case_id;
+    td_u32 data[3];
+}diag_dfx_cmd_req_st;
+typedef struct {
+    td_u32 case_id;
+    td_u32 data[3];
+}diag_dfx_cmd_ind_st;
+typedef struct {
+    td_u32 put_msg_2_cache_fail_times;
+    td_u32 send_ipc_times;
+    td_u32 send_used_size;
+    td_u32 log_receive_times;
+    td_u32 log_reported_times;
+    td_u32 send_local_q_fail;
+    td_u32 record_idx;
+    td_u32 channel_receive_data_cnt[4];
+    td_u32 mem_pkt_alloc_size[2];
+    td_u32 mem_pkt_free_size[2];
+} zdiag_dfx_stat;
+typedef struct {
+    td_u32 dir;
+    td_u32 random_data;
+} diag_beat_heart_cmd_ind;

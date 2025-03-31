@@ -1,0 +1,43 @@
+/home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/build/hostapd/src/drivers/driver_nl80211_android.o: \
+ ../src/drivers/driver_nl80211_android.c \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/utils/includes.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/utils/build_config.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/genl/genl.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/netlink.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/netlink-compat.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/netlink.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/socket.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/rtnetlink.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/if_link.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/if_addr.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/neighbour.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/genetlink.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/netfilter/nfnetlink.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/libnl/include/linux-private/linux/netfilter/nfnetlink_compat.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/version.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/errno.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/types.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/handlers.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/netlink-kernel.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/socket.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/object.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/utils.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/list.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/msg.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/attr.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/addr.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/data.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/genl/family.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/cache.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/output/build/open_source/libnl/include/libnl3/netlink/genl/ctrl.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/utils/common.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/utils/os.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/utils/wpa_debug.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/utils/wpabuf.h \
+ ../src/drivers/driver_nl80211.h ../src/drivers/nl80211_copy.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/utils/list.h \
+ ../src/drivers/driver.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/common/defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/common/ieee802_11_defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/hostapd/src/common/wpa_common.h \
+ ../src/drivers/android_drv.h

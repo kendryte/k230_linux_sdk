@@ -80,6 +80,11 @@ EOF
 		echo " modprobe aic8800_fdrv " >> ${auto_boot_f}
 		echo " modprobe aic_btusb " >> ${auto_boot_f}
 	fi
+
+	if  $(cat ${config} |  grep  BR2_PACKAGE_WS73=y >/dev/null 2>&1 ); then
+		echo " modprobe plat_soc " >> ${auto_boot_f}
+		echo " modprobe wifi_soc " >> ${auto_boot_f}
+	fi
 	chmod a+x ${auto_boot_f}
 }
 gen_version

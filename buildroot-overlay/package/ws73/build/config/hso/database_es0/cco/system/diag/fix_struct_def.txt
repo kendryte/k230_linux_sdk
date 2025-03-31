@@ -1,0 +1,86 @@
+#include "base_datatype_def.txt"
+
+typedef struct {
+
+} tool_null_stru;
+
+typedef struct {
+    td_u8 array[0];
+}tool_u8_array;
+
+typedef struct {
+    td_u32 array[0];
+}tool_u32_array;
+
+typedef struct {
+    char str[1];
+} tool_str;
+
+typedef struct {
+    td_u32 package_len;
+} ext_upg_prepare_info;
+
+typedef struct {
+    td_u32 id;
+    td_char name[32];
+    td_u32 usage;
+} dfx_cpup_item;
+
+typedef struct {
+    td_u32 param;
+} dfx_diag_cpup_cmd;
+
+
+typedef struct {
+    td_u32 total;
+    td_u32 used;
+    td_u32 free;
+    td_u32 free_node_num;
+    td_u32 used_node_num;
+    td_u32 max_free_node_size;
+    td_u32 malloc_fail_count;
+    td_u32 peek_size;
+} osal_mdm_mem_info;
+
+
+typedef struct {
+    td_u8 timer_usage;
+    td_u8 task_usage;
+    td_u8 sem_usage;
+    td_u8 queue_usage;
+    td_u8 mux_usage;
+} osal_os_resource_use_stat;
+
+
+typedef struct {
+    td_char name[32];
+    td_u32 id;
+    td_u16 status;
+    td_u16 priority;
+    td_pvoid task_sem;
+    td_pvoid task_mutex;
+    td_u32 event_mask;
+    td_u32 stack_size;
+    td_u32 top_of_stack;
+    td_u32 bottom_of_stack;
+    td_u32 sp;
+    td_u32 curr_used;
+    td_u32 peak_used;
+    td_u32 overflow_flag;
+} osal_task_info;
+
+typedef struct {
+    td_u32 id;
+} ext_dbg_stat_q;
+
+typedef struct {
+    td_bool enable;
+    td_u8 channel;
+    td_u8 band;
+    td_u32 cycle;
+    td_u16 duration;
+} psd_enable_stru;
+
+typedef struct {
+    td_s8 psd_result[1024];
+} psd_report_stru;

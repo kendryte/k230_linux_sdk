@@ -1,0 +1,1 @@
+savedcmd_/home/jyh/ws73_sdk_linux_ws73_1.10.110/driver/bsle/ble_driver/linux/ble_soc.mod := printf '%s\n'   ble_host_hcc.o | awk '!x[$$0]++ { print("/home/jyh/ws73_sdk_linux_ws73_1.10.110/driver/bsle/ble_driver/linux/"$$0) }' > /home/jyh/ws73_sdk_linux_ws73_1.10.110/driver/bsle/ble_driver/linux/ble_soc.mod

@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<MSS>
+    <SUBSYSTEM NAME="wifi_core" DATA_STRUCT_FILE="..\diag\ws73_mcore_hso_msg_struct_def.txt" DESCRIPTION="" MULTIMODE="WIFI">
+        <MSG_LOG>
+            <MSG STRUCTURE="tool_u8_array" NAME="test_u8_bin" ID="0x1" />
+            <MSG STRUCTURE="tool_u32_array" NAME="test_u32_bin" ID="0x2" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RX_DSCR" ID="0x500" />
+            <MSG STRUCTURE="tool_u8_array" NAME="TX_DSCR" ID="0x501" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RX_80211_FRAME" ID="0x502" />
+            <MSG STRUCTURE="tool_u8_array" NAME="TX_80211_FRAME" ID="0x503" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RX_BEACON" ID="0x504" />
+            <MSG STRUCTURE="tool_u8_array" NAME="TX_BEACON" ID="0x505" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RX_CB" ID="0x506" />
+            <MSG STRUCTURE="tool_u8_array" NAME="TX_CB" ID="0x507" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RX_HMAC_CB" ID="0x508" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RX_ETH_FRAME" ID="0x509" />
+            <MSG STRUCTURE="tool_u8_array" NAME="TX_ETH_FRAME" ID="0x50a" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RX_CSI" ID="0x50b" />
+            <MSG STRUCTURE="tool_u8_array" NAME="PHY_BANK1_PILOT_INFO" ID="0x540" />
+            <MSG STRUCTURE="tool_u8_array" NAME="PHY_BANK2_PILOT_INFO" ID="0x541" />
+            <MSG STRUCTURE="tool_u8_array" NAME="PHY_BANK3_PILOT_INFO" ID="0x542" />
+            <MSG STRUCTURE="tool_u8_array" NAME="PHY_BANK4_PILOT_INFO" ID="0x543" />
+            <MSG STRUCTURE="tool_u8_array" NAME="PHY_BANK5_PILOT_INFO" ID="0x544" />
+            <MSG STRUCTURE="tool_u8_array" NAME="PHY_BANK6_PILOT_INFO" ID="0x545" />
+            <MSG STRUCTURE="tool_u8_array" NAME="PHY0_CTRL_PILOT_INFO" ID="0x546" />
+            <MSG STRUCTURE="tool_u8_array" NAME="PHY1_CTRL_PILOT_INFO" ID="0x547" />
+            <MSG STRUCTURE="tool_u8_array" NAME="MAC_CTRL0_BANK_PILOT_INFO" ID="0x54a" />
+            <MSG STRUCTURE="tool_u8_array" NAME="MAC_CTRL1_BANK_PILOT_INFO" ID="0x54b" />
+            <MSG STRUCTURE="tool_u8_array" NAME="MAC_CTRL2_BANK_PILOT_INFO" ID="0x54c" />
+            <MSG STRUCTURE="tool_u8_array" NAME="MAC_RD0_BANK_PILOT_INFO" ID="0x54d" />
+            <MSG STRUCTURE="tool_u8_array" NAME="MAC_RD1_BANK_PILOT_INFO" ID="0x54e" />
+            <MSG STRUCTURE="tool_u8_array" NAME="MAC_LUT0_BANK_PILOT_INFO" ID="0x54f" />
+            <MSG STRUCTURE="tool_u8_array" NAME="MAC_WLMAC_CTRL_PILOT_INFO" ID="0x550" />
+            <MSG STRUCTURE="tool_u8_array" NAME="ABB_CALI_WL_CTRL0_PILOT_INFO" ID="0x555" />
+            <MSG STRUCTURE="tool_u8_array" NAME="ABB_CALI_WL_CTRL1_PILOT_INFO" ID="0x556" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RF0_REG_INFO" ID="0x55a" />
+            <MSG STRUCTURE="tool_u8_array" NAME="RF1_REG_INFO" ID="0x55b" />
+            <MSG STRUCTURE="tool_u8_array" NAME="SOC_RF_W_C0_CTL_PILOT_INFO" ID="0x560" />
+            <MSG STRUCTURE="tool_u8_array" NAME="SOC_RF_W_C1_CTL_PILOT_INFO" ID="0x561" />
+            <MSG STRUCTURE="tool_u8_array" NAME="SOC_W_CTL_PILOT_INFO" ID="0x562" />
+            <MSG STRUCTURE="tool_u8_array" NAME="SOC_COEX_CTL_PILOT_INFO" ID="0x563" />
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_MAC_RX" ID="0x570"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_MAC_TX" ID="0x571"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_MAC_APB" ID="0x572"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_MAC_RSSI" ID="0x573"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TX_AMPDU0" ID="0x574"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TX_AMPDU1" ID="0x575"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TX_AMPDU2" ID="0x576"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TX_AMPDU3" ID="0x577"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_RX_AMPDU0" ID="0x578"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_RX_AMPDU1" ID="0x579"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_RX_AMPDU2" ID="0x57a"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_RX_AMPDU3" ID="0x57b"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TX_ENCR_RC4" ID="0x57c"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_RX_DECR_RC4" ID="0x57d"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TX_ENCR_AES" ID="0x57e"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_RX_DECR_AES" ID="0x57f"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_MULTI_BSS" ID="0x580"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_HE_ROM" ID="0x581"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TRIGGER_NFRP" ID="0x582"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_COEX" ID="0x583"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_P2P" ID="0x584"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TX_BCN" ID="0x585"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TSF_VAP0" ID="0x586"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TSF_VAP1" ID="0x587"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_INTR_STATUS" ID="0x588"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_SOUNDING" ID="0x589"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_CSI" ID="0x58a"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_MU_EDCA" ID="0x58b"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_ERR_INTR_PADDING" ID="0x58c"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_ERR2_INTR_PADDING" ID="0x58d"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_DBAC" ID="0x58e"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TX_FSM" ID="0x58f"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_SOUDING_CSI" ID="0x590"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_TRIG_PADDING" ID="0x591"/>
+            <MSG STRUCTURE="tool_u8_array" NAME="SAMPLE_RX_VECTOR" ID="0x592"/>
+            <MSG ID="0x10203" NAME="80211_FRAME_TX" STRUCTURE="" />
+            <MSG ID="0x10213" NAME="80211_FRAME_RX" STRUCTURE="" />
+            <MSG ID="0x10303" NAME="BEACON_TX" STRUCTURE="" />
+            <MSG ID="0x10313" NAME="BEACON_RX" STRUCTURE="" />
+            <MSG ID="0x10403" NAME="ETH_FRAME_TX" STRUCTURE="" />
+            <MSG ID="0x10413" NAME="ETH_FRAME_RX" STRUCTURE="" />
+            <MSG ID="0x10503" NAME="OAM_OTA_TYPE_RX_DMAC_CB" STRUCTURE="" />
+            <MSG ID="0x10703" NAME="OAM_OTA_TYPE_TX_CB" STRUCTURE="" />
+            <MSG ID="0x11d03" NAME="OAM_OTA_DMAC_USER_INFO" STRUCTURE="" />
+            <MSG ID="0x13903" NAME="OAM_OTA_TYPE_RF0_REG_INFO" STRUCTURE="" />
+            <MSG ID="0x13A03" NAME="OAM_OTA_TYPE_RF1_REG_INFO" STRUCTURE="" />
+            <MSG ID="0x16103" NAME="OAM_OTA_TYPE_MAC_CTRL0_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16203" NAME="OAM_OTA_TYPE_MAC_CTRL1_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16303" NAME="OAM_OTA_TYPE_MAC_CTRL2_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16403" NAME="OAM_OTA_TYPE_MAC_RD0_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16503" NAME="OAM_OTA_TYPE_MAC_RD1_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16603" NAME="OAM_OTA_TYPE_MAC_LUT0_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16703" NAME="OAM_OTA_TYPE_MAC_WLMAC_CTRL_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x15903" NAME="OAM_OTA_TYPE_PHY_BANK1_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x15A03" NAME="OAM_OTA_TYPE_PHY_BANK2_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x15B03" NAME="OAM_OTA_TYPE_PHY_BANK3_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x15C03" NAME="OAM_OTA_TYPE_PHY_BANK4_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x15D03" NAME="OAM_OTA_TYPE_PHY_BANK5_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x15E03" NAME="OAM_OTA_TYPE_PHY_BANK6_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x15F03" NAME="OAM_OTA_TYPE_PHY0_CTRL_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16A03" NAME="OAM_OTA_TYPE_SOC_RF_W_C0_CTL_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16B03" NAME="OAM_OTA_TYPE_SOC_RF_W_C1_CTL_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x16E03" NAME="OAM_OTA_TYPE_RX_DSCR_PILOT" STRUCTURE="" />
+            <MSG ID="0x16F03" NAME="OAM_OTA_TYPE_TX_DSCR_PILOT" STRUCTURE="" />
+            <MSG ID="0x17003" NAME="OAM_OTA_TYPE_MAC_CTRL3_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x17103" NAME="OAM_OTA_TYPE_MAC_CTRL4_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x17203" NAME="OAM_OTA_TYPE_MAC_RD2_BANK_PILOT_INFO" STRUCTURE="" />
+            <MSG ID="0x17303" NAME="OAM_OTA_TYPE_PHY_BANK7_PILOT_INFO" STRUCTURE="" />
+        </MSG_LOG>
+    </SUBSYSTEM>
+    <SUBSYSTEM NAME="bt_status" DATA_STRUCT_FILE="..\diag\bt_status_hso_msg_struct_def.txt" DESCRIPTION="" MULTIMODE="bt_status">
+        <MSG_LOG>
+            <MSG STRUCTURE="bt_fsm_100" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000100" />
+            <MSG STRUCTURE="bt_fsm_101" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000101" />
+            <MSG STRUCTURE="bt_fsm_102" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000102" />
+            <MSG STRUCTURE="bt_fsm_103" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000103" />
+            <MSG STRUCTURE="bt_fsm_104" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000104" />
+            <MSG STRUCTURE="bt_fsm_105" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000105" />
+            <MSG STRUCTURE="bt_fsm_106" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000106" />
+            <MSG STRUCTURE="bt_fsm_107" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000107" />
+            <MSG STRUCTURE="bt_fsm_108" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000108" />
+            <MSG STRUCTURE="bt_fsm_109" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000109" />
+            <MSG STRUCTURE="bt_fsm_10A" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x0000010A" />
+            <MSG STRUCTURE="bt_fsm_10B" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x0000010B" />
+            <MSG STRUCTURE="bt_fsm_10C" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x0000010C" />
+            <MSG STRUCTURE="bt_fsm_10D" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x0000010D" />
+            <MSG STRUCTURE="bt_fsm_10E" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x0000010E" />
+            <MSG STRUCTURE="bt_fsm_180" NAME="%s;----&gt;%s; send sed_id=%d; HCI_COMMAND_COMPLETE,  %s" ID="0x00000180" />
+            <MSG STRUCTURE="bt_fsm_181" NAME="%s;----&gt;%s; send sed_id=%d; HCI_COMMAND_STATUS,  %s" ID="0x00000181" />
+            <MSG STRUCTURE="bt_fsm_182" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000182" />
+            <MSG STRUCTURE="bt_fsm_183" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000183" />
+            <MSG STRUCTURE="bt_fsm_184" NAME="%s;----&gt;%s; send sed_id=%d; LL_UNKNOWN_RSP,  %s" ID="0x00000184" />
+            <MSG STRUCTURE="bt_fsm_185" NAME="%s;----&gt;%s; send sed_id=%d; LL_REJECT_EXT_IND,  %s" ID="0x00000185" />
+            <MSG STRUCTURE="bt_fsm_186" NAME="%s;----&gt;%s; send sed_id=%d; HCI_GLE_COMMAND_COMPLETE,  %s" ID="0x00000186" />
+            <MSG STRUCTURE="bt_fsm_187" NAME="%s;----&gt;%s; send sed_id=%d; HCI_GLE_COMMAND_STATUS,  %s" ID="0x00000187" />
+            <MSG STRUCTURE="bt_fsm_188" NAME="%s;----&gt;%s; send sed_id=%d; %s" ID="0x00000188" />
+            <MSG STRUCTURE="bt_fsm_189" NAME="%s;----&gt;%s; send sed_id=%d; GLE_LL_UNKNOWN_RSP,  %s" ID="0x00000189" />
+            <MSG STRUCTURE="bt_fsm_18A" NAME="%s;----&gt;%s; send sed_id=%d; Gle_LL_REJECT_EXT_IND,  %s" ID="0x0000018A" />
+            <MSG STRUCTURE="bt_fsm_200" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000200" />
+            <MSG STRUCTURE="bt_fsm_201" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000201" />
+            <MSG STRUCTURE="bt_fsm_202" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000202" />
+            <MSG STRUCTURE="bt_fsm_203" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000203" />
+            <MSG STRUCTURE="bt_fsm_204" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000204" />
+            <MSG STRUCTURE="bt_fsm_205" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000205" />
+            <MSG STRUCTURE="bt_fsm_206" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000206" />
+            <MSG STRUCTURE="bt_fsm_207" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000207" />
+            <MSG STRUCTURE="bt_fsm_208" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000208" />
+            <MSG STRUCTURE="bt_fsm_209" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x00000209" />
+            <MSG STRUCTURE="bt_fsm_20A" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x0000020A" />
+            <MSG STRUCTURE="bt_fsm_20B" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x0000020B" />
+            <MSG STRUCTURE="bt_fsm_20C" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x0000020C" />
+            <MSG STRUCTURE="bt_fsm_20D" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x0000020D" />
+            <MSG STRUCTURE="bt_fsm_20E" NAME="%s;----&gt;%s; forward sed_id=%d; %s" ID="0x0000020E" />
+            <MSG STRUCTURE="bt_fsm_300" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000300" />
+            <MSG STRUCTURE="bt_fsm_301" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000301" />
+            <MSG STRUCTURE="bt_fsm_302" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000302" />
+            <MSG STRUCTURE="bt_fsm_303" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000303" />
+            <MSG STRUCTURE="bt_fsm_304" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000304" />
+            <MSG STRUCTURE="bt_fsm_305" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000305" />
+            <MSG STRUCTURE="bt_fsm_306" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000306" />
+            <MSG STRUCTURE="bt_fsm_307" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000307" />
+            <MSG STRUCTURE="bt_fsm_308" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000308" />
+            <MSG STRUCTURE="bt_fsm_309" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x00000309" />
+            <MSG STRUCTURE="bt_fsm_30A" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x0000030A" />
+            <MSG STRUCTURE="bt_fsm_30B" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x0000030B" />
+            <MSG STRUCTURE="bt_fsm_30C" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x0000030C" />
+            <MSG STRUCTURE="bt_fsm_30D" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x0000030D" />
+            <MSG STRUCTURE="bt_fsm_30E" NAME="%s; sed_id=%d; SAVED HEAD %s; linenum=%d" ID="0x0000030E" />
+            <MSG STRUCTURE="bt_fsm_400" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000400" />
+            <MSG STRUCTURE="bt_fsm_401" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000401" />
+            <MSG STRUCTURE="bt_fsm_402" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000402" />
+            <MSG STRUCTURE="bt_fsm_403" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000403" />
+            <MSG STRUCTURE="bt_fsm_404" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000404" />
+            <MSG STRUCTURE="bt_fsm_405" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000405" />
+            <MSG STRUCTURE="bt_fsm_406" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000406" />
+            <MSG STRUCTURE="bt_fsm_407" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000407" />
+            <MSG STRUCTURE="bt_fsm_408" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000408" />
+            <MSG STRUCTURE="bt_fsm_409" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x00000409" />
+            <MSG STRUCTURE="bt_fsm_40A" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x0000040A" />
+            <MSG STRUCTURE="bt_fsm_40B" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x0000040B" />
+            <MSG STRUCTURE="bt_fsm_40C" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x0000040C" />
+            <MSG STRUCTURE="bt_fsm_40D" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x0000040D" />
+            <MSG STRUCTURE="bt_fsm_40E" NAME="%s; sed_id=%d; SAVED TAIL %s; linenum=%d" ID="0x0000040E" />
+            <MSG STRUCTURE="bt_fsm_801" NAME="%s; sed_id=%d; RESTORE HEAD file=%s; linenum=%d" ID="0x00000801" />
+            <MSG STRUCTURE="bt_fsm_802" NAME="%s; sed_id=%d; RESTORE TAIL file=%s; linenum=%d" ID="0x00000802" />
+            <MSG STRUCTURE="bt_fsm_810" NAME="%s; sed_id=%d; TRANS_STATE=%s; linenum=%d" ID="0x00000810" />
+        </MSG_LOG>
+        <LAYER_LOG>
+        </LAYER_LOG>
+        <USERPLANE_LOG>
+        </USERPLANE_LOG>
+    </SUBSYSTEM>
+    <SUBSYSTEM NAME="bt_core" DATA_STRUCT_FILE="..\diag\ws73_mcore_hso_msg_struct_def.txt" DESCRIPTION="" MULTIMODE="BT">
+        <MSG_LOG>
+        </MSG_LOG>
+    </SUBSYSTEM>
+    <SUBSYSTEM NAME="host_core" DATA_STRUCT_FILE="..\diag\ws73_mcore_hso_msg_struct_def.txt" DESCRIPTION="" MULTIMODE="HOST">
+        <MSG_LOG>
+        </MSG_LOG>
+    </SUBSYSTEM>
+</MSS>

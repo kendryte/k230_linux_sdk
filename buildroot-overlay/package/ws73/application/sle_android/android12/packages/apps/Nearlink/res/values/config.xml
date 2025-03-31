@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2009-2012 Broadcom Corporation
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<resources>
+    <bool name="profile_supported_a2dp">true</bool>
+    <bool name="profile_supported_a2dp_sink">false</bool>
+    <bool name="profile_supported_hdp">true</bool>
+    <bool name="profile_supported_hs_hfp">true</bool>
+    <bool name="profile_supported_hfpclient">false</bool>
+    <bool name="profile_supported_hid_host">true</bool>
+    <bool name="profile_supported_opp">true</bool>
+    <bool name="profile_supported_pan">true</bool>
+    <bool name="profile_supported_pbap">true</bool>
+    <bool name="profile_supported_gatt">true</bool>
+    <bool name="pbap_include_photos_in_vcard">true</bool>
+    <bool name="pbap_use_profile_for_owner_vcard">true</bool>
+    <bool name="profile_supported_map">true</bool>
+    <bool name="profile_supported_avrcp_target">true</bool>
+    <bool name="profile_supported_avrcp_controller">false</bool>
+    <bool name="profile_supported_sap">false</bool>
+    <bool name="profile_supported_pbapclient">false</bool>
+    <bool name="profile_supported_mapmce">false</bool>
+    <bool name="profile_supported_hid_device">true</bool>
+    <bool name="profile_supported_hearing_aid">false</bool>
+
+    <!-- If true, we will require location to be enabled on the device to
+         fire Bluetooth LE scan result callbacks in addition to having one
+         of the location permissions. -->
+    <bool name="strict_location_check">true</bool>
+
+    <!-- Specifies the min/max connection interval parameters for high priority,
+         balanced and low power GATT configurations. These values are in
+         multiples of 1.25ms. -->
+    <integer name="gatt_high_priority_min_interval">9</integer>
+    <integer name="gatt_high_priority_max_interval">12</integer>
+    <!-- Default specs recommended interval is 30 (24 * 1.25) -> 50 (40 * 1.25)
+         ms. -->
+    <integer name="gatt_balanced_priority_min_interval">24</integer>
+    <integer name="gatt_balanced_priority_max_interval">40</integer>
+    <integer name="gatt_low_power_min_interval">80</integer>
+    <integer name="gatt_low_power_max_interval">100</integer>
+
+    <!-- Specifies latency parameters for high priority, balanced and low power
+         GATT configurations. These values represents the number of packets a
+         slave device is allowed to skip. -->
+    <integer name="gatt_high_priority_latency">0</integer>
+    <integer name="gatt_balanced_priority_latency">0</integer>
+    <integer name="gatt_low_power_latency">2</integer>
+
+    <bool name="headset_client_initial_audio_route_allowed">true</bool>
+
+    <!-- @deprecated: use a2dp_absolute_volume_initial_threshold_percent
+         instead. -->
+    <integer name="a2dp_absolute_volume_initial_threshold">8</integer>
+
+    <!-- AVRCP absolute volume initial value as percent of the maximum value.
+         Valid values are in the interval [0, 100].
+         Recommended value is 50. -->
+    <integer name="a2dp_absolute_volume_initial_threshold_percent">50</integer>
+
+    <!-- For A2DP sink ducking volume feature. -->
+    <integer name="a2dp_sink_duck_percent">25</integer>
+
+    <!-- For enabling the hfp client connection service -->
+    <bool name="hfp_client_connection_service_enabled">false</bool>
+
+    <!-- Enabling autoconnect over pan -->
+    <bool name="config_bluetooth_pan_enable_autoconnect">true</bool>
+
+    <!-- Enabling the phone policy -->
+    <bool name="enable_phone_policy">true</bool>
+
+    <!-- Configuring priorities of A2DP source codecs. Larger value means
+         higher priority. Value -1 means the codec is disabled.
+         Value 0 is reserved and should not be used here. Enabled codecs
+         should have priorities in the interval [1, 999999], and each priority
+         value should be unique. -->
+    <integer name="a2dp_source_codec_priority_sbc">1001</integer>
+    <integer name="a2dp_source_codec_priority_aac">2001</integer>
+    <integer name="a2dp_source_codec_priority_aptx">3001</integer>
+    <integer name="a2dp_source_codec_priority_aptx_hd">4001</integer>
+    <integer name="a2dp_source_codec_priority_ldac">5001</integer>
+
+    <!-- Package that is responsible for user interaction on pairing request,
+         success or cancel.
+	    Receives: -->
+    <string name="pairing_ui_package">com.android.settings</string>
+
+    <!-- Flag whether or not to keep polling AG with CLCC for call information every 2 seconds -->
+    <bool name="hfp_clcc_poll_during_call">true</bool>
+
+</resources>

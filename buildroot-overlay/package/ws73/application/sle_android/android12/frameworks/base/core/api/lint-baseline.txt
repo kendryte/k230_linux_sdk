@@ -1,0 +1,1739 @@
+// Baseline format: 1.0
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_ANNOUNCE_MODE_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.ANNOUNCE_MODE_CHANGED`, was `android.nearlink.adapter.action.ANNOUNCE_MODE_CHANGED`
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_CONNECTION_STATE_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.CONNECTION_STATE_CHANGED`, was `android.nearlink.adapter.action.CONNECTION_STATE_CHANGED`
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_DISCOVERY_FINISHED:
+    Inconsistent action value; expected `android.nearlink.action.DISCOVERY_FINISHED`, was `android.nearlink.adapter.action.DISCOVERY_FINISHED`
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_DISCOVERY_STARTED:
+    Inconsistent action value; expected `android.nearlink.action.DISCOVERY_STARTED`, was `android.nearlink.adapter.action.DISCOVERY_STARTED`
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_LOCAL_NAME_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.LOCAL_NAME_CHANGED`, was `android.nearlink.adapter.action.LOCAL_NAME_CHANGED`
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_PAIR_STATE_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.PAIR_STATE_CHANGED`, was `android.nearlink.adapter.action.PAIR_STATE_CHANGED`
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_REQUEST_DISCOVERABLE:
+    Inconsistent action value; expected `android.nearlink.action.REQUEST_DISCOVERABLE`, was `android.nearlink.adapter.action.REQUEST_DISCOVERABLE`
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_REQUEST_ENABLE:
+    Inconsistent action value; expected `android.nearlink.action.REQUEST_ENABLE`, was `android.nearlink.adapter.action.REQUEST_ENABLE`
+ActionValue: android.nearlink.NearlinkAdapter#ACTION_STATE_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.STATE_CHANGED`, was `android.nearlink.adapter.action.STATE_CHANGED`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_ANNOUNCE_MODE:
+    Inconsistent extra value; expected `android.nearlink.extra.ANNOUNCE_MODE`, was `android.nearlink.adapter.extra.ANNOUNCE_MODE`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_CONNECTION_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.CONNECTION_STATE`, was `android.nearlink.adapter.extra.CONNECTION_STATE`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_DISCOVERABLE_DURATION:
+    Inconsistent extra value; expected `android.nearlink.extra.DISCOVERABLE_DURATION`, was `android.nearlink.adapter.extra.DISCOVERABLE_DURATION`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_DISC_REASON:
+    Inconsistent extra value; expected `android.nearlink.extra.DISC_REASON`, was `android.nearlink.adapter.extra.DISC_REASON`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_LOCAL_NAME:
+    Inconsistent extra value; expected `android.nearlink.extra.LOCAL_NAME`, was `android.nearlink.adapter.extra.LOCAL_NAME`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_PAIR_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.PAIR_STATE`, was `android.nearlink.adapter.extra.PAIR_STATE`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_PREVIOUS_CONNECTION_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.PREVIOUS_CONNECTION_STATE`, was `android.nearlink.adapter.extra.PREVIOUS_CONNECTION_STATE`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_PREVIOUS_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.PREVIOUS_STATE`, was `android.nearlink.adapter.extra.PREVIOUS_STATE`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_PROFILE_TYPE:
+    Inconsistent extra value; expected `android.nearlink.extra.PROFILE_TYPE`, was `android.nearlink.adapter.extra.PROFILE_TYPE`
+ActionValue: android.nearlink.NearlinkAdapter#EXTRA_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.STATE`, was `android.nearlink.adapter.extra.STATE`
+ActionValue: android.nearlink.NearlinkDevice#ACTION_ALIAS_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.ALIAS_CHANGED`, was `android.nearlink.device.action.ALIAS_CHANGED`
+ActionValue: android.nearlink.NearlinkDevice#ACTION_BATTERY_LEVEL_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.BATTERY_LEVEL_CHANGED`, was `android.nearlink.device.action.BATTERY_LEVEL_CHANGED`
+ActionValue: android.nearlink.NearlinkDevice#ACTION_CLASS_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.CLASS_CHANGED`, was `android.nearlink.device.action.CLASS_CHANGED`
+ActionValue: android.nearlink.NearlinkDevice#ACTION_DETECTED:
+    Inconsistent action value; expected `android.nearlink.action.DETECTED`, was `android.nearlink.device.action.DETECTED`
+ActionValue: android.nearlink.NearlinkDevice#ACTION_DISAPPEARED:
+    Inconsistent action value; expected `android.nearlink.action.DISAPPEARED`, was `android.nearlink.device.action.DISAPPEARED`
+ActionValue: android.nearlink.NearlinkDevice#ACTION_FOUND:
+    Inconsistent action value; expected `android.nearlink.action.FOUND`, was `android.nearlink.device.action.FOUND`
+ActionValue: android.nearlink.NearlinkDevice#ACTION_NAME_CHANGED:
+    Inconsistent action value; expected `android.nearlink.action.NAME_CHANGED`, was `android.nearlink.device.action.NAME_CHANGED`
+ActionValue: android.nearlink.NearlinkDevice#ACTION_UUID:
+    Inconsistent action value; expected `android.nearlink.action.UUID`, was `android.nearlink.device.action.UUID`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_ADDRESS:
+    Inconsistent extra value; expected `android.nearlink.extra.ADDRESS`, was `android.nearlink.device.extra.ADDRESS`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_ALIAS:
+    Inconsistent extra value; expected `android.nearlink.extra.ALIAS`, was `android.nearlink.device.extra.ALIAS`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_APPEARANCE:
+    Inconsistent extra value; expected `android.nearlink.extra.APPEARANCE`, was `android.nearlink.device.extra.APPEARANCE`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_CLASS:
+    Inconsistent extra value; expected `android.nearlink.extra.CLASS`, was `android.nearlink.device.extra.CLASS`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_CONN_ID:
+    Inconsistent extra value; expected `android.nearlink.extra.CONN_ID`, was `android.nearlink.device.extra.CONN_ID`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_DEVICE:
+    Inconsistent extra value; expected `android.nearlink.extra.DEVICE`, was `android.nearlink.device.extra.DEVICE`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_NAME:
+    Inconsistent extra value; expected `android.nearlink.extra.NAME`, was `android.nearlink.device.extra.NAME`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_PAIR_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.PAIR_STATE`, was `android.nearlink.device.extra.PAIR_STATE`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_PREVIOUS_PAIR_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.PREVIOUS_PAIR_STATE`, was `android.nearlink.device.extra.PREVIOUS_PAIR_STATE`
+ActionValue: android.nearlink.NearlinkDevice#EXTRA_RSSI:
+    Inconsistent extra value; expected `android.nearlink.extra.RSSI`, was `android.nearlink.device.extra.RSSI`
+ActionValue: android.nearlink.NearlinkProfile#EXTRA_DISC_REASON:
+    Inconsistent extra value; expected `android.nearlink.extra.DISC_REASON`, was `android.nearlink.profile.extra.DISC_REASON`
+ActionValue: android.nearlink.NearlinkProfile#EXTRA_PAIR_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.PAIR_STATE`, was `android.nearlink.profile.extra.PAIR_STATE`
+ActionValue: android.nearlink.NearlinkProfile#EXTRA_PREVIOUS_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.PREVIOUS_STATE`, was `android.nearlink.profile.extra.PREVIOUS_STATE`
+ActionValue: android.nearlink.NearlinkProfile#EXTRA_STATE:
+    Inconsistent extra value; expected `android.nearlink.extra.STATE`, was `android.nearlink.profile.extra.STATE`
+
+
+ArrayReturn: android.nearlink.INearlink#getUuids():
+    Method should return Collection<ParcelUuid> (or subclass) instead of raw array; was `android.os.ParcelUuid[]`
+ArrayReturn: android.nearlink.INearlink.Default#getUuids():
+    Method should return Collection<ParcelUuid> (or subclass) instead of raw array; was `android.os.ParcelUuid[]`
+ArrayReturn: android.nearlink.NearlinkAdapter#getUuids():
+    Method should return Collection<ParcelUuid> (or subclass) instead of raw array; was `android.os.ParcelUuid[]`
+ArrayReturn: android.nearlink.NearlinkDevice#getUuids():
+    Method should return Collection<ParcelUuid> (or subclass) instead of raw array; was `android.os.ParcelUuid[]`
+
+
+AutoBoxing: android.nearlink.NearlinkAnnounceCallbackWrapper#getAnnounceId():
+    Must avoid boxed primitives (`java.lang.Integer`)
+AutoBoxing: android.nearlink.NearlinkAnnounceCallbackWrapper#setAnnounceId(Integer) parameter #0:
+    Must avoid boxed primitives (`java.lang.Integer`)
+
+
+ExecutorRegistration: android.nearlink.INearlink#registerCallback(android.nearlink.INearlinkCallback):
+    Registration methods should have overload that accepts delivery Executor: `registerCallback`
+ExecutorRegistration: android.nearlink.INearlink.Default#registerCallback(android.nearlink.INearlinkCallback):
+    Registration methods should have overload that accepts delivery Executor: `registerCallback`
+ExecutorRegistration: android.nearlink.INearlinkAnnounceCallback.Stub#setDefaultImpl(android.nearlink.INearlinkAnnounceCallback):
+    Registration methods should have overload that accepts delivery Executor: `setDefaultImpl`
+ExecutorRegistration: android.nearlink.INearlinkCallback.Stub#setDefaultImpl(android.nearlink.INearlinkCallback):
+    Registration methods should have overload that accepts delivery Executor: `setDefaultImpl`
+ExecutorRegistration: android.nearlink.INearlinkConnection#connectionRegisterCallbacks(android.nearlink.INearlinkConnectionCallback):
+    Registration methods should have overload that accepts delivery Executor: `connectionRegisterCallbacks`
+ExecutorRegistration: android.nearlink.INearlinkConnection#connectionUnRegisterCallbacks(android.nearlink.INearlinkConnectionCallback):
+    Registration methods should have overload that accepts delivery Executor: `connectionUnRegisterCallbacks`
+ExecutorRegistration: android.nearlink.INearlinkConnection.Default#connectionRegisterCallbacks(android.nearlink.INearlinkConnectionCallback):
+    Registration methods should have overload that accepts delivery Executor: `connectionRegisterCallbacks`
+ExecutorRegistration: android.nearlink.INearlinkConnection.Default#connectionUnRegisterCallbacks(android.nearlink.INearlinkConnectionCallback):
+    Registration methods should have overload that accepts delivery Executor: `connectionUnRegisterCallbacks`
+ExecutorRegistration: android.nearlink.INearlinkConnectionCallback.Stub#setDefaultImpl(android.nearlink.INearlinkConnectionCallback):
+    Registration methods should have overload that accepts delivery Executor: `setDefaultImpl`
+ExecutorRegistration: android.nearlink.INearlinkDiscovery#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback):
+    Registration methods should have overload that accepts delivery Executor: `startAnnounce`
+ExecutorRegistration: android.nearlink.INearlinkDiscovery#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback):
+    Registration methods should have overload that accepts delivery Executor: `startSeek`
+ExecutorRegistration: android.nearlink.INearlinkDiscovery#stopAnnounce(android.nearlink.INearlinkAnnounceCallback):
+    Registration methods should have overload that accepts delivery Executor: `stopAnnounce`
+ExecutorRegistration: android.nearlink.INearlinkDiscovery.Default#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback):
+    Registration methods should have overload that accepts delivery Executor: `startAnnounce`
+ExecutorRegistration: android.nearlink.INearlinkDiscovery.Default#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback):
+    Registration methods should have overload that accepts delivery Executor: `startSeek`
+ExecutorRegistration: android.nearlink.INearlinkDiscovery.Default#stopAnnounce(android.nearlink.INearlinkAnnounceCallback):
+    Registration methods should have overload that accepts delivery Executor: `stopAnnounce`
+ExecutorRegistration: android.nearlink.INearlinkEnableCallback.Stub#setDefaultImpl(android.nearlink.INearlinkEnableCallback):
+    Registration methods should have overload that accepts delivery Executor: `setDefaultImpl`
+ExecutorRegistration: android.nearlink.INearlinkSeekCallback.Stub#setDefaultImpl(android.nearlink.INearlinkSeekCallback):
+    Registration methods should have overload that accepts delivery Executor: `setDefaultImpl`
+ExecutorRegistration: android.nearlink.INearlinkSsapClient#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback):
+    Registration methods should have overload that accepts delivery Executor: `registerClient`
+ExecutorRegistration: android.nearlink.INearlinkSsapClient.Default#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback):
+    Registration methods should have overload that accepts delivery Executor: `registerClient`
+ExecutorRegistration: android.nearlink.INearlinkSsapClientCallback.Stub#setDefaultImpl(android.nearlink.INearlinkSsapClientCallback):
+    Registration methods should have overload that accepts delivery Executor: `setDefaultImpl`
+ExecutorRegistration: android.nearlink.INearlinkSsapServer#registerServer(android.os.ParcelUuid, android.nearlink.INearlinkSsapServerCallback):
+    Registration methods should have overload that accepts delivery Executor: `registerServer`
+ExecutorRegistration: android.nearlink.INearlinkSsapServer.Default#registerServer(android.os.ParcelUuid, android.nearlink.INearlinkSsapServerCallback):
+    Registration methods should have overload that accepts delivery Executor: `registerServer`
+ExecutorRegistration: android.nearlink.INearlinkSsapServerCallback.Stub#setDefaultImpl(android.nearlink.INearlinkSsapServerCallback):
+    Registration methods should have overload that accepts delivery Executor: `setDefaultImpl`
+ExecutorRegistration: android.nearlink.NearlinkAdapter#getProfileProxy(android.content.Context, android.nearlink.NearlinkProfile.ServiceListener, int):
+    Registration methods should have overload that accepts delivery Executor: `getProfileProxy`
+ExecutorRegistration: android.nearlink.NearlinkAnnouncer#startAnnounce(android.nearlink.NearlinkAnnounceSettings, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkAnnounceCallback):
+    Registration methods should have overload that accepts delivery Executor: `startAnnounce`
+ExecutorRegistration: android.nearlink.NearlinkAnnouncer#stopAnnounce(android.nearlink.NearlinkAnnounceCallback):
+    Registration methods should have overload that accepts delivery Executor: `stopAnnounce`
+ExecutorRegistration: android.nearlink.NearlinkDevice#connectSsap(android.nearlink.NearlinkSsapClientCallback, android.os.Handler):
+    Registration methods should have overload that accepts delivery Executor: `connectSsap`
+ExecutorRegistration: android.nearlink.NearlinkManager#openSsapServer(android.content.Context, android.nearlink.NearlinkSsapServerCallback):
+    Registration methods should have overload that accepts delivery Executor: `openSsapServer`
+ExecutorRegistration: android.nearlink.NearlinkSeeker#startSeek(java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.NearlinkSeekCallback):
+    Registration methods should have overload that accepts delivery Executor: `startSeek`
+ExecutorRegistration: android.nearlink.NearlinkSeeker#stopSeek(android.nearlink.NearlinkSeekCallback):
+    Registration methods should have overload that accepts delivery Executor: `stopSeek`
+
+
+GenericException: android.nearlink.NearlinkAdapter#finalize():
+    Methods must not throw generic exceptions (`java.lang.Throwable`)
+
+
+InternalField: android.nearlink.NearlinkSsapProperty#mDescriptors:
+    Internal field mDescriptors must not be exposed
+InternalField: android.nearlink.NearlinkSsapService#mDevice:
+    Internal field mDevice must not be exposed
+InternalField: android.nearlink.NearlinkSsapService#mProperties:
+    Internal field mProperties must not be exposed
+
+
+ListenerLast: android.nearlink.NearlinkAdapter#getProfileProxy(android.content.Context, android.nearlink.NearlinkProfile.ServiceListener, int) parameter #2:
+    Listeners should always be at end of argument list (method `getProfileProxy`)
+ListenerLast: android.nearlink.NearlinkDevice#connectSsap(android.nearlink.NearlinkSsapClientCallback, android.os.Handler) parameter #1:
+    Listeners should always be at end of argument list (method `connectSsap`)
+
+
+MethodNameUnits: android.nearlink.NearlinkSeekParams#getSeekTimeoutMs():
+    Expected method name units to be `Millis or Micros`, was `Ms` in `getSeekTimeoutMs`
+
+
+MinMaxConstant: android.nearlink.NearlinkAdapter#MAX_LOCAL_DEVICE_NAME_LEN:
+    If min/max could change in future, make them dynamic methods: android.nearlink.NearlinkAdapter#MAX_LOCAL_DEVICE_NAME_LEN
+MinMaxConstant: android.nearlink.NearlinkAdapter#MAX_PUBLIC_DATA_LEN:
+    If min/max could change in future, make them dynamic methods: android.nearlink.NearlinkAdapter#MAX_PUBLIC_DATA_LEN
+MinMaxConstant: android.nearlink.NearlinkAnnounceSettings#MAX_TIMEOUT_MILLIS:
+    If min/max could change in future, make them dynamic methods: android.nearlink.NearlinkAnnounceSettings#MAX_TIMEOUT_MILLIS
+MinMaxConstant: android.nearlink.NearlinkDevice#MAX_ALIAS_LEN:
+    If min/max could change in future, make them dynamic methods: android.nearlink.NearlinkDevice#MAX_ALIAS_LEN
+
+
+MissingNullability: android.nearlink.INearlink#getAddress():
+    Missing nullability on method `getAddress` return
+MissingNullability: android.nearlink.INearlink#getName():
+    Missing nullability on method `getName` return
+MissingNullability: android.nearlink.INearlink#getRemoteAlias(android.nearlink.NearlinkDevice):
+    Missing nullability on method `getRemoteAlias` return
+MissingNullability: android.nearlink.INearlink#getRemoteAlias(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `device` in method `getRemoteAlias`
+MissingNullability: android.nearlink.INearlink#getRemoteAppearence(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `device` in method `getRemoteAppearence`
+MissingNullability: android.nearlink.INearlink#getRemoteName(android.nearlink.NearlinkDevice):
+    Missing nullability on method `getRemoteName` return
+MissingNullability: android.nearlink.INearlink#getRemoteName(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `device` in method `getRemoteName`
+MissingNullability: android.nearlink.INearlink#getUuids():
+    Missing nullability on method `getUuids` return
+MissingNullability: android.nearlink.INearlink#registerCallback(android.nearlink.INearlinkCallback) parameter #0:
+    Missing nullability on parameter `cb` in method `registerCallback`
+MissingNullability: android.nearlink.INearlink#setAddress(String) parameter #0:
+    Missing nullability on parameter `address` in method `setAddress`
+MissingNullability: android.nearlink.INearlink#setName(String) parameter #0:
+    Missing nullability on parameter `name` in method `setName`
+MissingNullability: android.nearlink.INearlink#setRemoteAlias(android.nearlink.NearlinkDevice, String) parameter #0:
+    Missing nullability on parameter `device` in method `setRemoteAlias`
+MissingNullability: android.nearlink.INearlink#setRemoteAlias(android.nearlink.NearlinkDevice, String) parameter #1:
+    Missing nullability on parameter `name` in method `setRemoteAlias`
+MissingNullability: android.nearlink.INearlink#unregisterCallback(android.nearlink.INearlinkCallback) parameter #0:
+    Missing nullability on parameter `cb` in method `unregisterCallback`
+MissingNullability: android.nearlink.INearlink.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlink.Default#getAddress():
+    Missing nullability on method `getAddress` return
+MissingNullability: android.nearlink.INearlink.Default#getName():
+    Missing nullability on method `getName` return
+MissingNullability: android.nearlink.INearlink.Default#getRemoteAlias(android.nearlink.NearlinkDevice):
+    Missing nullability on method `getRemoteAlias` return
+MissingNullability: android.nearlink.INearlink.Default#getRemoteAlias(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `device` in method `getRemoteAlias`
+MissingNullability: android.nearlink.INearlink.Default#getRemoteAppearence(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `device` in method `getRemoteAppearence`
+MissingNullability: android.nearlink.INearlink.Default#getRemoteName(android.nearlink.NearlinkDevice):
+    Missing nullability on method `getRemoteName` return
+MissingNullability: android.nearlink.INearlink.Default#getRemoteName(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `device` in method `getRemoteName`
+MissingNullability: android.nearlink.INearlink.Default#getUuids():
+    Missing nullability on method `getUuids` return
+MissingNullability: android.nearlink.INearlink.Default#registerCallback(android.nearlink.INearlinkCallback) parameter #0:
+    Missing nullability on parameter `cb` in method `registerCallback`
+MissingNullability: android.nearlink.INearlink.Default#setAddress(String) parameter #0:
+    Missing nullability on parameter `address` in method `setAddress`
+MissingNullability: android.nearlink.INearlink.Default#setName(String) parameter #0:
+    Missing nullability on parameter `name` in method `setName`
+MissingNullability: android.nearlink.INearlink.Default#setRemoteAlias(android.nearlink.NearlinkDevice, String) parameter #0:
+    Missing nullability on parameter `device` in method `setRemoteAlias`
+MissingNullability: android.nearlink.INearlink.Default#setRemoteAlias(android.nearlink.NearlinkDevice, String) parameter #1:
+    Missing nullability on parameter `name` in method `setRemoteAlias`
+MissingNullability: android.nearlink.INearlink.Default#unregisterCallback(android.nearlink.INearlinkCallback) parameter #0:
+    Missing nullability on parameter `cb` in method `unregisterCallback`
+MissingNullability: android.nearlink.INearlink.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlink.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlink.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlink.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlink.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlink.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlink.Stub#setDefaultImpl(android.nearlink.INearlink) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkAnnounceCallback.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkAnnounceCallback.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkAnnounceCallback.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkAnnounceCallback.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkAnnounceCallback.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkAnnounceCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkAnnounceCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkAnnounceCallback.Stub#setDefaultImpl(android.nearlink.INearlinkAnnounceCallback) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkCallback.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkCallback.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkCallback.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkCallback.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkCallback.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkCallback.Stub#setDefaultImpl(android.nearlink.INearlinkCallback) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkConnection#connectRemoteDevice(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `connectRemoteDevice`
+MissingNullability: android.nearlink.INearlinkConnection#connectionRegisterCallbacks(android.nearlink.INearlinkConnectionCallback) parameter #0:
+    Missing nullability on parameter `callback` in method `connectionRegisterCallbacks`
+MissingNullability: android.nearlink.INearlinkConnection#connectionUnRegisterCallbacks(android.nearlink.INearlinkConnectionCallback) parameter #0:
+    Missing nullability on parameter `callback` in method `connectionUnRegisterCallbacks`
+MissingNullability: android.nearlink.INearlinkConnection#disconnectRemoteDevice(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `disconnectRemoteDevice`
+MissingNullability: android.nearlink.INearlinkConnection#getConnectionState(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `getConnectionState`
+MissingNullability: android.nearlink.INearlinkConnection#getPairState(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `getPairState`
+MissingNullability: android.nearlink.INearlinkConnection#getPairedDevices():
+    Missing nullability on method `getPairedDevices` return
+MissingNullability: android.nearlink.INearlinkConnection#isPairingInitiatedLocally(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `isPairingInitiatedLocally`
+MissingNullability: android.nearlink.INearlinkConnection#removePairedRemoteDevice(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `removePairedRemoteDevice`
+MissingNullability: android.nearlink.INearlinkConnection.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkConnection.Default#connectRemoteDevice(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `connectRemoteDevice`
+MissingNullability: android.nearlink.INearlinkConnection.Default#connectionRegisterCallbacks(android.nearlink.INearlinkConnectionCallback) parameter #0:
+    Missing nullability on parameter `callback` in method `connectionRegisterCallbacks`
+MissingNullability: android.nearlink.INearlinkConnection.Default#connectionUnRegisterCallbacks(android.nearlink.INearlinkConnectionCallback) parameter #0:
+    Missing nullability on parameter `callback` in method `connectionUnRegisterCallbacks`
+MissingNullability: android.nearlink.INearlinkConnection.Default#disconnectRemoteDevice(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `disconnectRemoteDevice`
+MissingNullability: android.nearlink.INearlinkConnection.Default#getConnectionState(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `getConnectionState`
+MissingNullability: android.nearlink.INearlinkConnection.Default#getPairState(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `getPairState`
+MissingNullability: android.nearlink.INearlinkConnection.Default#getPairedDevices():
+    Missing nullability on method `getPairedDevices` return
+MissingNullability: android.nearlink.INearlinkConnection.Default#isPairingInitiatedLocally(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `isPairingInitiatedLocally`
+MissingNullability: android.nearlink.INearlinkConnection.Default#removePairedRemoteDevice(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `removePairedRemoteDevice`
+MissingNullability: android.nearlink.INearlinkConnection.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkConnection.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkConnection.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkConnection.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkConnection.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkConnection.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkConnection.Stub#setDefaultImpl(android.nearlink.INearlinkConnection) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkConnectionCallback#onAuthCompleteCallback(android.nearlink.NearlinkAddress, int, android.nearlink.NearlinkAuthInfoEvt, int) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `onAuthCompleteCallback`
+MissingNullability: android.nearlink.INearlinkConnectionCallback#onAuthCompleteCallback(android.nearlink.NearlinkAddress, int, android.nearlink.NearlinkAuthInfoEvt, int) parameter #2:
+    Missing nullability on parameter `authInfo` in method `onAuthCompleteCallback`
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Default#onAuthCompleteCallback(android.nearlink.NearlinkAddress, int, android.nearlink.NearlinkAuthInfoEvt, int) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `onAuthCompleteCallback`
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Default#onAuthCompleteCallback(android.nearlink.NearlinkAddress, int, android.nearlink.NearlinkAuthInfoEvt, int) parameter #2:
+    Missing nullability on parameter `authInfo` in method `onAuthCompleteCallback`
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkConnectionCallback.Stub#setDefaultImpl(android.nearlink.INearlinkConnectionCallback) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkDiscovery#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback) parameter #1:
+    Missing nullability on parameter `nearlinkAnnounceParam` in method `startAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback) parameter #2:
+    Missing nullability on parameter `nearlinkAnnounceData` in method `startAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback) parameter #3:
+    Missing nullability on parameter `nearlinkSeekRespData` in method `startAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback) parameter #4:
+    Missing nullability on parameter `iNearlinkAnnounceCallback` in method `startAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData) parameter #0:
+    Missing nullability on parameter `nearlinkSeekParams` in method `startDiscovery`
+MissingNullability: android.nearlink.INearlinkDiscovery#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData) parameter #1:
+    Missing nullability on parameter `nearlinkAnnounceParam` in method `startDiscovery`
+MissingNullability: android.nearlink.INearlinkDiscovery#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData) parameter #2:
+    Missing nullability on parameter `nearlinkAnnounceData` in method `startDiscovery`
+MissingNullability: android.nearlink.INearlinkDiscovery#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData) parameter #3:
+    Missing nullability on parameter `nearlinkSeekRespData` in method `startDiscovery`
+MissingNullability: android.nearlink.INearlinkDiscovery#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback) parameter #0:
+    Missing nullability on parameter `seekId` in method `startSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback) parameter #1:
+    Missing nullability on parameter `nearlinkSeekParams` in method `startSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback) parameter #2:
+    Missing nullability on parameter `filters` in method `startSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback) parameter #3:
+    Missing nullability on parameter `iNearlinkSeekCallback` in method `startSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery#stopAnnounce(android.nearlink.INearlinkAnnounceCallback) parameter #0:
+    Missing nullability on parameter `iNearlinkAnnounceCallback` in method `stopAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery#stopSeek(String) parameter #0:
+    Missing nullability on parameter `seekId` in method `stopSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback) parameter #1:
+    Missing nullability on parameter `nearlinkAnnounceParam` in method `startAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback) parameter #2:
+    Missing nullability on parameter `nearlinkAnnounceData` in method `startAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback) parameter #3:
+    Missing nullability on parameter `nearlinkSeekRespData` in method `startAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback) parameter #4:
+    Missing nullability on parameter `iNearlinkAnnounceCallback` in method `startAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData) parameter #0:
+    Missing nullability on parameter `nearlinkSeekParams` in method `startDiscovery`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData) parameter #1:
+    Missing nullability on parameter `nearlinkAnnounceParam` in method `startDiscovery`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData) parameter #2:
+    Missing nullability on parameter `nearlinkAnnounceData` in method `startDiscovery`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData) parameter #3:
+    Missing nullability on parameter `nearlinkSeekRespData` in method `startDiscovery`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback) parameter #0:
+    Missing nullability on parameter `seekId` in method `startSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback) parameter #1:
+    Missing nullability on parameter `nearlinkSeekParams` in method `startSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback) parameter #2:
+    Missing nullability on parameter `filters` in method `startSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback) parameter #3:
+    Missing nullability on parameter `iNearlinkSeekCallback` in method `startSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#stopAnnounce(android.nearlink.INearlinkAnnounceCallback) parameter #0:
+    Missing nullability on parameter `iNearlinkAnnounceCallback` in method `stopAnnounce`
+MissingNullability: android.nearlink.INearlinkDiscovery.Default#stopSeek(String) parameter #0:
+    Missing nullability on parameter `seekId` in method `stopSeek`
+MissingNullability: android.nearlink.INearlinkDiscovery.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkDiscovery.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkDiscovery.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkDiscovery.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkDiscovery.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkDiscovery.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkDiscovery.Stub#setDefaultImpl(android.nearlink.INearlinkDiscovery) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkEnableCallback.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkEnableCallback.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkEnableCallback.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkEnableCallback.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkEnableCallback.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkEnableCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkEnableCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkEnableCallback.Stub#setDefaultImpl(android.nearlink.INearlinkEnableCallback) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkSeekCallback#onSeekResult(android.nearlink.NearlinkSeekResultInfo) parameter #0:
+    Missing nullability on parameter `nearlinkSeekResultInfo` in method `onSeekResult`
+MissingNullability: android.nearlink.INearlinkSeekCallback.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSeekCallback.Default#onSeekResult(android.nearlink.NearlinkSeekResultInfo) parameter #0:
+    Missing nullability on parameter `nearlinkSeekResultInfo` in method `onSeekResult`
+MissingNullability: android.nearlink.INearlinkSeekCallback.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSeekCallback.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkSeekCallback.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkSeekCallback.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkSeekCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSeekCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSeekCallback.Stub#setDefaultImpl(android.nearlink.INearlinkSeekCallback) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkSsapClient#connect(int, String, int) parameter #1:
+    Missing nullability on parameter `address` in method `connect`
+MissingNullability: android.nearlink.INearlinkSsapClient#connectionParameterUpdate(int, String, int, int, int, int) parameter #1:
+    Missing nullability on parameter `address` in method `connectionParameterUpdate`
+MissingNullability: android.nearlink.INearlinkSsapClient#disconnect(int, String, int) parameter #1:
+    Missing nullability on parameter `address` in method `disconnect`
+MissingNullability: android.nearlink.INearlinkSsapClient#discoverServices(int, String) parameter #1:
+    Missing nullability on parameter `address` in method `discoverServices`
+MissingNullability: android.nearlink.INearlinkSsapClient#exchangeInfoRequest(int, String, int, int) parameter #1:
+    Missing nullability on parameter `address` in method `exchangeInfoRequest`
+MissingNullability: android.nearlink.INearlinkSsapClient#readRemoteRssi(int, String) parameter #1:
+    Missing nullability on parameter `address` in method `readRemoteRssi`
+MissingNullability: android.nearlink.INearlinkSsapClient#readRequest(int, String, int, int) parameter #1:
+    Missing nullability on parameter `address` in method `readRequest`
+MissingNullability: android.nearlink.INearlinkSsapClient#readRequestByUuid(int, String, int, int, int, android.os.ParcelUuid) parameter #1:
+    Missing nullability on parameter `address` in method `readRequestByUuid`
+MissingNullability: android.nearlink.INearlinkSsapClient#readRequestByUuid(int, String, int, int, int, android.os.ParcelUuid) parameter #5:
+    Missing nullability on parameter `uuid` in method `readRequestByUuid`
+MissingNullability: android.nearlink.INearlinkSsapClient#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback) parameter #0:
+    Missing nullability on parameter `appUuid` in method `registerClient`
+MissingNullability: android.nearlink.INearlinkSsapClient#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback) parameter #1:
+    Missing nullability on parameter `address` in method `registerClient`
+MissingNullability: android.nearlink.INearlinkSsapClient#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback) parameter #2:
+    Missing nullability on parameter `callback` in method `registerClient`
+MissingNullability: android.nearlink.INearlinkSsapClient#writeRequest(int, String, int, int, boolean, byte[]) parameter #1:
+    Missing nullability on parameter `address` in method `writeRequest`
+MissingNullability: android.nearlink.INearlinkSsapClient#writeRequest(int, String, int, int, boolean, byte[]) parameter #5:
+    Missing nullability on parameter `data` in method `writeRequest`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#connect(int, String, int) parameter #1:
+    Missing nullability on parameter `address` in method `connect`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#connectionParameterUpdate(int, String, int, int, int, int) parameter #1:
+    Missing nullability on parameter `address` in method `connectionParameterUpdate`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#disconnect(int, String, int) parameter #1:
+    Missing nullability on parameter `address` in method `disconnect`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#discoverServices(int, String) parameter #1:
+    Missing nullability on parameter `address` in method `discoverServices`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#exchangeInfoRequest(int, String, int, int) parameter #1:
+    Missing nullability on parameter `address` in method `exchangeInfoRequest`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#readRemoteRssi(int, String) parameter #1:
+    Missing nullability on parameter `address` in method `readRemoteRssi`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#readRequest(int, String, int, int) parameter #1:
+    Missing nullability on parameter `address` in method `readRequest`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#readRequestByUuid(int, String, int, int, int, android.os.ParcelUuid) parameter #1:
+    Missing nullability on parameter `address` in method `readRequestByUuid`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#readRequestByUuid(int, String, int, int, int, android.os.ParcelUuid) parameter #5:
+    Missing nullability on parameter `uuid` in method `readRequestByUuid`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback) parameter #0:
+    Missing nullability on parameter `appUuid` in method `registerClient`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback) parameter #1:
+    Missing nullability on parameter `address` in method `registerClient`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback) parameter #2:
+    Missing nullability on parameter `callback` in method `registerClient`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#writeRequest(int, String, int, int, boolean, byte[]) parameter #1:
+    Missing nullability on parameter `address` in method `writeRequest`
+MissingNullability: android.nearlink.INearlinkSsapClient.Default#writeRequest(int, String, int, int, boolean, byte[]) parameter #5:
+    Missing nullability on parameter `data` in method `writeRequest`
+MissingNullability: android.nearlink.INearlinkSsapClient.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSsapClient.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkSsapClient.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkSsapClient.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkSsapClient.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSsapClient.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSsapClient.Stub#setDefaultImpl(android.nearlink.INearlinkSsapClient) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onConnectionParameterUpdated(String, int, int, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onConnectionParameterUpdated`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onConnectionStateChanged(int, String, int, int) parameter #1:
+    Missing nullability on parameter `address` in method `onConnectionStateChanged`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onInfoExchanged(String, int, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onInfoExchanged`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onNotification(String, int, int, boolean, byte[], int) parameter #0:
+    Missing nullability on parameter `address` in method `onNotification`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onNotification(String, int, int, boolean, byte[], int) parameter #4:
+    Missing nullability on parameter `data` in method `onNotification`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onReadByUuidComplete(String, android.os.ParcelUuid, java.util.List<android.nearlink.NearlinkSsapReadByUuid>, int) parameter #0:
+    Missing nullability on parameter `address` in method `onReadByUuidComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onReadByUuidComplete(String, android.os.ParcelUuid, java.util.List<android.nearlink.NearlinkSsapReadByUuid>, int) parameter #1:
+    Missing nullability on parameter `uuid` in method `onReadByUuidComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onReadByUuidComplete(String, android.os.ParcelUuid, java.util.List<android.nearlink.NearlinkSsapReadByUuid>, int) parameter #2:
+    Missing nullability on parameter `data` in method `onReadByUuidComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onReadCfm(String, int, int, byte[], int) parameter #0:
+    Missing nullability on parameter `address` in method `onReadCfm`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onReadCfm(String, int, int, byte[], int) parameter #3:
+    Missing nullability on parameter `data` in method `onReadCfm`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onReadRemoteRssi(String, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onReadRemoteRssi`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onSearchComplete(String, java.util.List<android.nearlink.NearlinkSsapService>, int) parameter #0:
+    Missing nullability on parameter `address` in method `onSearchComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onSearchComplete(String, java.util.List<android.nearlink.NearlinkSsapService>, int) parameter #1:
+    Missing nullability on parameter `services` in method `onSearchComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback#onWriteCfm(String, int, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onWriteCfm`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onConnectionParameterUpdated(String, int, int, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onConnectionParameterUpdated`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onConnectionStateChanged(int, String, int, int) parameter #1:
+    Missing nullability on parameter `address` in method `onConnectionStateChanged`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onInfoExchanged(String, int, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onInfoExchanged`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onNotification(String, int, int, boolean, byte[], int) parameter #0:
+    Missing nullability on parameter `address` in method `onNotification`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onNotification(String, int, int, boolean, byte[], int) parameter #4:
+    Missing nullability on parameter `data` in method `onNotification`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onReadByUuidComplete(String, android.os.ParcelUuid, java.util.List<android.nearlink.NearlinkSsapReadByUuid>, int) parameter #0:
+    Missing nullability on parameter `address` in method `onReadByUuidComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onReadByUuidComplete(String, android.os.ParcelUuid, java.util.List<android.nearlink.NearlinkSsapReadByUuid>, int) parameter #1:
+    Missing nullability on parameter `uuid` in method `onReadByUuidComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onReadByUuidComplete(String, android.os.ParcelUuid, java.util.List<android.nearlink.NearlinkSsapReadByUuid>, int) parameter #2:
+    Missing nullability on parameter `data` in method `onReadByUuidComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onReadCfm(String, int, int, byte[], int) parameter #0:
+    Missing nullability on parameter `address` in method `onReadCfm`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onReadCfm(String, int, int, byte[], int) parameter #3:
+    Missing nullability on parameter `data` in method `onReadCfm`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onReadRemoteRssi(String, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onReadRemoteRssi`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onSearchComplete(String, java.util.List<android.nearlink.NearlinkSsapService>, int) parameter #0:
+    Missing nullability on parameter `address` in method `onSearchComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onSearchComplete(String, java.util.List<android.nearlink.NearlinkSsapService>, int) parameter #1:
+    Missing nullability on parameter `services` in method `onSearchComplete`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Default#onWriteCfm(String, int, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onWriteCfm`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSsapClientCallback.Stub#setDefaultImpl(android.nearlink.INearlinkSsapClientCallback) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkSsapServer#addService(int, boolean, android.nearlink.NearlinkSsapService) parameter #2:
+    Missing nullability on parameter `service` in method `addService`
+MissingNullability: android.nearlink.INearlinkSsapServer#notifyOrIndicate(int, String, int, int, byte[]) parameter #1:
+    Missing nullability on parameter `address` in method `notifyOrIndicate`
+MissingNullability: android.nearlink.INearlinkSsapServer#notifyOrIndicate(int, String, int, int, byte[]) parameter #4:
+    Missing nullability on parameter `value` in method `notifyOrIndicate`
+MissingNullability: android.nearlink.INearlinkSsapServer#registerServer(android.os.ParcelUuid, android.nearlink.INearlinkSsapServerCallback) parameter #0:
+    Missing nullability on parameter `appId` in method `registerServer`
+MissingNullability: android.nearlink.INearlinkSsapServer#registerServer(android.os.ParcelUuid, android.nearlink.INearlinkSsapServerCallback) parameter #1:
+    Missing nullability on parameter `callback` in method `registerServer`
+MissingNullability: android.nearlink.INearlinkSsapServer#sendResponse(int, String, int, int, byte[]) parameter #1:
+    Missing nullability on parameter `address` in method `sendResponse`
+MissingNullability: android.nearlink.INearlinkSsapServer#sendResponse(int, String, int, int, byte[]) parameter #4:
+    Missing nullability on parameter `value` in method `sendResponse`
+MissingNullability: android.nearlink.INearlinkSsapServer.Default#addService(int, boolean, android.nearlink.NearlinkSsapService) parameter #2:
+    Missing nullability on parameter `service` in method `addService`
+MissingNullability: android.nearlink.INearlinkSsapServer.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSsapServer.Default#notifyOrIndicate(int, String, int, int, byte[]) parameter #1:
+    Missing nullability on parameter `address` in method `notifyOrIndicate`
+MissingNullability: android.nearlink.INearlinkSsapServer.Default#notifyOrIndicate(int, String, int, int, byte[]) parameter #4:
+    Missing nullability on parameter `value` in method `notifyOrIndicate`
+MissingNullability: android.nearlink.INearlinkSsapServer.Default#registerServer(android.os.ParcelUuid, android.nearlink.INearlinkSsapServerCallback) parameter #0:
+    Missing nullability on parameter `appId` in method `registerServer`
+MissingNullability: android.nearlink.INearlinkSsapServer.Default#registerServer(android.os.ParcelUuid, android.nearlink.INearlinkSsapServerCallback) parameter #1:
+    Missing nullability on parameter `callback` in method `registerServer`
+MissingNullability: android.nearlink.INearlinkSsapServer.Default#sendResponse(int, String, int, int, byte[]) parameter #1:
+    Missing nullability on parameter `address` in method `sendResponse`
+MissingNullability: android.nearlink.INearlinkSsapServer.Default#sendResponse(int, String, int, int, byte[]) parameter #4:
+    Missing nullability on parameter `value` in method `sendResponse`
+MissingNullability: android.nearlink.INearlinkSsapServer.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSsapServer.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkSsapServer.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkSsapServer.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkSsapServer.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSsapServer.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSsapServer.Stub#setDefaultImpl(android.nearlink.INearlinkSsapServer) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback#onMtuChanged(String, int, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onMtuChanged`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback#onServerReadRequest(String, int, int, int, boolean, boolean, int) parameter #0:
+    Missing nullability on parameter `address` in method `onServerReadRequest`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback#onServerWriteRequest(String, int, int, int, boolean, boolean, byte[], int) parameter #0:
+    Missing nullability on parameter `address` in method `onServerWriteRequest`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback#onServerWriteRequest(String, int, int, int, boolean, boolean, byte[], int) parameter #6:
+    Missing nullability on parameter `data` in method `onServerWriteRequest`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback#onServiceAdded(android.nearlink.NearlinkSsapService, int) parameter #0:
+    Missing nullability on parameter `service` in method `onServiceAdded`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Default#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Default#onMtuChanged(String, int, int, int) parameter #0:
+    Missing nullability on parameter `address` in method `onMtuChanged`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Default#onServerReadRequest(String, int, int, int, boolean, boolean, int) parameter #0:
+    Missing nullability on parameter `address` in method `onServerReadRequest`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Default#onServerWriteRequest(String, int, int, int, boolean, boolean, byte[], int) parameter #0:
+    Missing nullability on parameter `address` in method `onServerWriteRequest`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Default#onServerWriteRequest(String, int, int, int, boolean, boolean, byte[], int) parameter #6:
+    Missing nullability on parameter `data` in method `onServerWriteRequest`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Default#onServiceAdded(android.nearlink.NearlinkSsapService, int) parameter #0:
+    Missing nullability on parameter `service` in method `onServiceAdded`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Stub#asBinder():
+    Missing nullability on method `asBinder` return
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Stub#asInterface(android.os.IBinder):
+    Missing nullability on method `asInterface` return
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Stub#asInterface(android.os.IBinder) parameter #0:
+    Missing nullability on parameter `obj` in method `asInterface`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Stub#getDefaultImpl():
+    Missing nullability on method `getDefaultImpl` return
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #1:
+    Missing nullability on parameter `data` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int) parameter #2:
+    Missing nullability on parameter `reply` in method `onTransact`
+MissingNullability: android.nearlink.INearlinkSsapServerCallback.Stub#setDefaultImpl(android.nearlink.INearlinkSsapServerCallback) parameter #0:
+    Missing nullability on parameter `impl` in method `setDefaultImpl`
+MissingNullability: android.nearlink.NearlinkAdapter#checkNearlinkAddress(String) parameter #0:
+    Missing nullability on parameter `address` in method `checkNearlinkAddress`
+MissingNullability: android.nearlink.NearlinkAdapter#closeProfileProxy(int, android.nearlink.NearlinkProfile) parameter #1:
+    Missing nullability on parameter `proxy` in method `closeProfileProxy`
+MissingNullability: android.nearlink.NearlinkAdapter#getAddress():
+    Missing nullability on method `getAddress` return
+MissingNullability: android.nearlink.NearlinkAdapter#getDefaultAdapter():
+    Missing nullability on method `getDefaultAdapter` return
+MissingNullability: android.nearlink.NearlinkAdapter#getName():
+    Missing nullability on method `getName` return
+MissingNullability: android.nearlink.NearlinkAdapter#getNearlinkAnnouncer():
+    Missing nullability on method `getNearlinkAnnouncer` return
+MissingNullability: android.nearlink.NearlinkAdapter#getNearlinkConnection():
+    Missing nullability on method `getNearlinkConnection` return
+MissingNullability: android.nearlink.NearlinkAdapter#getNearlinkSeeker():
+    Missing nullability on method `getNearlinkSeeker` return
+MissingNullability: android.nearlink.NearlinkAdapter#getPairedDevices():
+    Missing nullability on method `getPairedDevices` return
+MissingNullability: android.nearlink.NearlinkAdapter#getProfileProxy(android.content.Context, android.nearlink.NearlinkProfile.ServiceListener, int) parameter #0:
+    Missing nullability on parameter `context` in method `getProfileProxy`
+MissingNullability: android.nearlink.NearlinkAdapter#getProfileProxy(android.content.Context, android.nearlink.NearlinkProfile.ServiceListener, int) parameter #1:
+    Missing nullability on parameter `listener` in method `getProfileProxy`
+MissingNullability: android.nearlink.NearlinkAdapter#getRemoteDevice(String):
+    Missing nullability on method `getRemoteDevice` return
+MissingNullability: android.nearlink.NearlinkAdapter#getRemoteDevice(String) parameter #0:
+    Missing nullability on parameter `address` in method `getRemoteDevice`
+MissingNullability: android.nearlink.NearlinkAdapter#getRemoteDevice(android.nearlink.NearlinkAddress):
+    Missing nullability on method `getRemoteDevice` return
+MissingNullability: android.nearlink.NearlinkAdapter#getRemoteDevice(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `address` in method `getRemoteDevice`
+MissingNullability: android.nearlink.NearlinkAdapter#getRemoteDevice(byte[]):
+    Missing nullability on method `getRemoteDevice` return
+MissingNullability: android.nearlink.NearlinkAdapter#getRemoteDevice(byte[]) parameter #0:
+    Missing nullability on parameter `address` in method `getRemoteDevice`
+MissingNullability: android.nearlink.NearlinkAdapter#getSupportedProfiles():
+    Missing nullability on method `getSupportedProfiles` return
+MissingNullability: android.nearlink.NearlinkAdapter#getUuids():
+    Missing nullability on method `getUuids` return
+MissingNullability: android.nearlink.NearlinkAdapter#nameForState(int):
+    Missing nullability on method `nameForState` return
+MissingNullability: android.nearlink.NearlinkAdapter#setName(String) parameter #0:
+    Missing nullability on parameter `name` in method `setName`
+MissingNullability: android.nearlink.NearlinkAddress#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkAddress`
+MissingNullability: android.nearlink.NearlinkAddress#NearlinkAddress(String, int) parameter #0:
+    Missing nullability on parameter `address` in method `NearlinkAddress`
+MissingNullability: android.nearlink.NearlinkAddress#NearlinkAddress(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkAddress`
+MissingNullability: android.nearlink.NearlinkAddress#getAddress():
+    Missing nullability on method `getAddress` return
+MissingNullability: android.nearlink.NearlinkAddress#setAddress(String) parameter #0:
+    Missing nullability on parameter `address` in method `setAddress`
+MissingNullability: android.nearlink.NearlinkAddress#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkAnnounceCallbackWrapper#getAnnounceId():
+    Missing nullability on method `getAnnounceId` return
+MissingNullability: android.nearlink.NearlinkAnnounceCallbackWrapper#setAnnounceId(Integer) parameter #0:
+    Missing nullability on parameter `announceId` in method `setAnnounceId`
+MissingNullability: android.nearlink.NearlinkAnnounceParam#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkAnnounceParam`
+MissingNullability: android.nearlink.NearlinkAnnounceParam#NearlinkAnnounceParam(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkAnnounceParam`
+MissingNullability: android.nearlink.NearlinkAnnounceParam#builder():
+    Missing nullability on method `builder` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam#getOwnAddress():
+    Missing nullability on method `getOwnAddress` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam#getPeerAddress():
+    Missing nullability on method `getPeerAddress` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam#readFromParcel(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `source` in method `readFromParcel`
+MissingNullability: android.nearlink.NearlinkAnnounceParam#setOwnAddress(String) parameter #0:
+    Missing nullability on parameter `ownAddress` in method `setOwnAddress`
+MissingNullability: android.nearlink.NearlinkAnnounceParam#setPeerAddress(String) parameter #0:
+    Missing nullability on parameter `peerAddress` in method `setPeerAddress`
+MissingNullability: android.nearlink.NearlinkAnnounceParam#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#announceLevel(int):
+    Missing nullability on method `announceLevel` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#announceMode(int):
+    Missing nullability on method `announceMode` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#announceTxPower(byte):
+    Missing nullability on method `announceTxPower` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#build():
+    Missing nullability on method `build` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#ownAddrType(int):
+    Missing nullability on method `ownAddrType` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#ownAddress(String):
+    Missing nullability on method `ownAddress` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#ownAddress(String) parameter #0:
+    Missing nullability on parameter `ownAddress` in method `ownAddress`
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#peerAddrType(int):
+    Missing nullability on method `peerAddrType` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#peerAddress(String):
+    Missing nullability on method `peerAddress` return
+MissingNullability: android.nearlink.NearlinkAnnounceParam.Build#peerAddress(String) parameter #0:
+    Missing nullability on parameter `peerAddress` in method `peerAddress`
+MissingNullability: android.nearlink.NearlinkAnnounceSettings#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkAnnounceSettings`
+MissingNullability: android.nearlink.NearlinkAnnounceSettings#NearlinkAnnounceSettings(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkAnnounceSettings`
+MissingNullability: android.nearlink.NearlinkAnnounceSettings#readFromParcel(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `source` in method `readFromParcel`
+MissingNullability: android.nearlink.NearlinkAnnounceSettings#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkAnnounceSettings.Build#announceMode(int):
+    Missing nullability on method `announceMode` return
+MissingNullability: android.nearlink.NearlinkAnnounceSettings.Build#build():
+    Missing nullability on method `build` return
+MissingNullability: android.nearlink.NearlinkAnnounceSettings.Build#timeoutMillis(int):
+    Missing nullability on method `timeoutMillis` return
+MissingNullability: android.nearlink.NearlinkAnnouncer#startAnnounce(android.nearlink.NearlinkAnnounceSettings, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkAnnounceCallback) parameter #0:
+    Missing nullability on parameter `settings` in method `startAnnounce`
+MissingNullability: android.nearlink.NearlinkAnnouncer#startAnnounce(android.nearlink.NearlinkAnnounceSettings, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkAnnounceCallback) parameter #1:
+    Missing nullability on parameter `nearlinkAnnounceData` in method `startAnnounce`
+MissingNullability: android.nearlink.NearlinkAnnouncer#startAnnounce(android.nearlink.NearlinkAnnounceSettings, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkAnnounceCallback) parameter #2:
+    Missing nullability on parameter `nearlinkSeekRespData` in method `startAnnounce`
+MissingNullability: android.nearlink.NearlinkAnnouncer#startAnnounce(android.nearlink.NearlinkAnnounceSettings, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkAnnounceCallback) parameter #3:
+    Missing nullability on parameter `nearlinkAnnounceCallback` in method `startAnnounce`
+MissingNullability: android.nearlink.NearlinkAnnouncer#stopAnnounce(android.nearlink.NearlinkAnnounceCallback) parameter #0:
+    Missing nullability on parameter `nearlinkAnnounceCallback` in method `stopAnnounce`
+MissingNullability: android.nearlink.NearlinkAuthInfoEvt#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkAuthInfoEvt`
+MissingNullability: android.nearlink.NearlinkAuthInfoEvt#NearlinkAuthInfoEvt(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkAuthInfoEvt`
+MissingNullability: android.nearlink.NearlinkAuthInfoEvt#getLinkKey():
+    Missing nullability on method `getLinkKey` return
+MissingNullability: android.nearlink.NearlinkAuthInfoEvt#setLinkKey(byte[]) parameter #0:
+    Missing nullability on parameter `linkKey` in method `setLinkKey`
+MissingNullability: android.nearlink.NearlinkAuthInfoEvt#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkCommCallback.PairStateChangedCallback#onProcessing(android.nearlink.NearlinkAddress, int, int, int) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `onProcessing`
+MissingNullability: android.nearlink.NearlinkCommCallback.PairStateChangedCallback#onSuccess(android.nearlink.NearlinkAddress, int) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `onSuccess`
+MissingNullability: android.nearlink.NearlinkConnection#cancelPairProcess(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `cancelPairProcess`
+MissingNullability: android.nearlink.NearlinkConnection#createConnect(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `createConnect`
+MissingNullability: android.nearlink.NearlinkConnection#disConnect(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `disConnect`
+MissingNullability: android.nearlink.NearlinkConnection#getConnectionState(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `getConnectionState`
+MissingNullability: android.nearlink.NearlinkConnection#getPairState(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `getPairState`
+MissingNullability: android.nearlink.NearlinkConnection#getPairedDevices():
+    Missing nullability on method `getPairedDevices` return
+MissingNullability: android.nearlink.NearlinkConnection#isPairingInitiatedLocally(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `isPairingInitiatedLocally`
+MissingNullability: android.nearlink.NearlinkConnection#removePair(android.nearlink.NearlinkAddress) parameter #0:
+    Missing nullability on parameter `nearlinkAddress` in method `removePair`
+MissingNullability: android.nearlink.NearlinkDevice#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkDevice`
+MissingNullability: android.nearlink.NearlinkDevice#connectSsap(android.nearlink.NearlinkSsapClientCallback):
+    Missing nullability on method `connectSsap` return
+MissingNullability: android.nearlink.NearlinkDevice#connectSsap(android.nearlink.NearlinkSsapClientCallback) parameter #0:
+    Missing nullability on parameter `callback` in method `connectSsap`
+MissingNullability: android.nearlink.NearlinkDevice#connectSsap(android.nearlink.NearlinkSsapClientCallback, android.os.Handler):
+    Missing nullability on method `connectSsap` return
+MissingNullability: android.nearlink.NearlinkDevice#connectSsap(android.nearlink.NearlinkSsapClientCallback, android.os.Handler) parameter #0:
+    Missing nullability on parameter `callback` in method `connectSsap`
+MissingNullability: android.nearlink.NearlinkDevice#connectSsap(android.nearlink.NearlinkSsapClientCallback, android.os.Handler) parameter #1:
+    Missing nullability on parameter `handler` in method `connectSsap`
+MissingNullability: android.nearlink.NearlinkDevice#getAddress():
+    Missing nullability on method `getAddress` return
+MissingNullability: android.nearlink.NearlinkDevice#getAlias():
+    Missing nullability on method `getAlias` return
+MissingNullability: android.nearlink.NearlinkDevice#getAliasName():
+    Missing nullability on method `getAliasName` return
+MissingNullability: android.nearlink.NearlinkDevice#getName():
+    Missing nullability on method `getName` return
+MissingNullability: android.nearlink.NearlinkDevice#getNearlinkAddress():
+    Missing nullability on method `getNearlinkAddress` return
+MissingNullability: android.nearlink.NearlinkDevice#getUuids():
+    Missing nullability on method `getUuids` return
+MissingNullability: android.nearlink.NearlinkDevice#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `out` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkManager#getAdapter():
+    Missing nullability on method `getAdapter` return
+MissingNullability: android.nearlink.NearlinkManager#openSsapServer(android.content.Context, android.nearlink.NearlinkSsapServerCallback):
+    Missing nullability on method `openSsapServer` return
+MissingNullability: android.nearlink.NearlinkManager#openSsapServer(android.content.Context, android.nearlink.NearlinkSsapServerCallback) parameter #0:
+    Missing nullability on parameter `context` in method `openSsapServer`
+MissingNullability: android.nearlink.NearlinkManager#openSsapServer(android.content.Context, android.nearlink.NearlinkSsapServerCallback) parameter #1:
+    Missing nullability on parameter `callback` in method `openSsapServer`
+MissingNullability: android.nearlink.NearlinkProfile#getConnectedDevices():
+    Missing nullability on method `getConnectedDevices` return
+MissingNullability: android.nearlink.NearlinkProfile#getConnectionState(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `device` in method `getConnectionState`
+MissingNullability: android.nearlink.NearlinkProfile#getDevicesMatchingConnectionStates(int[]):
+    Missing nullability on method `getDevicesMatchingConnectionStates` return
+MissingNullability: android.nearlink.NearlinkProfile#getDevicesMatchingConnectionStates(int[]) parameter #0:
+    Missing nullability on parameter `states` in method `getDevicesMatchingConnectionStates`
+MissingNullability: android.nearlink.NearlinkProfile.ServiceListener#onServiceConnected(int, android.nearlink.NearlinkProfile) parameter #1:
+    Missing nullability on parameter `proxy` in method `onServiceConnected`
+MissingNullability: android.nearlink.NearlinkPublicData#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkPublicData`
+MissingNullability: android.nearlink.NearlinkPublicData#NearlinkPublicData(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkPublicData`
+MissingNullability: android.nearlink.NearlinkPublicData#builder():
+    Missing nullability on method `builder` return
+MissingNullability: android.nearlink.NearlinkPublicData#getData():
+    Missing nullability on method `getData` return
+MissingNullability: android.nearlink.NearlinkPublicData#readFromParcel(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `source` in method `readFromParcel`
+MissingNullability: android.nearlink.NearlinkPublicData#setData(byte[]) parameter #0:
+    Missing nullability on parameter `data` in method `setData`
+MissingNullability: android.nearlink.NearlinkPublicData#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkPublicData.Build#announceLevel(int):
+    Missing nullability on method `announceLevel` return
+MissingNullability: android.nearlink.NearlinkPublicData.Build#build():
+    Missing nullability on method `build` return
+MissingNullability: android.nearlink.NearlinkPublicData.Build#data(byte[]):
+    Missing nullability on method `data` return
+MissingNullability: android.nearlink.NearlinkPublicData.Build#data(byte[]) parameter #0:
+    Missing nullability on parameter `data` in method `data`
+MissingNullability: android.nearlink.NearlinkSeekCallback#onResult(android.nearlink.NearlinkSeekResultInfo) parameter #0:
+    Missing nullability on parameter `nearlinkSeekResultInfo` in method `onResult`
+MissingNullability: android.nearlink.NearlinkSeekFilter#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkSeekFilter`
+MissingNullability: android.nearlink.NearlinkSeekFilter#NearlinkSeekFilter(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkSeekFilter`
+MissingNullability: android.nearlink.NearlinkSeekFilter#builder():
+    Missing nullability on method `builder` return
+MissingNullability: android.nearlink.NearlinkSeekFilter#getDeviceAddress():
+    Missing nullability on method `getDeviceAddress` return
+MissingNullability: android.nearlink.NearlinkSeekFilter#getDeviceName():
+    Missing nullability on method `getDeviceName` return
+MissingNullability: android.nearlink.NearlinkSeekFilter#matches(android.nearlink.NearlinkSeekResultInfo) parameter #0:
+    Missing nullability on parameter `resultInfo` in method `matches`
+MissingNullability: android.nearlink.NearlinkSeekFilter#readFromParcel(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `source` in method `readFromParcel`
+MissingNullability: android.nearlink.NearlinkSeekFilter#setDeviceAddress(String) parameter #0:
+    Missing nullability on parameter `deviceAddress` in method `setDeviceAddress`
+MissingNullability: android.nearlink.NearlinkSeekFilter#setDeviceName(String) parameter #0:
+    Missing nullability on parameter `deviceName` in method `setDeviceName`
+MissingNullability: android.nearlink.NearlinkSeekFilter#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkSeekFilter.Build#build():
+    Missing nullability on method `build` return
+MissingNullability: android.nearlink.NearlinkSeekFilter.Build#deviceAddress(String):
+    Missing nullability on method `deviceAddress` return
+MissingNullability: android.nearlink.NearlinkSeekFilter.Build#deviceAddress(String) parameter #0:
+    Missing nullability on parameter `deviceAddress` in method `deviceAddress`
+MissingNullability: android.nearlink.NearlinkSeekFilter.Build#deviceName(String):
+    Missing nullability on method `deviceName` return
+MissingNullability: android.nearlink.NearlinkSeekFilter.Build#deviceName(String) parameter #0:
+    Missing nullability on parameter `deviceName` in method `deviceName`
+MissingNullability: android.nearlink.NearlinkSeekParams#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkSeekParams`
+MissingNullability: android.nearlink.NearlinkSeekParams#NearlinkSeekParams(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkSeekParams`
+MissingNullability: android.nearlink.NearlinkSeekParams#builder():
+    Missing nullability on method `builder` return
+MissingNullability: android.nearlink.NearlinkSeekParams#readFromParcel(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `source` in method `readFromParcel`
+MissingNullability: android.nearlink.NearlinkSeekParams#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#build():
+    Missing nullability on method `build` return
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#filterDuplicates(int):
+    Missing nullability on method `filterDuplicates` return
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#ownAddrType(int):
+    Missing nullability on method `ownAddrType` return
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#seekFilterPolicy(int):
+    Missing nullability on method `seekFilterPolicy` return
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#seekInterval(int):
+    Missing nullability on method `seekInterval` return
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#seekPhys(int):
+    Missing nullability on method `seekPhys` return
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#seekTimeoutMs(int):
+    Missing nullability on method `seekTimeoutMs` return
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#seekType(int):
+    Missing nullability on method `seekType` return
+MissingNullability: android.nearlink.NearlinkSeekParams.Build#seekWindow(int):
+    Missing nullability on method `seekWindow` return
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkSeekResultInfo`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#NearlinkSeekResultInfo(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkSeekResultInfo`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#NearlinkSeekResultInfo(int, String, int, String, int, int, int, int, byte[], String, android.nearlink.NearlinkDevice) parameter #1:
+    Missing nullability on parameter `address` in method `NearlinkSeekResultInfo`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#NearlinkSeekResultInfo(int, String, int, String, int, int, int, int, byte[], String, android.nearlink.NearlinkDevice) parameter #10:
+    Missing nullability on parameter `nearlinkDevice` in method `NearlinkSeekResultInfo`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#NearlinkSeekResultInfo(int, String, int, String, int, int, int, int, byte[], String, android.nearlink.NearlinkDevice) parameter #3:
+    Missing nullability on parameter `directAddress` in method `NearlinkSeekResultInfo`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#NearlinkSeekResultInfo(int, String, int, String, int, int, int, int, byte[], String, android.nearlink.NearlinkDevice) parameter #8:
+    Missing nullability on parameter `data` in method `NearlinkSeekResultInfo`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#NearlinkSeekResultInfo(int, String, int, String, int, int, int, int, byte[], String, android.nearlink.NearlinkDevice) parameter #9:
+    Missing nullability on parameter `deviceLocalName` in method `NearlinkSeekResultInfo`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#getAddress():
+    Missing nullability on method `getAddress` return
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#getData():
+    Missing nullability on method `getData` return
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#getDeviceLocalName():
+    Missing nullability on method `getDeviceLocalName` return
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#getDirectAddress():
+    Missing nullability on method `getDirectAddress` return
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#getNearlinkDevice():
+    Missing nullability on method `getNearlinkDevice` return
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#readFromParcel(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `source` in method `readFromParcel`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#setAddress(String) parameter #0:
+    Missing nullability on parameter `address` in method `setAddress`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#setData(byte[]) parameter #0:
+    Missing nullability on parameter `data` in method `setData`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#setDeviceLocalName(String) parameter #0:
+    Missing nullability on parameter `deviceLocalName` in method `setDeviceLocalName`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#setDirectAddress(String) parameter #0:
+    Missing nullability on parameter `directAddress` in method `setDirectAddress`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#setNearlinkDevice(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `nearlinkDevice` in method `setNearlinkDevice`
+MissingNullability: android.nearlink.NearlinkSeekResultInfo#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkSeeker#startSeek(android.nearlink.NearlinkSeekCallback) parameter #0:
+    Missing nullability on parameter `seekCallback` in method `startSeek`
+MissingNullability: android.nearlink.NearlinkSeeker#startSeek(java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.NearlinkSeekCallback) parameter #0:
+    Missing nullability on parameter `filters` in method `startSeek`
+MissingNullability: android.nearlink.NearlinkSeeker#startSeek(java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.NearlinkSeekCallback) parameter #1:
+    Missing nullability on parameter `seekCallback` in method `startSeek`
+MissingNullability: android.nearlink.NearlinkSeeker#stopSeek(android.nearlink.NearlinkSeekCallback) parameter #0:
+    Missing nullability on parameter `seekCallback` in method `stopSeek`
+MissingNullability: android.nearlink.NearlinkSsapClient#getService(java.util.UUID):
+    Missing nullability on method `getService` return
+MissingNullability: android.nearlink.NearlinkSsapClient#getService(java.util.UUID) parameter #0:
+    Missing nullability on parameter `uuid` in method `getService`
+MissingNullability: android.nearlink.NearlinkSsapClient#getServices():
+    Missing nullability on method `getServices` return
+MissingNullability: android.nearlink.NearlinkSsapClient#readDescriptor(android.nearlink.NearlinkSsapDescriptor) parameter #0:
+    Missing nullability on parameter `descriptor` in method `readDescriptor`
+MissingNullability: android.nearlink.NearlinkSsapClient#readDescriptorByUuid(java.util.UUID, int, int, int) parameter #0:
+    Missing nullability on parameter `uuid` in method `readDescriptorByUuid`
+MissingNullability: android.nearlink.NearlinkSsapClient#readProperty(android.nearlink.NearlinkSsapProperty) parameter #0:
+    Missing nullability on parameter `property` in method `readProperty`
+MissingNullability: android.nearlink.NearlinkSsapClient#readPropertyByUuid(java.util.UUID, int, int) parameter #0:
+    Missing nullability on parameter `uuid` in method `readPropertyByUuid`
+MissingNullability: android.nearlink.NearlinkSsapClient#setPropertyNotification(android.nearlink.NearlinkSsapProperty, boolean) parameter #0:
+    Missing nullability on parameter `property` in method `setPropertyNotification`
+MissingNullability: android.nearlink.NearlinkSsapClient#writeDescriptor(android.nearlink.NearlinkSsapDescriptor) parameter #0:
+    Missing nullability on parameter `descriptor` in method `writeDescriptor`
+MissingNullability: android.nearlink.NearlinkSsapClient#writeProperty(android.nearlink.NearlinkSsapProperty) parameter #0:
+    Missing nullability on parameter `property` in method `writeProperty`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onConnectionParameterUpdated(android.nearlink.NearlinkSsapClient, int, int, int, int) parameter #0:
+    Missing nullability on parameter `client` in method `onConnectionParameterUpdated`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onConnectionStateChange(android.nearlink.NearlinkSsapClient, int) parameter #0:
+    Missing nullability on parameter `client` in method `onConnectionStateChange`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onDescriptorRead(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapDescriptor, int) parameter #0:
+    Missing nullability on parameter `client` in method `onDescriptorRead`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onDescriptorRead(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapDescriptor, int) parameter #1:
+    Missing nullability on parameter `descriptor` in method `onDescriptorRead`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onDescriptorReadByUuid(android.nearlink.NearlinkSsapClient, java.util.List<android.nearlink.NearlinkSsapDescriptor>, int) parameter #0:
+    Missing nullability on parameter `client` in method `onDescriptorReadByUuid`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onDescriptorReadByUuid(android.nearlink.NearlinkSsapClient, java.util.List<android.nearlink.NearlinkSsapDescriptor>, int) parameter #1:
+    Missing nullability on parameter `descriptors` in method `onDescriptorReadByUuid`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onDescriptorWrite(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapDescriptor, int) parameter #0:
+    Missing nullability on parameter `client` in method `onDescriptorWrite`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onDescriptorWrite(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapDescriptor, int) parameter #1:
+    Missing nullability on parameter `descriptor` in method `onDescriptorWrite`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onExchangeInfo(android.nearlink.NearlinkSsapClient, int, int, int) parameter #0:
+    Missing nullability on parameter `client` in method `onExchangeInfo`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onPropertyChanged(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapProperty) parameter #0:
+    Missing nullability on parameter `client` in method `onPropertyChanged`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onPropertyChanged(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapProperty) parameter #1:
+    Missing nullability on parameter `property` in method `onPropertyChanged`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onPropertyRead(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapProperty, int) parameter #0:
+    Missing nullability on parameter `client` in method `onPropertyRead`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onPropertyRead(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapProperty, int) parameter #1:
+    Missing nullability on parameter `property` in method `onPropertyRead`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onPropertyReadByUuid(android.nearlink.NearlinkSsapClient, java.util.List<android.nearlink.NearlinkSsapProperty>, int) parameter #0:
+    Missing nullability on parameter `client` in method `onPropertyReadByUuid`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onPropertyReadByUuid(android.nearlink.NearlinkSsapClient, java.util.List<android.nearlink.NearlinkSsapProperty>, int) parameter #1:
+    Missing nullability on parameter `properties` in method `onPropertyReadByUuid`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onPropertyWrite(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapProperty, int) parameter #0:
+    Missing nullability on parameter `client` in method `onPropertyWrite`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onPropertyWrite(android.nearlink.NearlinkSsapClient, android.nearlink.NearlinkSsapProperty, int) parameter #1:
+    Missing nullability on parameter `property` in method `onPropertyWrite`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onReadRemoteRssi(android.nearlink.NearlinkSsapClient, int, int) parameter #0:
+    Missing nullability on parameter `client` in method `onReadRemoteRssi`
+MissingNullability: android.nearlink.NearlinkSsapClientCallback#onServicesDiscovered(android.nearlink.NearlinkSsapClient, int) parameter #0:
+    Missing nullability on parameter `client` in method `onServicesDiscovered`
+MissingNullability: android.nearlink.NearlinkSsapDescriptor#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkSsapDescriptor`
+MissingNullability: android.nearlink.NearlinkSsapDescriptor#NearlinkSsapDescriptor(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkSsapDescriptor`
+MissingNullability: android.nearlink.NearlinkSsapDescriptor#getProperty():
+    Missing nullability on method `getProperty` return
+MissingNullability: android.nearlink.NearlinkSsapDescriptor#getValue():
+    Missing nullability on method `getValue` return
+MissingNullability: android.nearlink.NearlinkSsapDescriptor#setValue(byte[]) parameter #0:
+    Missing nullability on parameter `mValue` in method `setValue`
+MissingNullability: android.nearlink.NearlinkSsapDescriptor#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `out` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkSsapProperty#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkSsapProperty`
+MissingNullability: android.nearlink.NearlinkSsapProperty#NearlinkSsapProperty(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkSsapProperty`
+MissingNullability: android.nearlink.NearlinkSsapProperty#NearlinkSsapProperty(java.util.UUID, int, int) parameter #0:
+    Missing nullability on parameter `uuid` in method `NearlinkSsapProperty`
+MissingNullability: android.nearlink.NearlinkSsapProperty#addDescriptor(android.nearlink.NearlinkSsapDescriptor) parameter #0:
+    Missing nullability on parameter `descriptor` in method `addDescriptor`
+MissingNullability: android.nearlink.NearlinkSsapProperty#getDescriptors():
+    Missing nullability on method `getDescriptors` return
+MissingNullability: android.nearlink.NearlinkSsapProperty#getService():
+    Missing nullability on method `getService` return
+MissingNullability: android.nearlink.NearlinkSsapProperty#getUuid():
+    Missing nullability on method `getUuid` return
+MissingNullability: android.nearlink.NearlinkSsapProperty#getValue():
+    Missing nullability on method `getValue` return
+MissingNullability: android.nearlink.NearlinkSsapProperty#mDescriptors:
+    Missing nullability on field `mDescriptors` in class `class android.nearlink.NearlinkSsapProperty`
+MissingNullability: android.nearlink.NearlinkSsapProperty#setValue(byte[]) parameter #0:
+    Missing nullability on parameter `value` in method `setValue`
+MissingNullability: android.nearlink.NearlinkSsapProperty#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `out` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkSsapReadByUuid#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkSsapReadByUuid`
+MissingNullability: android.nearlink.NearlinkSsapReadByUuid#NearlinkSsapReadByUuid(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkSsapReadByUuid`
+MissingNullability: android.nearlink.NearlinkSsapReadByUuid#NearlinkSsapReadByUuid(int, int, byte[]) parameter #2:
+    Missing nullability on parameter `data` in method `NearlinkSsapReadByUuid`
+MissingNullability: android.nearlink.NearlinkSsapReadByUuid#getData():
+    Missing nullability on method `getData` return
+MissingNullability: android.nearlink.NearlinkSsapReadByUuid#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `dest` in method `writeToParcel`
+MissingNullability: android.nearlink.NearlinkSsapServer#addService(android.nearlink.NearlinkSsapService, boolean) parameter #0:
+    Missing nullability on parameter `service` in method `addService`
+MissingNullability: android.nearlink.NearlinkSsapServer#getServices():
+    Missing nullability on method `getServices` return
+MissingNullability: android.nearlink.NearlinkSsapServer#notifyPropertyChanged(android.nearlink.NearlinkDevice, android.nearlink.NearlinkSsapProperty) parameter #0:
+    Missing nullability on parameter `device` in method `notifyPropertyChanged`
+MissingNullability: android.nearlink.NearlinkSsapServer#notifyPropertyChanged(android.nearlink.NearlinkDevice, android.nearlink.NearlinkSsapProperty) parameter #1:
+    Missing nullability on parameter `property` in method `notifyPropertyChanged`
+MissingNullability: android.nearlink.NearlinkSsapServer#sendResponse(android.nearlink.NearlinkDevice, int, int, byte[]) parameter #0:
+    Missing nullability on parameter `device` in method `sendResponse`
+MissingNullability: android.nearlink.NearlinkSsapServer#sendResponse(android.nearlink.NearlinkDevice, int, int, byte[]) parameter #3:
+    Missing nullability on parameter `value` in method `sendResponse`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onDescriptorReadRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapDescriptor, boolean, boolean) parameter #0:
+    Missing nullability on parameter `device` in method `onDescriptorReadRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onDescriptorReadRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapDescriptor, boolean, boolean) parameter #2:
+    Missing nullability on parameter `descriptor` in method `onDescriptorReadRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onDescriptorWriteRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapDescriptor, boolean, boolean, byte[]) parameter #0:
+    Missing nullability on parameter `device` in method `onDescriptorWriteRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onDescriptorWriteRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapDescriptor, boolean, boolean, byte[]) parameter #2:
+    Missing nullability on parameter `descriptor` in method `onDescriptorWriteRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onDescriptorWriteRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapDescriptor, boolean, boolean, byte[]) parameter #5:
+    Missing nullability on parameter `value` in method `onDescriptorWriteRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onMtuChanged(android.nearlink.NearlinkDevice, int, int) parameter #0:
+    Missing nullability on parameter `device` in method `onMtuChanged`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onPropertyReadRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapProperty, boolean, boolean) parameter #0:
+    Missing nullability on parameter `device` in method `onPropertyReadRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onPropertyReadRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapProperty, boolean, boolean) parameter #2:
+    Missing nullability on parameter `property` in method `onPropertyReadRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onPropertyWriteRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapProperty, boolean, boolean, byte[]) parameter #0:
+    Missing nullability on parameter `device` in method `onPropertyWriteRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onPropertyWriteRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapProperty, boolean, boolean, byte[]) parameter #2:
+    Missing nullability on parameter `property` in method `onPropertyWriteRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onPropertyWriteRequest(android.nearlink.NearlinkDevice, int, android.nearlink.NearlinkSsapProperty, boolean, boolean, byte[]) parameter #5:
+    Missing nullability on parameter `value` in method `onPropertyWriteRequest`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onServiceAdded(android.nearlink.NearlinkSsapService, int) parameter #0:
+    Missing nullability on parameter `service` in method `onServiceAdded`
+MissingNullability: android.nearlink.NearlinkSsapServerCallback#onServicesCleared(android.nearlink.NearlinkSsapServer, int) parameter #0:
+    Missing nullability on parameter `server` in method `onServicesCleared`
+MissingNullability: android.nearlink.NearlinkSsapService#CREATOR:
+    Missing nullability on field `CREATOR` in class `class android.nearlink.NearlinkSsapService`
+MissingNullability: android.nearlink.NearlinkSsapService#NearlinkSsapService(android.os.Parcel) parameter #0:
+    Missing nullability on parameter `in` in method `NearlinkSsapService`
+MissingNullability: android.nearlink.NearlinkSsapService#NearlinkSsapService(java.util.UUID) parameter #0:
+    Missing nullability on parameter `uuid` in method `NearlinkSsapService`
+MissingNullability: android.nearlink.NearlinkSsapService#NearlinkSsapService(java.util.UUID, boolean) parameter #0:
+    Missing nullability on parameter `uuid` in method `NearlinkSsapService`
+MissingNullability: android.nearlink.NearlinkSsapService#addProperty(android.nearlink.NearlinkSsapProperty) parameter #0:
+    Missing nullability on parameter `property` in method `addProperty`
+MissingNullability: android.nearlink.NearlinkSsapService#getDevice():
+    Missing nullability on method `getDevice` return
+MissingNullability: android.nearlink.NearlinkSsapService#getProperties():
+    Missing nullability on method `getProperties` return
+MissingNullability: android.nearlink.NearlinkSsapService#getUuid():
+    Missing nullability on method `getUuid` return
+MissingNullability: android.nearlink.NearlinkSsapService#mDevice:
+    Missing nullability on field `mDevice` in class `class android.nearlink.NearlinkSsapService`
+MissingNullability: android.nearlink.NearlinkSsapService#mProperties:
+    Missing nullability on field `mProperties` in class `class android.nearlink.NearlinkSsapService`
+MissingNullability: android.nearlink.NearlinkSsapService#setDevice(android.nearlink.NearlinkDevice) parameter #0:
+    Missing nullability on parameter `mDevice` in method `setDevice`
+MissingNullability: android.nearlink.NearlinkSsapService#writeToParcel(android.os.Parcel, int) parameter #0:
+    Missing nullability on parameter `out` in method `writeToParcel`
+
+
+MutableBareField: android.nearlink.NearlinkSsapProperty#mDescriptors:
+    Bare field mDescriptors must be marked final, or moved behind accessors if mutable
+MutableBareField: android.nearlink.NearlinkSsapService#mDevice:
+    Bare field mDevice must be marked final, or moved behind accessors if mutable
+MutableBareField: android.nearlink.NearlinkSsapService#mProperties:
+    Bare field mProperties must be marked final, or moved behind accessors if mutable
+
+
+NoByteOrShort: android.nearlink.NearlinkAnnounceParam#getAnnounceTxPower():
+    Should avoid odd sized primitives; use `int` instead of `byte` in method android.nearlink.NearlinkAnnounceParam.getAnnounceTxPower()
+NoByteOrShort: android.nearlink.NearlinkAnnounceParam#setAnnounceTxPower(byte) parameter #0:
+    Should avoid odd sized primitives; use `int` instead of `byte` in parameter announceTxPower in android.nearlink.NearlinkAnnounceParam.setAnnounceTxPower(byte announceTxPower)
+NoByteOrShort: android.nearlink.NearlinkAnnounceParam.Build#announceTxPower(byte) parameter #0:
+    Should avoid odd sized primitives; use `int` instead of `byte` in parameter announceTxPower in android.nearlink.NearlinkAnnounceParam.Build.announceTxPower(byte announceTxPower)
+
+
+NoSettingsProvider: android.provider.Settings.Global#NEARLINK_ON:
+    New setting keys are not allowed (Field: NEARLINK_ON); use getters/setters in relevant manager class
+NoSettingsProvider: android.provider.Settings.Global#RADIO_NEARLINK:
+    New setting keys are not allowed (Field: RADIO_NEARLINK); use getters/setters in relevant manager class
+
+
+NotCloseable: android.nearlink.INearlinkSsapClient:
+    Classes that release resources (disconnect()) should implement AutoClosable and CloseGuard: class android.nearlink.INearlinkSsapClient
+NotCloseable: android.nearlink.INearlinkSsapClient.Default:
+    Classes that release resources (disconnect()) should implement AutoClosable and CloseGuard: class android.nearlink.INearlinkSsapClient.Default
+NotCloseable: android.nearlink.NearlinkAdapter:
+    Classes that release resources (finalize()) should implement AutoClosable and CloseGuard: class android.nearlink.NearlinkAdapter
+NotCloseable: android.nearlink.NearlinkSsapClient:
+    Classes that release resources (close(), disconnect()) should implement AutoClosable and CloseGuard: class android.nearlink.NearlinkSsapClient
+NotCloseable: android.nearlink.NearlinkSsapServer:
+    Classes that release resources (close()) should implement AutoClosable and CloseGuard: class android.nearlink.NearlinkSsapServer
+
+
+ParcelConstructor: android.nearlink.NearlinkAddress#NearlinkAddress(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkAddress
+ParcelConstructor: android.nearlink.NearlinkAnnounceParam#NearlinkAnnounceParam(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkAnnounceParam
+ParcelConstructor: android.nearlink.NearlinkAnnounceSettings#NearlinkAnnounceSettings(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkAnnounceSettings
+ParcelConstructor: android.nearlink.NearlinkAuthInfoEvt#NearlinkAuthInfoEvt(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkAuthInfoEvt
+ParcelConstructor: android.nearlink.NearlinkPublicData#NearlinkPublicData(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkPublicData
+ParcelConstructor: android.nearlink.NearlinkSeekFilter#NearlinkSeekFilter(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkSeekFilter
+ParcelConstructor: android.nearlink.NearlinkSeekParams#NearlinkSeekParams(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkSeekParams
+ParcelConstructor: android.nearlink.NearlinkSeekResultInfo#NearlinkSeekResultInfo(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkSeekResultInfo
+ParcelConstructor: android.nearlink.NearlinkSsapDescriptor#NearlinkSsapDescriptor(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkSsapDescriptor
+ParcelConstructor: android.nearlink.NearlinkSsapProperty#NearlinkSsapProperty(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkSsapProperty
+ParcelConstructor: android.nearlink.NearlinkSsapReadByUuid#NearlinkSsapReadByUuid(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkSsapReadByUuid
+ParcelConstructor: android.nearlink.NearlinkSsapService#NearlinkSsapService(android.os.Parcel):
+    Parcelable inflation is exposed through CREATOR, not raw constructors, in android.nearlink.NearlinkSsapService
+
+
+ParcelNotFinal: android.nearlink.NearlinkAddress:
+    Parcelable classes must be final: android.nearlink.NearlinkAddress is not final
+ParcelNotFinal: android.nearlink.NearlinkAnnounceParam:
+    Parcelable classes must be final: android.nearlink.NearlinkAnnounceParam is not final
+ParcelNotFinal: android.nearlink.NearlinkAnnounceSettings:
+    Parcelable classes must be final: android.nearlink.NearlinkAnnounceSettings is not final
+ParcelNotFinal: android.nearlink.NearlinkAuthInfoEvt:
+    Parcelable classes must be final: android.nearlink.NearlinkAuthInfoEvt is not final
+ParcelNotFinal: android.nearlink.NearlinkPublicData:
+    Parcelable classes must be final: android.nearlink.NearlinkPublicData is not final
+ParcelNotFinal: android.nearlink.NearlinkSeekFilter:
+    Parcelable classes must be final: android.nearlink.NearlinkSeekFilter is not final
+ParcelNotFinal: android.nearlink.NearlinkSeekParams:
+    Parcelable classes must be final: android.nearlink.NearlinkSeekParams is not final
+ParcelNotFinal: android.nearlink.NearlinkSeekResultInfo:
+    Parcelable classes must be final: android.nearlink.NearlinkSeekResultInfo is not final
+ParcelNotFinal: android.nearlink.NearlinkSsapDescriptor:
+    Parcelable classes must be final: android.nearlink.NearlinkSsapDescriptor is not final
+ParcelNotFinal: android.nearlink.NearlinkSsapProperty:
+    Parcelable classes must be final: android.nearlink.NearlinkSsapProperty is not final
+ParcelNotFinal: android.nearlink.NearlinkSsapReadByUuid:
+    Parcelable classes must be final: android.nearlink.NearlinkSsapReadByUuid is not final
+ParcelNotFinal: android.nearlink.NearlinkSsapService:
+    Parcelable classes must be final: android.nearlink.NearlinkSsapService is not final
+
+
+ProtectedMember: android.nearlink.NearlinkSsapProperty#mDescriptors:
+    Protected fields not allowed; must be public: field android.nearlink.NearlinkSsapProperty.mDescriptors}
+ProtectedMember: android.nearlink.NearlinkSsapService#mDevice:
+    Protected fields not allowed; must be public: field android.nearlink.NearlinkSsapService.mDevice}
+ProtectedMember: android.nearlink.NearlinkSsapService#mProperties:
+    Protected fields not allowed; must be public: field android.nearlink.NearlinkSsapService.mProperties}
+
+
+RawAidl: android.nearlink.INearlink.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkAnnounceCallback.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkCallback.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkConnection.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkConnectionCallback.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkDiscovery.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkEnableCallback.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkSeekCallback.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkSsapClient.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkSsapClientCallback.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkSsapServer.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+RawAidl: android.nearlink.INearlinkSsapServerCallback.Stub:
+    Raw AIDL interfaces must not be exposed: Stub extends Binder
+
+
+RethrowRemoteException: android.nearlink.INearlink#disable():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#enable():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#getAddress():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#getName():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#getRemoteAlias(android.nearlink.NearlinkDevice):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#getRemoteAppearence(android.nearlink.NearlinkDevice):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#getRemoteName(android.nearlink.NearlinkDevice):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#getState():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#getUuids():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#isEnabled():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#onServiceDown():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#onServiceUp():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#registerCallback(android.nearlink.INearlinkCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#setAddress(String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#setName(String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#setRemoteAlias(android.nearlink.NearlinkDevice, String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink#unregisterCallback(android.nearlink.INearlinkCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#disable():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#enable():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#getAddress():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#getName():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#getRemoteAlias(android.nearlink.NearlinkDevice):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#getRemoteAppearence(android.nearlink.NearlinkDevice):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#getRemoteName(android.nearlink.NearlinkDevice):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#getState():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#getUuids():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#isEnabled():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#onServiceDown():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#onServiceUp():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#registerCallback(android.nearlink.INearlinkCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#setAddress(String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#setName(String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#setRemoteAlias(android.nearlink.NearlinkDevice, String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Default#unregisterCallback(android.nearlink.INearlinkCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlink.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkAnnounceCallback#onAnnounceDisabled(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkAnnounceCallback#onAnnounceEnabled(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkAnnounceCallback#onAnnounceTerminaled(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkAnnounceCallback.Default#onAnnounceDisabled(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkAnnounceCallback.Default#onAnnounceEnabled(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkAnnounceCallback.Default#onAnnounceTerminaled(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkAnnounceCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkCallback#onNearlinkStateChange(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkCallback.Default#onNearlinkStateChange(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#check():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#connectRemoteDevice(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#connectionRegisterCallbacks(android.nearlink.INearlinkConnectionCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#connectionUnRegisterCallbacks(android.nearlink.INearlinkConnectionCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#disconnectRemoteDevice(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#getAdapterConnectionState():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#getConnectionState(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#getPairState(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#getPairedDevices():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#getPairedDevicesNum():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#isPairingInitiatedLocally(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#removeAllPairs():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection#removePairedRemoteDevice(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#check():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#connectRemoteDevice(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#connectionRegisterCallbacks(android.nearlink.INearlinkConnectionCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#connectionUnRegisterCallbacks(android.nearlink.INearlinkConnectionCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#disconnectRemoteDevice(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#getAdapterConnectionState():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#getConnectionState(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#getPairState(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#getPairedDevices():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#getPairedDevicesNum():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#isPairingInitiatedLocally(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#removeAllPairs():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Default#removePairedRemoteDevice(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnection.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnectionCallback#onAuthCompleteCallback(android.nearlink.NearlinkAddress, int, android.nearlink.NearlinkAuthInfoEvt, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnectionCallback.Default#onAuthCompleteCallback(android.nearlink.NearlinkAddress, int, android.nearlink.NearlinkAuthInfoEvt, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkConnectionCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#cancelDiscovery():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#getAnnounceMode():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#getDiscoveryEndMillis():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#getTimeoutForDiscovery():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#isDiscovering():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#setAnnounceMode(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#setTimeoutForDiscovery(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#startSeekForIntent():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#stopAnnounce(android.nearlink.INearlinkAnnounceCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#stopSeek(String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery#stopSeekForIntent():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#cancelDiscovery():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#getAnnounceMode():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#getDiscoveryEndMillis():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#getTimeoutForDiscovery():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#isDiscovering():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#setAnnounceMode(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#setTimeoutForDiscovery(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#startAnnounce(int, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData, android.nearlink.INearlinkAnnounceCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#startDiscovery(android.nearlink.NearlinkSeekParams, android.nearlink.NearlinkAnnounceParam, android.nearlink.NearlinkPublicData, android.nearlink.NearlinkPublicData):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#startSeek(String, android.nearlink.NearlinkSeekParams, java.util.List<android.nearlink.NearlinkSeekFilter>, android.nearlink.INearlinkSeekCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#startSeekForIntent():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#stopAnnounce(android.nearlink.INearlinkAnnounceCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#stopSeek(String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Default#stopSeekForIntent():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkDiscovery.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkEnableCallback#onDisabled(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkEnableCallback#onEnabled(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkEnableCallback.Default#onDisabled(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkEnableCallback.Default#onEnabled(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkEnableCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSeekCallback#onSeekResult(android.nearlink.NearlinkSeekResultInfo):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSeekCallback#onSeekStarted(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSeekCallback#onSeekStopped(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSeekCallback.Default#onSeekResult(android.nearlink.NearlinkSeekResultInfo):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSeekCallback.Default#onSeekStarted(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSeekCallback.Default#onSeekStopped(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSeekCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#connect(int, String, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#connectionParameterUpdate(int, String, int, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#disconnect(int, String, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#discoverServices(int, String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#exchangeInfoRequest(int, String, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#readRemoteRssi(int, String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#readRequest(int, String, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#readRequestByUuid(int, String, int, int, int, android.os.ParcelUuid):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#unregisterClient(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient#writeRequest(int, String, int, int, boolean, byte[]):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#connect(int, String, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#connectionParameterUpdate(int, String, int, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#disconnect(int, String, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#discoverServices(int, String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#exchangeInfoRequest(int, String, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#readRemoteRssi(int, String):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#readRequest(int, String, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#readRequestByUuid(int, String, int, int, int, android.os.ParcelUuid):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#registerClient(android.os.ParcelUuid, String, android.nearlink.INearlinkSsapClientCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#unregisterClient(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Default#writeRequest(int, String, int, int, boolean, byte[]):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClient.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onConnectionParameterUpdated(String, int, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onConnectionStateChanged(int, String, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onInfoExchanged(String, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onNotification(String, int, int, boolean, byte[], int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onReadByUuidComplete(String, android.os.ParcelUuid, java.util.List<android.nearlink.NearlinkSsapReadByUuid>, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onReadCfm(String, int, int, byte[], int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onReadRemoteRssi(String, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onRegistered(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onSearchComplete(String, java.util.List<android.nearlink.NearlinkSsapService>, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback#onWriteCfm(String, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onConnectionParameterUpdated(String, int, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onConnectionStateChanged(int, String, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onInfoExchanged(String, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onNotification(String, int, int, boolean, byte[], int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onReadByUuidComplete(String, android.os.ParcelUuid, java.util.List<android.nearlink.NearlinkSsapReadByUuid>, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onReadCfm(String, int, int, byte[], int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onReadRemoteRssi(String, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onRegistered(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onSearchComplete(String, java.util.List<android.nearlink.NearlinkSsapService>, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Default#onWriteCfm(String, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapClientCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer#addService(int, boolean, android.nearlink.NearlinkSsapService):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer#deleteAllServices(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer#notifyOrIndicate(int, String, int, int, byte[]):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer#registerServer(android.os.ParcelUuid, android.nearlink.INearlinkSsapServerCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer#sendResponse(int, String, int, int, byte[]):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer#setInfo(int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer#unregisterServer(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer.Default#addService(int, boolean, android.nearlink.NearlinkSsapService):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer.Default#deleteAllServices(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer.Default#notifyOrIndicate(int, String, int, int, byte[]):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer.Default#registerServer(android.os.ParcelUuid, android.nearlink.INearlinkSsapServerCallback):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer.Default#sendResponse(int, String, int, int, byte[]):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer.Default#setInfo(int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer.Default#unregisterServer(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServer.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback#onAllServiceDeleted(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback#onMtuChanged(String, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback#onServerReadRequest(String, int, int, int, boolean, boolean, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback#onServerRegistered(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback#onServerWriteRequest(String, int, int, int, boolean, boolean, byte[], int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback#onServiceAdded(android.nearlink.NearlinkSsapService, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback.Default#onAllServiceDeleted(int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback.Default#onMtuChanged(String, int, int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback.Default#onServerReadRequest(String, int, int, int, boolean, boolean, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback.Default#onServerRegistered(int, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback.Default#onServerWriteRequest(String, int, int, int, boolean, boolean, byte[], int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback.Default#onServiceAdded(android.nearlink.NearlinkSsapService, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.INearlinkSsapServerCallback.Stub#onTransact(int, android.os.Parcel, android.os.Parcel, int):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#cancelPairProcess(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#createConnect(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#disConnect(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#getAdapterConnectionState():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#getConnectionState(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#getPairState(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#getPairedDevices():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#getPairedDevicesNum():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#isPairingInitiatedLocally(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#removeAllPairs():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkConnection#removePair(android.nearlink.NearlinkAddress):
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkDevice#createConnect():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+RethrowRemoteException: android.nearlink.NearlinkDevice#disConnect():
+    Methods calling system APIs should rethrow `RemoteException` as `RuntimeException` (but do not list it in the throws clause)
+
+
+StaticUtils: android.nearlink.NearlinkAppearance:
+    Fully-static utility classes must not have constructor
+StaticUtils: android.nearlink.NearlinkErrorCode:
+    Fully-static utility classes must not have constructor
+
+
+UserHandleName: android.nearlink.NearlinkAnnounceParam:
+    Classes holding a set of parameters should be called `FooParams`, was `NearlinkAnnounceParam`
+
+
+VisiblySynchronized: PsiClassObjectAccessExpression:
+    Internal locks must not be exposed (synchronizing on this or class is still externally observable): method android.nearlink.NearlinkSsapServer.addService(android.nearlink.NearlinkSsapService,boolean)
+VisiblySynchronized: PsiThisExpression:
+    Internal locks must not be exposed (synchronizing on this or class is still externally observable): method android.nearlink.NearlinkSsapClient.exchangeInfo(int,int)
+VisiblySynchronized: android.nearlink.NearlinkAdapter#getDefaultAdapter():
+    Internal locks must not be exposed: method android.nearlink.NearlinkAdapter.getDefaultAdapter()
+VisiblySynchronized: android.nearlink.NearlinkSsapClient#exchangeInfo(int, int):
+    Internal locks must not be exposed (synchronizing on this or class is still externally observable): method android.nearlink.NearlinkSsapClient.exchangeInfo(int,int)
+VisiblySynchronized: android.nearlink.NearlinkSsapServer#addService(android.nearlink.NearlinkSsapService, boolean):
+    Internal locks must not be exposed (synchronizing on this or class is still externally observable): method android.nearlink.NearlinkSsapServer.addService(android.nearlink.NearlinkSsapService,boolean)

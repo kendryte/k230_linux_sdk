@@ -1,0 +1,28 @@
+/*
+ * Copyright (c) @CompanyNameMagicTag 2023-2023. All rights reserved.
+ */
+
+#ifndef BSLE_DFT_AT_SERVER
+#define BSLE_DFT_AT_SERVER
+int cmd_main_add_functions(void);
+/* DFT_AGV_NUM_TWO */
+#define DFT_AGV_NUM_TWO 2
+#define DFT_AGV_INDEX_ZERO 0
+#define DFT_AGV_INDEX_ONE 1
+#define DFT_AGV_INDEX_TWO 2
+#define DFT_AGV_INDEX_THREE 3
+#define DFT_AGV_INDEX_FOUR 4
+#define DFT_AGV_INDEX_FIVE 5
+#define DFT_AGV_INDEX_SIX 6
+#define DFT_AGV_INDEX_SEVEN 7
+#define DFT_AGV_INDEX_EIGHT 8
+#define DFT_AGV_INDEX_NINE 9
+#define DFT_AGV_INDEX_TEN 10
+#define DFT_AGV_INDEX_TRIRTEEN 13
+#define DFT_AGV_INDEX_FIFTEEN 15
+#define DFT_AGV_INDEX_SEVENTEEN 17
+#define DFT_AGV_INDEX_NINETEEN 19
+#define DFT_AGV_INDEX_TWENTY_ONE 21
+#define DFT_AGV_INDEX_TWENTY_THREE 23
+#define DFT_AGV_INDEX_THIRTY_FIVE 35
+#endif

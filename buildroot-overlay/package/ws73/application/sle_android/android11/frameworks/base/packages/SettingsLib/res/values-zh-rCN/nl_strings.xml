@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="nearlink_unconnected">未连接</string>
+    <string name="nearlink_connected">"已连接<xliff:g id="active_device">%1$s</xliff:g>"</string>
+    <string name="nearlink_connecting">"正在连接..."</string>
+    <string name="nearlink_disconnected">"已断开连接"</string>
+    <string name="nearlink_disconnecting">"正在断开连接..."</string>
+
+    <string name="nearlink_unpaired">未配对</string>
+    <string name="nearlink_pairing">正在配对...</string>
+    <string name="nearlink_paired">已配对</string>
+
+    <string name="nearlink_state_connected">"已连接"</string>
+
+    <string name="nearlink_hid_profile_summary_use_for">"用于输入"</string>
+    <string name="nearlink_hid_profile_summary_connected">"已连接到输入设备"</string>
+    <string name="nearlink_pairing_pin_error_message">"PIN码或配对密钥不正确，无法与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>配对。"</string>
+    <string name="nearlink_pairing_rejected_error_message">"<xliff:g id="DEVICE_NAME">%1$s</xliff:g> 已拒绝配对。"</string>
+    <string name="nearlink_pairing_device_down_error_message">"无法与“<xliff:g id="DEVICE_NAME">%1$s</xliff:g>”进行通信。"</string>
+    <string name="nearlink_pairing_error_message">"无法与“<xliff:g id="DEVICE_NAME">%1$s</xliff:g>”进行配对。"</string>
+
+    <string name="nearlink_talkback_computer">"计算机"</string>
+    <string name="nearlink_talkback_phone">"手机"</string>
+    <string name="nearlink_talkback_input_peripheral">"外围输入设备"</string>
+    <string name="nearlink_talkback_imaging">"成像设备"</string>
+    <string name="nearlink_talkback_headset">"耳麦"</string>
+    <string name="nearlink_talkback_headphone">"耳机"</string>
+    <string name="nearlink_talkback_nearlink">星闪</string>
+
+    <string name="nearlink_active_battery_level">"使用中，电池电量：<xliff:g id="BATTERY_LEVEL_AS_PERCENTAGE">%1$s</xliff:g>"</string>
+    <string name="nearlink_battery_level">"电池电量：<xliff:g id="BATTERY_LEVEL_AS_PERCENTAGE">%1$s</xliff:g>"</string>
+    <string name="nearlink_active_no_battery_level">"使用中"</string>
+    <string name="nearlink_connected_battery_level">"已连接，电量为 <xliff:g id="BATTERY_LEVEL_AS_PERCENTAGE">%1$s</xliff:g> <xliff:g id="ACTIVE_DEVICE">%2$s</xliff:g>"</string>
+    <string-array name="nearlink_audio_active_device_summaries">
+        <item></item>
+        <item>"，使用中"</item>
+        <item>"，使用中（媒体）"</item>
+        <item>"，使用中（手机）"</item>
+    </string-array>
+    <string name="nearlink_profile_hid">"输入设备"</string>
+
+</resources>

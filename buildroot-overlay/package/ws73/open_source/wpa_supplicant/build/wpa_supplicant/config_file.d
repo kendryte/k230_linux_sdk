@@ -1,0 +1,27 @@
+/home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/build/wpa_supplicant/config_file.o: \
+ config_file.c \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/includes.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/build_config.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/common.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/os.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/wpa_debug.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/wpabuf.h \
+ config.h config_ssid.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/common/defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/list.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/eap_peer/eap_config.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/wps/wps.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/common/ieee802_11_defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/common.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/wps/wps_defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/common/ieee802_11_common.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/common/defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/common/ieee802_11_defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/base64.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/uuid.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/common/ieee802_1x_defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/p2p/p2p.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/eap_peer/eap_methods.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/eap_common/eap_defs.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/eap_peer/eap.h \
+ /home/jyh/ws73_sdk_linux_ws73_1.10.110/open_source/wpa_supplicant/src/utils/config.h

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.android.nearlink"
+    android:sharedUserId="android.uid.nearlink">
+
+    <original-package android:name="com.android.nearlink" />
+
+    <uses-permission android:name="android.permission.NEARLINK" />
+    <uses-permission android:name="android.permission.NEARLINK_ADMIN" />
+    <uses-permission android:name="android.permission.NEARLINK_PRIVILEGED" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS"/>
+    <uses-permission android:name="android.permission.NET_ADMIN"/>
+    <uses-permission android:name="android.permission.NET_TUNNELING" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+
+    <application
+        android:name=".nlservice.AdapterApp"
+        android:defaultToDeviceProtectedStorage="true"
+        android:directBootAware="true"
+        android:label="@string/app_name"
+        android:persistent="false"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="false">
+
+        <service
+            android:process="@string/process"
+            android:name = ".nlservice.AdapterService"
+            android:exported = "true">
+            <intent-filter>
+                <action android:name="android.nearlink.INearlink" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:process="@string/process"
+            android:name = ".discovery.DiscoveryService"
+            android:exported = "true">
+            <intent-filter>
+                <action android:name="android.nearlink.INearlinkDiscovery" />
+            </intent-filter>
+        </service>
+
+        <service android:name=".connection.ConnectionService"
+            android:process="@string/process"
+            android:exported = "true">
+            <intent-filter>
+                <action android:name="android.nearlink.INearlinkConnection" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:process="@string/process"
+            android:name = ".ssap.SsapClientService"
+            android:exported = "true">
+            <intent-filter>
+                <action android:name="android.nearlink.INearlinkSsapClient" />
+            </intent-filter>
+        </service>
+        <service
+            android:process="@string/process"
+            android:name = ".hid.HidHostService"
+            android:enabled="@bool/profile_supported_hid_host"
+            android:exported = "true">
+            <intent-filter>
+                <action android:name="android.nearlink.INearlinkHidHost" />
+            </intent-filter>
+        </service>
+
+        <uses-library android:name="javax.obex" />
+
+    </application>
+
+</manifest>

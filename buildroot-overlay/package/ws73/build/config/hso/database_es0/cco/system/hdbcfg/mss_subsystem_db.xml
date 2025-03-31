@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--CompanyName-->
+<MSS>
+  <!--The definition of MSS basic ID, including Category ID, Module ID and name. Category / Module ID between subsystems must be unique-->
+  <SUBSYSTEM>
+    <CATEGORY>
+      <CAT NAME="System" ID="0x00000400" DESCRIPTION="System" />
+      <CAT NAME="Print" ID="0x00008000" DESCRIPTION="Print" />
+      <CAT NAME="Event" ID="0x00004000" DESCRIPTION="Event" />
+      <CAT NAME="Air" ID="0x00002000" DESCRIPTION="Air" />
+      <CAT NAME="Layer" ID="0x00001000" DESCRIPTION="Layer" />
+      <CAT NAME="User Plane" ID="0x00000200" DESCRIPTION="UserPlane" />
+      <CAT NAME="Message" ID="0x00000100" DESCRIPTION="Message" />
+      <CAT NAME="Custom messages" ID="0x00000010" DESCRIPTION="Custom messages" />
+    </CATEGORY>
+    <TITLE>
+      <ITEM ID="0x00" NAME="NO." STAT="1" VALUE="0" DESCRIPTION="..." />
+      <ITEM ID="0x01" NAME="Category" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x02" STAT="0" NAME="Level" DESCRIPTION="..." />
+      <ITEM ID="0x03" STAT="1" NAME="Date" DESCRIPTION="..." />
+      <ITEM ID="0x04" NAME="Time" STAT="1" DESCRIPTION="..." />
+      <ITEM ID="0x05" NAME="TimeStamp" STAT="1" DESCRIPTION="..." />
+      <ITEM ID="0x06" NAME="Chip" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x07" NAME="Cpu" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x08" NAME="Side" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x09" NAME="Layer" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x0A" NAME="Prim" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x0B" NAME="Source" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x0C" NAME="Destination" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x0D" NAME="FileName" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x0E" NAME="LineNo" STAT="0" DESCRIPTION="..." />
+      <ITEM ID="0x0F" NAME="Data" STAT="0" DESCRIPTION="..." />
+    </TITLE>
+    <LEVEL>
+      <PRINT ICON="\logging_item_type_icon.png">
+        <LEVEL NAME="Error" ID="0x40000000" ICON_OFFSET="0x1" DESCRIPTION="Error" />
+        <LEVEL NAME="Warning" ID="0x20000000" ICON_OFFSET="0x0" DESCRIPTION="Warning" />
+        <LEVEL NAME="Info" ID="0x10000000" ICON_OFFSET="0x2" DESCRIPTION="Info" />
+        <LEVEL NAME="Normal" ID="0x08000000" ICON_OFFSET="0x4" DESCRIPTION="Normal" />
+      </PRINT>
+    </LEVEL>
+    <MODULES RANGE="0x001,0xFFFF">
+      <MOD ID="0x01" NAME="LIBC" DESCRIPTION="LIBC" />
+	  <MOD ID="0x02" NAME="BSP" DESCRIPTION="BSP" />
+	  <MOD ID="0x03" NAME="SYS" DESCRIPTION="SYS" />
+	  <MOD ID="0x04" NAME="MAIN" DESCRIPTION="MAIN" />
+	  <MOD ID="0x05" NAME="VAU" DESCRIPTION="VAU" />
+	  <MOD ID="0x06" NAME="DPU" DESCRIPTION="DPU" />
+	  <MOD ID="0x07" NAME="AIDSP" DESCRIPTION="AIDSP" />
+	  <MOD ID="0x08" NAME="CGRA" DESCRIPTION="CGRA" />
+	  <MOD ID="0x10" NAME="WIFI_HOST" DESCRIPTION="WIFI_HOST" />
+	  <MOD ID="0x11" NAME="WIFI_DEVICE" DESCRIPTION="WIFI_DEVICE" />
+	  <MOD ID="0x12" NAME="OAM_HOST" DESCRIPTION="OAM_HOST" />
+	  <MOD ID="0x64" NAME="ACORE" DESCRIPTION="ACORE" />
+	  <MOD ID="0x65" NAME="PCORE" DESCRIPTION="PCORE" />
+	  <MOD ID="0x66" NAME="SENSOR" DESCRIPTION="SENSOR" />
+	  <MOD ID="0x67" NAME="CGRA" DESCRIPTION="CGRA" />
+	  <MOD ID="0x68" NAME="DSP" DESCRIPTION="DSP" />
+	  <MOD ID="0x69" NAME="SCORE" DESCRIPTION="SCORE" />
+    </MODULES>
+  </SUBSYSTEM>
+</MSS>

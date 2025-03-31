@@ -1,0 +1,4 @@
+config BR2_PACKAGE_WS73
+    bool "WS73"
+    help
+        WS73

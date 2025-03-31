@@ -1,0 +1,50 @@
+cc_library_shared {
+    name: "libnearlink_jni",
+    compile_multilib: "first",
+    srcs: [
+        "com_android_nearlink_adapterservice.cpp",
+        "com_android_nearlink_discovery_announcemanager.cpp",
+    	"com_android_nearlink_discovery_seekmanager.cpp",
+    	"com_android_nearlink_connection.cpp",
+        "com_android_nearlink_ssap_client.cpp",
+        "com_android_nearlink_ssap_server.cpp",
+        "com_android_nearlink_hid_host.cpp",
+    ],
+    header_libs: ["libbluetooth_headers"],
+    include_dirs: [
+        "libnativehelper/include/nativehelper",
+        "system/bt/types",
+    ],
+    shared_libs: [
+        "libandroid_runtime",
+        "libbinder",
+        "libchrome",
+        "libnativehelper",
+        "liblog",
+        "libsle_host"
+    ],
+    static_libs: [
+        "libutils",
+        "libcutils",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wextra",
+        "-Wno-unused-parameter"
+    ],
+}
+cc_prebuilt_library_shared {
+    name: "libsle_host",
+    compile_multilib: "both",
+    multilib: {
+        lib64: {
+            srcs: ["lib/libsle_host.so"],
+        },
+        lib32: {
+            srcs: ["lib/libsle_host.so"],
+        },
+    },
+    clang: true,
+    proprietary: false
+}

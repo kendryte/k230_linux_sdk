@@ -1,0 +1,37 @@
+
+
+
+start() {
+	# Create any missing keys
+	insmod /lib/modules/6.6.36/updates/aic_load_fw/aic_load_fw.ko
+    insmod /lib/modules/6.6.36/updates/aic8800_fdrv/aic8800_fdrv.ko
+    insmod /lib/modules/6.6.36/updates/aic_btusb/aic_btusb.ko
+	echo "OK"
+}
+stop() {
+	rmmod /lib/modules/6.6.36/updates/aic_load_fw/aic_load_fw.ko
+    rmmod /lib/modules/6.6.36/updates/aic8800_fdrv/aic8800_fdrv.ko
+    rmmod /lib/modules/6.6.36/updates/aic_btusb/aic_btusb.ko
+	echo "OK"
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

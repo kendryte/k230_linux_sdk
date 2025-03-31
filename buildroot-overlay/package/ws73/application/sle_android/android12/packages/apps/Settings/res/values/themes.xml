@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2010 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
+<resources>
+
+    <style name="Transparent">
+        <item name="alertDialogTheme">@style/Theme.AlertDialog</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+    </style>
+
+    <style name="Theme.Settings" parent="Theme.SettingsBase">
+        <item name="android:clipToPadding">false</item>
+        <item name="android:clipChildren">false</item>
+        <item name="preferenceTheme">@style/SettingsPreferenceTheme</item>
+        <item name="android:listPreferredItemHeight">72dip</item>
+        <item name="android:homeAsUpIndicator">@drawable/ic_arrow_back</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:datePickerDialogTheme">@style/PickerDialogTheme.Settings</item>
+
+        <item name="fingerprint_layout_theme">@style/FingerprintLayoutTheme</item>
+        <item name="face_layout_theme">@style/FaceLayoutTheme</item>
+        <item name="ic_menu_moreoverflow">@*android:drawable/ic_menu_moreoverflow_holo_dark</item>
+
+        <!-- For edge-to-edge -->
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+
+        <!-- For wifi icon -->
+        <item name="wifi_signal">@drawable/wifi_signal</item>
+        <item name="wifi_signal_color">?android:attr/colorAccent</item>
+        <item name="wifi_friction">@drawable/wifi_friction</item>
+
+        <item name="side_margin">0dp</item>
+        <item name="sudListItemIconColor">?android:attr/colorAccent</item>
+
+        <!-- Redefine the ActionBar style for contentInsetStart -->
+        <item name="android:actionBarStyle">@style/Widget.ActionBar</item>
+
+        <item name="switchBarTheme">@style/ThemeOverlay.SwitchBar.Settings</item>
+
+        <item name="preferenceBackgroundColor">@drawable/preference_background</item>
+
+        <!-- For AndroidX AlertDialog -->
+        <item name="alertDialogTheme">@style/Theme.AlertDialog</item>
+
+        <item name="*android:lockPatternStyle">@style/LockPatternStyle.Setup</item>
+
+        <!-- For AppBarLayout -->
+        <item name="colorPrimary">@*android:color/primary_device_default_settings_light</item>
+        <item name="colorPrimaryVariant">@android:color/white</item>
+
+        <!-- For slice view in settings -->
+        <item name="sliceViewStyle">@style/Widget.SliceView.Settings</item>
+    </style>
+
+    <!-- Variant of the settings theme with no action bar. -->
+    <style name="Theme.Settings.NoActionBar">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="Theme.SubSettings.Base" parent="Theme.Settings.NoActionBar">
+        <!-- Redefine the ActionBar style for contentInsetStart -->
+        <item name="android:actionBarStyle">@style/Widget.ActionBar.SubSettings</item>
+
+        <item name="switchBarTheme">@style/ThemeOverlay.SwitchBar.Settings</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.SubSettings" parent="Theme.SubSettings.Base"/>
+
+    <style name="Theme.ProvisioningActivity" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+    <style name="Theme.LocalePickerWithRegionActivity" parent="Theme.Settings">
+        <item name="android:textColorHint">?android:attr/textColorSecondary</item>
+    </style>
+
+    <style name="ThemeOverlay.SwitchBar.Settings.Base" parent="@*android:style/ThemeOverlay.DeviceDefault.ActionBar">
+        <item name="android:elevation">1dp</item>
+        <item name="switchBarMarginStart">@dimen/switchbar_subsettings_margin_start</item>
+        <item name="switchBarMarginEnd">@dimen/switchbar_subsettings_margin_end</item>
+        <item name="switchBarBackgroundColor">@color/switchbar_background_color</item>
+        <item name="switchBarBackgroundActivatedColor">?android:attr/colorAccent</item>
+        <item name="switchBarRestrictionIcon">@*android:drawable/ic_info</item>
+    </style>
+
+    <style name="ThemeOverlay.SwitchBar.Settings" parent="ThemeOverlay.SwitchBar.Settings.Base"/>
+
+    <style name="Widget.SwitchBar.Switch" parent="@android:style/Widget.Material.CompoundButton.Switch">
+        <item name="android:trackTint">@color/switchbar_switch_track_tint</item>
+        <item name="android:thumbTint">@color/switchbar_switch_thumb_tint</item>
+        <item name="android:minHeight">@dimen/min_tap_target_size</item>
+        <item name="android:minWidth">@dimen/min_tap_target_size</item>
+    </style>
+
+    <style name="Theme.CryptKeeper" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">false</item>
+        <item name="android:background">@android:color/black</item>
+
+        <item name="*android:lockPatternStyle">@style/LockPatternStyle.Unlock</item>
+    </style>
+
+    <style name="ThemeOverlay.AlertDialog" parent="@android:style/ThemeOverlay.Material.Dialog.Alert">
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
+    <style name="Theme.AlertDialog.Base" parent="@style/Theme.AppCompat.DayNight.Dialog.Alert">
+        <item name="colorAccent">@*android:color/accent_device_default_light</item>
+        <item name="android:colorError">@color/settings_dialog_colorError</item>
+        <item name="android:colorBackground">@*android:color/surface_light</item>
+    </style>
+
+    <style name="Theme.AlertDialog" parent="Theme.AlertDialog.Base">
+        <item name="android:windowSoftInputMode">adjustResize</item>
+        <item name="android:clipToPadding">true</item>
+        <item name="android:clipChildren">true</item>
+
+        <!-- Redefine the ActionBar style for contentInsetStart -->
+        <item name="android:actionBarStyle">@style/Widget.ActionBar</item>
+
+        <!-- copied from Theme.DeviceDefault.Dialog.Alert -->
+        <item name="dialogCornerRadius">@*android:dimen/config_dialogCornerRadius</item>
+        <item name="android:windowTitleStyle">@*android:style/DialogWindowTitle.DeviceDefault</item>
+        <item name="android:textAppearanceMedium">@style/TextAppearance.DialogMessage</item>
+        <item name="buttonBarButtonStyle">@*android:style/Widget.DeviceDefault.Button.ButtonBar.AlertDialog</item>
+    </style>
+
+    <style name="Theme.ConfirmDeviceCredentials" parent="Theme.SubSettings">
+        <item name="confirmDeviceCredentialsSideMargin">@dimen/confirm_credentials_side_margin</item>
+        <item name="confirmDeviceCredentialsTopMargin">@dimen/confirm_credentials_top_margin</item>
+    </style>
+
+    <style name="Theme.ConfirmDeviceCredentialsDark" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">?android:attr/colorPrimary</item>
+
+        <item name="confirmDeviceCredentialsSideMargin">32dp</item>
+        <item name="confirmDeviceCredentialsTopMargin">32dp</item>
+
+        <item name="*android:lockPatternStyle">@style/LockPatternStyle.Dark</item>
+
+        <item name="android:windowAnimationStyle">@style/ConfirmDeviceCredentialsAnimationStyle</item>
+    </style>
+
+    <style name="Theme.ConfirmDeviceCredentialsWork" parent="Theme.ConfirmDeviceCredentialsDark">
+        <item name="*android:lockPatternStyle">@style/LockPatternStyle.Dark.Work</item>
+        <item name="android:colorAccent">@*android:color/white</item>
+    </style>
+
+    <style name="FallbackHome" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:navigationBarColor">#00000000</item>
+    </style>
+
+    <style name="FallbackHome.SetupWizard" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@drawable/fallback_home_unprovisioned_background</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:navigationBarColor">#00000000</item>
+    </style>
+
+    <style name="Theme.BluetoothPermission" parent="@style/Theme.AlertDialog">
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="Theme.NearlinkPermission" parent="@style/Theme.AlertDialog">
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="Theme.Settings.HomeBase" parent="Theme.Settings.NoActionBar">
+        <item name="colorPrimary">@*android:color/primary_device_default_settings_light</item>
+        <item name="colorAccent">@*android:color/accent_device_default_light</item>
+        <item name="preferenceTheme">@style/SettingsPreferenceTheme</item>
+
+        <!-- action bar, needed for search bar icon tinting -->
+        <item name="android:actionBarTheme">@*android:style/ThemeOverlay.DeviceDefault.ActionBar</item>
+
+        <!-- Define this color for material design -->
+        <item name="colorPrimaryVariant">@android:color/white</item>
+    </style>
+
+    <style name="Theme.Settings.Home" parent="Theme.Settings.HomeBase">
+        <item name="colorPrimaryDark">@*android:color/primary_dark_device_default_settings_light</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarDividerColor">@*android:color/ripple_material_light</item>
+        <!-- Homepage should follow device default design, the values is same as device default theme.-->
+        <item name="android:navigationBarColor">@android:color/white</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryDark</item>
+    </style>
+
+    <style name="Theme.Settings.ContextualCard" parent="Theme.Settings.Home">
+        <item name="android:textAppearanceListItem">@style/TextAppearance.HomepageCardTitle</item>
+    </style>
+
+    <!-- Note that Dialog themes do not set list dividers -->
+    <style name="Theme.Panel" parent="@*android:style/Theme.DeviceDefault.Settings.Dialog">
+        <item name="android:windowBackground">@null</item>
+        <item name="android:dividerHorizontal">@*android:drawable/list_divider_material</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:listDivider">@*android:drawable/list_divider_material</item>
+        <item name="android:fontFamily">@*android:string/config_headlineFontFamilyMedium</item>
+    </style>
+
+    <!-- This light theme for a window that can be applied to show light theme in setupwizard flow,
+         regardless of whether system theme changed to dark or light theme. WARNING: your settings
+         activity shows in setupwizard flow, but doesn't use setupwizard theme. This theme must be
+         set to ensure settings activity always shows light theme in setupwizard flow. -->
+    <style name="LightTheme.SettingsBase.SetupWizard" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@android:color/white</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:navigationBarDividerColor">@*android:color/navigation_bar_divider_device_default_settings</item>
+
+        <item name="android:colorPrimary">@*android:color/primary_device_default_settings_light</item>
+        <item name="android:colorPrimaryDark">@*android:color/primary_dark_device_default_settings_light</item>
+        <item name="android:colorBackground">@*android:color/background_device_default_light</item>
+        <item name="android:colorAccent">@*android:color/accent_device_default_light</item>
+
+        <item name="android:listDivider">@*android:color/list_divider_color_light</item>
+
+        <item name="android:textColorPrimary">@*android:color/primary_text_light</item>
+        <item name="android:textColorSecondary">@*android:color/secondary_text_light</item>
+    </style>
+
+    <!-- Material theme for the pages containing TabLayout and ViewPager -->
+    <style name="Theme.TabTheme" parent="@style/Theme.MaterialComponents.DayNight">
+        <item name="colorPrimary">@*android:color/edge_effect_device_default_light</item>
+    </style>
+
+    <style name="Theme.CollapsingToolbar.Settings" parent="@style/Theme.MaterialComponents.DayNight">
+        <item name="elevationOverlayEnabled">true</item>
+        <item name="elevationOverlayColor">?attr/colorPrimary</item>
+        <item name="colorPrimary">@*android:color/primary_device_default_settings_light</item>
+        <item name="colorAccent">@*android:color/accent_device_default_light</item>
+    </style>
+</resources>

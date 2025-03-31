@@ -1,0 +1,70 @@
+# nearlink app
+
+typeattribute nearlink coredomain;
+
+app_domain(nearlink)
+net_domain(nearlink)
+
+# Socket creation under /data/misc/bluedroid.
+# type_transition nearlink bluetooth_data_file:sock_file bluetooth_socket;
+
+# Allow access to net_admin ioctls
+allowxperm nearlink self:udp_socket ioctl priv_sock_ioctls;
+
+wakelock_use(nearlink);
+
+# Data file accesses.
+# allow nearlink bluetooth_data_file:dir create_dir_perms;
+allow nearlink nearlink_data_file:dir create_dir_perms;
+# allow nearlink bluetooth_data_file:notdevfile_class_set create_file_perms;
+allow nearlink nearlink_data_file:notdevfile_class_set create_file_perms;
+# allow nearlink bluetooth_logs_data_file:dir rw_dir_perms;
+# allow nearlink bluetooth_logs_data_file:file create_file_perms;
+
+# Socket creation under /data/misc/bluedroid.
+# allow nearlink bluetooth_socket:sock_file create_file_perms;
+allow nearlink self:netlink_socket create_socket_perms_no_ioctl;
+# tethering
+allow nearlink self:packet_socket create_socket_perms_no_ioctl;
+allow nearlink self:tun_socket create_socket_perms_no_ioctl;
+allow nearlink tun_device:chr_file rw_file_perms;
+allow nearlink efs_file:dir search;
+
+# allow nearlink to access uhid device for HID profile
+allow nearlink uhid_device:chr_file rw_file_perms;
+
+# proc access.
+# allow nearlink proc_bluetooth_writable:file rw_file_perms;
+
+# Allow write access to bluetooth specific properties
+# set_prop(nearlink, bluetooth_prop)
+set_prop(nearlink, pan_result_prop)
+
+allow nearlink audioserver_service:service_manager find;
+# allow nearlink bluetooth_service:service_manager find;
+allow nearlink drmserver_service:service_manager find;
+allow nearlink mediaserver_service:service_manager find;
+allow nearlink radio_service:service_manager find;
+allow nearlink app_api_service:service_manager find;
+allow nearlink system_api_service:service_manager find;
+
+# already open bugreport file descriptors may be shared with
+# the bluetooth process, from a file in
+# /data/data/com.android.shell/files/bugreports/bugreport-*.
+allow nearlink shell_data_file:file read;
+
+
+# hal_client_domain(nearlink, hal_bluetooth)
+hal_client_domain(nearlink, hal_telephony)
+
+# Nearlink A2DP offload requires binding with audio HAL
+hal_client_domain(nearlink, hal_audio)
+
+read_runtime_log_tags(nearlink)
+
+###
+### Neverallow rules
+###
+### These are things that the nearlink app should NEVER be able to do
+###
+

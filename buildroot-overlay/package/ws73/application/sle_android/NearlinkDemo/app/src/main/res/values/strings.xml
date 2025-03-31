@@ -1,0 +1,17 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">NearlinkUser</string>
+
+    <string name="left_arrow">\u25c4</string>
+    <string name="right_arrow">\u25ba</string>
+    <string name="up_arrow">\u25b2</string>
+    <string name="down_arrow">\u25bc</string>
+
+    <string name="rename_title">设备重命名</string>
+    <string name="nearlink_rename_button">"重命名"</string>
+
+    <string name="readdress_title">设置地址</string>
+    <string name="nearlink_readdress_button">"设置"</string>
+
+    <!-- Do not translate. android:process of this application. -->
+    <string name="process" translate="false"><xliff:g id="x" /></string>
+</resources>

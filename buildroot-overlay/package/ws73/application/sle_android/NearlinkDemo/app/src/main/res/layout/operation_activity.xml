@@ -1,0 +1,410 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginRight="15dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设备名称" />
+
+        <TextView
+            android:id="@+id/deviceName"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAlignment="viewEnd"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginRight="15dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设备地址" />
+
+        <TextView
+            android:id="@+id/sleAddress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAlignment="viewEnd" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginRight="15dp">
+
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="开始连接"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnConnState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="连接状态"
+            android:textSize="10dp" />
+        <Button
+            android:id="@+id/btnIsConnected"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="是否连接"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnUpdateParam"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:visibility="gone"
+            android:focusableInTouchMode="true"
+            android:text="更新连接参数"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnRssiValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:visibility="gone"
+            android:focusableInTouchMode="true"
+            android:text="rssi值"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnDisconnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="断开连接"
+            android:textSize="10dp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="15dp">
+
+        <Button
+            android:id="@+id/btnStartPair"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:visibility="gone"
+            android:focusableInTouchMode="true"
+            android:text="开始配对"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnGetPairState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="配对状态"
+            android:textSize="10dp" />
+        <Button
+            android:id="@+id/btnIsPaired"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="是否配对"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnPairNum"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="配对数量"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnPairDevices"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="配对设备列表"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnStopPair"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="取消配对"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnClearPair"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="取消所有配对"
+            android:textSize="10dp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="15dp">
+
+        <Button
+            android:id="@+id/btnSsapClient1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="SsapClient-1"
+            android:textSize="10dp" />
+        <Button
+            android:id="@+id/btnSsapClient2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="SsapClient-2"
+            android:textSize="10dp" />
+        <Button
+            android:id="@+id/btnSsapClient3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="SsapClient-3"
+            android:textSize="10dp" />
+        <Button
+            android:id="@+id/btnDisconnectClient"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="Disconnect-client"
+            android:textSize="10dp" />
+        <Button
+            android:id="@+id/btnCloseAllSsapClient"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="close-all-clients"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btnSsapServer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="SsapServer"
+            android:textSize="10dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="15dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_hid_connect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="HID connect"
+            android:textSize="10dp" />
+
+        <Button
+            android:id="@+id/btn_hid_disconnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/btn_bkg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="HID disconnect"
+            android:textSize="10dp" />
+
+    </LinearLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/contentLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="15dp"
+                android:layout_marginTop="15dp"
+                android:layout_marginRight="15dp"
+                android:orientation="vertical">
+
+                <Spinner
+                    android:id="@+id/spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:spinnerMode="dropdown" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="15dp"
+                    android:layout_marginTop="15dp"
+                    android:layout_marginRight="15dp"
+                    android:orientation="vertical">
+
+                    <EditText
+                        android:id="@+id/inputTxt"
+                        android:layout_width="match_parent"
+                        android:layout_height="120dp"
+                        android:autofillHints=""
+                        android:background="@drawable/edit_background"
+                        android:maxLines="5" />
+
+                    <Button
+                        android:id="@+id/btn_send"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:layout_marginBottom="20dp"
+                        android:text="发送"
+                        android:textSize="20dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="接收的数据" />
+
+                    <EditText
+                        android:id="@+id/receiveTxt"
+                        android:layout_width="match_parent"
+                        android:layout_height="120dp"
+                        android:background="@drawable/edit_background"
+                        android:editable="false"
+                        android:maxLines="5" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <EditText
+                    android:id="@+id/etLog"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:editable="false"
+                    android:gravity="left|top"
+                    android:scrollbars="vertical"
+                    android:textSize="10sp" />
+
+                <Button
+                    android:id="@+id/btn_clear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="清理" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnFold"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:background="@drawable/ic_arrow_expend" />
+    </RelativeLayout>
+
+
+</LinearLayout>

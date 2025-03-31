@@ -1,0 +1,60 @@
+﻿/*
+ * Copyright (c) CompanyNameMagicTag 2022-2023. All rights reserved.
+ * Description: 校准涉及到的phy寄存器操作接口
+ */
+#ifndef __FE_HAL_PHY_REG_IF_PKTMEM_H__
+#define __FE_HAL_PHY_REG_IF_PKTMEM_H__
+
+#include "osal_types.h"
+#ifdef __cplusplus
+#if __cplusplus
+extern "C" {
+#endif
+#endif
+// pa code
+osal_u32 hal_get_rf_pa_code_lut0_cfg_rf_pa_code_lut0(osal_void);
+osal_u32 hal_get_rf_pa_code_lut0_cfg_rf_pa_code_lut1(osal_void);
+osal_u32 hal_get_rf_pa_code_lut0_cfg_rf_pa_code_lut2(osal_void);
+osal_u32 hal_get_rf_pa_code_lut0_cfg_rf_pa_code_lut3(osal_void);
+osal_u32 hal_get_rf_pa_code_lut1_cfg_rf_pa_code_lut4(osal_void);
+osal_u32 hal_get_rf_pa_code_lut1_cfg_rf_pa_code_lut5(osal_void);
+osal_u32 hal_get_rf_pa_code_lut1_cfg_rf_pa_code_lut6(osal_void);
+osal_u32 hal_get_rf_pa_code_lut1_cfg_rf_pa_code_lut7(osal_void);
+osal_u32 hal_get_rf_pa_code_lut2_cfg_rf_pa_code_lut8(osal_void);
+osal_u32 hal_get_rf_pa_code_lut2_cfg_rf_pa_code_lut9(osal_void);
+osal_u32 hal_get_rf_pa_code_lut2_cfg_rf_pa_code_lut10(osal_void);
+osal_u32 hal_get_rf_pa_code_lut2_cfg_rf_pa_code_lut11(osal_void);
+osal_u32 hal_get_rf_pa_code_lut3_cfg_rf_pa_code_lut12(osal_void);
+osal_u32 hal_get_rf_pa_code_lut3_cfg_rf_pa_code_lut13(osal_void);
+osal_u32 hal_get_rf_pa_code_lut3_cfg_rf_pa_code_lut14(osal_void);
+osal_u32 hal_get_rf_pa_code_lut3_cfg_rf_pa_code_lut15(osal_void);
+// trx iq界限值
+osal_void hal_set_wcbb_clk_div_2_wp0_tx_dfe_1dom_div_num(osal_u32 xqG3OR8O4tmOr4vIO4lPOoSI_);
+osal_void hal_set_wcbb_clk_div_3_wp0_sync_data_path_div_num(osal_u32 xqG3OsQoCO4zRzOGzRAO4lPOoSI_);
+osal_void hal_set_cal_txiq_comp_thres_cfg_tpc_group_thres3_ch0(osal_u32 xCt2ORGCO2wvSGORAwmsiOCA3_);
+osal_void hal_set_cal_txiq_comp_thres_cfg_tpc_group_thres2_ch0(osal_u32 xCt2ORGCO2wvSGORAwmsZOCA3_);
+osal_void hal_set_cal_txiq_comp_thres_cfg_tpc_group_thres1_ch0(osal_u32 x6NgwLu6wg_iduwLQ_WC0w6Qy_);
+osal_void hal_set_rxiq_vga_set_th_cfg_rxiq_mux_mode(osal_u32 xCt2Ow8l6OIS8OIv4m_);
+osal_void hal_set_rxiq_vga_set_th_cfg_rxiq_lna_set_th1_ch0(osal_u32 x6Ngw_PBRwohGwCWLwLQ0w6Qy_);
+osal_void hal_set_rxiq_vga_set_th_cfg_rxiq_vga_set_th1_ch0(osal_u32 x6Ngw_PBRwqgGwCWLwLQ0w6Qy_);
+// rx dc界限值
+osal_void hal_set_rf_line_ctrl_reg_cfg_rxdc_dcoc_vcomp_vga_code_thr(osal_u32 xCt2Ow84CO4CvCOPCvIGOP2zOCv4mORAw_);
+// TPC ram 读写
+osal_void hal_set_tpc_ram_access_reg1_cfg_tpc_ram_period(osal_u32 xCt2ORGCOwzIOGmwlv4_);
+osal_void hal_set_tpc_ram_access_reg1_cfg_indirect_rw_mode(osal_u32 x6NgwBhFB_W6Lw_TwSiFW_);
+osal_void hal_set_tpc_ram_access_reg1_cfg_tpc_table_access_addr(osal_u32 xCt2ORGCORzyxmOzCCmssOz44w_);
+osal_u32 hal_get_tpc_ram_access_reg3_rpt_tpc_table_rd_data(osal_void);
+osal_u32 hal_get_adc_fs_cfg_adc_fs(osal_void);
+osal_u32 hal_get_cal_fft_sa_ctrl1_cfg_cali_iq_fft_size(osal_void);
+osal_void hal_set_wcbb_clk_sel_wp0_fft_clksel_man(osal_u32 xqG3OttROCxdsmxOIzo_);
+// dbb_scale寄存器控的配置
+osal_void hal_set_digital_scale2_cfg_tx_digital_scale_sel(osal_u32 xCt2OR8O4l2lRzxOsCzxmOsmx_);
+osal_void hal_set_digital_scale2_cfg_tx_digital_scale_val(osal_u32 x6NgwLPwFBgBLGowC6GoWwqGo_);
+
+osal_void hal_set_cfg_cont_tx_gap_cfg_cont_tx_gap(osal_u32 x6Ngw6ihLwLPwgGu_);
+#ifdef __cplusplus
+#if __cplusplus
+}
+#endif
+#endif
+#endif  // #define __FE_HAL_PHY_REG_IF_PKTMEM_H__

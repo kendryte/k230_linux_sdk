@@ -1,0 +1,8 @@
+/*
+ * Copyright (c) CompanyNameMagicTag 2020. All rights reserved.
+ * Description: PARTITION MANAGE MODULE -- SEPERATE CONFIGURATION FOR EACH PRODUCT
+ */
+#ifndef PARTITION_CONFIGURATION_H
+#define PARTITION_CONFIGURATION_H
+
+#endif /* PARTITION_CONFIGURATION_H */

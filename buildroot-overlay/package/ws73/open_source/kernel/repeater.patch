@@ -1,0 +1,26 @@
+diff -uprN linux-4.9.y/net/wireless/core.c /home/share/Hi3518_Host/Hi3518_SDK_0207/osdrv/opensource/kernel/linux-4.9.y/net/wireless/core.c
+--- linux-4.9.y/net/wireless/core.c	2024-09-30 14:20:37.816914523 +0800
++++ /home/share/Hi3518_Host/Hi3518_SDK_0207/osdrv/opensource/kernel/linux-4.9.y/net/wireless/core.c	2023-02-07 09:35:33.000000000 +0800
+@@ -1112,8 +1112,7 @@ static int cfg80211_netdev_notifier_call
+ 		/* allow mac80211 to determine the timeout */
+ 		wdev->ps_timeout = -1;
+ 
+-		if ((wdev->iftype == NL80211_IFTYPE_STATION ||
+-		     wdev->iftype == NL80211_IFTYPE_P2P_CLIENT ||
++		if ((wdev->iftype == NL80211_IFTYPE_P2P_CLIENT ||
+ 		     wdev->iftype == NL80211_IFTYPE_ADHOC) && !wdev->use_4addr)
+ 			dev->priv_flags |= IFF_DONT_BRIDGE;
+ 
+diff -uprN linux-4.9.y/net/wireless/util.c /home/share/Hi3518_Host/Hi3518_SDK_0207/osdrv/opensource/kernel/linux-4.9.y/net/wireless/util.c
+--- linux-4.9.y/net/wireless/util.c	2024-09-30 14:21:55.792699675 +0800
++++ /home/share/Hi3518_Host/Hi3518_SDK_0207/osdrv/opensource/kernel/linux-4.9.y/net/wireless/util.c	2023-02-07 09:35:33.000000000 +0800
+@@ -1070,7 +1070,8 @@ int cfg80211_change_iface(struct cfg8021
+ 		case NL80211_IFTYPE_OCB:
+ 		case NL80211_IFTYPE_P2P_CLIENT:
+ 		case NL80211_IFTYPE_ADHOC:
+-			dev->priv_flags |= IFF_DONT_BRIDGE;
++            if (ntype != NL80211_IFTYPE_STATION)
++			    dev->priv_flags |= IFF_DONT_BRIDGE;
+ 			break;
+ 		case NL80211_IFTYPE_P2P_GO:
+ 		case NL80211_IFTYPE_AP:

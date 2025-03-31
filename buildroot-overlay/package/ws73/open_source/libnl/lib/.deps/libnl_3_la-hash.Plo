@@ -1,0 +1,101 @@
+lib/libnl_3_la-hash.lo: lib/hash.c \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/stdc-predef.h \
+ include/netlink/hash.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/lib/gcc/riscv64-unknown-linux-gnu/10.4.0/include/stdint.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/stdint.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/libc-header-start.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/features.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/sys/cdefs.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/wordsize.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/long-double.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/gnu/stubs.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/gnu/stubs-lp64d.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/timesize.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/typesizes.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/time64.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/wchar.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/stdint-intn.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/stdint-uintn.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/stdlib.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/lib/gcc/riscv64-unknown-linux-gnu/10.4.0/include/stddef.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/waitflags.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/waitstatus.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/floatn.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/floatn-common.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/locale_t.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/__locale_t.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/sys/types.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/clock_t.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/clockid_t.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/time_t.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/timer_t.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/endian.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/endian.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/endianness.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/byteswap.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/uintn-identity.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/sys/select.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/select.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/sigset_t.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/__sigset_t.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/struct_timeval.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/struct_timespec.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/pthreadtypes.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/thread-shared-types.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/pthreadtypes-arch.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/struct_mutex.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/struct_rwlock.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/alloca.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/stdlib-bsearch.h \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/stdlib-float.h
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/stdc-predef.h:
+include/netlink/hash.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/lib/gcc/riscv64-unknown-linux-gnu/10.4.0/include/stdint.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/stdint.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/libc-header-start.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/features.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/sys/cdefs.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/wordsize.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/long-double.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/gnu/stubs.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/gnu/stubs-lp64d.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/timesize.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/typesizes.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/time64.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/wchar.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/stdint-intn.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/stdint-uintn.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/stdlib.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/lib/gcc/riscv64-unknown-linux-gnu/10.4.0/include/stddef.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/waitflags.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/waitstatus.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/floatn.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/floatn-common.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/locale_t.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/__locale_t.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/sys/types.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/clock_t.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/clockid_t.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/time_t.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/timer_t.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/endian.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/endian.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/endianness.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/byteswap.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/uintn-identity.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/sys/select.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/select.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/sigset_t.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/__sigset_t.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/struct_timeval.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/types/struct_timespec.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/pthreadtypes.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/thread-shared-types.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/pthreadtypes-arch.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/struct_mutex.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/struct_rwlock.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/alloca.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/stdlib-bsearch.h:
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/bits/stdlib-float.h:

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="nearlink">NearLink</string>
+    <string name="nearlink_quick_toggle_summary">"Open NearLink"</string>
+    <string name="nearlink_settings">"NearLink"</string>
+    <string name="nearlink_settings_title">"NearLink"</string>
+    <string name="nearlink_device_name">Device name</string>
+    <string name="nearlink_pairing_pref_title">Pair new device</string>
+    <string name="connected_sledevice_add_device_summary">NearLink will turn on to pair</string>
+    <string name="help_uri_nearlink_screen" translatable="false"></string>
+    <string name="keywords_nearlink_settings">connected, device, headphones, headset, speaker, wireless, pair, earbuds, music, media </string>
+    <string name="nearlink_device_name_summary">Visible as \u201C<xliff:g id="device_name">^1</xliff:g>\u201D to other devices</string>
+    <string name="nearlink_scanning_on_info_message">When Nearlink is turned on, your device can communicate with other nearby Nearlink devices.\n\nTo improve device experience, apps and services can still scan for nearby devices at any time, even when Nearlink is off. This can be used, for example, to improve location-based features and services. you can change this in <annotation id="link">scanning settings</annotation>.</string>
+    <string name="nearlink_empty_list_nearlink_off">When Nearlink is turned on, your device can communicate with other nearby Nearlink devices.</string>
+    <string name="nearlink_preference_found_media_devices">Available devices</string>
+    <string name="help_url_nearlink" translatable="false"></string>
+    <string name="nearlink_paired_device_title">Your devices</string>
+    <string name="nearlink_no_devices_found">No nearby Nearlink devices were found.</string>
+    <string name="nearlink_rename_button">Rename</string>
+
+    <!--Nearlink settings screen, summary text for Nearlink device with no name -->
+    <string name="nearlink_device">Unnamed Nearlink device</string>
+    <!-- Nearlink settings.  Message for disconnecting from all profiles of a nearlink device. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_disconnect_all_profiles" product="default">Your phone will disconnect from "<xliff:g id="device_name">%1$s</xliff:g>."</string>
+    <!-- Nearlink settings.  Message for disconnecting from all profiles of a nearlink device. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_disconnect_all_profiles" product="tablet">Your tablet will disconnect from "<xliff:g id="device_name">%1$s</xliff:g>."</string>
+    <!-- Nearlink settings.  Message for disconnecting from all profiles of a nearlink device. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_disconnect_all_profiles" product="device">Your device will disconnect from "<xliff:g id="device_name">%1$s</xliff:g>."</string>
+
+    <!-- Nearlink settings.  Dialog title to confirm disconnecting from all profiles of a device. [CHAR LIMIT=30] -->
+    <string name="nearlink_disconnect_title">Disconnect device?</string>
+
+    <!-- Nearlink mac address message.  This message shows the nearlink mac address for this device.  [CHAR LIMIT=120] -->
+    <string name="nearlink_footer_mac_message" product="default">Phone\'s Nearlink address: <xliff:g id="nearlink_mac_address">%1$s</xliff:g></string>
+    <!-- Nearlink mac address message.  This message shows the nearlink mac address for this device.  [CHAR LIMIT=120] -->
+    <string name="nearlink_footer_mac_message" product="tablet">Tablet\'s Nearlink address: <xliff:g id="nearlink_mac_address">%1$s</xliff:g></string>
+    <!-- Nearlink mac address message.  This message shows the nearlink mac address for this device.  [CHAR LIMIT=120] -->
+    <string name="nearlink_footer_mac_message" product="device">Device\'s Nearlink address: <xliff:g id="nearlink_mac_address">%1$s</xliff:g></string>
+
+    <!-- Nearlink settings screen, menu item to change this device's Nearlink name. [CHAR LIMIT=30] -->
+    <string name="nearlink_rename_device">Rename this device</string>
+
+    <!--  Nearlink device details. In the confirmation dialog for unpairing a paired device, this is the label on the button that will complete the unpairing action. -->
+    <string name="nearlink_unpair_dialog_forget_confirm_button">Forget device</string>
+    <!-- Nearlink device details. The title of a confirmation dialog for unpairing a paired device. [CHAR LIMIT=60] -->
+    <string name="nearlink_unpair_dialog_title">Forget device?</string>
+    <!--  Nearlink device details. The body of a confirmation dialog for unpairing a paired device. -->
+    <string name="nearlink_unpair_dialog_body" product="default">Your phone will no longer be paired with <xliff:g id="device_name">%1$s</xliff:g></string>
+    <!--  Nearlink device details. The body of a confirmation dialog for unpairing a paired device. -->
+    <string name="nearlink_unpair_dialog_body" product="tablet">Your tablet will no longer be paired with <xliff:g id="device_name">%1$s</xliff:g></string>
+    <!--  Nearlink device details. The body of a confirmation dialog for unpairing a paired device. -->
+    <string name="nearlink_unpair_dialog_body" product="device">Your device will no longer be paired with <xliff:g id="device_name">%1$s</xliff:g></string>
+
+    <!-- Nearlink settings.  Context menu item for a device.  Action will connect to all profiles on the device. -->
+    <string name="nearlink_device_context_connect">Connect</string>
+    <!-- Nearlink settings.  Context menu item for a device.  Action will disconnect from all profiles on the device. -->
+    <string name="nearlink_device_context_disconnect">Disconnect</string>
+
+    <!-- Title of the item to show device MAC address -->
+    <string name="nearlink_device_mac_address">Device\'s Nearlink address: <xliff:g id="address">%1$s</xliff:g></string>
+
+    <string name="unpair">UnPair</string>
+
+    <!-- Activity label of NearlinkPermissionActivity [CHAR LIMIT=none]-->
+    <string name="nearlink_connection_permission_request">"Nearlink connection request"</string>
+
+    <!-- Nearlink connection permission Alert Activity text [CHAR LIMIT=none]-->
+    <string name="nearlink_connection_dialog_text">"Do you want to connect to \u0022<xliff:g id="device_name">%1$s</xliff:g>\u0022?"</string>
+
+    <!-- Nearlink settings screen, summary text when not discoverable with paired devices [CHAR LIMIT=50] -->
+    <string name="nearlink_only_visible_to_paired_devices">Only visible to paired devices</string>
+    <!-- Nearlink settings screen, summary text when not discoverable and no paired devices [CHAR LIMIT=50] -->
+    <string name="nearlink_not_visible_to_other_devices">Not visible to other Nearlink devices</string>
+
+    <!-- Nearlink settings screen, summary when Discoverable duration is set to "forever" [CHAR LIMIT=50] -->
+    <string name="nearlink_is_discoverable_always">Visible to all nearby Nearlink devices</string>
+
+    <!-- Nearlink settings screen, summary after selecting Discoverable check box [CHAR LIMIT=50] -->
+    <string name="nearlink_is_discoverable">Visible to all nearby Nearlink devices (<xliff:g id="discoverable_time_period">%1$s</xliff:g>)</string>
+
+    <!-- This string asks the user whether or not to allow an app to enable nearlink. [CHAR LIMIT=100] -->
+    <string name="nearlink_ask_enablement"><xliff:g id="app_name">%1$s</xliff:g> wants to turn on Nearlink</string>
+    <!-- This string asks the user whether or not to allow an app to enable nearlink. [CHAR LIMIT=100] -->
+    <string name="nearlink_ask_enablement_no_name">An app wants to turn on Nearlink</string>
+
+    <!-- Strings for asking to the user whether to allow an app to enable nearlink and discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_enablement_and_lasting_discovery" product="tablet"><xliff:g id="app_name">%1$s</xliff:g> wants to turn on Nearlink and make your tablet visible to other devices. You can change this later in Nearlink settings.</string>
+    <!-- Strings for asking to the user whether to allow an app to enable nearlink and discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_enablement_and_lasting_discovery" product="default"><xliff:g id="app_name">%1$s</xliff:g> wants to turn on Nearlink and make your phone visible to other devices. You can change this later in Nearlink settings.</string>
+
+    <!-- Strings for asking to the user whether to allow an app to enable nearlink and discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_enablement_and_lasting_discovery_no_name" product="tablet">An app wants to turn on Nearlink and make your tablet visible to other devices. You can change this later in Nearlink settings.</string>
+    <!-- Strings for asking to the user whether to allow an app to enable nearlink and discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_enablement_and_lasting_discovery_no_name" product="default">An app wants to turn on Nearlink and make your phone visible to other devices. You can change this later in Nearlink settings.</string>
+
+    <!-- Strings for asking to the user whether to allow an app to enable nearlink and discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_enablement_and_discovery" product="tablet"><xliff:g id="app_name">%1$s</xliff:g> wants to turn on Nearlink and make your tablet visible to other devices for <xliff:g id="timeout">%2$d</xliff:g> seconds.</string>
+    <!-- Strings for asking to the user whether to allow an app to enable nearlink and discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_enablement_and_discovery" product="default"><xliff:g id="app_name">%1$s</xliff:g> wants to turn on Nearlink and make your phone visible to other devices for <xliff:g id="timeout">%2$d</xliff:g> seconds.</string>
+
+    <!-- Strings for asking to the user whether to allow an app to enable nearlink and discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_enablement_and_discovery_no_name" product="tablet">An app wants to turn on Nearlink and make your tablet visible to other devices for <xliff:g id="timeout">%1$d</xliff:g> seconds.</string>
+    <!-- Strings for asking to the user whether to allow an app to enable nearlink and discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_enablement_and_discovery_no_name" product="default">An app wants to turn on Nearlink and make your phone visible to other devices for <xliff:g id="timeout">%1$d</xliff:g> seconds.</string>
+
+    <!-- This string asks the user whether or not to allow an app to disable nearlink. [CHAR LIMIT=100] -->
+    <string name="nearlink_ask_disablement"><xliff:g id="app_name">%1$s</xliff:g> wants to turn off Nearlink</string>
+
+    <!-- This string asks the user whether or not to allow an app to disable nearlink. [CHAR LIMIT=100] -->
+    <string name="nearlink_ask_disablement_no_name">An app wants to turn off Nearlink</string>
+
+    <!-- Strings for msg to display to user while nearlink is turning on [CHAR LIMIT=60] -->
+    <string name="nearlink_turning_on">"Turning Nearlink on\u2026"</string>
+
+    <!-- Strings for msg to display to user while nearlink is turning off [CHAR LIMIT=60] -->
+    <string name="nearlink_turning_off">"Turning Nearlink off\u2026"</string>
+
+    <!-- Strings for asking to the user whether to allow an app to enable lasting discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_lasting_discovery" product="tablet"><xliff:g id="app_name">%1$s</xliff:g> wants to make your tablet visible to other Nearlink devices. You can change this later in Nearlink settings.</string>
+    <!-- Strings for asking to the user whether to allow an app to enable lasting discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_lasting_discovery" product="default"><xliff:g id="app_name">%1$s</xliff:g> wants to make your phone visible to other Nearlink devices. You can change this later in Nearlink settings.</string>
+
+    <!-- Strings for asking to the user whether to allow an app to enable lasting discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_lasting_discovery_no_name" product="tablet">An app wants to make your tablet visible to other Nearlink devices. You can change this later in Nearlink settings.</string>
+    <!-- Strings for asking to the user whether to allow an app to enable lasting discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_lasting_discovery_no_name" product="default">An app wants to make your phone visible to other Nearlink devices. You can change this later in Nearlink settings.</string>
+
+    <!-- Strings for asking to the user whether to allow an app to enable discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_discovery" product="tablet"><xliff:g id="app_name">%1$s</xliff:g> wants to make your tablet visible to other Nearlink devices for <xliff:g id="timeout">%2$d</xliff:g> seconds.</string>
+    <!-- Strings for asking to the user whether to allow an app to enable discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_discovery" product="default"><xliff:g id="app_name">%1$s</xliff:g> wants to make your phone visible to other Nearlink devices for <xliff:g id="timeout">%2$d</xliff:g> seconds.</string>
+
+    <!-- Strings for asking to the user whether to allow an app to enable discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_discovery_no_name" product="tablet">An app wants to make your tablet visible to other Nearlink devices for <xliff:g id="timeout">%1$d</xliff:g> seconds.</string>
+    <!-- Strings for asking to the user whether to allow an app to enable discovery mode. [CHAR LIMIT=NONE] -->
+    <string name="nearlink_ask_discovery_no_name" product="default">An app wants to make your phone visible to other Nearlink devices for <xliff:g id="timeout">%1$d</xliff:g> seconds.</string>
+
+    <!-- Title for the dialog to enter PIN. [CHAR LIMIT=40] -->
+    <string name="nearlink_pairing_request">Pair with <xliff:g id="device_name">%1$s</xliff:g>?</string>
+
+    <!-- Message for the error dialog when NL connecting operation fails generically. -->
+    <string name="nearlink_connecting_error_message">Couldn\u2019t connect to <xliff:g id="device_name">%1$s</xliff:g>.</string>
+
+    <!-- Title for BT error dialogs. -->
+    <string name="nearlink_error_title"></string>
+</resources>

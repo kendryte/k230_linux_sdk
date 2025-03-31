@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="nearlink">星闪</string>
+    <string name="nearlink_quick_toggle_summary">"打开星闪"</string>
+    <string name="nearlink_settings">"星闪"</string>
+    <string name="nearlink_settings_title">"星闪"</string>
+
+    <string name="nearlink_device_name">设备名称</string>
+    <string name="nearlink_pairing_pref_title">与新设备配对</string>
+    <string name="connected_sledevice_add_device_summary">系统将开启星闪以进行配对</string>
+    <string name="help_uri_nearlink_screen" translatable="false"></string>
+    <string name="keywords_nearlink_settings">已连接, 设备, 头戴式耳机, 耳机, 扬声器, 无线, 配对, 入耳式耳机, 音乐, 媒体</string>
+    <string name="nearlink_device_name_summary">"向其他设备显示为“<xliff:g id="DEVICE_NAME">^1</xliff:g>”"</string>
+    <string name="nearlink_scanning_on_info_message">"开启星闪后，您的设备可以与附近的其他星闪设备通信。\n\n为了提升设备的使用体验，应用和服务仍然可以随时扫描附近的设备（即使星闪已关闭）。这可用于改进基于位置的功能和服务（举例来说）。您可以在"<annotation id="link">"扫描设置"</annotation>"中更改此设置。"</string>
+    <string name="nearlink_empty_list_nearlink_off">"开启星闪后，您的设备可以与附近的其他星闪设备通信。"</string>
+    <string name="nearlink_preference_found_media_devices">"可用的设备"</string>
+    <string name="nearlink_paired_device_title">"您的设备"</string>
+    <string name="nearlink_no_devices_found">"未在附近找到星闪设备。"</string>
+    <string name="nearlink_rename_button">"重命名"</string>
+
+    <string name="nearlink_device">"未命名的星闪设备"</string>
+    <string name="nearlink_disconnect_all_profiles" product="default">"您的手机将断开与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>的连接。"</string>
+    <string name="nearlink_disconnect_all_profiles" product="tablet">"您的平板电脑将断开与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>的连接。"</string>
+    <string name="nearlink_disconnect_all_profiles" product="device">"您的设备将断开与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>的连接。"</string>
+
+    <string name="nearlink_disconnect_title">"要断开与该设备的连接吗？"</string>
+    <string name="nearlink_footer_mac_message" product="default">"手机的星闪地址：<xliff:g id="NEARLINK_MAC_ADDRESS">%1$s</xliff:g>"</string>
+    <string name="nearlink_footer_mac_message" product="tablet">"平板电脑的星闪地址：<xliff:g id="NEARLINK_MAC_ADDRESS">%1$s</xliff:g>"</string>
+    <string name="nearlink_footer_mac_message" product="device">"设备的星闪地址：<xliff:g id="NEARLINK_MAC_ADDRESS">%1$s</xliff:g>"</string>
+
+    <string name="nearlink_rename_device">"重命名此设备"</string>
+
+    <string name="nearlink_unpair_dialog_forget_confirm_button">"与设备取消配对"</string>
+    <string name="nearlink_unpair_dialog_title">"要与该设备取消配对吗？"</string>
+
+    <string name="nearlink_unpair_dialog_body" product="default">"您的手机将与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>取消配对"</string>
+    <string name="nearlink_unpair_dialog_body" product="tablet">"您的平板电脑将与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>取消配对"</string>
+    <string name="nearlink_unpair_dialog_body" product="device">"您的设备将与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>取消配对"</string>
+
+    <string name="nearlink_device_context_connect">"连接"</string>
+    <string name="nearlink_device_context_disconnect">"断开连接"</string>
+
+    <string name="nearlink_device_mac_address">"设备的星闪地址：<xliff:g id="ADDRESS">%1$s</xliff:g>"</string>
+    <string name="unpair">"取消配对"</string>
+    <string name="nearlink_connection_permission_request">"星闪连接请求"</string>
+
+    <string name="nearlink_connection_dialog_text">"要连接到“<xliff:g id="DEVICE_NAME">%1$s</xliff:g>”吗？"</string>
+
+    <string name="nearlink_only_visible_to_paired_devices">"已配对的设备可检测到此设备"</string>
+    <string name="nearlink_not_visible_to_other_devices">"其他星闪设备检测不到此设备"</string>
+
+    <string name="nearlink_is_discoverable_always">"附近所有星闪设备均可检测到此设备"</string>
+
+    <string name="nearlink_is_discoverable">"附近所有星闪设备均可检测到此设备（<xliff:g id="DISCOVERABLE_TIME_PERIOD">%1$s</xliff:g>）"</string>
+
+    <string name="nearlink_ask_enablement">"<xliff:g id="APP_NAME">%1$s</xliff:g>请求开启星闪"</string>
+    <string name="nearlink_ask_enablement_no_name">"某个应用请求开启星闪"</string>
+
+    <string name="nearlink_ask_enablement_and_lasting_discovery" product="tablet">"<xliff:g id="APP_NAME">%1$s</xliff:g>请求开启星闪，以便其他设备可检测到您的平板电脑。您可以稍后在“星闪”设置中更改此设置。"</string>
+    <string name="nearlink_ask_enablement_and_lasting_discovery" product="default">"<xliff:g id="APP_NAME">%1$s</xliff:g>请求开启星闪，以便其他设备可检测到您的手机。您可以稍后在“星闪”设置中更改此设置。"</string>
+
+    <string name="nearlink_ask_enablement_and_lasting_discovery_no_name" product="tablet">"某个应用请求开启星闪，以便其他设备可检测到您的平板电脑。您可以稍后在“星闪”设置中更改此设置。"</string>
+    <string name="nearlink_ask_enablement_and_lasting_discovery_no_name" product="default">"某个应用请求开启星闪，以便其他设备可检测到您的手机。您可以稍后在“星闪”设置中更改此设置。"</string>
+
+    <string name="nearlink_ask_enablement_and_discovery" product="tablet">"<xliff:g id="APP_NAME">%1$s</xliff:g>请求开启星闪，以便其他设备在 <xliff:g id="TIMEOUT">%2$d</xliff:g> 秒内可检测到您的平板电脑。"</string>
+    <string name="nearlink_ask_enablement_and_discovery" product="default">"<xliff:g id="APP_NAME">%1$s</xliff:g>请求开启星闪，以便其他设备在 <xliff:g id="TIMEOUT">%2$d</xliff:g> 秒内可检测到您的手机。"</string>
+
+    <string name="nearlink_ask_enablement_and_discovery_no_name" product="tablet">"某个应用请求开启星闪，以便其他设备在 <xliff:g id="TIMEOUT">%1$d</xliff:g> 秒内可检测到您的平板电脑。"</string>
+    <string name="nearlink_ask_enablement_and_discovery_no_name" product="default">"某个应用请求开启星闪，以便其他设备在 <xliff:g id="TIMEOUT">%1$d</xliff:g> 秒内可检测到您的手机。"</string>
+
+    <string name="nearlink_ask_disablement">"<xliff:g id="APP_NAME">%1$s</xliff:g>请求关闭星闪"</string>
+
+    <string name="nearlink_ask_disablement_no_name">"某个应用请求关闭星闪"</string>
+
+    <string name="nearlink_turning_on">"正在打开星闪..."</string>
+
+    <string name="nearlink_turning_off">"正在关闭星闪…"</string>
+
+    <string name="nearlink_ask_lasting_discovery" product="tablet">"<xliff:g id="APP_NAME">%1$s</xliff:g>想让其他星闪设备检测到您的平板电脑。您可以稍后在“星闪”设置中更改此设置。"</string>
+    <string name="nearlink_ask_lasting_discovery" product="default">"<xliff:g id="APP_NAME">%1$s</xliff:g>想让其他星闪设备检测到您的手机。您可以稍后在“星闪”设置中更改此设置。"</string>
+
+    <string name="nearlink_ask_lasting_discovery_no_name" product="tablet">"某个应用想让其他星闪设备检测到您的平板电脑。您可以稍后在“星闪”设置中更改此设置。"</string>
+    <string name="nearlink_ask_lasting_discovery_no_name" product="default">"某个应用想让其他星闪设备检测到您的手机。您可以稍后在“星闪”设置中更改此设置。"</string>
+
+    <string name="nearlink_ask_discovery" product="tablet">"<xliff:g id="APP_NAME">%1$s</xliff:g>想让其他星闪设备在 <xliff:g id="TIMEOUT">%2$d</xliff:g> 秒内可检测到您的平板电脑。"</string>
+    <string name="nearlink_ask_discovery" product="default">"<xliff:g id="APP_NAME">%1$s</xliff:g>想让其他星闪设备在 <xliff:g id="TIMEOUT">%2$d</xliff:g> 秒内可检测到您的手机。"</string>
+
+    <string name="nearlink_ask_discovery_no_name" product="tablet">"某个应用想让其他星闪设备在 <xliff:g id="TIMEOUT">%1$d</xliff:g> 秒内可检测到您的平板电脑。"</string>
+    <string name="nearlink_ask_discovery_no_name" product="default">"某个应用想让其他星闪设备在 <xliff:g id="TIMEOUT">%1$d</xliff:g> 秒内可检测到您的手机。"</string>
+
+    <string name="nearlink_pairing_request">"要与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>配对吗？"</string>
+
+    <string name="nearlink_connecting_error_message">"无法连接到<xliff:g id="DEVICE_NAME">%1$s</xliff:g>。"</string>
+    <string name="nearlink_error_title"></string>
+</resources>

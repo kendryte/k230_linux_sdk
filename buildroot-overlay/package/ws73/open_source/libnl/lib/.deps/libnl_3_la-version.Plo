@@ -1,0 +1,5 @@
+lib/libnl_3_la-version.lo: lib/version.c \
+ /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/stdc-predef.h \
+ include/netlink/version.h
+/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/sysroot/usr/include/stdc-predef.h:
+include/netlink/version.h:

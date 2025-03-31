@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--companytag Technologies Co.,Ltd.-->
+<!--插件ID定义：DCL:0x100; ACL:0x101,CG:0x102,LV:0x110,SG:0x111,MV:0x112,DS:0x120,NVI:0x121,MS:0x122,LCM:0x123-->
+
+<!--V1.0-->
+<DebugKits>
+  <GROUP NAME="AUTO" DATA_STRUCT_FILE="..\diag\apps_core_hso_msg_struct_def.txt" MULTIMODE="Firefly" PLUGIN="0x111,0x110(1),0x252">
+	<CMD ID="0x7100" NAME="diag_test" DESCRIPTION="diag_test_cmd" PLUGIN="0x100,0x252" TYPE="REQ_IND">
+      <REQ STRUCTURE="test_diag_cmd_req_a" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="test_diag_cmd_ind_a" TYPE="Auto" RESULT_CODE="" />
+    </CMD>
+  <CMD ID="0x71C0" NAME="diag_dfx" DESCRIPTION="diag_test_cmd" PLUGIN="0x100,0x252" TYPE="REQ_IND">
+      <REQ STRUCTURE="diag_dfx_cmd_req_st" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="diag_dfx_cmd_ind_st" TYPE="Auto" RESULT_CODE="" />
+  </CMD>
+  <CMD ID="0x71C1" NAME="ind_diag_dfx_stat" DESCRIPTION="diag_test_cmd" PLUGIN="0x100,0x252" TYPE="IND">
+      <IND STRUCTURE="zdiag_dfx_stat" TYPE="Auto" RESULT_CODE="" />
+  </CMD>
+	<CMD ID="0x550F" NAME="uart_cfg" DESCRIPTION="" PLUGIN="0x100,0x102(2)" TYPE="REQ">
+      <REQ STRUCTURE="ext_uart_attr" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_str_type" TYPE="Auto" RESULT_CODE="" />
+    </CMD>
+  <CMD ID="0xA012" TYPE="IND" NAME="提示" PLUGIN="0x100,0x252,0x303" DESCRIPTION="">
+      <IND STRUCTURE="str_type" TYPE="Auto" PARAM_VALUE="" />
+    </CMD>
+  </GROUP>
+  <GROUP NAME="FIX" DATA_STRUCT_FILE="..\diag\fix_struct_def.txt" MULTIMODE="Firefly" PLUGIN="0x111,0x110(1),0x252">
+    <CMD ID="0x3430" NAME="stat" DESCRIPTION="stat" PLUGIN="0x100,0x102" TYPE="REQ_IND">
+      <REQ STRUCTURE="ext_dbg_stat_q" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_null_stru" TYPE="Auto" RESULT_CODE="" />
+    </CMD>
+    <CMD ID="0x5070" NAME="cpup" DESCRIPTION="cpup" PLUGIN="0x100,0x102" TYPE="REQ_IND">
+      <REQ STRUCTURE="dfx_diag_cpup_cmd" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="dfx_cpup_item" TYPE="Auto" RESULT_CODE="" />
+    </CMD>
+    <CMD ID="0x5071" NAME="get_mem_info" DESCRIPTION="get_mem_info" PLUGIN="0x100,0x102" TYPE="REQ_IND">
+      <REQ STRUCTURE="tool_null_stru" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="osal_mdm_mem_info" TYPE="Auto" RESULT_CODE="" />
+    </CMD>
+    <CMD ID="0x5072" NAME="get_resource_info" DESCRIPTION="get_resource_info" PLUGIN="0x100,0x102" TYPE="REQ_IND">
+      <REQ STRUCTURE="tool_null_stru" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="osal_os_resource_use_stat" TYPE="Auto" RESULT_CODE="" />
+    </CMD>
+    <CMD ID="0x5073" NAME="get_task_info" DESCRIPTION="get_task_info" PLUGIN="0x100,0x102" TYPE="REQ_IND">
+      <REQ STRUCTURE="tool_null_stru" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="osal_task_info" TYPE="Auto" RESULT_CODE="" />
+    </CMD>
+    <CMD ID="0x71B1" NAME="upg_prepare" DESCRIPTION="" PLUGIN="0x100,0x102" TYPE="REQ">
+      <REQ STRUCTURE="ext_upg_prepare_info" TYPE="Auto" PARAM_VALUE="" />
+    </CMD>
+    <CMD ID="0x71B2" NAME="upg_request" DESCRIPTION="" PLUGIN="0x100,0x102" TYPE="REQ">
+      <REQ STRUCTURE="tool_null_stru" TYPE="Auto" PARAM_VALUE="" />
+    </CMD>
+    <CMD ID="0x71D0" NAME="psd_enable" DESCRIPTION="" PLUGIN="0x100,0x102(2),0x259" TYPE="REQ">
+      <REQ STRUCTURE="psd_enable_stru" TYPE="Auto" PARAM_VALUE="" />
+    </CMD>
+    <CMD ID="0x71D1" NAME="psd_report" DESCRIPTION="" PLUGIN="0x100,0x102(2),0x259" TYPE="IND">
+      <IND STRUCTURE="psd_report_stru" TYPE="Auto" />
+    </CMD>
+  </GROUP>
+  <GROUP NAME="TOOL_FIX" DATA_STRUCT_FILE="..\diag\tool_fix_struct_def.txt" MULTIMODE="Firefly" PLUGIN="0x111,0x110(1),0x252">
+	<CMD ID="0x5314" TYPE="IND" NAME="msg_sys" PLUGIN="0x110(1)" DESCRIPTION="MSG上报（SYS）"></CMD>
+	<CMD ID="0x5315" TYPE="IND" NAME="msg_layer(dev)" PLUGIN="0x110(1)" DESCRIPTION="MSG上报（LAYER）"></CMD>
+    <CMD ID="0x5316" TYPE="IND" NAME="msg_usr" PLUGIN="0x110(1),0x110(5)" DESCRIPTION="MSG上报（USR）"></CMD>
+	<CMD ID="0x7191" NAME="get_file_list" DESCRIPTION="" PLUGIN="0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="GetFileListReq" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="diag_cmd_sal_sys_sdm" TYPE="Auto" />
+    </CMD>
+	<CMD ID="0x7192" NAME="download_file" DESCRIPTION="" PLUGIN="0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="FileContentReq" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="diag_cmd_sal_sys_sdm" TYPE="Auto" />
+    </CMD>
+    <CMD ID="0x7193" NAME="transmit_request" DESCRIPTION="" PLUGIN="0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="transmit_data_request_item" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_null_stru" TYPE="Auto" />
+    </CMD>
+	<CMD ID="0x7194" NAME="tranmit_reply" DESCRIPTION="" PLUGIN="0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="transmit_data_reply_pkt" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_null_stru" TYPE="Auto" />
+    </CMD>
+	<CMD ID="0x7195" NAME="transmit_start" DESCRIPTION="" PLUGIN="0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="transmit_start_pkt" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_null_stru" TYPE="Auto" />
+    </CMD>
+	<CMD ID="0x7196" NAME="transmit_state" DESCRIPTION="" PLUGIN="0x100,0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="transmit_state_notify_pkt" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_null_stru" TYPE="Auto" />
+    </CMD>
+  <CMD ID="0x71A4" NAME="last_dump" DESCRIPTION="" PLUGIN="0x100,0x110,0x261" TYPE="IND">
+    <IND STRUCTURE="last_dump_data_ind_t" TYPE="Auto" />
+  </CMD>
+  <CMD ID="0x71A5" NAME="last_dump_finish" DESCRIPTION="" PLUGIN="0x100,0x110,0x261" TYPE="IND">
+    <IND STRUCTURE="last_dump_data_ind_finish_t" TYPE="Auto" />
+  </CMD>
+	<CMD ID="0x71D4" NAME="transmit_state" DESCRIPTION="" PLUGIN="0x100,0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="transmit_state_bgle_sample" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_null_stru" TYPE="Auto" />
+    </CMD>
+	<CMD ID="0x71D5" NAME="transmit_state" DESCRIPTION="" PLUGIN="0x100,0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="transmit_state_wlan_sample" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_null_stru" TYPE="Auto" />
+    </CMD>
+	<CMD ID="0x71D6" NAME="transmit_state" DESCRIPTION="" PLUGIN="0x100,0x102(2),0x259,0x261" TYPE="REQ">
+      <REQ STRUCTURE="transmit_state_soc_sample" TYPE="Auto" PARAM_VALUE="" />
+      <IND STRUCTURE="tool_null_stru" TYPE="Auto" />
+    </CMD>
+  </GROUP>
+</DebugKits>
