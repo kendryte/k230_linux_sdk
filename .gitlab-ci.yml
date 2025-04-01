@@ -875,6 +875,9 @@ release_image_publish:
         - k230_canmv_defconfig
         - k230d_canmv_defconfig
         - BPI-CanMV-K230D-Zero_defconfig
+        - k230_canmv_01studio_defconfig
+        - k230_canmv_lckfb_defconfig
+        - k230_canmv_v3_defconfig
   extends:
     - .sync_release_image
 
