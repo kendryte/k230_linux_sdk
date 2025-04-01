@@ -23,6 +23,7 @@ define WS73_INSTALL_TARGET_CMDS
 	cp -rf $(@D)/output/bin/ws73_cfg.ini $(TARGET_DIR)/etc/
 	mkdir -p $(TARGET_DIR)/lib/modules/$(LINUX_VERSION_PROBED)/extra
 	cp $(@D)//output/bin/*.ko $(TARGET_DIR)/lib/modules/$(LINUX_VERSION_PROBED)/extra/
+	echo "update_config=1" >> $(TARGET_DIR)/wpa_supplicant.conf
 endef
 
 $(eval $(kernel-module))
