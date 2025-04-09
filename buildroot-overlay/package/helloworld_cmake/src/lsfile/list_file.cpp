@@ -44,7 +44,7 @@ void dump_string_list(const std::string &info, const std::vector<std::string> &v
     //     std::cout << v[i] << std::endl;
 }
 
-int list_files(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     std::cout << "case " << argv[0] << " build " << __DATE__ << " " << __TIME__ << std::endl;
     if (argc < 2)
