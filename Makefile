@@ -16,7 +16,7 @@ BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 all :  buildroot
 
 debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync
-	@$(BR_SRC_DIR)/board/canaan/k230-soc/distribution.sh  $@  $(BRW_BUILD_DIR)
+	@$(BR_SRC_DIR)/board/canaan/k230-soc/distribution/distribution.sh  $@  $(BRW_BUILD_DIR)
 
 buildroot: $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) all
@@ -96,6 +96,7 @@ savedefconfig:  $(BRW_BUILD_DIR)/.config
 	cp $(BR_SRC_DIR)/configs/$(CONF) $(BR_OVERLAY_DIR)/configs/
 
 $(BRW_BUILD_DIR)/.config: sync
+	mkdir -p $(BRW_BUILD_DIR)/images/deb
 ifeq ("$(origin CONF)", "command line")
 	make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR)
 	touch $@
