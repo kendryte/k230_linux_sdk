@@ -11,8 +11,12 @@ HELLOWORLD_CMAKE_INSTALL_TARGET = YES
 HELLOWORLD_CMAKE_SUPPORTS_IN_SOURCE_BUILD = NO
 
 
-define HELLOWORLD_CMAKE_INSTALL_TARGET_CMDS
-	$(INSTALL) -D -m 0755 $(@D)/buildroot-build/helloWorld_cmake $(TARGET_DIR)/usr/bin/
-endef
+# define HELLOWORLD_CMAKE_INSTALL_TARGET_CMDS
+# 	$(INSTALL) -D -m 0755 $(@D)/buildroot-build/helloWorld_cmake $(TARGET_DIR)/usr/bin/
+# 	$(INSTALL) -D -m 0755 $(@D)/buildroot-build/angle_main $(TARGET_DIR)/usr/bin/
+# 	$(INSTALL) -D -m 0755 $(@D)/buildroot-build/hist $(TARGET_DIR)/usr/bin/
+# 	$(INSTALL) -D -m 0755 $(@D)/buildroot-build/inter $(TARGET_DIR)/usr/bin/
+# 	$(INSTALL) -D -m 0755 $(@D)/buildroot-build/media_blur $(TARGET_DIR)/usr/bin/
+# endef
 
 $(eval $(cmake-package))
