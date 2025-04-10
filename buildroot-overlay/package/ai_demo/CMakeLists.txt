@@ -9,8 +9,21 @@ endif()
 # 设置编译器路径
 set(CMAKE_C_COMPILER /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-gcc)
 
+# read .last_conf
+file(READ "../../../.last_conf" LAST_CONF_CONTENT)
+# match board
+string(REGEX MATCH "CONF=([^\n]+)" _ "${LAST_CONF_CONTENT}")
+if (CMAKE_MATCH_1)
+    set(CONF_VALUE "${CMAKE_MATCH_1}")
+    message(STATUS "Current CONF: ${CONF_VALUE}")
+else()
+    message(FATAL_ERROR "not found CONF in .last_conf")
+endif()
+
+set(BR2_CONFIG "../../configs/${CONF_VALUE}")
+
 set(sdk_root "${PROJECT_SOURCE_DIR}/../../../")
-set(usr_root "${sdk_root}/output/k230_canmv_defconfig/host/riscv64-buildroot-linux-gnu/sysroot/usr")
+set(usr_root "${sdk_root}/output/${CONF_VALUE}/host/riscv64-buildroot-linux-gnu/sysroot/usr")
 
 include_directories(${usr_root}/buildroot-overlay/package/libmmz/)
 include_directories(${usr_root}/include/nncase/include/)
