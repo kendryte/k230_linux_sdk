@@ -70,9 +70,6 @@ make linux-rebuild  #rebuild linux
 make linux-dirclean #linux clean
 ```
 
->linux source code can be specified using the LINUX_OVERRIDE_SRCDIR macro,for example:
->echo LINUX_OVERRIDE_SRCDIR=/home/wangjianxin/t/linux-xuantie-kernel >output/k230d_canmv_defconfig/local.mk
-
 ## buildroot
 
 ```bash

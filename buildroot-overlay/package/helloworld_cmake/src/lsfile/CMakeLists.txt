@@ -5,6 +5,6 @@
 # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 add_executable(helloWorld_lsfile list_file.cpp)
 
-install(TARGETS helloWorld_lsfile DESTINATION bin/helloworld/lsfile)
+install(TARGETS helloWorld_lsfile DESTINATION /root/helloworld/lsfile)
 
 # add_subdirectory(opencv_test)

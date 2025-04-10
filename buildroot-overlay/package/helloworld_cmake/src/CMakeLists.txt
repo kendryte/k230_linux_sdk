@@ -5,7 +5,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -funwind-tables")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 add_executable(helloWorld_cmake main.c )
 
-install(TARGETS helloWorld_cmake DESTINATION bin/helloworld)
+install(TARGETS helloWorld_cmake DESTINATION /root/helloworld/)
 
 add_subdirectory(opencv_test)
 add_subdirectory(lsfile)

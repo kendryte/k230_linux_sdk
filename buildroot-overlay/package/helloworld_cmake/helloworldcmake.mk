@@ -14,11 +14,11 @@ HELLOWORLD_CMAKE_SUPPORTS_IN_SOURCE_BUILD = NO
 
 # $1 src $2 dst_dir
 define COPYFILE
-	mkdir -p $2 ;cp  $1 $2;
+	mkdir -p $2 ;cp  -rf $1 $2;
 endef
 
 define HELLOWORLD_CMAKE_BUILD_DEB
-	$(call COPYFILE ,$(@D)/buildroot-build/helloWorld_cmake,$(@D)/deb/usr/bin/)
+	$(call COPYFILE ,$(TARGET_DIR)/root/helloworld,$(@D)/deb/root/)
 	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, $(PKG)).deb
 endef
 
