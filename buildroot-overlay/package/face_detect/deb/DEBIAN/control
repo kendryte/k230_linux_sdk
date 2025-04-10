@@ -1,4 +1,4 @@
-Package: helloworld-cmake
+Package: face-detect
 Version: 1.0
 Section: utils
 Priority: optional

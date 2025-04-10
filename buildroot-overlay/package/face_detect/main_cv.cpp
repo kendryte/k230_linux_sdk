@@ -185,7 +185,7 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed) {
                         img,
                         cv::Point(box.x1 * draw_buffer->width / img_cols, box.y1 * draw_buffer->height / img_rows),
                         cv::Point(box.x2 * draw_buffer->width / img_cols, box.y2 * draw_buffer->height / img_rows),
-                        cv::Scalar(0, 255, 0, 255), 2
+                        cv::Scalar(0, 255, 0, 255), 2,2,0
                         );
                     }
                     else {
@@ -198,7 +198,7 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed) {
                         img,
                         cv::Point( display->width - line_x_start, line_y_start),
                         cv::Point( display->width - line_x_end, line_y_end),
-                        cv::Scalar(0, 255, 0, 255), 2
+                        cv::Scalar(0, 255, 0, 255), 2,2,0
                         );
 
                     }
@@ -216,7 +216,7 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed) {
                 //     printf("write test.png\n");
                 // }
                 display_update_buffer(draw_buffer, 0, 0);
-                
+
             }
         }
         display_frame_count += 1;
@@ -276,7 +276,7 @@ static void display_proc(int video_device) {
         context.display_format = 0; // auto
         context.drm_rotation = rotation_90;
     }
-    
+
     if (v4l2_drm_setup(&context, 1, &display)) {
         cerr << "v4l2_drm_setup error" << endl;
         return;
@@ -307,7 +307,7 @@ void __attribute__((destructor)) cleanup() {
 }
 
 int main(int argc, char *argv[])
-{   
+{
     cout << "case " << argv[0] << " built at " << __DATE__ << " " << __TIME__ << endl;
     if (argc < 2)
     {
