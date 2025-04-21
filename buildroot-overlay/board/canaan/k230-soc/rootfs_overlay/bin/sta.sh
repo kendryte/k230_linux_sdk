@@ -39,6 +39,21 @@ wpa_cli -i ${wlandev} set_network 1 psk \"${password}\"
 #wpa_cli -i ${wlandev}  list_network           #查看当前设备下当前记住几个SSID
 
 wpa_cli -i ${wlandev} select_network 1
-udhcpc -i ${wlandev} -q -n #
+
+if `which udhcpc >/dev/null 2>&1` ; then
+    udhcpc -i ${wlandev} -q -n #
+else
+cat >/etc/systemd/network/10-wlan0.network <<EOF
+[Match]
+Name=wlan0
+
+[Network]
+DHCP=yes
+EOF
+systemctl restart systemd-networkd
+fi
+
+
+
 #ifmetric ${wlandev} 100  #设置路由优先级
 wpa_cli -i ${wlandev}  status   //查看网络状态

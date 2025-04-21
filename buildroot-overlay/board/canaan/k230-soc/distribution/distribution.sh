@@ -42,11 +42,8 @@ exit
 
 
 chroot /path/to/rootfs
-apt-get install python3-pyqt5 vim ntp
-apt-get install openssh-server
-apt-get install libdrm-dev
-apt-get install qtbase5-dev qtbase5-examples
-apt-get install lxqt
+apt-get install python3-pyqt5 vim ntp  openssh-server  libdrm-dev  qtbase5-dev qtbase5-examples  lxqt
+
 systemctl disable sddm
 
 
@@ -265,7 +262,7 @@ distribution_rootfs_replace()
         print_red "you need first build buildroot: make buildroot"
         exit 1;
     fi
-    apt-get install parted curl -y
+
 
     #set -x;
     cd ${BINARIES_DIR};
@@ -277,6 +274,8 @@ distribution_rootfs_replace()
 
     tar -xf ${distr_rootfs}.tar.gz
     cp ${BINARIES_DIR}/../target/lib/modules ${distr_rootfs}/lib -r;
+    cp ${BINARIES_DIR}/../target/bin/sta.sh ${distr_rootfs}/bin ;
+    cat  ${BINARIES_DIR}/../target/etc/version/release_version   >> ${distr_rootfs}/etc/issue ;
 
 
     { # generate ${distr_rootfs}.ext4
@@ -304,6 +303,7 @@ distribution_rootfs_replace()
     }
 
     #parted ${dist_img_name}  print free
+    cp  ${dist_img_name}  ${dist_img_name}.bak
     gzip -f  ${dist_img_name}
 
     local last_name=$(get_image_last_name ${distname})
@@ -315,6 +315,12 @@ distribution_rootfs_replace()
 
     rm -rf ${distr_rootfs} ${distr_rootfs}.ext4;
 }
+if [ "$(id -u)" -ne 0 ]; then
+    print_red "permission denied,you need root privileges,example: sudo make debian"
+    exit 1;
+fi
+apt-get update ;
+apt-get install parted curl -y;
 
 if $(curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl/distribution ) ;then
 DISTR_DOWN_URI="https://ai.b-bug.org/k230/downloads/dl/distribution"

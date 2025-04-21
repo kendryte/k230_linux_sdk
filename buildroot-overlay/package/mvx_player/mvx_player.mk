@@ -27,17 +27,14 @@ endef
 
 
 
-# $1 src $2 dst_dir
-define COPYFILE
-	mkdir -p $2 ;cp  -rpf $1 $2;
-endef
+
 
 define MVX_PLAYER_BUILD_DEB
 	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/mvx_encoder,$(@D)/deb/usr/bin)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/mvx_encoder_multi,$(@D)/deb/usr/bin)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/mvx_decoder,$(@D)/deb/usr/bin)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/mvx_decoder_multi,$(@D)/deb/usr/bin)
-	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, $(PKG)).deb
+	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
 endef
 
 MVX_PLAYER_POST_INSTALL_TARGET_HOOKS += MVX_PLAYER_BUILD_DEB

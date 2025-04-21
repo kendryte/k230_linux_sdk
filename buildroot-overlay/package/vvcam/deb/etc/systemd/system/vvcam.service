@@ -1,9 +1,10 @@
 [Unit]
 Description = isp driver
+After=rc-local.service
 
 [Service]
 ExecStart = /etc/vvcam/isp_start.sh
-RemainAfterExit=no
+RemainAfterExit=yes
 Type = oneshot
 
 [Install]

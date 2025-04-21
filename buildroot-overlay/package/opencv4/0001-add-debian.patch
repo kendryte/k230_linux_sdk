@@ -1,0 +1,28 @@
+From c931bf84a460721a723c867d36423799a3475aaa Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 16 Apr 2025 03:45:26 +0000
+Subject: [PATCH] add debian
+
+---
+ deb/DEBIAN/control | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+ create mode 100644 deb/DEBIAN/control
+
+diff --git a/deb/DEBIAN/control b/deb/DEBIAN/control
+new file mode 100644
+index 0000000..2c1ea90
+--- /dev/null
++++ b/deb/DEBIAN/control
+@@ -0,0 +1,9 @@
++Package: k230-opencv4
++Version: 1.0
++Section: utils
++Priority: optional
++Architecture: all
++Depends: libc6 (>= 2.15), libgcc1 (>= 1:3.0), libstdc++6 (>= 4.1.1)
++Maintainer: Your Name <yourname@email.com>
++Description: Test program
++ Production of deb software package for testing
+-- 
+2.25.1
+

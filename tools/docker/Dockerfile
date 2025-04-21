@@ -4,6 +4,7 @@
 #   docker run -it --rm  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v $HOME:$HOME -v /opt/toolchain:/opt/toolchain  -w $(pwd) wjx/d:latest
 #   docker run -it --rm --entrypoint "/bin/bash"  -h k230 -v /opt/toolchain:/opt/toolchain   -v $HOME:$HOME  -w $(pwd) wjx/d:latest
 
+#FROM ubuntu:24.04 22.04 20.04
 FROM ubuntu:22.04
 # LABEL verdor=Canaan
 # LABEL name=k230_sdk
@@ -18,9 +19,15 @@ ARG DEBIAN_FRONTEND=noninteractive
 # RUN dpkg --add-architecture i386
 
 # config ubuntu local apt source
-RUN cp /etc/apt/sources.list /etc/apt/sources_bak.list \
-    && sed -i 's/archive.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list \
-    && sed -i 's/security.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list
+RUN if [ -f  /etc/apt/sources.list ] ;then  \
+        sed -i 's/archive.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list ; \
+        sed -i 's/security.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list ; \
+    fi
+
+RUN if [ -f  /etc/apt/sources.list.d/ubuntu.sources ]; then \
+        sed -i 's/archive.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/ubuntu.sources ;\
+        sed -i 's/security.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/ubuntu.sources ; \
+    fi
 
 RUN apt-get clean all &&  apt-get update
 
