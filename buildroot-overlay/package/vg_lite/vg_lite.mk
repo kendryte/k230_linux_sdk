@@ -39,4 +39,17 @@ define VG_LITE_INSTALL_TARGET_CMDS
 endef
 endif
 
+define VG_LITE_BUILD_DEB
+	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/vglite_drm,$(@D)/deb/usr/bin/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/vglite_cube,$(@D)/deb/usr/bin/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/tiger,$(@D)/deb/usr/bin/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/linearGrad,$(@D)/deb/usr/bin/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/imgIndex,$(@D)/deb/usr/bin/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libvg_lite.so,$(@D)/deb/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libvg_lite_util.so,$(@D)/deb/lib/riscv64-linux-gnu/)
+	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
+endef
+
+VG_LITE_POST_INSTALL_TARGET_HOOKS += VG_LITE_BUILD_DEB
+
 $(eval $(generic-package))

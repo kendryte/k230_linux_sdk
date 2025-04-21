@@ -116,4 +116,13 @@ else
 LIBDRM_CONF_OPTS += -Dtests=false
 endif
 
+
+define LIBDRM_BUILD_DEB
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libdrm.so.2,$(@D)/deb/lib/riscv64-linux-gnu/)
+	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
+endef
+
+LIBDRM_POST_INSTALL_TARGET_HOOKS += LIBDRM_BUILD_DEB
+
+
 $(eval $(meson-package))

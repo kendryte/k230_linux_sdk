@@ -69,11 +69,6 @@ list_def:
 
 
 
-
-
-
-
-
 .PHONY:sync
 sync:
 	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
