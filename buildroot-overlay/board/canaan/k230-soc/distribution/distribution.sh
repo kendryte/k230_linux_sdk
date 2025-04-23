@@ -272,16 +272,25 @@ distribution_rootfs_replace()
 
     [ "${md5_v}" = "$(md5sum ${distr_rootfs}.tar.gz | cut -d' ' -f1 )" ]  || (print_red " ${distr_rootfs}.tar.gz error !" ;exit 1)
 
-    tar -xf ${distr_rootfs}.tar.gz
+    rm -rf ${distr_rootfs};tar -xf ${distr_rootfs}.tar.gz
     cp ${BINARIES_DIR}/../target/lib/modules ${distr_rootfs}/lib -r;
     cp ${BINARIES_DIR}/../target/bin/sta.sh ${distr_rootfs}/bin ;
     cat  ${BINARIES_DIR}/../target/etc/version/release_version   >> ${distr_rootfs}/etc/issue ;
+    {
+        #install deb
+        for item in ${BINARIES_DIR}/deb/*; do
+            dpkg -x $item  ${distr_rootfs}/
+        done
+        mkdir -p ${distr_rootfs}/etc/systemd/system/basic.target.wants/;
+        cd  ${distr_rootfs}/etc/systemd/system/basic.target.wants/;   ln -s  /etc/systemd/system/vvcam.service   vvcam.service;   cd -;
+        #rsync -a --ignore-times  --chmod=u=rwX,go=rX --exclude .empty --exclude '*~' t/   ${distr_rootfs}/
+    }
 
 
     { # generate ${distr_rootfs}.ext4
         rm -rf ${distr_rootfs}.ext4;
         local rootfs_size="$(( "$(sudo du -sm ${distr_rootfs} | cut -f1 )" + 300 ))"
-        mkfs.ext4  -d ${distr_rootfs}  -r 1 -N 0 -m 1 -L "rootfs" -O ^64bit ${distr_rootfs}.ext4 ${rootfs_size}m
+        mkfs.ext4  -d ${distr_rootfs}  -r 1 -N 0 -m 1 -L "rootfs"  ${distr_rootfs}.ext4 ${rootfs_size}m
     }
 
     {
@@ -330,7 +339,7 @@ fi
 
 
 if [ "${distribution_type}" =  "debian" ] ;then
-    distribution_rootfs_replace  debian   debian13  ${DISTR_DOWN_URI}/debian13.tar.gz  "aeeda080980a6f998526e8e49e786891"
+    distribution_rootfs_replace  debian   debian13  ${DISTR_DOWN_URI}/debian13.tar.gz  "724098998e928773b7490e298174e59b"
 elif [ "${distribution_type}" =  "ubuntu" ] ;then
     distribution_rootfs_replace  ubuntu   ubuntu24  ${DISTR_DOWN_URI}/ubuntu24.tar.gz "32176750a7b7c283af60d5af8abbac63"
 elif [ "${distribution_type}" =  "debian_rootfs" ] ;then

@@ -85,6 +85,28 @@ systemctl disable networking
 systemctl enable  systemd-networkd
 #-------etho dhcp end
 
+#other
+apt install  -y libdrm2  libgomp1 libwebp7  libpng-dev  libopus-dev  v4l-utils  ffmpeg usbutils
+
+#pyqt
+apt install  -y   qtbase5-dev qtbase5-examples python3-pyqt5
+cat << EOF > /etc/profile.d/qt_env.sh
+export QT_QPA_PLATFORM=linuxfb
+export QT_QPA_FB_DRM=1
+export QT_QPA_EGLFS_KMS_CONFIG="/root/kms_config.json"
+EOF
+cat << EOF > /root/kms_config.json
+{
+"device": "/dev/dri/card0",
+"outputs": [
+    { "name": "HDMI1", "format": "argb8888" }
+]
+}
+EOF
+
+#opencv
+apt install  -y  python3 python3-pip  python3-opencv
+
 umount  /proc/
 umount  /dev/pts
 exit

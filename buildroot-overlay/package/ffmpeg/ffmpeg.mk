@@ -588,11 +588,11 @@ FFMPEG_POST_INSTALL_TARGET_HOOKS += FFMPEG_REMOVE_EXAMPLE_SRC_FILES
 
 
 define FFMPEG_BUILD_DEB
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavcodec.so.58,$(@D)/deb/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavformat.so.58 ,$(@D)/deb/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavutil.so.56 ,$(@D)/deb/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libswscale.so.5 ,$(@D)/deb/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libswresample.so.3 ,$(@D)/deb/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavcodec.so.58,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavformat.so.58 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavutil.so.56 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libswscale.so.5 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libswresample.so.3 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
 endef
 
