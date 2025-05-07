@@ -249,10 +249,15 @@ gen_boot_ext4()
 	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  boot/fw_jump_add_uboot_head.bin
 	rm -rf boot.ext4 ;fakeroot mkfs.ext4 -d boot  -r 1 -N 0 -m 1 -L "boot" -O ^64bit boot.ext4 80M
 }
-
+gen_deb_packages_gz()
+{
+	cd  "${BINARIES_DIR}/deb/";
+	rm -rf  Packages.gz;dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
+	cd -;
+}
 gen_uboot_bin
 gen_env_bin
 #gen_linux_bin;
 gen_boot_ext4
-
+#gen_deb_packages_gz
 gen_image ${GENIMAGE_CFG_SD}   sysimage-sdcard.img

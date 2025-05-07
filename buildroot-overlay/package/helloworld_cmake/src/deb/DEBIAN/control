@@ -1,4 +1,4 @@
-Package: helloworld-cmake
+Package: k230-helloworld-cmake
 Version: 1.0
 Section: utils
 Priority: optional
