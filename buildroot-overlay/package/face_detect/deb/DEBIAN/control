@@ -1,4 +1,4 @@
-Package: face-detect
+Package: k230-face-detect
 Version: 1.0
 Section: utils
 Priority: optional
