@@ -1,0 +1,127 @@
+From af8c994aa5f532d343a9199908c1a22f9a829218 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Mon, 12 May 2025 10:01:37 +0000
+Subject: [PATCH] xuantie opencv rvv patch
+
+---
+ platforms/linux/riscv64-gcc.toolchain.cmake | 106 ++++++++++++++++++--
+ 1 file changed, 100 insertions(+), 6 deletions(-)
+
+diff --git a/platforms/linux/riscv64-gcc.toolchain.cmake b/platforms/linux/riscv64-gcc.toolchain.cmake
+index c3a0e16..032361e 100644
+--- a/platforms/linux/riscv64-gcc.toolchain.cmake
++++ b/platforms/linux/riscv64-gcc.toolchain.cmake
+@@ -1,10 +1,104 @@
+ set(CMAKE_SYSTEM_NAME Linux)
+-set(CMAKE_SYSTEM_VERSION 1)
+-set(GNU_MACHINE riscv64-unknown-linux-gnu CACHE STRING "GNU compiler triple")
++set(CMAKE_SYSTEM_PROCESSOR riscv64)
+ 
+-if(NOT DEFINED CMAKE_CXX_FLAGS)  # guards toolchain multiple calls
+-  set(CMAKE_C_FLAGS "-march=rv64gc")
+-  set(CMAKE_CXX_FLAGS "-march=rv64gc")
++#set(RISCV_GCC_INSTALL_ROOT /opt/RISCV CACHE PATH "Path to GCC for RISC-V cross compiler installation directory")
++#set(CMAKE_SYSROOT ${RISCV_GCC_INSTALL_ROOT}/sysroot CACHE PATH "RISC-V sysroot")
++
++set(CMAKE_C_COMPILER riscv64-unknown-linux-gnu-gcc)
++set(CMAKE_CXX_COMPILER riscv64-unknown-linux-gnu-g++)
++
++# Don't run the linker on compiler check
++set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
++
++
++set(CMAKE_CXX_FLAGS ""    CACHE STRING "")
++set(CMAKE_C_FLAGS ""    CACHE STRING "")
++
++if(BUILD_SHARED_LIBS STREQUAL "OFF")
++if(CORE STREQUAL "C908V")
++    if(VLENB STREQUAL "128")
++        set(CMAKE_C_FLAGS "-static -mcpu=c908v -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++        set(CMAKE_CXX_FLAGS "-static -mcpu=c908v -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++    else()
++        set(CMAKE_C_FLAGS "-static -mcpu=c908 -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++        set(CMAKE_CXX_FLAGS "-static -mcpu=c908 -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    endif()
++elseif(CORE STREQUAL "C907FDVM-RV64")
++    if(VLENB STREQUAL "128")
++        set(CMAKE_C_FLAGS "-static -mcpu=c907fdv-rv64 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++        set(CMAKE_CXX_FLAGS "-static -mcpu=c907fdv-rv64 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++    else()
++        set(CMAKE_C_FLAGS "-static -mcpu=c907fd-rv64 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++        set(CMAKE_CXX_FLAGS "-static -mcpu=c907fd-rv64 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    endif()
++elseif(CORE STREQUAL "C907FDVM-RV32")
++    if(VLENB STREQUAL "128")
++        set(CMAKE_C_FLAGS "-static -mcpu=c907fdv-rv32 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++        set(CMAKE_CXX_FLAGS "-static -mcpu=c907fdv-rv32 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++    else()
++        set(CMAKE_C_FLAGS "-static -mcpu=c907fd-rv32 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++        set(CMAKE_CXX_FLAGS "-static -mcpu=c907fd-rv32 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    endif()
++elseif(CORE STREQUAL "C906FDV")
++    set(CMAKE_C_FLAGS "-static -march=rv64imafdcxtheadc -mabi=lp64d  -mtune=c906 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    set(CMAKE_CXX_FLAGS "-static -march=rv64imafdcxtheadc -mabi=lp64d  -mtune=c906 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++elseif(CORE STREQUAL "C920")
++    set(CMAKE_C_FLAGS "-static -march=rv64imafdcxtheadc -mabi=lp64d  -mtune=c920 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    set(CMAKE_CXX_FLAGS "-static -march=rv64imafdcxtheadc -mabi=lp64d  -mtune=c920 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++elseif(CORE STREQUAL "C920V2")
++    set(CMAKE_C_FLAGS "-static -mcpu=c920v2 -mabi=lp64d  -mtune=c920v2 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++    set(CMAKE_CXX_FLAGS "-static -mcpu=c920v2 -mabi=lp64d  -mtune=c920v2 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++else()
++    set(CMAKE_C_FLAGS "-static -march=rv64imafdc_zihintpause_zfh_zba_zbb_zbc_zbs_xtheadc -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    set(CMAKE_CXX_FLAGS "-static -march=rv64imafdc_zihintpause_zfh_zba_zbb_zbc_zbs_xtheadc -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++endif()
++else()
++if(CORE STREQUAL "C908V")
++    if(VLENB STREQUAL "128")
++        set(CMAKE_C_FLAGS "-mcpu=c908v -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++        set(CMAKE_CXX_FLAGS "-mcpu=c908v -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++    else()
++        set(CMAKE_C_FLAGS "-mcpu=c908 -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++        set(CMAKE_CXX_FLAGS "-mcpu=c908 -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    endif()
++elseif(CORE STREQUAL "C907FDVM-RV64")
++    if(VLENB STREQUAL "128")
++        set(CMAKE_C_FLAGS "-mcpu=c907fdv-rv64 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++        set(CMAKE_CXX_FLAGS "-mcpu=c907fdv-rv64 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++    else()
++        set(CMAKE_C_FLAGS "-mcpu=c907fd-rv64 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++        set(CMAKE_CXX_FLAGS "-mcpu=c907fd-rv64 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    endif()
++elseif(CORE STREQUAL "C907FDVM-RV32")
++    if(VLENB STREQUAL "128")
++        set(CMAKE_C_FLAGS "-mcpu=c907fdv-rv32 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++        set(CMAKE_CXX_FLAGS "-mcpu=c907fdv-rv32 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++    else()
++        set(CMAKE_C_FLAGS "-mcpu=c907fd-rv32 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++        set(CMAKE_CXX_FLAGS "-mcpu=c907fd-rv32 -mtune=c907 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    endif()
++elseif(CORE STREQUAL "C906FDV")
++    set(CMAKE_C_FLAGS "-march=rv64imafdcxtheadc -mabi=lp64d  -mtune=c906 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    set(CMAKE_CXX_FLAGS "-march=rv64imafdcxtheadc -mabi=lp64d  -mtune=c906 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++elseif(CORE STREQUAL "C920")
++    set(CMAKE_C_FLAGS "-march=rv64imafdcxtheadc -mabi=lp64d  -mtune=c920 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    set(CMAKE_CXX_FLAGS "-march=rv64imafdcxtheadc -mabi=lp64d  -mtune=c920 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++elseif(CORE STREQUAL "C920V2")
++    set(CMAKE_C_FLAGS "-mcpu=c920v2 -mabi=lp64d  -mtune=c920v2 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++    set(CMAKE_CXX_FLAGS "-mcpu=c920v2 -mabi=lp64d  -mtune=c920v2 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive -D__riscv_vector_071 -mrvv-vector-bits=128")
++else()
++    set(CMAKE_C_FLAGS "-march=rv64imafdc_zihintpause_zfh_zba_zbb_zbc_zbs_xtheadc -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++    set(CMAKE_CXX_FLAGS "-march=rv64imafdc_zihintpause_zfh_zba_zbb_zbc_zbs_xtheadc -mabi=lp64d  -mtune=c908 -O3 -Wl,-whole-archive -lpthread -Wl,-no-whole-archive")
++endif()
++endif()
++
++if(ENABLE_GCOV)
++    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
++    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+ endif()
+ 
+-include("${CMAKE_CURRENT_LIST_DIR}/riscv-gnu.toolchain.cmake")
++set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
++set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
++set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
++set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
++set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+-- 
+2.25.1
+

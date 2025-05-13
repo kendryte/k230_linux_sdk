@@ -45,7 +45,7 @@ int k_analyse_mp3_file(char *filename, k_mp3_info_t *mp3info)
             return -1;
         }
 
-        int samples_to_get = mp3dec_decode_frame(&mp3d, file_data, sizeof(file_data), NULL, &frame_info);
+        int samples_to_get = mp3dec_decode_frame(&mp3d, (char*)file_data, sizeof(file_data), NULL, &frame_info);
         if (samples_to_get > 0)
         {
             printf("channels:%d,sample rate:%d,frame_byte:%d,bitrate_kbps:%d,layer:%d\n",

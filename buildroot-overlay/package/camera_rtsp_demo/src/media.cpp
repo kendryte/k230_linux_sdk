@@ -81,7 +81,7 @@ int KdMedia::destroy_media_features()
 }
 
 int KdMedia::_init_camera(AVFormatContext *&fmt_ctx) {
-    AVInputFormat *input_fmt = av_find_input_format("v4l2");
+    const AVInputFormat *input_fmt = av_find_input_format("v4l2");
     if (!input_fmt) {
         std::cerr << "Cannot find input format" << std::endl;
         return -1;
@@ -109,7 +109,7 @@ int KdMedia::_init_camera(AVFormatContext *&fmt_ctx) {
 }
 
 int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
-    AVCodec *codec = nullptr;
+    const AVCodec *codec = nullptr;
 
     if (input_config_.video_type == KdMediaVideoType::kVideoTypeH264)
     {

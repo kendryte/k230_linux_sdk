@@ -1,5 +1,5 @@
 SHELL=/bin/bash
-BR_NAME = buildroot-2024.02.1
+BR_NAME = buildroot-2025.02.1
 BR_SRC_DIR = output/$(BR_NAME)
 BR_OVERLAY_DIR = buildroot-overlay
 

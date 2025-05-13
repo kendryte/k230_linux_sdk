@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <cpu_func.h>
 #include <fdtdec.h>
 #include <init.h>
 #include <linux/sizes.h>
@@ -46,20 +47,20 @@ u32 detect_ddr_size(void)
     gd->ram_base = 0;
     gd->ram_size  = 0x8000000;
 
-    writeq(ddr_detect_pattern[0], 0);
-    writeq(ddr_detect_pattern[0], 0+8);
+    writeq(ddr_detect_pattern[0], (void __iomem *)0);
+    writeq(ddr_detect_pattern[0], (void __iomem *)0+8);
     flush_dcache_range(0, 0+CONFIG_SYS_CACHELINE_SIZE);
 
     for(ddr_size = 128*1024*1024; ddr_size <= (u64)(1*1024*1024*1024); ddr_size=ddr_size<<1 ){
         invalidate_dcache_range(ddr_size, ddr_size + CONFIG_SYS_CACHELINE_SIZE);
-        readv0 = readq(ddr_size);
+        readv0 = readq((void __iomem *)ddr_size);
 
         if(readv0 == ddr_detect_pattern[0]){//再次确认下
-            writeq(ddr_detect_pattern[1], ddr_size+8);
+            writeq(ddr_detect_pattern[1], (void __iomem *)ddr_size+8);
             flush_dcache_range(ddr_size, ddr_size+CONFIG_SYS_CACHELINE_SIZE);
             invalidate_dcache_range(0, 0 + CONFIG_SYS_CACHELINE_SIZE);
 
-            readv1 = readq(0+8);
+            readv1 = readq((void __iomem *)0+8);
             if(readv1 == ddr_detect_pattern[1]){
                 //printf("get ddr size=%lx\n", ddr_size);
                 break;

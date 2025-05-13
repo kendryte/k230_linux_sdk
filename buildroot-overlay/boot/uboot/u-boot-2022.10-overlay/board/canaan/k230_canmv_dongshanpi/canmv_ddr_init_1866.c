@@ -60,30 +60,30 @@
 static void pd_pll(uint32_t pll_ctl,uint32_t pll_stat)
 {
 int rdata;
-   writel(0x10001,pll_ctl);
-   rdata=readl(pll_stat);
+   writel(0x10001,(void __iomem *)pll_ctl);
+   rdata=readl((void __iomem *)pll_stat);
    while( (rdata&0x30) != 0x0){
-        rdata=readl(pll_stat);
+        rdata=readl((void __iomem *)pll_stat);
    }
 }
 static void init_pll(uint32_t pll_ctl,uint32_t pll_stat)
 {
    int rdata;
-   writel(0x20002,pll_ctl);
-   rdata=readl(pll_stat);
+   writel(0x20002,(void __iomem *)pll_ctl);
+   rdata=readl((void __iomem *)pll_stat);
    while( (rdata & 0x30) != 0x20){
-        rdata=readl(pll_stat);
+        rdata=readl((void __iomem *)pll_stat);
    }
 }
 
-static uint32_t cfg_pll(int fb_div,int ref_div,int out_div,int pllx_cfg0,int pllx_cfg1,int pllx_ctl,int pllx_stat)
+static uint32_t cfg_pll(uint32_t fb_div,uint32_t ref_div,uint32_t out_div,uint32_t pllx_cfg0,uint32_t pllx_cfg1,uint32_t pllx_ctl,uint32_t pllx_stat)
 {
   int pll_sta;
   int wdata,rdata;
   pd_pll(pllx_ctl,pllx_stat);
   //writel(( (fb_div/2) | 0x20000),pllx_cfg1 );
-  writel(( (fb_div/4) | 0x20000),pllx_cfg1 ); //for minimum long term jitter
-  writel(( (fb_div & 0x1fff) | ( (ref_div & 0x3f) << 16 ) | ( (out_div & 0xf) << 24) ),pllx_cfg0 );
+  writel(( (fb_div/4) | 0x20000),(void __iomem *)pllx_cfg1 ); //for minimum long term jitter
+  writel(( (fb_div & 0x1fff) | ( (ref_div & 0x3f) << 16 ) | ( (out_div & 0xf) << 24) ),(void __iomem *)pllx_cfg0 );
   init_pll(pllx_ctl,pllx_stat);
 
 }

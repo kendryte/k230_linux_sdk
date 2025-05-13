@@ -1,17 +1,17 @@
 #
 # Makefile
 #
-CPP=riscv64-unknown-linux-gnu-g++
+# CPP=riscv64-unknown-linux-gnu-g++
 LIBRTSP_SERVER_DIR_NAME ?= rtsp_server
 LIBRTSP_SERVER_DIR ?= ${shell pwd}
 
-ifeq ($(BR2_RISCV_32), y)
-CFLAGS += -march=rv32gcv_xtheadc
-LDFLAGS += -march=rv32gcv_xtheadc
-else
-CFLAGS += -mcpu=c908v -O2
-LDFLAGS += -mcpu=c908v -O2
-endif
+# ifeq ($(BR2_RISCV_32), y)
+# CFLAGS += -march=rv32gcv_xtheadc
+# LDFLAGS += -march=rv32gcv_xtheadc
+# else
+# CFLAGS += -mcpu=c908v -O2
+# LDFLAGS += -mcpu=c908v -O2
+# endif
 
 BIN = librtsp_server.so
 LIVE555_USAGEENVIRONMENT= UsageEnvironment
