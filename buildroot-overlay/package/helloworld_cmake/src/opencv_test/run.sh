@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -x
 ./inter 1.jpg 100
 ./media_blur 1.jpg 100

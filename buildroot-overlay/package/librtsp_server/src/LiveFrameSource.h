@@ -7,6 +7,7 @@
 #include <mutex>
 #include <atomic>
 #include <memory>
+#include <string>
 
 enum class EncodeType {
    INVALID = 0,

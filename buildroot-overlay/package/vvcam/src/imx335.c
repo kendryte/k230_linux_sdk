@@ -16,7 +16,7 @@ static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
     return 0;
 }
 
-static int set_mode(void* ctx, struct vvcam_sensor_mode* mode) {
+static int set_mode(void* ctx, uint32_t mode) {
     return 0;
 }
 

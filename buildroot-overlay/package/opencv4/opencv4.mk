@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-OPENCV4_VERSION = 4.5.4
-OPENCV4_SITE = https://kendryte-download.canaan-creative.com/developer/common
+OPENCV4_VERSION = 4.10.0
+OPENCV4_SITE = $(call github,opencv,opencv,$(OPENCV4_VERSION))
 OPENCV4_INSTALL_STAGING = YES
 OPENCV4_LICENSE = Apache-2.0
 OPENCV4_LICENSE_FILES = LICENSE
@@ -38,9 +38,7 @@ OPENCV4_CONF_OPTS += \
 	-DBUILD_WITH_DEBUG_INFO=OFF \
 	-DDOWNLOAD_EXTERNAL_TEST_DATA=OFF \
 	-DOPENCV_GENERATE_PKGCONFIG=ON \
-	-DOPENCV_INCLUDE_INSTALL_PATH=include \
-	-DOPENCV_ENABLE_PKG_CONFIG=ON \
-	-DBUILD_CSI_CV=ON -DCORE=C908V -DCMAKE_TOOLCHAIN_FILE=$(@D)/platforms/linux/riscv64-gcc.toolchain.cmake
+	-DOPENCV_ENABLE_PKG_CONFIG=ON
 
 ifeq ($(BR2_PACKAGE_OPENCV4_BUILD_TESTS)$(BR2_PACKAGE_OPENCV4_BUILD_PERF_TESTS),)
 OPENCV4_CONF_OPTS += -DINSTALL_TEST=OFF
@@ -420,6 +418,16 @@ OPENCV4_CONF_OPTS += \
 	-DBUILD_opencv_python3=OFF
 endif
 
+# OPENCV4_CONF_OPTS +=    -DCMAKE_C_FLAGS="-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1 -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize"
+# OPENCV4_CONF_OPTS +=  -DCMAKE_CXX_FLAGS="-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -D_FORTIFY_SOURCE=1 -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize"
+
+OPENCV4_CONF_OPTS += -DBUILD_CSI_CV=ON -DCORE=C908V  -DCMAKE_TOOLCHAIN_FILE=$(@D)/platforms/linux/riscv64-gcc.toolchain.cmake
+define OPENCV4_COPY_XUANTIE_OPENCV_RVV_PATCH
+	@cp -rf  $(TOPDIR)/package/opencv4/3rdparty/csi-cv $(@D)/3rdparty/
+endef
+
+OPENCV4_POST_PATCH_HOOKS += OPENCV4_COPY_XUANTIE_OPENCV_RVV_PATCH
+
 # Installation hooks:
 define OPENCV4_CLEAN_INSTALL_LICENSE
 	$(RM) -fr $(TARGET_DIR)/usr/share/licenses/opencv4
@@ -439,17 +447,19 @@ endef
 OPENCV4_POST_INSTALL_TARGET_HOOKS += OPENCV4_CLEAN_INSTALL_DATA
 endif
 
+
 define OPENCV4_BUILD_DEB
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_highgui.so.4.5,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_video.so.4.5,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_videoio.so.4.5,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_imgcodecs.so.4.5,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_imgproc.so.4.5,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_core.so.4.5,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_highgui.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_video.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_videoio.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_imgcodecs.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_imgproc.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_core.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libjpeg.so.9 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
 endef
 
 OPENCV4_POST_INSTALL_TARGET_HOOKS += OPENCV4_BUILD_DEB
+
 
 $(eval $(cmake-package))
