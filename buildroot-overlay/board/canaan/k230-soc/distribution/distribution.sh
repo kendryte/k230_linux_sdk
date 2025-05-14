@@ -21,111 +21,11 @@ print_blue()
 
 debian_gen_rootfs()
 {
+    local K230_SDK_ROOT=$(dirname $(dirname ${BRW_BUILD_DIR}))
 
-cat << 'EOFF' >tmp.txt
-sudo rm -rf debian13
-sudo apt-get update
-sudo apt install qemu-user-static binfmt-support debootstrap debian-ports-archive-keyring systemd-container rsync wget
-sudo debootstrap --arch=riscv64  unstable debian13 https://mirrors.aliyun.com/debian/
-sudo chroot debian13/
-echo "root:root" | chpasswd
-
-cat >>/etc/network/interfaces <<EOF
-auto lo
-iface lo inet loopback
-auto eth0
-iface eth0 inet dhcp
-'EOF'
-apt-get install -y  net-tools ntpdate
-ntpdate ntp.ntsc.ac.cn
-exit
-
-
-chroot /path/to/rootfs
-apt-get install python3-pyqt5 vim ntp  openssh-server  libdrm-dev  qtbase5-dev qtbase5-examples  lxqt
-
-systemctl disable sddm
-
-
-cat << EOF > /etc/profile.d/qt_env.sh
-export QT_QPA_PLATFORM=linuxfb
-export QT_QPA_FB_DRM=1
-export QT_QPA_EGLFS_KMS_CONFIG="/root/kms_config.json"
-EOF
-
-
-
-
-cat << EOF > /root/kms_config.json
-{
-"device": "/dev/dri/card0",
-"outputs": [
-    { "name": "HDMI1", "format": "argb8888" }
-]
-}
-EOF
-
-cat << EOF > /root/helloworld_pyqt.py
-import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel
-from PyQt5.QtGui import QFont
-
-def main():
-    app = QApplication(sys.argv)  # 创建一个 QApplication 实例
-    window = QWidget()  # 创建一个 QWidget 实例作为主窗口
-    window.setWindowTitle('Hello World')  # 设置窗口标题
-    label = QLabel('Hello World', window)  # 创建一个 QLabel 实例显示文本
-    label.move(50, 50)  # 移动标签到窗口中的位置
-
-    label = QLabel('王建新，，测试', window)  # 创建一个 QLabel 实例显示文本
-    label.move(300, 400)  # 移动标签到窗口中的位置
-
-    label.setFont(QFont('Arial', 30, QFont.Bold))
-    label.setStyleSheet("QLabel { color: red; }")  # 设置字体颜色为红色
-
-
-    label = QLabel('k230 pyqt5 测试', window)  # 创建一个 QLabel 实例显示文本
-    label.move(500, 500)  # 移动标签到窗口中的位置
-
-    label.setFont(QFont('Arial', 50, QFont.Bold))
-    label.setStyleSheet("QLabel { color: red; }")  # 设置字体颜色为红色
-
-
-
-    window.show()  # 显示窗口
-    sys.exit(app.exec_())  # 进入 Qt 事件循环
-
-if __name__ == '__main__':
-    main()
-EOF
-
-echo "a"> /first_boot_flag
-cat << 'EOF' > /etc/profile.d/disk.sh
-bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
-if [ -f /first_boot_flag ]; then
-    echo "first boot flag"
-    sd_size=$(parted ${bootddev} print | grep ${bootddev} | cut -d: -f2)
-    parted ${bootddev} resizepart 2 ${sd_size}; resize2fs ${bootddev}p2
-    rm -rf /first_boot_flag
-else
-    echo "not exit flag"
-fi
-mount ${bootddev}p1 /boot
-EOF
-echo "PermitRootLogin yes" >> etc/ssh/sshd_config
-
-tar  -czf debian13.tar.gz debian13
-#debian13_size="$(( "$(sudo du -sm debian13 | cut -f1 )" + 300 ))"
-#sudo  mkfs.ext4 -d debian13  -r 1 -N 0 -m 1 -L "rootfs" -O ^64bit debian13.ext4 ${debian13_size}m
-#tar -czvf debian13.ext4.tar.gz debian13.ext4
-#debian13.ext4.tar.gz 是debian的ext4格式根文件系统压缩包
-
-EOFF
     print_red "you need  manually execute the follow commands"
     echo -e ${BLUE}
-    cat  tmp.txt
-    echo -e  ${COLOR_NONE}
-    rm -rf tmp.txt
+    cat  ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/distribution/rootfs_debian_gen.sh
 
     print_red "You need to manually execute the above commands one by one on linux(not docker) "
     print_red "referenc doc is <<https://developer.canaan-creative.com/k230/zh/dev/03_other/K230_debian_ubuntu%E8%AF%B4%E6%98%8E.html>>"
@@ -339,7 +239,7 @@ fi
 
 
 if [ "${distribution_type}" =  "debian" ] ;then
-    distribution_rootfs_replace  debian   debian13  ${DISTR_DOWN_URI}/debian13.tar.gz  "724098998e928773b7490e298174e59b"
+    distribution_rootfs_replace  debian   debian13  ${DISTR_DOWN_URI}/debian13.tar.gz  "c958b36f56d5e2a88446b03bb7dc6557"
 elif [ "${distribution_type}" =  "ubuntu" ] ;then
     distribution_rootfs_replace  ubuntu   ubuntu24  ${DISTR_DOWN_URI}/ubuntu24.tar.gz "32176750a7b7c283af60d5af8abbac63"
 elif [ "${distribution_type}" =  "debian_rootfs" ] ;then
