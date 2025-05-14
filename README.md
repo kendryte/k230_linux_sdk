@@ -4,12 +4,12 @@
 
 ## Install toolchain and dependencies
 
-download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz toolchan from  `https://www.xrvm.cn/community/download?id=4333581795569242112`
+download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2.tar.gz toolchan from  `https://www.xrvm.cn/community/download?id=4433353576298909696`
 uncompress the toolchain to the /opt/toolchain(Refer command):
 
 ```bash
 mkdir -p /opt/toolchain;
-tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1-20240712.tar.gz -C /opt/toolchain;
+tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2.tar.gz -C /opt/toolchain;
 ```
 
 install dependencies(Refer command):
@@ -17,7 +17,7 @@ install dependencies(Refer command):
 ```bash
 apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
         bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3  \
-        libssl-dev gawk cmake bison flex  bash-completion parted curl
+        libssl-dev gawk cmake bison flex  bash-completion parted curl  xz-utils
 ```
 
 >k230d_canmv_ilp32_defconfig required  ubuntu 22.04 or 24.04 and install rv64ilp32 toolchain(refer command):
