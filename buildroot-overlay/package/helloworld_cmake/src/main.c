@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <execinfo.h> // for backtrace
 #include <signal.h>   // for signal handling
+#include <string.h>
 
 
 #define STACK_SIZE 100

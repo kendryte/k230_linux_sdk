@@ -13,6 +13,9 @@ find_package(nncaseruntime REQUIRED)
 #find_package(gsl-lite REQUIRED)
 find_package(OpenCV)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}   -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize")
+
 #message(nncaseruntime_LIBS=${nncaseruntime_LIBS} ${nncaseruntime_INCLUDE_DIRS})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
