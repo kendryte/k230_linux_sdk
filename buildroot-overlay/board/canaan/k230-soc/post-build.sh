@@ -84,3 +84,4 @@ EOF
 }
 gen_version
 auto_boot_proc
+cp ${STAGING_DIR}/lib/libasan.so.8 ${TARGET_DIR}/lib/
