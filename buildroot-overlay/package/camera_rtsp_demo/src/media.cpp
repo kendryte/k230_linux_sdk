@@ -81,7 +81,7 @@ int KdMedia::destroy_media_features()
 }
 
 int KdMedia::_init_camera(AVFormatContext *&fmt_ctx) {
-    const AVInputFormat *input_fmt = av_find_input_format("v4l2");
+    AVInputFormat *input_fmt = av_find_input_format("v4l2");
     if (!input_fmt) {
         std::cerr << "Cannot find input format" << std::endl;
         return -1;
