@@ -18,7 +18,7 @@ $(BR_OVERLAY_FS)  $(UBOOT_OVERLAY_FS) :
 $(BR_SRC_DIR)/.download_extract:
 	@mkdir -p output  $(dir $(BR_SRC_DIR)) dl
 	@BUILD_DIR=$(CURDIR)/output/ ./tools/download/dl-wrapper  -f $(BR_TAR_NAME)  -o  dl/$(BR_TAR_NAME) $(BR_SITES_FOR_DL) --
-	@rm -rf $(BR_SRC_DIR)/ ; tar -xf dl/$(BR_TAR_NAME) -C $(dir $(BR_SRC_DIR))  ;   rm -rf $(BR_SRC_DIR)/package/python3;
+	@rm -rf $(BR_SRC_DIR)/ ; tar -xf dl/$(BR_TAR_NAME) -C $(dir $(BR_SRC_DIR))  ;   rm -rf $(BR_SRC_DIR)/package/python3;  rm -rf $(BR_SRC_DIR)/package/ffmpeg;
 	@touch $@
 
 # $(error $(BR_OVERLAY_FS))

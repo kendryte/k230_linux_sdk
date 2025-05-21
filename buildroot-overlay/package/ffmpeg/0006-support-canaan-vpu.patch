@@ -1,22 +1,8 @@
-From 975357bbc755e37fc8b1cdfc5a8e491d0f39da55 Mon Sep 17 00:00:00 2001
-From: wangjianxin <wangjianxin@canaan-creative.com>
-Date: Mon, 12 May 2025 03:08:50 +0000
-Subject: [PATCH] support canaan vpu
-
----
- configure                 |  3 +++
- libavcodec/allcodecs.c    |  2 ++
- libavcodec/v4l2_buffers.c |  2 +-
- libavcodec/v4l2_context.c | 15 +++++++++++++++
- libavcodec/v4l2_m2m_dec.c |  1 +
- libavcodec/v4l2_m2m_enc.c |  1 +
- 6 files changed, 23 insertions(+), 1 deletion(-)
-
-diff --git a/configure b/configure
-index b04e526..50288c7 100755
+Index: b/configure
+===================================================================
 --- a/configure
 +++ b/configure
-@@ -3259,6 +3259,8 @@ hevc_vaapi_encoder_select="atsc_a53 cbs_h265 vaapi_encode"
+@@ -3109,6 +3109,8 @@ hevc_vaapi_encoder_select="cbs_h265 vaap
  hevc_v4l2m2m_decoder_deps="v4l2_m2m hevc_v4l2_m2m"
  hevc_v4l2m2m_decoder_select="hevc_mp4toannexb_bsf"
  hevc_v4l2m2m_encoder_deps="v4l2_m2m hevc_v4l2_m2m"
@@ -25,7 +11,7 @@ index b04e526..50288c7 100755
  mjpeg_cuvid_decoder_deps="cuvid"
  mjpeg_qsv_decoder_select="qsvdec"
  mjpeg_qsv_encoder_deps="libmfx"
-@@ -7002,6 +7004,7 @@ if enabled v4l2_m2m; then
+@@ -6625,6 +6627,7 @@ if enabled v4l2_m2m; then
      check_cc h264_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_H264;"
      check_cc vp8_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_VP8;"
      check_cc vp9_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_VP9;"
@@ -33,24 +19,24 @@ index b04e526..50288c7 100755
  fi
  
  check_headers sys/videoio.h
-diff --git a/libavcodec/allcodecs.c b/libavcodec/allcodecs.c
-index 5136a56..176ec12 100644
+Index: b/libavcodec/allcodecs.c
+===================================================================
 --- a/libavcodec/allcodecs.c
 +++ b/libavcodec/allcodecs.c
-@@ -867,6 +867,8 @@ extern const FFCodec ff_hevc_qsv_encoder;
- extern const FFCodec ff_hevc_v4l2m2m_encoder;
- extern const FFCodec ff_hevc_vaapi_encoder;
- extern const FFCodec ff_hevc_videotoolbox_encoder;
-+extern const FFCodec ff_mjpeg_v4l2m2m_encoder;
-+extern const FFCodec ff_mjpeg_v4l2m2m_decoder;
- extern const FFCodec ff_libkvazaar_encoder;
- extern const FFCodec ff_mjpeg_cuvid_decoder;
- extern const FFCodec ff_mjpeg_qsv_encoder;
-diff --git a/libavcodec/v4l2_buffers.c b/libavcodec/v4l2_buffers.c
-index 2277135..78d2f94 100644
+@@ -810,6 +810,8 @@ extern AVCodec ff_hevc_qsv_encoder;
+ extern AVCodec ff_hevc_v4l2m2m_encoder;
+ extern AVCodec ff_hevc_vaapi_encoder;
+ extern AVCodec ff_hevc_videotoolbox_encoder;
++extern AVCodec ff_mjpeg_v4l2m2m_encoder;
++extern AVCodec ff_mjpeg_v4l2m2m_decoder;
+ extern AVCodec ff_libkvazaar_encoder;
+ extern AVCodec ff_mjpeg_cuvid_decoder;
+ extern AVCodec ff_mjpeg_qsv_encoder;
+Index: b/libavcodec/v4l2_buffers.c
+===================================================================
 --- a/libavcodec/v4l2_buffers.c
 +++ b/libavcodec/v4l2_buffers.c
-@@ -385,7 +385,7 @@ static int v4l2_buffer_swframe_to_buf(const AVFrame *frame, V4L2Buffer *out)
+@@ -386,7 +386,7 @@ static int v4l2_buffer_swframe_to_buf(co
                  h = AV_CEIL_RSHIFT(h, desc->log2_chroma_h);
              }
              size = frame->linesize[i] * h;
@@ -59,14 +45,14 @@ index 2277135..78d2f94 100644
              if (ret)
                  return ret;
              offset += size;
-diff --git a/libavcodec/v4l2_context.c b/libavcodec/v4l2_context.c
-index f20f713..0de5ffa 100644
+Index: b/libavcodec/v4l2_context.c
+===================================================================
 --- a/libavcodec/v4l2_context.c
 +++ b/libavcodec/v4l2_context.c
-@@ -394,6 +394,17 @@ dequeue:
-             }
+@@ -405,6 +405,18 @@ dequeue:
              return NULL;
          }
+ 
 +        if(!V4L2_TYPE_IS_OUTPUT(ctx->type) &&
 +           ctx->av_codec_id == AV_CODEC_ID_RAWVIDEO &&
 +           ((buf.flags & 0x30000000) == 0))
@@ -78,10 +64,11 @@ index f20f713..0de5ffa 100644
 +            }
 +            goto start;
 +        }
- 
++
          if (ctx_to_m2mctx(ctx)->draining && !V4L2_TYPE_IS_OUTPUT(ctx->type)) {
              int bytesused = V4L2_TYPE_IS_MULTIPLANAR(buf.type) ?
-@@ -508,6 +519,10 @@ static int v4l2_get_raw_format(V4L2Context* ctx, enum AVPixelFormat *p)
+                             buf.m.planes[0].bytesused : buf.bytesused;
+@@ -518,6 +530,11 @@ static int v4l2_get_raw_format(V4L2Conte
              return AVERROR(EINVAL);
  
          pixfmt = ff_v4l2_format_v4l2_to_avfmt(fdesc.pixelformat, AV_CODEC_ID_RAWVIDEO);
@@ -89,27 +76,27 @@ index f20f713..0de5ffa 100644
 +            fdesc.index++;
 +            continue;
 +        }
++
          ret = v4l2_try_raw_format(ctx, pixfmt);
          if (ret){
              fdesc.index++;
-diff --git a/libavcodec/v4l2_m2m_dec.c b/libavcodec/v4l2_m2m_dec.c
-index aa2d759..3faed34 100644
+Index: b/libavcodec/v4l2_m2m_dec.c
+===================================================================
 --- a/libavcodec/v4l2_m2m_dec.c
 +++ b/libavcodec/v4l2_m2m_dec.c
-@@ -266,3 +266,4 @@ M2MDEC(h263,  "H.263", AV_CODEC_ID_H263,       NULL);
+@@ -261,3 +261,5 @@ M2MDEC(h263,  "H.263", AV_CODEC_ID_H263,
  M2MDEC(vc1 ,  "VC1",   AV_CODEC_ID_VC1,        NULL);
  M2MDEC(vp8,   "VP8",   AV_CODEC_ID_VP8,        NULL);
  M2MDEC(vp9,   "VP9",   AV_CODEC_ID_VP9,        NULL);
 +M2MDEC(mjpeg, "MJPEG", AV_CODEC_ID_MJPEG,      NULL);
-diff --git a/libavcodec/v4l2_m2m_enc.c b/libavcodec/v4l2_m2m_enc.c
-index e08db5d..249fcf3 100644
++
+Index: b/libavcodec/v4l2_m2m_enc.c
+===================================================================
 --- a/libavcodec/v4l2_m2m_enc.c
 +++ b/libavcodec/v4l2_m2m_enc.c
-@@ -443,3 +443,4 @@ M2MENC(h263, "H.263", options,       AV_CODEC_ID_H263);
+@@ -442,3 +442,5 @@ M2MENC(h263, "H.263", options,       AV_
  M2MENC(h264, "H.264", options,       AV_CODEC_ID_H264);
  M2MENC(hevc, "HEVC",  options,       AV_CODEC_ID_HEVC);
  M2MENC(vp8,  "VP8",   options,       AV_CODEC_ID_VP8);
 +M2MENC(mjpeg, "MJPEG", options,      AV_CODEC_ID_MJPEG);
--- 
-2.25.1
-
++
