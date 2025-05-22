@@ -1,0 +1,7 @@
+config BR2_PACKAGE_POSE_DETECT
+    bool "pose_detect"
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    select BR2_PACKAGE_DISPLAY
+    help
+        ai demo pose_detect

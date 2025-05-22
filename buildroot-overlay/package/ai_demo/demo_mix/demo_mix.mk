@@ -1,0 +1,1 @@
+$(AI_DEMO_MKF_COMMON)

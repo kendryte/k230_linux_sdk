@@ -1,0 +1,7 @@
+config BR2_PACKAGE_SMOKE_DETECT
+    bool "smoke_detect"
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    select BR2_PACKAGE_DISPLAY
+    help
+        ai demo smoke_detect

@@ -1,0 +1,7 @@
+config BR2_PACKAGE_FACE_VERIFICATION
+    bool "face_verification"
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    select BR2_PACKAGE_DISPLAY
+    help
+        ai demo face_verification

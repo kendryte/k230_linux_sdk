@@ -1,0 +1,7 @@
+config BR2_PACKAGE_TRAFFIC_LIGHT_DETECT
+    bool "traffic_light_detect"
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    select BR2_PACKAGE_DISPLAY
+    help
+        ai demo traffic_light_detect

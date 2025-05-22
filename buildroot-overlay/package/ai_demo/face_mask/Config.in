@@ -1,0 +1,7 @@
+config BR2_PACKAGE_FACE_MASK
+    bool "face_mask"
+    select BR2_PACKAGE_DISPLAY
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    help
+        ai demo face_mask

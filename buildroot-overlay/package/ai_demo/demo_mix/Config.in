@@ -1,0 +1,7 @@
+config BR2_PACKAGE_DEMO_MIX
+    bool "demo mix"
+    select BR2_PACKAGE_DISPLAY
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    help
+        demo mix

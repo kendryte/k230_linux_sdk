@@ -1,5 +1,5 @@
 #include "pinyin_utils.h"
-
+#include <cstdint>
 
 
 void trim(string &s)
@@ -28,7 +28,7 @@ void trim_shouwei(string &s)
     {
         s.erase(0,s.find_first_not_of(" "));
         s.erase(s.find_last_not_of(" ") + 1);
-    }  
+    }
 }
 // convert string to wstring
 std::wstring to_wide_string(const std::string& input)
@@ -36,7 +36,7 @@ std::wstring to_wide_string(const std::string& input)
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 	return converter.from_bytes(input);
 }
-// convert wstring to string 
+// convert wstring to string
 std::string to_byte_string(const std::wstring& input)
 {
 	//std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
@@ -46,7 +46,7 @@ std::string to_byte_string(const std::wstring& input)
 // 开始分隔
 vector<string> split(string s,char c)
 {
-    vector<string> results; 
+    vector<string> results;
     stringstream ss(s);
     string str;
      while (getline(ss, str, c)) {

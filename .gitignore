@@ -7,4 +7,6 @@ compile_commands.json
 /linux
 /buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version
 .clangd
-output_b
+buildroot-overlay/package/ai_demo/kmodel
+buildroot-overlay/package/ai_demo/k230_bin
+buildroot-overlay/package/ai_demo/out

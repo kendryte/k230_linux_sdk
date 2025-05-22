@@ -1,0 +1,7 @@
+config BR2_PACKAGE_LICENCE_DET_REC
+    bool "licence_det_rec"
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    select BR2_PACKAGE_DISPLAY
+    help
+        ai demo licence_det_rec

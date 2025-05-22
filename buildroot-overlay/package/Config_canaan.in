@@ -1,5 +1,6 @@
 menu "canaan package"
 	menu "AI"
+		source "package/ai_demo/Config.in"
 		source "package/libmmz/Config.in"
 		source "package/libnncase/Config.in"
 		source "package/face_detect/Config.in"
