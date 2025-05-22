@@ -1,6 +1,105 @@
-config BR2_PACKAGE_FACE_DETECT
-    bool "face detect demo"
+config BR2_PACKAGE_AI_DEMO_ALL
+    bool "all ai demo"
     select BR2_PACKAGE_DISPLAY
     select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    select BR2_PACKAGE_LLAMAC
+    select BR2_PACKAGE_FACE_DETECTION
+    select BR2_PACKAGE_DEMO_MIX
+    select BR2_PACKAGE_BYTETRACK
+    select BR2_PACKAGE_CROSSWALK_DETECT
+    select BR2_PACKAGE_DYNAMIC_GESTURE
+    select BR2_PACKAGE_EYE_GAZE
+    select BR2_PACKAGE_FACE_ALIGNMENT
+    select BR2_PACKAGE_FACE_EMOTION
+    select BR2_PACKAGE_FACE_GENDER
+    select BR2_PACKAGE_FACE_GLASSES
+    select BR2_PACKAGE_FACE_LANDMARK
+    select BR2_PACKAGE_FACE_MASK
+    select BR2_PACKAGE_FACE_MESH
+    select BR2_PACKAGE_FACE_PARSE
+    select BR2_PACKAGE_FACE_POSE
+    select BR2_PACKAGE_FACE_VERIFICATION
+    select BR2_PACKAGE_FALLDOWN_DETECT
+    select BR2_PACKAGE_FINGER_GUESSING
+    select BR2_PACKAGE_FITNESS
+    select BR2_PACKAGE_HEAD_DETECTION
+    select BR2_PACKAGE_HELMET_DETECT
+    select BR2_PACKAGE_KWS
+    select BR2_PACKAGE_LICENCE_DET
+    select BR2_PACKAGE_LICENCE_DET_REC
+    select BR2_PACKAGE_OBJECT_DETECT_YOLOV8N
+    select BR2_PACKAGE_OCR
+    select BR2_PACKAGE_PERSON_ATTR
+    select BR2_PACKAGE_PERSON_DETECT
+    select BR2_PACKAGE_PERSON_DISTANCE
+    select BR2_PACKAGE_POSE_DETECT
+    select BR2_PACKAGE_PPHUMANSEG
+    select BR2_PACKAGE_PUZZLE_GAME
+    select BR2_PACKAGE_SEGMENT_YOLOV8N
+    select BR2_PACKAGE_SMOKE_DETECT
+    select BR2_PACKAGE_SPACE_RESIZE
+    select BR2_PACKAGE_SQ_HAND_DET
+    select BR2_PACKAGE_SQ_HANDKP_CLASS
+    select BR2_PACKAGE_SQ_HANDKP_DET
+    select BR2_PACKAGE_SQ_HANDKP_FLOWER
+    select BR2_PACKAGE_SQ_HANDKP_OCR
+    select BR2_PACKAGE_SQ_HANDRECO
+    select BR2_PACKAGE_TRAFFIC_LIGHT_DETECT
+    select BR2_PACKAGE_TTS_ZH
+    select BR2_PACKAGE_VEHICLE_ATTR
+    select BR2_PACKAGE_VIRTUAL_KEYBOARD
+    select BR2_PACKAGE_YOLOP_LANE_SEG
+    select BR2_PACKAGE_ANOMALY_DET
     help
-        ai demo for retinaface
+        all ai demo
+
+source "package/ai_demo/anomaly_det/Config.in"
+source "package/ai_demo/common/Config.in"
+source "package/ai_demo/face_detection/Config.in"
+source "package/ai_demo/demo_mix/Config.in"
+source "package/ai_demo/bytetrack/Config.in"
+source "package/ai_demo/crosswalk_detect/Config.in"
+source "package/ai_demo/dynamic_gesture/Config.in"
+source "package/ai_demo/eye_gaze/Config.in"
+source "package/ai_demo/face_alignment/Config.in"
+source "package/ai_demo/face_emotion/Config.in"
+source "package/ai_demo/face_gender/Config.in"
+source "package/ai_demo/face_glasses/Config.in"
+source "package/ai_demo/face_landmark/Config.in"
+source "package/ai_demo/face_mask/Config.in"
+source "package/ai_demo/face_mesh/Config.in"
+source "package/ai_demo/face_parse/Config.in"
+source "package/ai_demo/face_pose/Config.in"
+source "package/ai_demo/face_verification/Config.in"
+source "package/ai_demo/falldown_detect/Config.in"
+source "package/ai_demo/finger_guessing/Config.in"
+source "package/ai_demo/fitness/Config.in"
+source "package/ai_demo/head_detection/Config.in"
+source "package/ai_demo/helmet_detect/Config.in"
+source "package/ai_demo/kws/Config.in"
+source "package/ai_demo/licence_det/Config.in"
+source "package/ai_demo/licence_det_rec/Config.in"
+source "package/ai_demo/llamac/Config.in"
+source "package/ai_demo/object_detect_yolov8n/Config.in"
+source "package/ai_demo/ocr/Config.in"
+source "package/ai_demo/person_attr/Config.in"
+source "package/ai_demo/person_detect/Config.in"
+source "package/ai_demo/person_distance/Config.in"
+source "package/ai_demo/pose_detect/Config.in"
+source "package/ai_demo/pphumanseg/Config.in"
+source "package/ai_demo/puzzle_game/Config.in"
+source "package/ai_demo/segment_yolov8n/Config.in"
+source "package/ai_demo/smoke_detect/Config.in"
+source "package/ai_demo/space_resize/Config.in"
+source "package/ai_demo/sq_hand_det/Config.in"
+source "package/ai_demo/sq_handkp_class/Config.in"
+source "package/ai_demo/sq_handkp_det/Config.in"
+source "package/ai_demo/sq_handkp_flower/Config.in"
+source "package/ai_demo/sq_handkp_ocr/Config.in"
+source "package/ai_demo/sq_handreco/Config.in"
+source "package/ai_demo/traffic_light_detect/Config.in"
+source "package/ai_demo/tts_zh/Config.in"
+source "package/ai_demo/vehicle_attr/Config.in"
+source "package/ai_demo/virtual_keyboard/Config.in"
+source "package/ai_demo/yolop_lane_seg/Config.in"

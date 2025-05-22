@@ -1,13 +1,19 @@
 #!/bin/bash
+#set -x
+SDK_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" &> /dev/null && pwd)
+GCC_PATH="$(cat ${SDK_ROOT}/output/$(cat ${SDK_ROOT}/.last_conf | cut -d= -f2)/.config | grep BR2_TOOLCHAIN_EXTERNAL_PATH | cut -d\" -f2)"/bin
 
+sysroot="$(realpath ${SDK_ROOT}/output/$(cat ${SDK_ROOT}/.last_conf | cut -d= -f2)/staging)"
+export GCC_PATH
+export sysroot
 KMODEL_DIR="${PWD}/kmodel"
 # 检查目录是否存在
 if [ -d "$KMODEL_DIR" ]; then
     echo "kmodel directory exists."
 else
     echo "kmodel directory does not exist."
-    if curl --output /dev/null --silent --head --fail "https://ai.b-bug.org/k230/"; then 
-        echo "URL is accessible"; 
+    if curl --output /dev/null --silent --head --fail "https://ai.b-bug.org/k230/"; then
+        echo "URL is accessible";
         wget https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.9.0.1.tgz;
         tar -xvf kmodel_v2.9.0.1.tgz;
         rm -rf kmodel_v2.9.0.1.tgz;
@@ -43,15 +49,15 @@ for subdir in $(ls -d */); do
         echo "$subdir 不是一个目录，跳过..."
         continue
       fi
-      
+
       subdir_name=$(basename $subdir)
       # 检查子目录是否为目录"A"，如果是，则跳过
       if [ "$subdir_name" = "common" ] || [[ "$subdir_name" == k230_bin* ]] || [ "$subdir_name" = "shell" ] || [ "$subdir_name" = "out" ] || [ "$subdir_name" = "kmodel" ]; then
             continue
       fi
-      
+
       if [ "$subdir_name" = "llamac" ] && { [ "$curr_pro" = "llamac" ] || [ "$curr_pro" = "all" ]; }; then
-            /opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-g++ -O3 llamac/llama_run.cc -o out/llama_run -lm
+            ${GCC_PATH}/riscv64-unknown-linux-gnu-g++ -O3 llamac/llama_run.cc -o out/llama_run -lm
       elif { [ "$curr_pro" = "$subdir_name" ] || [ "$curr_pro" = "all" ]; }; then
             echo "******************$subdir_name 开始编译******************"
             if [ "$subdir_name" = "pose_det_rtsp_plug" ]; then
@@ -65,14 +71,15 @@ for subdir in $(ls -d */); do
             cmake -DCMAKE_BUILD_TYPE=Release                \
             -DCMAKE_INSTALL_PREFIX=`pwd`               \
             -D$subdir_name=ON                        \
-            -DCMAKE_C_COMPILER=/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-gcc \
-	      -DCMAKE_CXX_COMPILER=/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V2.10.1/bin/riscv64-unknown-linux-gnu-c++ \
+            -DCMAKE_C_COMPILER=${GCC_PATH}/riscv64-unknown-linux-gnu-gcc \
+	      -DCMAKE_CXX_COMPILER=${GCC_PATH}/riscv64-unknown-linux-gnu-c++ \
             ..
-            make -j && make install
+
+            make -j && make install || { echo "$subdir_name 编译错误";exit 1; }
             echo "******************$subdir_name 编译完成******************"
             popd
       else
-          continue  
+          continue
       fi
 
       mkdir -p ${k230_bin}/$subdir_name
@@ -153,7 +160,7 @@ for subdir in $(ls -d */); do
             cp -a ${kmodel_root_dir}/kmodel/face_detection_320.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/face_alignment.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/face_alignment_post.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/1024x768.jpg ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/images/1024x768.jpg ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/utils/bfm_tri.bin ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/utils/ncc_code.bin ${k230_bin}/$subdir_name
             cp -a shell/face_mesh_*.sh ${k230_bin}/$subdir_name
@@ -164,7 +171,7 @@ for subdir in $(ls -d */); do
             cp -a ${kmodel_root_dir}/kmodel/face_detection_320.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/face_alignment.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/face_alignment_post.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/1024x768.jpg ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/images/1024x768.jpg ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/utils/bfm_tri.bin ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/utils/ncc_code.bin ${k230_bin}/$subdir_name
             cp -a shell/face_alignment_*.sh ${k230_bin}/$subdir_name
@@ -198,7 +205,7 @@ for subdir in $(ls -d */); do
             cp out/bin/ob_det.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/yolov8n_320.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/yolov8n_640.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/bus.jpg ${k230_bin}/$subdir_name            
+            cp -a ${kmodel_root_dir}/images/bus.jpg ${k230_bin}/$subdir_name
             cp -a shell/ob_detect_*.sh ${k230_bin}/$subdir_name
       fi
 
@@ -206,49 +213,49 @@ for subdir in $(ls -d */); do
             cp out/bin/seg.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/yolov8n_seg_320.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/yolov8n_seg_640.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/bus.jpg ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/images/bus.jpg ${k230_bin}/$subdir_name
             cp -a shell/segment_*.sh ${k230_bin}/$subdir_name
       fi
 
       if [ "$subdir_name" = "person_detect" ]; then
             cp out/bin/person_detect.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/person_detect_yolov5n.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/bus.jpg ${k230_bin}/$subdir_name            
+            cp -a ${kmodel_root_dir}/images/bus.jpg ${k230_bin}/$subdir_name
             cp -a shell/person_detect_*.sh ${k230_bin}/$subdir_name
       fi
 
       if [ "$subdir_name" = "pose_detect" ]; then
             cp out/bin/pose_detect.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/yolov8n-pose.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/bus.jpg ${k230_bin}/$subdir_name            
+            cp -a ${kmodel_root_dir}/images/bus.jpg ${k230_bin}/$subdir_name
             cp -a shell/pose_detect_*.sh ${k230_bin}/$subdir_name
       fi
 
       if [ "$subdir_name" = "pphumanseg" ]; then
             cp out/bin/pphumanseg.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/human_seg_2023mar.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/1000.jpg ${k230_bin}/$subdir_name            
+            cp -a ${kmodel_root_dir}/images/1000.jpg ${k230_bin}/$subdir_name
             cp -a shell/pphumanseg_*.sh ${k230_bin}/$subdir_name
       fi
 
       if [ "$subdir_name" = "smoke_detect" ]; then
             cp out/bin/smoke_detect.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/yolov5s_smoke_best.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/smoke1.jpg ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/images/smoke1.jpg ${k230_bin}/$subdir_name
             cp -a shell/smoke_detect_*.sh ${k230_bin}/$subdir_name
       fi
 
       if [ "$subdir_name" = "traffic_light_detect" ]; then
             cp out/bin/traffic_light_detect.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/traffic.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/traffic.jpg ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/images/traffic.jpg ${k230_bin}/$subdir_name
             cp -a shell/traffic_light_detect_*.sh ${k230_bin}/$subdir_name
       fi
 
       if [ "$subdir_name" = "helmet_detect" ]; then
             cp out/bin/helmet_detect.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/helmet.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/helmet.jpg ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/images/helmet.jpg ${k230_bin}/$subdir_name
             cp -a shell/helmet_detect_*.sh ${k230_bin}/$subdir_name
       fi
 
@@ -262,7 +269,7 @@ for subdir in $(ls -d */); do
       if [ "$subdir_name" = "crosswalk_detect" ]; then
             cp out/bin/crosswalk_detect.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/crosswalk.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/cw.jpg ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/images/cw.jpg ${k230_bin}/$subdir_name
             cp -a shell/crosswalk_detect_*.sh ${k230_bin}/$subdir_name
       fi
 
@@ -277,7 +284,7 @@ for subdir in $(ls -d */); do
       if [ "$subdir_name" = "falldown_detect" ]; then
             cp out/bin/falldown_detect.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/yolov5n-falldown.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/falldown_elder.jpg ${k230_bin}/$subdir_name            
+            cp -a ${kmodel_root_dir}/images/falldown_elder.jpg ${k230_bin}/$subdir_name
             cp -a shell/falldown_detect_*.sh ${k230_bin}/$subdir_name
       fi
 
@@ -285,7 +292,7 @@ for subdir in $(ls -d */); do
             cp out/bin/person_attr.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/person_attr_yolov5n.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/person_pulc.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/hrnet_demo.jpg ${k230_bin}/$subdir_name            
+            cp -a ${kmodel_root_dir}/images/hrnet_demo.jpg ${k230_bin}/$subdir_name
             cp -a shell/person_attr_*.sh ${k230_bin}/$subdir_name
       fi
 
@@ -293,7 +300,7 @@ for subdir in $(ls -d */); do
             cp out/bin/vehicle_attr.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/vehicle_attr_yolov5n.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/vehicle.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/car.jpg ${k230_bin}/$subdir_name            
+            cp -a ${kmodel_root_dir}/images/car.jpg ${k230_bin}/$subdir_name
             cp -a shell/vehicle_attr_*.sh ${k230_bin}/$subdir_name
       fi
 
@@ -325,7 +332,7 @@ for subdir in $(ls -d */); do
             cp out/bin/eye_gaze.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/face_detection_320.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/eye_gaze.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/images/1024x1111.jpg ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/images/1024x1111.jpg ${k230_bin}/$subdir_name
             cp -a shell/eye_gaze_*.sh ${k230_bin}/$subdir_name
       fi
 
@@ -460,8 +467,8 @@ for subdir in $(ls -d */); do
             cp -a ${kmodel_root_dir}/kmodel/zh_fastspeech_1.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/zh_fastspeech_2.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/hifigan.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/utils/wav_play.elf ${k230_bin}/$subdir_name 
-            cp -ar ${kmodel_root_dir}/utils/file ${k230_bin}/$subdir_name 
+            cp -a ${kmodel_root_dir}/utils/wav_play.elf ${k230_bin}/$subdir_name
+            cp -ar ${kmodel_root_dir}/utils/file ${k230_bin}/$subdir_name
             cp -a shell/tts_zh.sh ${k230_bin}/$subdir_name
       fi
 

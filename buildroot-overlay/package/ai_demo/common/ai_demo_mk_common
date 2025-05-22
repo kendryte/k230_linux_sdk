@@ -1,0 +1,22 @@
+
+#dir_lo dir_up
+define ai_mk_common
+$(2)_SITE := $(realpath $(TOPDIR))/package/ai_demo/$(1)
+$(2)_SITE_METHOD := local
+$(2)_SUPPORTS_IN_SOURCE_BUILD = NO
+
+$(2)_DEPENDENCIES += libmmz libnncase gsl-lite
+
+ifeq ($(OS), common)
+	$(2)_DEPENDENCIES += common
+endif
+
+ifeq ($(BR2_PACKAGE_OPENCV4), y)
+	$(2)_DEPENDENCIES += opencv4 display vvcam
+endif
+
+endef
+
+
+AI_DEMO_MKF_COMMON=$(eval $(call ai_mk_common,$(pkgname),$(call UPPERCASE,$(pkgname))) ) \
+					$(eval $(cmake-package))

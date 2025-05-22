@@ -1,4 +1,5 @@
 #include "VoxCommon.h"
+#include <cstdint>
 
 /**
 *导出wav文件的工具函数

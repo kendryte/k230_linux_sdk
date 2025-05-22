@@ -1,5 +1,5 @@
 menu "Target packages"
-
+	source "package/Config_canaan.in"
 	source "package/busybox/Config.in"
 	source "package/skeleton/Config.in"
 	source "package/skeleton-custom/Config.in"
@@ -2930,5 +2930,5 @@ menu "Text editors and viewers"
 	source "package/uemacs/Config.in"
 	source "package/vim/Config.in"
 endmenu
-	source "package/Config_canaan.in"
+
 endmenu

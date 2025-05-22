@@ -1,0 +1,24 @@
+# 这个宏由 configure_package_config_file 宏在处理 .in 文件时自动插入
+# 它会根据 INSTALL_DESTINATION 设置 prefix, libdir, includedir 等变量
+# 并可能提供 set_and_check, check_required_components 等宏 (取决于 configure_package_config_file 的参数)
+@PACKAGE_INIT@
+
+# 检查依赖项（如果 ai_demo_common 依赖于其他库）
+# 使用 find_dependency 宏（由 @PACKAGE_INIT@ 提供）来查找依赖包
+# 如果 ai_demo_common 依赖于 libdrm，可以像这样添加：
+# find_dependency(DRM REQUIRED) # 假设 DRM 软件包可以通过 find_package 找到
+
+# 包含由 install(EXPORT ai_demo_commonTargets ...) 生成的包含导入目标定义的文件
+# ${CMAKE_CURRENT_LIST_DIR} 是当前正在执行的 CMake 脚本（即 MyLibraryConfig.cmake）所在的目录
+# ai_demo_commonTargets.cmake 文件被安装在与 ai_demo_commonConfig.cmake 相同的目录下
+include("${CMAKE_CURRENT_LIST_DIR}/ai_demo_commonTargets.cmake")
+
+# （可选）为不使用导入目标的旧项目提供旧式的变量
+# 现代 CMake 项目推荐使用导入目标 (例如 ai_demo_common::ai_demo_common)，所以这些变量不是必须的
+# 但如果您需要兼容旧的项目，可以设置：
+# set(ai_demo_common_INCLUDE_DIRS "${ai_demo_common_INCLUDE_DIRS}") # 导入目标已经设置了 PUBLIC/INTERFACE include directories
+# set(ai_demo_common_LIBRARIES ai_demo_common::ai_demo_common)     # 直接指向导入目标
+# set(ai_demo_common_VERSION "${PACKAGE_VERSION}") # PACKAGE_VERSION 由 @PACKAGE_INIT@ 设置
+
+# （可选）如果有一些通过 configure_file 设置的自定义变量，可以在这里提供
+# set(AI_DEMO_COMMON_SOME_FEATURE_ENABLED "@AI_DEMO_COMMON_SOME_FEATURE_ENABLED@")

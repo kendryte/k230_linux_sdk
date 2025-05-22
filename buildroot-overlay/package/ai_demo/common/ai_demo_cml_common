@@ -1,0 +1,23 @@
+
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}   -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize")
+
+find_package(ai_demo_common  REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(nncaseruntime REQUIRED)
+include(FindPkgConfig)
+pkg_check_modules(DISPLAY REQUIRED display)
+pkg_check_modules(V4L2DRM REQUIRED v4l2-drm)
+include_directories(${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS} .)
+
+set(KMODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../common/kmodel/ai_poc/kmodel)
+set(SHELL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../common/shell)
+
+
+set(bin ${PROJECT_NAME}.elf)
+message("cur src:${src}")
+add_executable(${bin} ${src})
+
+target_link_libraries(${bin} PRIVATE -Wl,--start-group ai_demo_common Nncase.Runtime.Native nncase.rt_modules.k230 functional_k230 opencv_imgcodecs opencv_imgproc opencv_core sharpyuv libjpeg.so.9 webp png z v4l2-drm drm display mmz pthread -Wl,--end-group)
+install(TARGETS ${bin} DESTINATION  /root/app/${PROJECT_NAME}/)

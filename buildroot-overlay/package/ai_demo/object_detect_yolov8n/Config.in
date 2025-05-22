@@ -1,0 +1,7 @@
+config BR2_PACKAGE_OBJECT_DETECT_YOLOV8N
+    bool "object_detect_yolov8n"
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    select BR2_PACKAGE_DISPLAY
+    help
+        ai demo object_detect_yolov8n

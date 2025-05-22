@@ -1,0 +1,7 @@
+config BR2_PACKAGE_SEGMENT_YOLOV8N
+    bool "segment_yolov8n"
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_COMMON
+    select BR2_PACKAGE_DISPLAY
+    help
+        ai demo segment_yolov8n
