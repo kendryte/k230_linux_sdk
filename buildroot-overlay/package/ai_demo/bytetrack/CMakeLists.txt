@@ -5,6 +5,12 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     set(src main.cc BYTETracker.cc kalmanFilter.cc lapjv.cc STrack.cc person_detect.cc)
     include(../common/ai_demo_cml_common)
     include_directories("eigen3")
+    install(FILES ${KMODE_DIR}/bytetrack_yolov5n.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(DIRECTORY ${KM_IMG}/bytetrack_data  DESTINATION  /root/app/${PROJECT_NAME}/bytetrack_data)
+    install(PROGRAMS ${SHELL_DIR}/bytetrack_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/bytetrack_img.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/bytetrack_img.sh DESTINATION  /root/app/${PROJECT_NAME}/bytetrack_data/output)
+
 
 else()
     set(src main.cc

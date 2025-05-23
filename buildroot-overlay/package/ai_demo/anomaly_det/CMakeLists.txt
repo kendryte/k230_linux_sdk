@@ -4,6 +4,10 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc  anomaly_det.cc)
     include(../common/ai_demo_cml_common)
+    install(FILES ${KMODE_DIR}/anomaly_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/000.png DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/memory.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/anomaly_det_image.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
     set(src main.cc
         ${CMAKE_SOURCE_DIR}/common/utils.cc

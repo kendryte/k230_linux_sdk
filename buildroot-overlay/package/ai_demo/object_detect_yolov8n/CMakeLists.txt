@@ -4,6 +4,13 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc   ob_det.cc)
     include(../common/ai_demo_cml_common)
+    install(FILES ${KMODE_DIR}/yolov8n_320.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/yolov8n_640.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/bus.jpg DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/ob_detect_image_320.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/ob_detect_image_640.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/ob_detect_isp_320.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/ob_detect_isp_640.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc

@@ -4,6 +4,12 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc  face_detection.cc anchors_320.cc anchors_640.cc face_emotion.cc)
     include(../common/ai_demo_cml_common)
+    install(FILES ${KMODE_DIR}/face_detection_320.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/face_emotion.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/1024x768.jpg DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/face_emotion_image.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/face_emotion_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+
 else()
 
     set(src main.cc

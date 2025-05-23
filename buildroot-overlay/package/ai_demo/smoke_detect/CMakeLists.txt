@@ -4,6 +4,10 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc  smoke_detect.cc)
     include(../common/ai_demo_cml_common)
+    install(FILES ${KMODE_DIR}/yolov5s_smoke_best.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/smoke1.jpg DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/smoke_detect_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/smoke_detect_image.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc

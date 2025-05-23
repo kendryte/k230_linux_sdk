@@ -4,6 +4,15 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc  hand_detection.cc hand_keypoint.cc dynamic_gesture.cc)
     include(../common/ai_demo_cml_common)
+
+    install(FILES ${KMODE_DIR}/hand_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/handkp_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/gesture.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/shang.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/xia.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/zuo.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/you.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/gesture.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc

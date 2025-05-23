@@ -5,6 +5,14 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     set(src main.cc   face_detection.cc anchors_320.cc anchors_640.cc
                     face_alignment_post.cc face_alignment.cc rasterize.cc)
     include(../common/ai_demo_cml_common)
+    install(FILES ${KMODE_DIR}/face_detection_320.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/face_alignment.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/face_alignment_post.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/1024x768.jpg DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/bfm_tri.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/ncc_code.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/face_alignment_image.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/face_alignment_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc

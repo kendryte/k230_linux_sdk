@@ -9,6 +9,9 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
             play_wav.cc)
     include(../common/ai_demo_cml_common)
     target_link_libraries(${bin} PRIVATE alure2 asound libopenal.so)
+    install(FILES ${KMODE_DIR}/kws.kmodel  DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(DIRECTORY ${KMODE_DIR}/../utils/reply_wav/  DESTINATION  /root/app/${PROJECT_NAME}/reply_wav)
+    install(PROGRAMS ${SHELL_DIR}/kws.sh  DESTINATION /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc
