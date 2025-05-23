@@ -1,5 +1,6 @@
 config BR2_PACKAGE_FACE_DETECTION
     bool "face detection"
+    default y
     select BR2_PACKAGE_DISPLAY
     select BR2_PACKAGE_GSL_LITE
     select BR2_PACKAGE_COMMON
