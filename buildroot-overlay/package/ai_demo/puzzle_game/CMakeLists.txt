@@ -4,6 +4,12 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc  hand_keypoint.cc hand_detection.cc)
     include(../common/ai_demo_cml_common)
+
+    install(FILES ${KMODE_DIR}/hand_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/handkp_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/pintu.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/puzzle_game_bin_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/puzzle_game_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc

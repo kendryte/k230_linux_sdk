@@ -4,6 +4,11 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc  face_detection.cc anchors_320.cc anchors_640.cc face_verification.cc)
     include(../common/ai_demo_cml_common)
+    install(FILES ${KMODE_DIR}/face_detection_320.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/face_recognition.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/identification_card.png DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/person.png DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/face_verification_image.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc

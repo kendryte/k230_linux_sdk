@@ -7,6 +7,13 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     include_directories(${CMAKE_SYSROOT}/usr/include/freetype2)
     include(../common/ai_demo_cml_common)
     target_link_libraries(${bin} PRIVATE  freetype)
+    install(FILES ${KMODE_DIR}/ocr_det_int16.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/ocr_rec_int16.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/333.jpg DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/dict_ocr.txt  DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${UTITLS}/SourceHanSansSC-Normal-Min.ttf  DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/ocr_img.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/ocr_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 
 else()
 

@@ -4,6 +4,8 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc   pose_detect.cc pose_action.cc)
     include(../common/ai_demo_cml_common)
+    install(FILES ${KMODE_DIR}/yolov8n-pose.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/fitness_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc

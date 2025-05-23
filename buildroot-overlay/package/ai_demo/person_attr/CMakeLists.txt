@@ -4,6 +4,12 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     project(${CURRENT_DIR_NAME})
     set(src main.cc  person_detect.cc pulc.cc)
     include(../common/ai_demo_cml_common)
+
+    install(FILES ${KMODE_DIR}/person_attr_yolov5n.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KMODE_DIR}/person_pulc.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${KM_IMG}/hrnet_demo.jpg DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/person_attr_image.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${SHELL_DIR}/person_attr_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc

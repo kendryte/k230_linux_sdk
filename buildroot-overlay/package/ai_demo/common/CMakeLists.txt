@@ -46,7 +46,7 @@ install(FILES
 # 5. 包含用于生成配置文件的 CMake 模块
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs) # 提供标准的安装目录变量
-message(STATUS "xtttt ${CMAKE_INSTALL_LIBDIR}, ${CMAKE_CURRENT_BINARY_DIR},${CMAKE_INSTALL_FULL_LIBDIR}")
+#message(STATUS "xtttt ${CMAKE_INSTALL_LIBDIR}, ${CMAKE_CURRENT_BINARY_DIR},${CMAKE_INSTALL_FULL_LIBDIR}")
 # 6. 生成版本文件 (ai_demo_commonConfigVersion.cmake)
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/ai_demo_commonConfigVersion.cmake"
