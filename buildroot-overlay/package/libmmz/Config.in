@@ -1,4 +1,5 @@
 config BR2_PACKAGE_LIBMMZ
     bool "libmmz"
+    select BR2_PACKAGE_LIBUBOOTENV
     help
         mmz lib
