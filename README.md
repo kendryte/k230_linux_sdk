@@ -4,12 +4,12 @@
 
 ## Install toolchain and dependencies
 
-download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2.tar.gz toolchan from  `https://www.xrvm.cn/community/download?id=4433353576298909696`
+download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2-20250410.tar.gz toolchan from  `https://www.xrvm.cn/community/download?id=4433353576298909696`
 uncompress the toolchain to the /opt/toolchain(Refer command):
 
 ```bash
 mkdir -p /opt/toolchain;
-tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2.tar.gz -C /opt/toolchain;
+tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2-20250410.tar.gz -C /opt/toolchain;
 ```
 
 install dependencies(Refer command):
@@ -183,4 +183,14 @@ The AI-related demos currently integrated are as follows:
 > - For more information about ai demo, please refer to [K230 AI Demo使用指南](https://www.kendryte.com/k230_linux/dev/zh/01_software/K230_AI_Demo%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.html)
 >
 
-for more ,please refer to [<<K230 Linux SDK 文档>>](https://www.kendryte.com/k230_linux/dev/index.html)
+for more ,please refer to:
+
+[K230 Linux SDK 文档](https://www.kendryte.com/k230_linux/dev/index.html)
+
+[k230问答社区](https://www.kendryte.com/answer/)
+
+[k230产品中心](https://www.kendryte.com/zh/products)
+
+[k230文档](https://www.kendryte.com/zh/document)
+
+[K230 debian 系统指南](https://kvftsfijpo.feishu.cn/drive/folder/ENyifLFdJl3cQ7du5RDcc6SDnFc?from=from_copylink)
