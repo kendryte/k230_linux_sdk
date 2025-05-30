@@ -85,3 +85,4 @@ EOF
 gen_version
 auto_boot_proc
 [ -f "${STAGING_DIR}/lib/libasan.so.8" ] && cp "${STAGING_DIR}/lib/libasan.so.8" "${TARGET_DIR}/lib/"
+cd ${TARGET_DIR};rm -rf app ; ln -s root/app app; cd -;
