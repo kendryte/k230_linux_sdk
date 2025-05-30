@@ -9,7 +9,7 @@ endif
 
 
 define FACE_DETECT_BUILD_DEB
-	$(call COPYFILE ,$(TARGET_DIR)/app/face_detect,$(@D)/deb/app/)
+	$(call COPYFILE ,$(TARGET_DIR)/root/app/face_detect,$(@D)/deb/app/)
 	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
 endef
 

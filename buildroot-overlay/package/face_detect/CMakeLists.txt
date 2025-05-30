@@ -31,17 +31,17 @@ add_definitions(-DWITH_OPENCV)
 include_directories(${OpenCV_INCLUDE_DIRS} ${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME}.elf main_cv.cpp model.cc mobile_retinaface.cc anchors_320.cc util.cc)
 target_link_libraries(${PROJECT_NAME}.elf ${OpenCV_LIBS} ${DISPLAY_LIBRARIES} ${V4L2DRM_LIBRARIES})
-install(PROGRAMS run_cv.sh DESTINATION /app/face_detect)
+install(PROGRAMS run_cv.sh DESTINATION /root/app/face_detect)
 
 else(${OpenCV_FOUND})
 
 add_executable(${PROJECT_NAME}.elf main.cc model.cc mobile_retinaface.cc anchors_320.cc util.cc)
-install(PROGRAMS run.sh DESTINATION /app/face_detect)
+install(PROGRAMS run.sh DESTINATION /root/app/face_detect)
 
 endif(${OpenCV_FOUND})
 
 target_link_libraries(${PROJECT_NAME}.elf nncase.rt_modules.k230 nncaseruntime functional_k230 mmz pthread)
 #target_link_libraries(${PROJECT_NAME}.elf nncaseruntime nncase_rt_modules_k230 mmz)
 
-install(TARGETS ${PROJECT_NAME}.elf DESTINATION /app/face_detect)
-install(FILES face_detection_320.kmodel ai2d_input.bin DESTINATION /app/face_detect)
+install(TARGETS ${PROJECT_NAME}.elf DESTINATION /root/app/face_detect)
+install(FILES face_detection_320.kmodel ai2d_input.bin DESTINATION /root/app/face_detect)
