@@ -90,7 +90,7 @@ $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 
 %_defconfig:  sync
 	echo CONF=$@ >.last_conf
-	CONF=$@ make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR)
+	make -C $(BR_SRC_DIR) $@  O=$(CURDIR)/output/$@
 
 savedefconfig:  $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) $@
