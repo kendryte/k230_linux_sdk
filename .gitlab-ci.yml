@@ -860,7 +860,10 @@ before_script:
 download_dir_release:
   stage: release
   rules:
-   - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    # release
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
   extends:
     - .release_download_dir
 
