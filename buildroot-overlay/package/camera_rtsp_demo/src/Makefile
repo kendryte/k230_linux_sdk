@@ -16,11 +16,12 @@ CAMERA_RTSP_DEMO_DIR ?= ${shell pwd}
 BIN = camera_rtsp_demo
 
 INCS+=-I./include -I$(STAGING_DIR)/usr/include
-LIBPATH += -L$(STAGING_DIR)/usr/lib
+LIBPATH += -L$(STAGING_DIR)/usr/lib -L./
 
 
 LIBS+= -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lrtsp_server
 LIBS+= -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lswresample -lz -lswscale -lpthread
+LIBS += -lsmolrtsp_server
 
 LDFLAGS += -DSOCKLEN_T=socklen_t -DNO_SSTREAM=1 -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DNO_OPENSSL=1
 
@@ -29,6 +30,7 @@ CPPOBJS:=$(SRCS:.cpp=.o)
 
 all:$(BIN)
 	@rm -f $(CPPOBJS)
+	#cp $(BIN) ~/nfs
 
 $(CPPOBJS) : %.o: %.cpp
 	$(CPP) -c $(CFLAGS) $< -o $@ $(INCS)

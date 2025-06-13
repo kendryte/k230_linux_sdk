@@ -10,6 +10,7 @@ endef
 
 define CAMERA_RTSP_DEMO_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 0755 $(@D)/camera_rtsp_demo $(TARGET_DIR)/usr/bin/camera_rtsp_demo
+	cp $(CAMERA_RTSP_DEMO_SITE)/libsmolrtsp_server.so $(TARGET_DIR)/usr/lib/libsmolrtsp_server.so
 endef
 
 $(eval $(generic-package))

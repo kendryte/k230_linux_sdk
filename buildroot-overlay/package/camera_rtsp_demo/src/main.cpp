@@ -15,19 +15,20 @@ static void sigHandler(int sig_no) {
 }
 
 static void Usage() {
-    std::cout << "Usage: ./camera_rtsp_demo [-H] [-t <codec_type>] [-w <width>] [-h <height>] [-b <bitrate_kbps>]" << std::endl;
+    std::cout << "Usage: ./camera_rtsp_demo [-H] [-t <codec_type>] [-w <width>] [-h <height>] [-b <bitrate_kbps>] [-c <rtsp_type>]" << std::endl;
     std::cout << "-H: display this help message" << std::endl;
     std::cout << "-t: the video encoder type: h264/h265, default h26" << std::endl;
     std::cout << "-w: the video encoder width, default 1280" << std::endl;
     std::cout << "-h: the video encoder height, default 720" << std::endl;
     std::cout << "-b: the video encoder bitrate(kbps), default 2000" << std::endl;
+    std::cout << "-c: the RTSP server type: 0=live555, 1=smolrtsp, default 0" << std::endl;
     exit(-1);
 }
 
 int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
     int result;
     opterr = 0;
-    while ((result = getopt(argc, argv, "H:t:w:h:b:")) != -1) {
+    while ((result = getopt(argc, argv, "H:t:w:h:b:c:")) != -1) {
         switch(result) {
         case 'H' : {
             Usage(); break;
@@ -57,6 +58,13 @@ int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
             config.bitrate_kbps = n;
             break;
         }
+        case 'c': {
+            int n = atoi(optarg);
+            if (n < 0 || n > 1) Usage();
+            // 0=live555, 1=smolrtsp
+            config.rtsp_server_type = n;
+            break;
+        }
         default: Usage(); break;
         }
     }
@@ -66,6 +74,7 @@ int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
     printf("Video encoder width: %d\n", config.venc_width);
     printf("Video encoder height: %d\n", config.venc_height);
     printf("Video encoder bitrate (kbps): %d\n", config.bitrate_kbps);
+    printf("RTSP server type: %s\n", (config.rtsp_server_type == 0) ? "live555" : "smolrtsp");
     printf("\n");
     return 0;
 }
