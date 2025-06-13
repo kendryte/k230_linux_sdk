@@ -27,6 +27,7 @@ struct KdMediaInputConfig {
   int venc_height = 720; // Video encoder height
   int bitrate_kbps = 2000; // Bitrate in kbps
   std::string camera_device = "/dev/video1";
+  int rtsp_server_type = 0; // 0=live555, 1=smolrtsp
 
 };
 

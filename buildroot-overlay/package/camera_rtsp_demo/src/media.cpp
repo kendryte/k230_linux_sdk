@@ -135,6 +135,17 @@ int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
         return -1;
     }
 
+    //  // 启用每个关键帧包含SPS/PPS
+    // codec_ctx->flags2 |= AV_CODEC_FLAG2_LOCAL_HEADER;
+    // printf("@@@@@@@@@@@set AV_CODEC_FLAG2_LOCAL_HEADER\n");
+
+    // //禁用 GLOBAL_HEADER 标志
+    // codec_ctx->flags &= ~AV_CODEC_FLAG_GLOBAL_HEADER;
+    // printf("@@@@@@@@@@@set AV_CODEC_FLAG_GLOBAL_HEADER\n");
+
+    // 禁用延迟
+    codec_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
+
     codec_ctx->codec_id = codec->id;
     codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
     codec_ctx->width = input_config_.venc_width;
@@ -142,7 +153,7 @@ int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
     codec_ctx->pix_fmt = AV_PIX_FMT_NV12;
     codec_ctx->time_base = (AVRational){1, 30}; // Set time_base to 1/30 for 30 fps
     codec_ctx->bit_rate = input_config_.bitrate_kbps * 1000;
-    codec_ctx->gop_size = 30; // Set GOP size to 30
+    codec_ctx->gop_size = 100; // Set GOP size to 100
 
     //cbr mode
     codec_ctx->rc_min_rate = input_config_.bitrate_kbps * 1000;
@@ -178,6 +189,13 @@ int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
     return 0;
 }
 
+#include <time.h>
+static uint64_t get_precise_timestamp_us() {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return (uint64_t)ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000;  // 纳秒转微秒
+}
+
 void *KdMedia::camera_venc_stream_thread(void *arg)
 {
     printf("camera_venc_stream_thread start\n");
@@ -195,6 +213,10 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
         if (ret < 0) {
             break;
         }
+
+        pkt->pts = get_precise_timestamp_us();
+        //printf("Read packet: stream_index=%d, size=%d,pts:%lld\n", pkt->stream_index, pkt->size,pkt->pts);
+
 
         if (pkt->stream_index == fmt_ctx->streams[0]->index) {
             // Copy packet data to frame
