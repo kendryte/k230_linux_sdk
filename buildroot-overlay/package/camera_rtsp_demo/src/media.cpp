@@ -214,7 +214,7 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
             break;
         }
 
-        pkt->pts = get_precise_timestamp_us();
+        //pkt->pts = get_precise_timestamp_us();
         //printf("Read packet: stream_index=%d, size=%d,pts:%lld\n", pkt->stream_index, pkt->size,pkt->pts);
 
 
@@ -245,7 +245,7 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
                 // Process encoded packet here
                 if (feature_config.on_venc_data) {
                     isIFrame = (pkt->flags & AV_PKT_FLAG_KEY) != 0;
-                    feature_config.on_venc_data->OnVEncData(pkt->data, pkt->size, isIFrame, pkt->pts);
+                    feature_config.on_venc_data->OnVEncData(pkt->data, pkt->size, isIFrame,get_precise_timestamp_us() /*pkt->pts*/);
                 }
 
                 av_packet_unref(pkt);
