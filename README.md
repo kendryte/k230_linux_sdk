@@ -180,6 +180,47 @@ The AI-related demos currently integrated are as follows:
 >
 > - For more information about ai demo, please refer to [K230 AI Demo使用指南](https://www.kendryte.com/k230_linux/dev/zh/01_software/K230_AI_Demo%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.html)
 >
+## FQA
+
+### how to enable gdb
+
+enable BR2_PACKAGE_GDB and BR2_PACKAGE_GDB_DEBUGGER
+
+```bash
+make menuconfig
+# Target packages → Debugging, profiling and benchmark->gdb->full debugger
+make
+```
+
+### How to quickly update the kernel and device tree
+
+Just replace the corresponding files in the boot directory.
+
+```bash
+[root@canaan ~ ]#ls -lh /boot/
+total 17M
+-rw-r--r--    1 root     root       17.9M Jun 20  2025 Image    #kernel
+-rw-r--r--    1 root     root      264.4K Jun 20  2025 fw_jump_add_uboot_head.bin
+lrwxrwxrwx    1 root     root          24 Jun 20  2025 k.dtb -> k230-canmv-lckfb-lcd.dtb
+-rwxr-xr-x    1 root     root       53.8K Jun 20  2025 k230-canmv-lckfb-lcd.dtb  #lcd dtb
+drwx------    2 root     root       12.0K Jun 20  2025 lost+found
+-rwxr-xr-x    1 root     root      172.2K Jun 20  2025 nuttx-7000000-uart2.bin
+[root@canaan ~ ]#
+```
+
+### How to configure WiFi
+
+- use sta.sh script
+
+```bash
+sta.sh wlan0 H3C_wjx 12345678
+```
+
+- save wifissid and passwd to env
+
+```bash
+fw_setenv wlanssid  H3C_wjx; fw_setenv wlanpass 12345678;reboot;
+```
 
 for more ,please refer to:
 
