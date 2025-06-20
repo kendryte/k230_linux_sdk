@@ -4,29 +4,21 @@
 
 ## Install toolchain and dependencies
 
-download  Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2-20250410.tar.gz toolchan from  `https://www.xrvm.cn/community/download?id=4433353576298909696`
-uncompress the toolchain to the /opt/toolchain(Refer command):
-
 ```bash
-mkdir -p /opt/toolchain;
-tar -zxvf Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2-20250410.tar.gz -C /opt/toolchain;
+sudo make toolchain_and_depend
+#The above command will install GCC and the SDK's dependent packages. For details, refer to the tools/install_toolchain_and_depend.sh file
 ```
 
-install dependencies(Refer command):
-
-```bash
-apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
-        bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3  \
-        libssl-dev gawk cmake bison flex  bash-completion parted curl  xz-utils
-```
-
->k230d_canmv_ilp32_defconfig required  ubuntu 22.04 or 24.04 and install rv64ilp32 toolchain(refer command):
+> - This SDK has been verified on Ubuntu 22.04 and 24.04, and other versions may have compilation issues.
+> - Only the k230d_canmv_ilp32_defconfig requires additional manual installation(see command below) of the rv64ilp32 toolchain:
 >
->`wget -c https://github.com/ruyisdk/riscv-gnu-toolchain-rv64ilp32/releases/download/2024.06.25/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25-nightly.tar.gz;`
->
->`mkdir -p /opt/toolchain/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25/;`
-》
->`tar -xvf riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25-nightly.tar.gz   -C /opt/toolchain/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25/;`
+>   ```bash
+>   #only k230d_canmv_ilp32_defconfig need
+>   wget -c https://github.com/ruyisdk/riscv-gnu-toolchain-rv64ilp32/releases/download/2024.06.25/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25-nightly.tar.gz;
+>   mkdir -p /opt/toolchain/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25/;
+>   tar -xvf riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25-nightly.tar.gz   -C /opt/toolchain/riscv64ilp32-elf-ubuntu-22.04-gcc-nightly-2024.06.25/;
+>   #only k230d_canmv_ilp32_defconfig need
+>   ```
 
 ## build
 
@@ -39,7 +31,13 @@ make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both
 # make help # view help
 ```
 
->[BR2_PRIMARY_SIT configuration primary download site]("https://bootlin.com/pub/conferences/2011/elce/using-buildroot-real-project/using-buildroot-real-project.pdf") for example: `make CONF=k230d_canmv_defconfig  BR2_PRIMARY_SITE=https://kendryte-download.canaan-creative.com/k230/downloads/dl/`
+> - If you cannot reliably access GitHub, please add the following option:BR2_PRIMARY_SITE=<https://kendryte-download.canaan-creative.com/k230/downloads/dl/> for example:
+>
+>    ```bash
+>    make CONF=k230d_canmv_defconfig  BR2_PRIMARY_SITE=https://kendryte-download.canaan-creative.com/k230/downloads/dl/
+>    ```
+>
+> - For the meaning of BR2_PRIMARY_SITE, please refer to the [Buildroot documentation](<https://bootlin.com/pub/conferences/2011/elce/using-buildroot-real-project/using-buildroot-real-project.pdf>)
 
 ## output
 
