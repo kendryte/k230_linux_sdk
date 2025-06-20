@@ -26,9 +26,9 @@ dl:   $(BRW_BUILD_DIR)/.config
 	echo "download all source"
 	make -C $(BRW_BUILD_DIR) source
 
-.PHONY:toolchain_install
-toolchain_install:
-	@tools/install_toolchain.sh
+.PHONY:toolchain_and_depend
+toolchain_and_depend:
+	@tools/install_toolchain_and_depend.sh
 
 .PHONY:help
 help:sync
@@ -41,7 +41,7 @@ help:sync
 	@echo "    make uboot-dirclean #uboot clean"
 	@echo "    make linux-rebuild  #rebuild linux"
 	@echo "    make linux-dirclean #linux clean"
-	@echo "    make toolchain_install #install toolchain"
+	@echo "    make toolchain_and_depend #install toolchain and depend package"
 	@echo "    make list_def      #show support config,and current use config"
 	@echo ""
 	@echo "dcoker build and run example:"
@@ -79,7 +79,7 @@ sync:
 	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
 
 this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig  \
-				 debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def  toolchain_install
+				 debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def  toolchain_and_depend
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@
 	@( if [ $@ = linux-savedefconfig ];then \

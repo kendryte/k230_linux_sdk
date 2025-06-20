@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Start the network....
+#
+
+# Debian ifupdown needs the /run/network lock directory
+mkdir -p /run/network
+
+case "$1" in
+  start)
+	printf "Starting network: "
+	if [ -e /sys/class/net/eth0 ] ;then  ifup eth0 ;
+	elif [ -e /sys/class/net/wlan0 ] ;then  ifup wlan0; fi;
+	/sbin/ifup -a
+	[ $? = 0 ] && echo "OK" || echo "FAIL"
+	;;
+  stop)
+	printf "Stopping network: "
+	[ -e /sys/class/net/wlan0 ] && ifdown wlan0
+	[ -e /sys/class/net/eth0 ] && ifdown eth0
+	/sbin/ifdown -a
+	[ $? = 0 ] && echo "OK" || echo "FAIL"
+	;;
+  restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
