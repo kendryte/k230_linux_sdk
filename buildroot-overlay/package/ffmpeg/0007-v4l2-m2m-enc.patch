@@ -1,0 +1,22 @@
+--- a/libavcodec/v4l2_m2m.h	2025-06-24 08:21:45.490317729 +0800
++++ b/libavcodec/v4l2_m2m.h	2025-06-24 08:21:24.562475031 +0800
+@@ -38,7 +38,7 @@
+ 
+ #define V4L_M2M_DEFAULT_OPTS \
+     { "num_output_buffers", "Number of buffers in the output context",\
+-        OFFSET(num_output_buffers), AV_OPT_TYPE_INT, { .i64 = 16 }, 6, INT_MAX, FLAGS }
++        OFFSET(num_output_buffers), AV_OPT_TYPE_INT, { .i64 = 16 }, 1, INT_MAX, FLAGS }
+ 
+ typedef struct V4L2m2mContext {
+     char devname[PATH_MAX];
+--- a/libavcodec/v4l2_m2m_enc.c	2025-06-24 08:21:45.490317729 +0800
++++ b/libavcodec/v4l2_m2m_enc.c	2025-06-24 08:21:24.562475031 +0800
+@@ -392,7 +392,7 @@
+ #define V4L_M2M_CAPTURE_OPTS \
+     V4L_M2M_DEFAULT_OPTS,\
+     { "num_capture_buffers", "Number of buffers in the capture context", \
+-        OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 4 }, 4, INT_MAX, FLAGS }
++        OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 4 }, 1, INT_MAX, FLAGS }
+ 
+ static const AVOption mpeg4_options[] = {
+     V4L_M2M_CAPTURE_OPTS,
