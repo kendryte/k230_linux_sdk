@@ -20,3 +20,14 @@
  
  static const AVOption mpeg4_options[] = {
      V4L_M2M_CAPTURE_OPTS,
+--- a/libavdevice/v4l2.c	2025-06-24 16:23:57.465813016 +0800
++++ b/libavdevice/v4l2.c	2025-06-24 16:21:02.324300494 +0800
+@@ -39,7 +39,7 @@
+ #include <libv4l2.h>
+ #endif
+ 
+-static const int desired_video_buffers = 256;
++static const int desired_video_buffers = 2;
+ 
+ #define V4L_ALLFORMATS  3
+ #define V4L_RAWFORMATS  1
