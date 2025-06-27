@@ -174,6 +174,9 @@ void MyCameraRtspDemo::OnVEncData(unsigned char *data, size_t size, bool bKeyFra
             }
         }
 
+        int nalu_type = parse_nalu_type(data, size);
+        bKeyFrame = (nalu_type == 0x5); // NALU type 5 is a keyframe (IDR frame)
+
         //printf("NALU type: %d, size: %zu, timestamp: %llu\n", nalu_type, size, timestamp);
 
         //timestamp = 0;

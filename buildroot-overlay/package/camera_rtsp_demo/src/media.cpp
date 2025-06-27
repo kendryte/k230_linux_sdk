@@ -39,11 +39,17 @@ int KdMedia::enable_media_features()
         return -1;
     }
 
+    if (camera_capture_frame_tid_ != 0) {
+        pthread_join(camera_capture_frame_tid_,nullptr);
+        camera_capture_frame_tid_ = 0;
+    }
+
     if (camera_venc_stream_tid_ != 0) {
         pthread_join(camera_venc_stream_tid_,nullptr);
         camera_venc_stream_tid_ = 0;
     }
-    start_camera_venc_stream_ = true;
+
+    pthread_create(&camera_capture_frame_tid_, nullptr, camera_capture_frame_thread, this);
     pthread_create(&camera_venc_stream_tid_, nullptr, camera_venc_stream_thread, this);
 
     return 0;
@@ -51,10 +57,17 @@ int KdMedia::enable_media_features()
 
 int KdMedia::disable_media_features()
 {
-    start_camera_venc_stream_ = false;
+    stop_flag_ = true;
+    if (camera_capture_frame_tid_ != 0) {
+        pthread_join(camera_capture_frame_tid_, nullptr);
+        camera_capture_frame_tid_ = 0;
+    }
+
     if (camera_venc_stream_tid_ != 0) {
         pthread_join(camera_venc_stream_tid_, nullptr);
+        camera_venc_stream_tid_ = 0;
     }
+
 
     if (frame_ != nullptr) {
         av_frame_free(&frame_);
@@ -177,7 +190,7 @@ int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
     codec_ctx->qmin = 20; // Minimum quantizer scale
     codec_ctx->qmax = 40; // Maximum quantizer scale
     codec_ctx->qcompress = 0.9; // Quantizer curve compression factor
-    codec_ctx->refs = 1; // Number of reference frames
+    codec_ctx->refs = 0; // Number of reference frames
     codec_ctx->me_range = 8; // Limit motion estimation search range
     codec_ctx->max_qdiff = 6; // Maximum quantizer difference between frames
 
@@ -192,6 +205,7 @@ int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
     av_dict_set_int(&codec_options, "num_output_buffers", 1, 0);
     // 设置输出缓冲区数量（编码帧缓冲区）
     av_dict_set_int(&codec_options, "num_capture_buffers", 1, 0);
+
     // 设置额外的低延迟参数
     av_dict_set(&codec_options, "tune", "zerolatency", 0);
 
@@ -219,36 +233,117 @@ static uint64_t get_precise_timestamp_us() {
     return (uint64_t)ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000;  // 纳秒转微秒
 }
 
-void *KdMedia::camera_venc_stream_thread(void *arg)
+void *KdMedia::camera_capture_frame_thread(void *arg)
 {
-    printf("camera_venc_stream_thread start\n");
+    printf("camera_capture_frame_thread start\n");
     KdMedia *media = static_cast<KdMedia *>(arg);
     AVCodecContext *codec_ctx = media->codec_ctx_;
     AVFrame *frame = media->frame_;
     AVFormatContext *fmt_ctx = media->fmt_ctx_;
-    AVPacket *pkt = media->pkt_;
     KdMediaFeatureConfig &feature_config = media->feature_config_;
+    KdMediaInputConfig &input_config = media->input_config_;
     bool isIFrame = false;
     int ret;
+    int timestamp = 0;
+    while (!media->stop_flag_) {
+        // 分配新的AVPacket
+        AVPacket *new_pkt = av_packet_alloc();
+        if (!new_pkt) {
+            std::cerr << "Failed to allocate packet!" << std::endl;
+            continue;
+        }
 
-    while (media->start_camera_venc_stream_) {
-
-        ret = av_read_frame(fmt_ctx, pkt);
+        ret = av_read_frame(fmt_ctx, new_pkt);
         if (ret < 0) {
+            std::cerr << "Error reading frame: " << ret << std::endl;
+            av_packet_free(&new_pkt);
             break;
         }
 
-        if (pkt->stream_index == fmt_ctx->streams[0]->index) {
-            // Copy packet data to frame
-            //av_image_fill_arrays(frame->data, frame->linesize, pkt->data, codec_ctx->pix_fmt, codec_ctx->width, codec_ctx->height, 32);
+        if (new_pkt->stream_index == fmt_ctx->streams[0]->index) {
 
+            if (input_config.enable_log)
+            {
+                timestamp ++;
+                new_pkt->pts = timestamp;
+                printf("cur camera  timestamp:%lld,now time:%lld\n", new_pkt->pts,get_precise_timestamp_us());
+            }
+
+            // 使用智能锁进行线程安全操作
+            std::unique_lock<std::mutex> lock(media->list_mutex_);
+            // 将AVPacket加入链表（不进行深拷贝，仅转移所有权）
+            media->packet_list_.push_back(new_pkt);
+            lock.unlock();
+
+        }
+        else {
+            // 非视频流数据包，释放
+            av_packet_free(&new_pkt);
+        }
+
+    }
+
+    return nullptr;
+}
+
+
+void *KdMedia::camera_venc_stream_thread(void *arg)
+{
+    KdMedia *media = static_cast<KdMedia*>(arg);
+    AVFrame *frame = media->frame_;
+    AVFormatContext *fmt_ctx = media->fmt_ctx_;
+    AVCodecContext *codec_ctx = media->codec_ctx_;
+    AVPacket *pkt2 = media->pkt_;
+    KdMediaFeatureConfig &feature_config = media->feature_config_;
+    KdMediaInputConfig &input_config = media->input_config_;
+    int ret;
+    bool bget_pkt = false;
+    while(true){
+        AVPacket *pkt = nullptr;
+        if (media->stop_flag_) {
+            break;
+        }
+        // 从队列中获取AVPacket
+        {
+            bget_pkt = false;
+            std::unique_lock<std::mutex> lock(media->list_mutex_);
+            if (!media->packet_list_.empty()) {
+                pkt = media->packet_list_.front();
+                media->packet_list_.pop_front();
+                bget_pkt = true;
+            }
+            lock.unlock();
+
+            // 如果没有数据包，等待一段时间
+            if (!bget_pkt) {
+                ret = avcodec_receive_packet(codec_ctx, pkt2);
+                if (0 == ret)
+                {
+                    //printf("@@@@@@@@@@@@@@@@@@@@get venc packet again ok\n");
+                    // Process encoded packet here
+                    if (feature_config.on_venc_data) {
+                        if (input_config.enable_log)
+                            printf("cur venc timestamp:%lld,now time:%lld,venc size:%d,key:%d\n", pkt2->pts,get_precise_timestamp_us(),pkt2->size, pkt2->flags & AV_PKT_FLAG_KEY);
+                        feature_config.on_venc_data->OnVEncData(pkt2->data, pkt2->size, (pkt2->flags & AV_PKT_FLAG_KEY),get_precise_timestamp_us());
+
+                    }
+                    av_packet_unref(pkt2);
+                }
+
+
+                usleep(1000); // 等待1毫秒
+                continue; // 继续下一次循环
+            }
+        }
+
+        if (pkt) {
             // Y平面
             frame->data[0] = pkt->data;
             frame->linesize[0] = fmt_ctx->streams[0]->codecpar->width;
             // UV平面 (NV12格式中，UV数据紧跟在Y数据后)
             frame->data[1] = pkt->data + fmt_ctx->streams[0]->codecpar->width * fmt_ctx->streams[0]->codecpar->height; // UV平面起始地址为Y平面后
             frame->linesize[1] = fmt_ctx->streams[0]->codecpar->width; // NV12的UV平面宽度等于Y平面宽度
-            frame->pts = pkt->pts;
+            frame->pts = pkt->pts; // 设置帧的时间戳
 
             // Send frame to encoder
             ret = avcodec_send_frame(codec_ctx, frame);
@@ -262,7 +357,7 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
             // Receive encoded packet from encoder
             while (ret >= 0) {
             //while (true) {
-                ret = avcodec_receive_packet(codec_ctx, pkt);
+                ret = avcodec_receive_packet(codec_ctx, pkt2);
                 if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                     break;
                 } else if (ret < 0) {
@@ -272,74 +367,19 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
 
                 // Process encoded packet here
                 if (feature_config.on_venc_data) {
-                    isIFrame = (pkt->flags & AV_PKT_FLAG_KEY) != 0;
-                    feature_config.on_venc_data->OnVEncData(pkt->data, pkt->size, isIFrame,get_precise_timestamp_us());
+                    if (input_config.enable_log)
+                        printf("cur venc timestamp:%lld,now time:%lld,venc size:%d,key:%d\n", pkt2->pts,get_precise_timestamp_us(),pkt2->size, pkt2->flags & AV_PKT_FLAG_KEY);
+                    feature_config.on_venc_data->OnVEncData(pkt2->data, pkt2->size, (pkt2->flags & AV_PKT_FLAG_KEY),get_precise_timestamp_us());
                 }
 
-                av_packet_unref(pkt);
+                av_packet_unref(pkt2);
             }
 
+            // 释放原始数据包
+            av_packet_free(&pkt);
         }
 
-        av_packet_unref(pkt);
     }
 
     return nullptr;
 }
-
-// int KdMedia::Test()
-// {
-//     AVFormatContext *fmt_ctx = nullptr;
-//     AVPacket *pkt = nullptr;
-//     int ret;
-
-//     avdevice_register_all();
-//     AVInputFormat *input_fmt = av_find_input_format("v4l2");
-//     if (!input_fmt) {
-//         std::cerr << "Cannot find input format" << std::endl;
-//         return -1;
-//     }
-
-//     AVDictionary *options = nullptr;
-//     av_dict_set(&options, "framerate", "30", 0);
-//     av_dict_set(&options, "pixel_format", "nv12", 0);
-
-//     av_dict_set(&options, "probesize", "10000000", 0); // Set probesize to 10MB
-//     if (avformat_open_input(&fmt_ctx, "/dev/video1", input_fmt, &options) != 0) {
-//         std::cerr << "Cannot open input" << std::endl;
-//         return -1;
-//     }
-
-//     if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
-//         std::cerr << "Cannot find stream info" << std::endl;
-//         return -1;
-//     }
-
-//     AVStream *video_stream = fmt_ctx->streams[0];
-
-//     pkt = av_packet_alloc();
-//     if (!pkt) {
-//         std::cerr << "Cannot allocate packet" << std::endl;
-//         return -1;
-//     }
-
-//     int read_frame_count = 0;
-//     while (true) {
-//         ret = av_read_frame(fmt_ctx, pkt);
-//         if (ret < 0) {
-//             break;
-//         }
-
-//         if (pkt->stream_index == video_stream->index) {
-//             // Process raw packet here
-//             read_frame_count++;
-//             printf("[%d]Raw packet size: %d\n",read_frame_count, pkt->size);
-//         }
-
-//         av_packet_unref(pkt);
-//     }
-
-//     av_packet_free(&pkt);
-//     avformat_close_input(&fmt_ctx);
-//     return 0;
-// }
