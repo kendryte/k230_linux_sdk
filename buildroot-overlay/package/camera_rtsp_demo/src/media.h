@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <memory>
 #include <string>
+#include <list>
+#include <mutex>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -28,6 +30,7 @@ struct KdMediaInputConfig {
   int bitrate_kbps = 2000; // Bitrate in kbps
   std::string camera_device = "/dev/video1";
   int rtsp_server_type = 0; // 0=live555, 1=smolrtsp
+  int enable_log = 0; // Enable log
 
 };
 
@@ -81,6 +84,7 @@ class KdMedia {
   int destroy_media_features();
 
   protected:
+  static void *camera_capture_frame_thread(void *arg);
   static void *camera_venc_stream_thread(void *arg);
   int _init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame);
   int _init_camera(AVFormatContext *&fmt_ctx);
@@ -94,9 +98,12 @@ class KdMedia {
   AVPacket *pkt_ = nullptr;
   AVFrame *frame_ = nullptr;
 
-  pthread_t camera_venc_stream_tid_{0}; // Thread ID for video encoder stream
-  bool start_camera_venc_stream_{false}; // Flag to start video encoder stream
+  pthread_t camera_venc_stream_tid_{0}; // Thread ID for encoding camera stream
+  pthread_t camera_capture_frame_tid_{0}; // Thread ID for capturing frames
+  bool stop_flag_{false}; // Flag to stop
 
+  std::list<AVPacket*> packet_list_;
+  std::mutex list_mutex_;
 };
 
 #endif // _KD_MEDIA_H
