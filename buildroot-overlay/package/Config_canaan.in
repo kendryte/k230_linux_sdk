@@ -21,4 +21,5 @@ menu "canaan package"
 	source "package/vg_lite/Config.in"
 	source "package/lvgl/Config.in"
 	source "package/display/Config.in"
+	source "package/vo_init/Config.in"
 endmenu
