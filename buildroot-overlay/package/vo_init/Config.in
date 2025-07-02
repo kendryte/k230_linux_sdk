@@ -1,0 +1,9 @@
+config BR2_PACKAGE_VO_INIT
+    bool "vo_init"
+    select BR2_PACKAGE_LIB_DISPLAY
+
+    help
+      This package provides the vo_init application, which is used to initialize
+      and configure the video output (VO) subsystem on Canaan K230 devices.
+      It supports various features such as setting display resolution, rotation,
+      and background color.
