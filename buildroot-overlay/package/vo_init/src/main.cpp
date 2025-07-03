@@ -100,7 +100,7 @@ int main(void) {
     }
 
     // 等待一段时间
-    sleep(1);
+    //sleep(1);
 
     // 释放资源
     display_free_buffer(buffer);
