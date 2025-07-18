@@ -80,9 +80,9 @@ void harts_early_init(void)
 
 	//record_boot_time_info_to_sram("et");
 
-	writel(0x80199805, (void*)0x91100004);
+	writel(0x80199805, (void*)0x91100004); //big core 1.6G
 
-    writel(0x0, (void*)SYSCTL_PWR_BASE_ADDR + 0x158);
+    writel(0x0, (void*)SYSCTL_PWR_BASE_ADDR + 0x158); //disable pmu isolation
 
 // This address space only allows write access by the k230_burntool.
 #ifndef CONFIG_CMD_DFU

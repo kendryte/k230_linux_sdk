@@ -1,0 +1,106 @@
+From 73146cebf13bf07bc8b824f2188c56f4913cfb74 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 18 Jul 2025 11:26:03 +0800
+Subject: [PATCH] uboot display  logo
+
+---
+ .../dts/canaan/k230-canmv-01studio-lcd.dts    |  4 +--
+ drivers/gpu/drm/canaan/canaan_drv.c           |  4 +--
+ drivers/gpu/drm/canaan/canaan_vo.c            | 33 +++++++++++++++++++
+ 3 files changed, 37 insertions(+), 4 deletions(-)
+ mode change 100644 => 100755 arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+ mode change 100644 => 100755 drivers/gpu/drm/canaan/canaan_drv.c
+ mode change 100644 => 100755 drivers/gpu/drm/canaan/canaan_vo.c
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+old mode 100644
+new mode 100755
+index f840d3c30..ada64cff9
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -105,6 +105,6 @@ touchscreen@38
+ 
+ &lcd
+ {
+-	dsi_reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_HIGH>;
+-	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
++	// dsi_reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_HIGH>;
++	// backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
+ };
+diff --git a/drivers/gpu/drm/canaan/canaan_drv.c b/drivers/gpu/drm/canaan/canaan_drv.c
+old mode 100644
+new mode 100755
+index 40840e38f..7ca3b81cf
+--- a/drivers/gpu/drm/canaan/canaan_drv.c
++++ b/drivers/gpu/drm/canaan/canaan_drv.c
+@@ -213,7 +213,7 @@ static int canaan_drm_open(struct inode *inode, struct file *filp)
+ {
+ 	int ret;
+ 
+-	pm_runtime_get_sync(disp_dev);
++	// pm_runtime_get_sync(disp_dev);
+ 	ret = drm_open(inode, filp);
+ 
+ 	return ret;
+@@ -340,7 +340,7 @@ static int canaan_drm_platform_probe(struct platform_device *pdev)
+ 	struct component_match *match = NULL;
+ 
+ 	disp_dev = dev;
+-	pm_runtime_enable(disp_dev);
++	// pm_runtime_enable(disp_dev);
+ 	match = canaan_drm_match_add(dev);
+ 	if (IS_ERR(match))
+ 		return PTR_ERR(match);
+diff --git a/drivers/gpu/drm/canaan/canaan_vo.c b/drivers/gpu/drm/canaan/canaan_vo.c
+old mode 100644
+new mode 100755
+index 0bcb30b81..9b892fef4
+--- a/drivers/gpu/drm/canaan/canaan_vo.c
++++ b/drivers/gpu/drm/canaan/canaan_vo.c
+@@ -649,10 +649,43 @@ static void canaan_vo_set_timing(struct canaan_vo *vo,
+ 	canaan_vo_write(vo, VO_DISP_IRQ1_CTL, reg);
+ }
+ 
++int  kd_vo_software_reset(void)
++{
++	void *vo_reg;
++	vo_reg = ioremap(0x90840000, 0x10000);
++
++    writel(0x0f, vo_reg + 0);
++    writel(0x00, vo_reg + 0x8);
++    writel(0x00, vo_reg + 0x4);
++
++	iounmap(vo_reg);
++    return 0;
++}
++
++int k230_display_rst(void)
++{
++
++	void *rst;
++	rst = ioremap(0x91101090, 4);
++	writel(0, rst);
++	msleep(1);
++	writel(0xffffffff, rst);
++	iounmap(rst);
++
++	msleep(1);
++	// dsi_write(dsi, 0x4, 0);
++
++	kd_vo_software_reset();
++    return 0;
++}
++
+ void canaan_vo_enable_crtc(struct canaan_vo *vo,
+ 			struct canaan_crtc *canaan_crtc,
+ 			struct drm_display_mode *adjusted_mode)
+ {
++
++	k230_display_rst();
++
+ 	canaan_vo_init(vo);
+ 	// set timing
+ 	canaan_vo_set_timing(vo, adjusted_mode);
+-- 
+2.46.0
+

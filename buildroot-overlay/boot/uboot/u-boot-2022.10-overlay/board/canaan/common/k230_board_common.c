@@ -361,6 +361,103 @@ U_BOOT_CMD(
 	"k230 burntool enter dfu",
 	"k230 burntool enter dfu"
 );
+#define K230_SET_BIT(val, bit) ((val) | (1 << (bit)))
+#define K230_CLER_BIT(val, bit) ((val) & ~(1 << (bit)))
+#define K230_GET_BIT(val, bit) (((val) >> (bit)) & 1)
+#define GPIO_EXT_PORTA 0x50
+
+int k230_gpio(char opt, int pin, char *value)
+{
+    int ret = 0;
+
+    volatile u32 * gpio_dr = (volatile int *)(GPIO_BASE_ADDR0 + pin/32*0x1000); //data register --data out to pin
+    volatile u32 * gpio_ddr = (volatile int *)(gpio_dr+1); // Data Direction Register 1:out ,1:in
+    volatile u32 * gpio_ctrl = (volatile int *)(gpio_dr+2); // data source register
+    volatile u32 * gpio_value_in = (volatile int *)(GPIO_BASE_ADDR0+GPIO_EXT_PORTA + pin/32*4);
+    //This register always reflects the signals value on the External Port
+    u32 reg_org, reg_set;
+
+    //printf("pin=%d  org reg gpio_dr%x=%x gpio_ddr=%x %x\n", pin,  gpio_dr,*gpio_dr, *gpio_ddr, *gpio_ctrl);
+
+    if(pin > 71)
+        return -1;
+
+    if(opt == 's') {
+        if(value == NULL) {
+            printf("value is NULL\n");
+            return -1;
+        }
+        reg_org =  *gpio_dr;
+        if(*value == 0) {
+            *gpio_dr = K230_CLER_BIT(reg_org, pin % 32);
+        } else{
+            *gpio_dr = K230_SET_BIT(reg_org, pin % 32);
+        }
+    } else if(opt == 'g') {
+        reg_org = *gpio_value_in;
+        *value = K230_GET_BIT(reg_org, pin % 32);
+    } else if(opt == 'i') { //set 0;
+        reg_org = *gpio_ddr;
+        *gpio_ddr = K230_CLER_BIT(reg_org, pin % 32);
+    } else if(opt == 'o') {
+        reg_org = *gpio_ddr;
+        *gpio_ddr = K230_SET_BIT(reg_org, pin % 32);
+        if( value && (*value) ) {
+            *gpio_dr = K230_SET_BIT(reg_org, pin % 32);
+        } else  if( value && (*value == 0)) {
+            *gpio_dr = K230_CLER_BIT(reg_org, pin % 32);
+        }
+    } else {
+        printf("opt %c is invalid\n", opt);
+        return -1;
+    }
+    //printf("pin=%d %c  after reg gpio_dr=%x gpio_ddr=%x ctl%x\n", pin,  opt, *gpio_dr, *gpio_ddr, *gpio_ctrl);
+    return ret;
+
+}
+static int do_k230_gpio(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+{
+    int ret = 0;
+    if(argc < 2) {
+        printf("usage: k230_gpio set/get/in/out pin [value]\n");
+        return -1;
+    }
+
+    int pin = simple_strtoul(argv[2], NULL, 0);
+    char value=0;
+    if(argc > 3) {
+        value = simple_strtoul(argv[3], NULL, 0);
+    }
+    ret = k230_gpio(argv[1][0], pin, &value);
+    printf("%c pin %d value %d \n", argv[1][0], pin, value);
+    return ret;
+}
+U_BOOT_CMD(
+	k230_gpio, CONFIG_SYS_MAXARGS, 0, do_k230_gpio,
+	"k230_gpio set/get/in/out pin [value]",
+	"k230_gpio set/get/in/out pin [value]"
+);
+
+static ulong get_sp(void)
+{
+	ulong ret;
+
+	asm("mv %0, sp" : "=r"(ret) : );
+	return ret;
+}
+static ulong get_gp(void)
+{
+	ulong ret;
+
+	asm("mv %0, sp" : "=r"(ret) : );
+	return ret;
+}
+void arch_print_bdinfo(void)
+{
+    printf("malloc %lx---%lx---%lx\n", mem_malloc_start, mem_malloc_end, mem_malloc_brk);
+    printf("sp:%16lx ,%lx %lx \n", get_sp(), malloc(0),malloc(0));
+}
+
 #endif
 
 #if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
