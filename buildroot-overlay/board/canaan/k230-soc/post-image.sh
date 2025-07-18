@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
-
-
+BUILDROOT_PATH=$(pwd)
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
 K230_SDK_ROOT=$(dirname $(dirname ${BASE_DIR}))
@@ -237,14 +236,19 @@ gen_env_bin()
 gen_boot_ext4()
 {
 	local first_dtb="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | cut -d / -f2 | tr -d '"' |  cut -d ' ' -f1).dtb"
+	local logo=$(grep CONFIG_K230_BARE_DISP_LOGO_PATH ${UBOOT_BUILD_DIR}/.config  | cut -d '"' -f2 |  sed 's/\.png$/.yuv/')
+
+
+
 	echo "${first_dtb}"
 	cd  "${BINARIES_DIR}/";
-	rm boot; mkdir -p boot;
+	rm -rf boot; mkdir -p boot;
 
 	cp ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/boot/nuttx-7000000-uart2.bin  boot/;
 	cp Image boot/;
 	[ ! -f "Image_ilp32" ] ||  cp Image_ilp32 boot/;
 	cp *.dtb boot;
+	[ -z "${logo}" ]  ||  cp ${BUILDROOT_PATH}/${logo} boot/logo.yuv;
 	cd boot; rm -rf k.dtb;ln -s ${first_dtb} k.dtb; cd -;
 	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  boot/fw_jump_add_uboot_head.bin
 	rm -rf boot.ext4 ;fakeroot mkfs.ext4 -d boot  -r 1 -N 0 -m 1 -L "boot" -O ^64bit boot.ext4 80M
