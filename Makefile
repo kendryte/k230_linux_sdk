@@ -18,6 +18,10 @@ all :  buildroot
 debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync
 	@$(BR_SRC_DIR)/board/canaan/k230-soc/distribution/distribution.sh  $@  $(BRW_BUILD_DIR)
 
+ddr_test_img_% :sync #128/512/1024/2048
+	@echo "build ddr test img ,ddr size: $*"
+	@tools/ddr_test_img.sh  $*
+
 buildroot: $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) all
 
@@ -42,6 +46,7 @@ help:sync
 	@echo "    make linux-rebuild  #rebuild linux"
 	@echo "    make linux-dirclean #linux clean"
 	@echo "    make toolchain_and_depend #install toolchain and depend package"
+	@echo "    make ddr_test_img_128 #build ddr 128MB test img,128 can be 512/1024/2048/128"
 	@echo "    make list_def      #show support config,and current use config"
 	@echo ""
 	@echo "dcoker build and run example:"
@@ -79,7 +84,7 @@ sync:
 	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
 
 this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig  \
-				 debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def  toolchain_and_depend
+				 debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def  toolchain_and_depend  ddr_test_img_%
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@
 	@( if [ $@ = linux-savedefconfig ];then \
