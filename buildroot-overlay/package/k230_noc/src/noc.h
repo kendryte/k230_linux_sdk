@@ -184,10 +184,15 @@ struct noc_qos_st{//size=0x80
 	volatile uint32_t reserved_00_24[25];//0x1c--0x7c
 };
 
-
+struct noc_rate_st{//size = 0x80
+    volatile uint32_t Id_CoreId;
+    volatile uint32_t Id_RevisionId;
+    volatile uint32_t Rate;
+    volatile uint32_t Bypass;
+    volatile uint32_t Reserved_00_27[28];
+};
 
 struct noc_reg_st{
-	//char reserver[0x1000];
     struct probe_mctlpx_main_probe mctlpx_main_Probe[7]; //0x0-0x1c00 ;0x400*7
     char reserver[0x100];//0x1c00-0x1d00 observer_main_ErrorLogger_0  observer_main_ErrorLogger_1
 	struct noc_qos_st ai_axi0_I_main_QosGenerator;//0x000--0x080
@@ -204,7 +209,8 @@ struct noc_reg_st{
     struct noc_qos_st sec_axi_I_main_QosGenerator;
     struct noc_qos_st stor_axi_I_main_QosGenerator;
     struct noc_qos_st vpu_axi_I_main_QosGenerator;
-    char reserver_1[0]; //Link2_main_RateAdapter---Error---Firewall_ospi_main_Firewall--error
+    struct noc_rate_st main_RateAdapter[6];//Link2_main_RateAdapter---Link9_main_RateAdapter //0x2400-0x2700
+    char reserver_1[0]; //-Error---Firewall_ospi_main_Firewall--error
 };
 
 typedef enum InitFlow
