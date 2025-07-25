@@ -22,4 +22,5 @@ menu "canaan package"
 	source "package/lvgl/Config.in"
 	source "package/display/Config.in"
 	source "package/vo_init/Config.in"
+	source "package/k230_noc/Config.in"
 endmenu
