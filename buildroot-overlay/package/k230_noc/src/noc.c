@@ -23,11 +23,8 @@
 
 /*
 modprobe noc.ko;  #安装驱动
-
-echo kpu > /sys/devices/platform/k230-noc-probe/noc_probe  #使能统计
-
-
-cat /sys/devices/platform/k230-noc-probe/noc_probe  #查看结果
+echo kpu > /sys/devices/platform/k230-noc/probe  #使能统计
+cat /sys/devices/platform/k230-noc/probe  #查看结果
 */
 
 struct initflow_config_st
@@ -566,7 +563,7 @@ static ssize_t noc_probe_show(struct device *dev, struct device_attribute *attr,
 	struct noc_plat *noc = dev_get_drvdata(dev);
 	return noc_probe_mctl_bandwidth_show(noc, buf, PAGE_SIZE);
 }
-void ai_enable_power_clk(void)
+static void __ai_enable_power_clk(void)
 {
 	uint32_t *reg;
 	unsigned long v;
@@ -599,6 +596,39 @@ void ai_enable_power_clk(void)
 		iounmap(reg);
 	}
 }
+static void __vpu_enable_power_clk(void)
+{
+	uint32_t *reg;
+	unsigned long v;
+	 // disable vpu power
+    // if (readl((void*)0x91103080) & 0x2)
+    //     writel(0x30001, (void*)0x9110307c);
+
+    // disable vpu clk
+    // value = readl((void*)0x9110000c);
+    // value &= ~((1 << 0));
+    // writel(value, (void*)0x9110000c);
+
+	reg = ioremap(0x9110000c, 4); //检测时钟
+	v = *reg;
+	if( (!test_bit(10, &v)) || (!test_bit(0, &v))  ){
+		writel(v|BIT(0)|BIT(10), reg);
+		printk("enable vpu clk\n");
+	}
+	iounmap(reg);
+
+	reg = ioremap(0x91103080, 4); //power status
+	v = *reg;
+	iounmap(reg);
+
+	if(!test_bit(1,&v)){
+		printk("enable vpu power\n");
+		reg = ioremap(0x9110307c, 4);
+		v = *reg;
+		writel(v|BIT(1)|BIT(17), reg);
+		iounmap(reg);
+	}
+}
 
 //写操作
 static ssize_t noc_probe_store(struct device *dev, struct device_attribute *attr,
@@ -625,7 +655,7 @@ static ssize_t noc_probe_store(struct device *dev, struct device_attribute *attr
 		// noc_probe_store_cfg_ddr_all(args,noc);
 	}else if(strcmp(param, "kpu") == 0)	{
 		pr_info("AI_AXI0 and  AI_AXI1 -->mp3 use main_probe1 \n");
-		ai_enable_power_clk();
+		__ai_enable_power_clk();
 		noc_probe_mctlpx_disable(noc, PROBE_MCTLP1);
 		noc_probe_mctl_cfg(noc, AI_AXI0, 0, 0x1f, 0x16);
 		noc_probe_mctl_cfg(noc, AI_AXI1, 0, 0x1f, 0x16);
@@ -646,12 +676,26 @@ static ssize_t noc_probe_store(struct device *dev, struct device_attribute *attr
 
     return count;
 }
-static DEVICE_ATTR(noc_probe, 0644, noc_probe_show, noc_probe_store);
+static DEVICE_ATTR(probe, 0644, noc_probe_show, noc_probe_store);
+
+static void ____noc_qos_show(struct noc_qos_st *qos, char *prompt)
+{
+	char *modstr[]={"Fixed","Limiter","Bypass","Regulator"};
+	printk("-----%s :\n", prompt);
+	//printk("mode:%s(%lx) ",modstr[qos->Mode],qos->Mode);
+	//printk("Bandwidth:%lx sat:%lx ext:%lx\n",modstr[qos->Mode],qos->Mode, qos->Bandwidth, qos->Saturation, qos->ExtControl);
+	printk("mode:%s(%x) Priority:%x Bandwidth:%x*axi(%x) Saturation:%x(%x) extc:%x\n",\
+								modstr[qos->Mode], qos->Mode, qos->Priority, \
+								qos->Bandwidth/256, qos->Bandwidth,  \
+								qos->Saturation *16, qos->Saturation, \
+								qos->ExtControl);
+	print_hex_dump(KERN_INFO, "", DUMP_PREFIX_OFFSET, 16, 4, (void*)qos , 0x1c, 0);
+	return;
+}
 
 /*
 analysis_probe   /analysis
 qos--查看qos带宽限制；设置带宽；
-
 register
 */
 
@@ -660,11 +704,26 @@ static ssize_t noc_qos_show(struct device *dev, struct device_attribute *attr,
         char *buf)
 {
 	ssize_t ret=0;
+	struct noc_plat *noc = dev_get_drvdata(dev);
 
-	//struct noc_plat *noc = dev_get_drvdata(dev);
-	//noc->noc_reg->ax25mAXIm;
-	// print_hex_dump(KERN_INFO,"ax25mAXIm",DUMP_PREFIX_OFFSET,16,1,(void*)&noc->noc_reg->ax25mAXIm, sizeof(noc->noc_reg->ax25mAXIm), 0);
-	// print_hex_dump(KERN_INFO,"ax25pAXIm",DUMP_PREFIX_OFFSET,16,1,(void*)&noc->noc_reg->ax25pAXIm, sizeof(noc->noc_reg->ax25pAXIm), 0);
+	__ai_enable_power_clk();
+	__vpu_enable_power_clk();
+	printk("Mode: 0=Fixed, 1=Limiter, 2=Bypass, 3=Regulator(priority)\n");
+	printk("Bandwidth register value = (Limit Bandwidth/axi clk)*256 \n");
+	____noc_qos_show(&noc->noc_reg->ai_axi0_I_main_QosGenerator,  "ai_axi0");
+	____noc_qos_show(&noc->noc_reg->ai_axi1_I_main_QosGenerator,  "ai_axi1");
+	____noc_qos_show(&noc->noc_reg->cpu0_axi_I_main_QosGenerator, "cpu0   ");
+	____noc_qos_show(&noc->noc_reg->cpu1_axi_I_main_QosGenerator, "cpu1   ");
+	____noc_qos_show(&noc->noc_reg->display_axi_I_main_QosGenerator, "display");
+	____noc_qos_show(&noc->noc_reg->g2p5d_axi_I_main_QosGenerator, "g2p5d");
+	____noc_qos_show(&noc->noc_reg->isp_3dnr_I_main_QosGenerator, "isp 3dnr");
+	____noc_qos_show(&noc->noc_reg->isp_dwe_I_main_QosGenerator, "isp dwe");
+	____noc_qos_show(&noc->noc_reg->isp_hdr_I_main_QosGenerator, "isp hdr");
+	____noc_qos_show(&noc->noc_reg->isp_mp_mcm_I_main_QosGenerator, "isp mp mcm");
+	____noc_qos_show(&noc->noc_reg->isp_scal_I_main_QosGenerator, "isp scal ");
+	____noc_qos_show(&noc->noc_reg->sec_axi_I_main_QosGenerator, "sec");
+	____noc_qos_show(&noc->noc_reg->stor_axi_I_main_QosGenerator, "store ");
+	____noc_qos_show(&noc->noc_reg->vpu_axi_I_main_QosGenerator, "vpu");
 	return ret;//noc_probe_mctl_bandwidth_show(noc, buf, PAGE_SIZE);
 }
 
@@ -672,6 +731,7 @@ static ssize_t noc_qos_show(struct device *dev, struct device_attribute *attr,
 static ssize_t noc_qos_store(struct device *dev, struct device_attribute *attr,
          const char *buf, size_t count)
 {
+	printk("f=%s l=%d\n", __func__, __LINE__);
 	#if 0
 
 	char *param="";
@@ -711,8 +771,30 @@ static ssize_t noc_qos_store(struct device *dev, struct device_attribute *attr,
 
 
 
-static DEVICE_ATTR(noc_qos, 0644, noc_qos_show, noc_qos_store);
+static DEVICE_ATTR(qos, 0644, noc_qos_show, noc_qos_store);
 
+// //读操作
+// static ssize_t rate_show(struct device *dev, struct device_attribute *attr,
+//         char *buf)
+// {
+// 	ssize_t ret=0;
+// 	printk("f=%s l=%d\n", __func__, __LINE__);
+
+// 	//struct noc_plat *noc = dev_get_drvdata(dev);
+// 	//noc->noc_reg->ax25mAXIm;
+// 	// print_hex_dump(KERN_INFO,"ax25mAXIm",DUMP_PREFIX_OFFSET,16,1,(void*)&noc->noc_reg->ax25mAXIm, sizeof(noc->noc_reg->ax25mAXIm), 0);
+// 	// print_hex_dump(KERN_INFO,"ax25pAXIm",DUMP_PREFIX_OFFSET,16,1,(void*)&noc->noc_reg->ax25pAXIm, sizeof(noc->noc_reg->ax25pAXIm), 0);
+// 	return ret;//noc_probe_mctl_bandwidth_show(noc, buf, PAGE_SIZE);
+// }
+
+// //写操作
+// static ssize_t rate_store(struct device *dev, struct device_attribute *attr,
+//          const char *buf, size_t count)
+// {
+// 	printk("f=%s l=%d\n", __func__, __LINE__);
+// 	return 0;
+// }
+// static DEVICE_ATTR(rate, 0644, rate_show, rate_store);
 
 static int noc_probe(struct platform_device *pdev)
 {
@@ -743,15 +825,15 @@ static int noc_probe(struct platform_device *pdev)
 
 
 	platform_set_drvdata(pdev, noc);
-	ret = device_create_file(&pdev->dev, &dev_attr_noc_probe);
+	ret = device_create_file(&pdev->dev, &dev_attr_probe);
 	if (ret != 0) {
 		dev_err(&pdev->dev,
 		"Failed to create xxx sysfs files: %d\n", ret);
 		goto  error;
 	}
-	ret = device_create_file(&pdev->dev, &dev_attr_noc_qos);
+	ret = device_create_file(&pdev->dev, &dev_attr_qos);
 	if(ret != 0){
-		device_remove_file(&pdev->dev, &dev_attr_noc_probe);
+		device_remove_file(&pdev->dev, &dev_attr_probe);
 		goto  error;
 	}
 
@@ -771,8 +853,8 @@ static int noc_remove(struct platform_device *pdev)
 		noc->my_thread = NULL;
 	}
 
-	device_remove_file(&pdev->dev, &dev_attr_noc_probe);
-	device_remove_file(&pdev->dev, &dev_attr_noc_qos);
+	device_remove_file(&pdev->dev, &dev_attr_probe);
+	device_remove_file(&pdev->dev, &dev_attr_qos);
 
 
 	if(noc)
@@ -782,7 +864,7 @@ static int noc_remove(struct platform_device *pdev)
 
 
 static const struct of_device_id k230_noc_ids[] = {
-	{ .compatible = "k230-noc-probe" },
+	{ .compatible = "k230-noc" },
 	{}
 };
 
@@ -790,7 +872,7 @@ static struct platform_driver k230_noc_driver = {
     .probe          = noc_probe,
     .remove         = noc_remove,
     .driver         = {
-        .name           = "k230-noc-probe",
+        .name           = "k230-noc",
         .of_match_table = of_match_ptr(k230_noc_ids),
     },
 };
@@ -817,7 +899,7 @@ static void k230_noc_device_release(struct device *dev)
 }
 /* 定义 Platform Device */
 static struct platform_device k230_noc_device = {
-    .name = "k230-noc-probe",  // 设备名称，必须与驱动匹配
+    .name = "k230-noc",  // 设备名称，必须与驱动匹配
     .id = -1,  // 设备实例 ID，-1 表示只有一个实例
     .num_resources = ARRAY_SIZE(k230_device_resources),
     .resource = k230_device_resources,
