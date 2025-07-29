@@ -86,7 +86,7 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
                     if((context[i].drm_rotation == rotation_90) || (context[i].drm_rotation == rotation_270))
                     {
                         context[i].plane->drm_rotation = context[i].drm_rotation;
-                        CKE(display_allocate_buffer(context[i].plane, context[i].height, context[i].width) == NULL, close); 
+                        CKE(display_allocate_buffer(context[i].plane, context[i].height, context[i].width) == NULL, close);
                     }
                     else
                         CKE(display_allocate_buffer(context[i].plane, context[i].width, context[i].height) == NULL, close);
@@ -136,7 +136,7 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
         format.fmt.pix.height = context[i].height;
         CKE(ioctl(context[i].video_fd, VIDIOC_S_FMT, &format), close);
 
-        if((context[i].crop_size.height != 0) && (context[i].crop_size.width != 0) && 
+        if((context[i].crop_size.height != 0) && (context[i].crop_size.width != 0) &&
                 (context[i].crop_size.height > context[i].height ) && (context[i].crop_size.width > context[i].width))
         {
             printf("set crop \n");
@@ -166,7 +166,7 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
             ret = ioctl(context[i].video_fd, VIDIOC_S_SELECTION, &sel);
             if(ret < 0)
                 printf("get VIDIOC_S_SELECTION err \n");
-#else 
+#else
             struct v4l2_crop crop;
             struct v4l2_cropcap cropcap;
 
@@ -174,7 +174,7 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
             cropcap.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
 
             if (-1 == ioctl (context[i].video_fd, VIDIOC_CROPCAP, &cropcap)) {
-                perror ("VIDIOC_CROPCAP");   
+                perror ("VIDIOC_CROPCAP");
             }
 
             memset (&crop, 0, sizeof (crop));
@@ -195,7 +195,7 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
             printf("set crop crop.c.height is %d \n", crop.c.height);
 #endif
         }
-        
+
         struct v4l2_requestbuffers request_buffer;
         memset(&request_buffer, 0, sizeof(request_buffer));
         request_buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -467,9 +467,22 @@ int v4l2_drm_start(const struct v4l2_drm_context* context) {
     return ioctl(context->video_fd, VIDIOC_STREAMON, &type);
 }
 
-int v4l2_drm_stop(const struct v4l2_drm_context* context) {
+int v4l2_drm_stop(const struct v4l2_drm_context *context)
+{
+    for (unsigned j = 0; j < context->buffer_num; j++){
+
+        if (context->buffers[j].mmap){
+            munmap(context->buffers[j].mmap, context->vbuffer.length);
+            context->buffers[j].mmap = NULL;
+        }
+    }
+
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    return ioctl(context->video_fd, VIDIOC_STREAMOFF, &type);
+    int ret = ioctl(context->video_fd, VIDIOC_STREAMOFF, &type);
+    if (ret == 0 )
+        close(context->video_fd);
+
+    return ret;
 }
 
 int v4l2_drm_dump(struct v4l2_drm_context* context, int timeout) {
