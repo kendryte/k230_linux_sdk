@@ -34,6 +34,7 @@ jobs:
       volumes:
         - /data:/data
         - /data1:/data1
+        - /opt/toolchain:/opt/toolchain
       options: --hostname runner
     strategy:
       matrix:
@@ -202,6 +203,7 @@ jobs:
       volumes:
         - /data:/data
         - /data1:/data1
+        - /opt/toolchain:/opt/toolchain
       options: --hostname runner
     strategy:
       matrix:
