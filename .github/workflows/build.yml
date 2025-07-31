@@ -34,10 +34,11 @@ jobs:
       volumes:
         - /data:/data
         - /data1:/data1
+        - /opt/toolchain:/opt/toolchain
       options: --hostname runner
     strategy:
       matrix:
-        hw_type: ["k230"]
+        hw_type: ["k230", "k230d"]
         hw_model: ["canmv"]
     outputs:
       image_name: ${{ steps.save_image.outputs.image_name }}
@@ -90,7 +91,7 @@ jobs:
           ls -alht
           rm -rf k230_linux_sdk
           echo "set github proxy"
-          git config --global https.proxy ${{ secrets.GH_PROXY }}
+          git config --global https.proxy ${{ vars.GH_PROXY }}
           git clone --depth=10 --branch=${PR_BRANCH} https://github.com/${PR_REPO}  k230_linux_sdk || git clone --depth=10 --branch=${PR_BRANCH} https://github.com/${PR_REPO} k230_linux_sdk
           cd k230_linux_sdk || exit 1
           git fetch origin ${PR_BRANCH} || exit 1
@@ -105,7 +106,7 @@ jobs:
           cd ${WORKSPACE} || exit 1
           cd k230_linux_sdk || exit 1
           echo "----------start to build linux sdk image----------"
-          time make CONF=${CONF} BR2_PRIMARY_SITE=${{ secrets.DL_SITE }} || exit 1
+          time make CONF=${CONF} BR2_PRIMARY_SITE=${{ vars.DL_SITE }} || exit 1
           echo "----------show linux sdk image build output----------"
           pwd
           du -h -d 2 output/${CONF}/ || exit 1
@@ -142,7 +143,10 @@ jobs:
           echo "---create current image version dir---"
           sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1
           echo "---save sdk build output---"
-          sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
+          # sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
+          sudo cp -rf --sparse=always -L ${SRC_DIR}/CanMV-*.img.gz ${DST_DIR}/${SUB_DIR}/ || exit 1
+          echo "----------show saved image----------"
+          echo "image saved to: ${DST_DIR}/${SUB_DIR}/"
           echo "${DST_DIR}/${SUB_DIR}/"
           ls "${DST_DIR}/${SUB_DIR}/"
           echo "add latest link for current build"
@@ -182,8 +186,9 @@ jobs:
           SUB_DIR=${SUB_BASE}/${CONF}
           echo "---create tftp dir---";
           sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1;
-          sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}
-          image_md5=$(md5sum ${DST_DIR}/${SUB_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz | awk '{print $1}')
+          # sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}
+          sudo cp -rf --sparse=always -L ${SRC_DIR}/sysimage-sdcard.img.gz ${DST_DIR}/${SUB_DIR}
+          image_md5=$(md5sum ${DST_DIR}/${SUB_DIR}/sysimage-sdcard.img.gz | awk '{print $1}')
           image_tftp="${DST_DIR}/${SUB_DIR}/"
           echo "image_md5: $image_md5"
           echo "image_tftp: $image_tftp"
@@ -202,10 +207,11 @@ jobs:
       volumes:
         - /data:/data
         - /data1:/data1
+        - /opt/toolchain:/opt/toolchain
       options: --hostname runner
     strategy:
       matrix:
-        hw_type: ["k230"]
+        hw_type: ["k230", "k230d"]
         hw_model: ["canmv"]
     steps:
       - name: Run Test
