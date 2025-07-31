@@ -38,7 +38,7 @@ jobs:
       options: --hostname runner
     strategy:
       matrix:
-        hw_type: ["k230"]
+        hw_type: ["k230", "k230d"]
         hw_model: ["canmv"]
     outputs:
       image_name: ${{ steps.save_image.outputs.image_name }}
@@ -144,7 +144,7 @@ jobs:
           sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1
           echo "---save sdk build output---"
           # sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
-          sudo cp -rf --sparse=always -L ${SRC_DIR}/CanMV-K230_*.img.gz ${DST_DIR}/${SUB_DIR}/ || exit 1
+          sudo cp -rf --sparse=always -L ${SRC_DIR}/CanMV-*.img.gz ${DST_DIR}/${SUB_DIR}/ || exit 1
           echo "----------show saved image----------"
           echo "image saved to: ${DST_DIR}/${SUB_DIR}/"
           echo "${DST_DIR}/${SUB_DIR}/"
@@ -211,7 +211,7 @@ jobs:
       options: --hostname runner
     strategy:
       matrix:
-        hw_type: ["k230"]
+        hw_type: ["k230", "k230d"]
         hw_model: ["canmv"]
     steps:
       - name: Run Test
