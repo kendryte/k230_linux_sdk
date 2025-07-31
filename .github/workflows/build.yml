@@ -143,7 +143,10 @@ jobs:
           echo "---create current image version dir---"
           sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1
           echo "---save sdk build output---"
-          sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
+          # sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}/
+          sudo cp -rf --sparse=always -L ${SRC_DIR}/CanMV-K230_*.img.gz ${DST_DIR}/${SUB_DIR}/ || exit 1
+          echo "----------show saved image----------"
+          echo "image saved to: ${DST_DIR}/${SUB_DIR}/"
           echo "${DST_DIR}/${SUB_DIR}/"
           ls "${DST_DIR}/${SUB_DIR}/"
           echo "add latest link for current build"
@@ -183,8 +186,9 @@ jobs:
           SUB_DIR=${SUB_BASE}/${CONF}
           echo "---create tftp dir---";
           sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1;
-          sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}
-          image_md5=$(md5sum ${DST_DIR}/${SUB_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz | awk '{print $1}')
+          # sudo cp -rf --sparse=always -L ${SRC_DIR}/${HW_TYPE}_${HW_MODEL}_*.img.gz ${DST_DIR}/${SUB_DIR}
+          sudo cp -rf --sparse=always -L ${SRC_DIR}/sysimage-sdcard.img.gz ${DST_DIR}/${SUB_DIR}
+          image_md5=$(md5sum ${DST_DIR}/${SUB_DIR}/sysimage-sdcard.img.gz | awk '{print $1}')
           image_tftp="${DST_DIR}/${SUB_DIR}/"
           echo "image_md5: $image_md5"
           echo "image_tftp: $image_tftp"
