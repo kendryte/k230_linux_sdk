@@ -24,7 +24,6 @@
 #include <linux/delay.h>
 #include <dm.h>
 #include "../common/k230_board_common.h"
-#ifdef CONFIG_CANMV_DONGSHANPI_LPDDR3_1866
 int ddr_init_training(void)
 {
 	if( 0x00 != (readl((const volatile void __iomem *)0x980001bcULL) & 0x1 )) {
@@ -36,7 +35,7 @@ int ddr_init_training(void)
 
 	return 0;
 }
-#endif
+
 int board_late_init(void)
 {
     env_set_ulong("mmc_boot_dev_num", g_bootmod - SYSCTL_BOOT_SDIO0);

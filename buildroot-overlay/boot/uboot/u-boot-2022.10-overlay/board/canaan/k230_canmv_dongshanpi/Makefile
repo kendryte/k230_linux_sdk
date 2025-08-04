@@ -40,7 +40,7 @@ $(obj)/gen_canmv_ddr_1866.lex.c: $(src)/canmv_ddr_init_1866.c    $(srctree)/arch
 	$(Q)($(srctree)/arch/riscv/cpu/k230/ddr.sh $< $@ 0x50000 0x53fff 0x54000 0x54359 || exit 1)
 
 $(obj)/gen_canmv_dongshanpi_lpddr4_2667.c: $(src)/lpddr4_init_32_swap_2667.c    $(srctree)/arch/riscv/cpu/k230/ddr.sh
-	($(srctree)/arch/riscv/cpu/k230/ddr.sh $< $@ 0x50000 0x53fff 0x54000 0x5433d  || exit 1)
+	$(Q)($(srctree)/arch/riscv/cpu/k230/ddr.sh $< $@ 0x50000 0x53fff 0x54000 0x5433d  || exit 1)
 
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/
 EXTRA_CFLAGS += -I$(srctree)/arch/$(ARCH)/cpu/k230/puf_fw/pufs_common

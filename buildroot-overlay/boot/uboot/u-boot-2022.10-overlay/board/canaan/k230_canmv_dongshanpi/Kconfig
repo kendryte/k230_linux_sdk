@@ -25,8 +25,6 @@ config BOARD_SPECIFIC_OPTIONS # dummy
         config CANMV_DONGSHANPI_LPDDR3_1866
             bool "k230 canmv dongshanpi ddr3 1866"
 	config CANMV_DONGSHANPI_LPDDR4_2667
-	    bool "k230 canmv dongshanpi ddr4 2667"
-	help
-		"CANMV V3,lushanpai,01studio,dongshanpi"
+            bool "k230 canmv dongshanpi ddr4 2667"
     endchoice
 endif
