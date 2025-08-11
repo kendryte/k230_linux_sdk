@@ -14,14 +14,14 @@ else
     echo "kmodel directory does not exist."
     if curl --output /dev/null --silent --head --fail "https://ai.b-bug.org/k230/"; then
         echo "URL is accessible";
-        wget https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.9.0.1.tgz;
-        tar -xvf kmodel_v2.9.0.1.tgz;
-        rm -rf kmodel_v2.9.0.1.tgz;
+        wget https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.10.0.tgz;
+        tar -xvf kmodel_v2.10.0.tgz;
+        rm -rf kmodel_v2.10.0.tgz;
     else
         echo "URL is not accessible";
-        wget https://kendryte-download.canaan-creative.com/k230/downloads/kmodel/kmodel_v2.9.0.1.tgz;
-        tar -xvf kmodel_v2.9.0.1.tgz;
-        rm -rf kmodel_v2.9.0.1.tgz;
+        wget https://kendryte-download.canaan-creative.com/k230/downloads/kmodel/kmodel_v2.10.0.tgz;
+        tar -xvf kmodel_v2.10.0.tgz;
+        rm -rf kmodel_v2.10.0.tgz;
     fi
 fi
 

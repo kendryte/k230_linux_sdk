@@ -111,7 +111,7 @@ get_image_last_name()
 
 
 	local sdk_ver="v0.0.0";
-	local nncase_ver="2.9.0";
+	local nncase_ver="2.10.0";
 
 	local sdk_ver_file="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version"
 	local nncase_ver_file="${K230_SDK_ROOT}/output/${CONF}/build/libnncase/nncase/include/nncase/version.h"

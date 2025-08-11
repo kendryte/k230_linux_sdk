@@ -9,7 +9,7 @@ COMMON_SITE := $(shell \
 	echo "https://kendryte-download.canaan-creative.com/k230/downloads/kmodel";\
 	fi ;)
 
-COMMON_SOURCE := kmodel_v2.9.0.1.tgz
+COMMON_SOURCE := kmodel_v2.10.0.tgz
 COMMON_DEPENDENCIES += libmmz libnncase gsl-lite
 
 
@@ -33,6 +33,6 @@ define COMMON_DOWNLOAD_KMODE_FILE
 endef
 COMMON_POST_DOWNLOAD_HOOKS += COMMON_DOWNLOAD_KMODE_FILE
 
-#https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.9.0.1.tgz;
+#https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.10.0.tgz;
 
 $(eval $(cmake-package))
