@@ -10,7 +10,7 @@ add_definitions(-mcpu=c908)
 
 find_package(nncaseruntime REQUIRED)
 #find_package(nncase_rt_modules_k230 REQUIRED)
-#find_package(gsl-lite REQUIRED)
+find_package(gsl-lite REQUIRED)
 find_package(OpenCV)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize")
