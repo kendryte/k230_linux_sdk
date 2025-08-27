@@ -222,6 +222,14 @@ sta.sh wlan0 H3C_wjx 12345678
 fw_setenv wlanssid  H3C_wjx; fw_setenv wlanpass 12345678;reboot;
 ```
 
+### How to test DDR
+
+Use the following command to generate a DDR test image. This image will automatically execute the DDR stability test program, which will run continuously. There will be constant output on the serial port, and if it fails, an error message will be printed on the serial port.
+
+```bash
+make ddr_test_img_128 #build ddr 128MB test img,128 can be 512/1024/2048/128"
+```
+
 for more ,please refer to:
 
 [K230 Linux SDK 文档](https://www.kendryte.com/k230_linux/dev/index.html)
