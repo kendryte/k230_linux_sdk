@@ -15,10 +15,10 @@ BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 .PHONY: all buildroot  debian ubuntu openouler  ruyi  debian_rootfs ubuntu_rootfs
 all :  buildroot
 
-debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync
+debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync  buildroot
 	@$(BR_SRC_DIR)/board/canaan/k230-soc/distribution/distribution.sh  $@  $(BRW_BUILD_DIR)
 
-ddr_test_img_% :sync #128/512/1024/2048
+ddr_test_img_% :sync buildroot ###128/512/1024/2048
 	@echo "build ddr test img ,ddr size: $*"
 	@tools/ddr_test_img.sh  $*
 
