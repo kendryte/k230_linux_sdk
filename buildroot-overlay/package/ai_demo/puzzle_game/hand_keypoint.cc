@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -66,79 +66,28 @@ void HandKeypoint::inference()
     this->get_output();
 }
 
-void HandKeypoint::draw_keypoints(cv::Mat &img, std::string text, Bbox &bbox, bool pic_mode, std::vector<int> &two_point)
+void HandKeypoint::get_two_point(cv::Mat &img,Bbox &bbox,std::vector<int> &two_point)
 {
-    ScopedTiming st(model_name_ + " draw_keypoints", debug_mode_);
-    int src_width = img.cols, src_height = img.rows;
     float *pred = p_outputs_[0];
     // 绘制关键点像素坐标
     int64_t output_tensor_size = output_shapes_[0][1];// 关键点输出 （x,y）*21= 42
-    std::vector<int>results(output_tensor_size);
-    if(pic_mode)
+    results.clear();
+    for (unsigned i = 0; i < output_tensor_size / 2; i++)
     {
-        for (unsigned i = 0; i < output_tensor_size / 2; i++)
-        {
-            float x_kp;
-            float y_kp;
-            x_kp = pred[i * 2] * bbox.w + bbox.x;
-            y_kp = pred[i * 2 + 1] * bbox.h + bbox.y;
+        float x_kp;
+        float y_kp;
+        x_kp = pred[i * 2] * bbox.w + bbox.x;
+        y_kp = pred[i * 2 + 1] * bbox.h + bbox.y;
 
-            results[i * 2] = static_cast<int>(x_kp);
-            results[i * 2 + 1] = static_cast<int>(y_kp);
-            cv::circle(img, cv::Point(results[i * 2], results[i * 2 + 1]), 2, cv::Scalar(255, 155, 0), 3);
-
-        }
-
-        for (unsigned k = 0; k < 5; k++)
-        {
-            int i = k*8;
-            unsigned char R = 255, G = 0, B = 0;
-
-            switch(k)
-            {
-                case 0:R = 255; G = 0; B = 0;break;
-                case 1:R = 255; G = 0; B = 255;break;
-                case 2:R = 255; G = 255; B = 0;break;
-                case 3:R = 0; G = 255; B = 0;break;
-                case 4:R = 0; G = 0; B = 255;break;
-                default: std::cout << "error" << std::endl;
-            }
-
-            cv::line(img, cv::Point(results[0], results[1]), cv::Point(results[i + 2], results[i + 3]), cv::Scalar(B,G,R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 2], results[i + 3]), cv::Point(results[i + 4], results[i + 5]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 4], results[i + 5]), cv::Point(results[i + 6], results[i + 7]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 6], results[i + 7]), cv::Point(results[i + 8], results[i + 9]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-        }
+        results.push_back(static_cast<int>(x_kp));
+        results.push_back(static_cast<int>(y_kp));
     }
-    else
-    { 
-        int osd_width = img.cols;
-        int osd_height = img.rows;
-        int SENSOR_HEIGHT = isp_shape_.height;
-        int SENSOR_WIDTH =  isp_shape_.width;  
-        for (unsigned i = 0; i < output_tensor_size / 2; i++)
-        {
-            float x_kp;
-            float y_kp;
-            x_kp = pred[i * 2] * bbox.w + bbox.x;
-            y_kp = pred[i * 2 + 1] * bbox.h + bbox.y;
+    //食指和中指指尖坐标
+    two_point.push_back(results[16]*1.0/isp_shape_.width*img.cols);
+    two_point.push_back(results[17]*1.0/isp_shape_.height*img.rows);
+    two_point.push_back(results[24]*1.0/isp_shape_.width*img.cols);
+    two_point.push_back(results[25]*1.0/isp_shape_.height*img.rows);
 
-            results[i * 2] = static_cast<int>(x_kp);
-            results[i * 2 + 1] = static_cast<int>(y_kp);
-
-        }
-
-        two_point.push_back(results[8 + 8]);
-        two_point.push_back(results[8 + 9]);
-        two_point.push_back(results[16 + 8]);
-        two_point.push_back(results[16 + 9]);
-    }
-
-}
-
-vector<float*> HandKeypoint::get_out()
-{
-    return p_outputs_;
 }
 
 

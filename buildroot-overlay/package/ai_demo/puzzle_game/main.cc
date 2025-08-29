@@ -25,10 +25,11 @@
 #include <iostream>
 #include <thread>
 #include "utils.h"
-#include "vi_vo.h"
+#include "setting.h"
 #include "sensor_buf_manager.h"
 #include "hand_detection.h"
 #include "hand_keypoint.h"
+#include "sliding_puzzle.h"
 
 using std::cerr;
 using std::cout;
@@ -37,9 +38,13 @@ using std::thread;
 
 static std::mutex result_mutex;
 std::atomic<bool> ai_stop(false);
+// 显示线程退出标志
+std::atomic<bool> display_stop(false);
 static volatile unsigned kpu_frame_count = 0;
-static struct display* display;
 static struct timeval tv, tv2;
+// 显示实例和OSD缓冲区
+static struct display* display;
+struct display_buffer* draw_buffer;
 
 int osd_width = -1,osd_height =-1;
 cv::Mat osd_frame;
@@ -70,21 +75,21 @@ void read_binary_file_bin(std::string file_name,unsigned char *outi)
     ifs.close();
 }
 
-void bin_2_mat(std::string bin_data_path, int mat_width, int mat_height, cv::Mat &image_argb)
+void bin_2_mat(std::string bin_data_path, int mat_width, int mat_height, cv::Mat &image_bgra)
 {
     unsigned char *bin_data = new unsigned char[mat_width*mat_height*4];
     read_binary_file_bin(bin_data_path,bin_data);
-    std::vector<Mat> image_argb_vec;
-    image_argb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data));
-    image_argb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 1 * mat_width * mat_height));
-    image_argb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 2 * mat_width * mat_height));
-    image_argb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 3 * mat_width * mat_height));
-    cv::merge(image_argb_vec, image_argb);
+    std::vector<Mat> image_bgra_vec;
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 3 * mat_width * mat_height));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 2 * mat_width * mat_height));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 1 * mat_width * mat_height));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data));
+    cv::merge(image_bgra_vec, image_bgra);
     delete[] bin_data;
 }
 
 // zero copy, use less memory
-static void ai_proc_dmabuf(char *argv[], int video_device) {
+static void ai_proc(char *argv[], int video_device) {
     struct v4l2_drm_context context;
     struct v4l2_drm_video_buffer buffer;
     #define BUFFER_NUM 3
@@ -109,115 +114,15 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         return;
     }
 
-    
-    int puzzle_width;
-    int puzzle_height;
-    int puzzle_ori_width;
-    int puzzle_ori_height;
-    puzzle_width = osd_height;
-    puzzle_height = osd_height;
-    puzzle_ori_width = osd_width-puzzle_height-5;
-    puzzle_ori_height = osd_width-puzzle_height-5;
-
-
-    int level = atoi(argv[6]);
-    int every_block_width = puzzle_width/level;
-    int every_block_height = puzzle_height/level;
-    float ratio_num = every_block_width/360.0;
-    int blank_x = 0;
-    int blank_y = 0;
-    std::vector<int> direction_vec = {-1,1,-1,1};
-
-    cv::Mat image_puzzle_argb;
-    cv::Mat image_puzzle_ori;
-    cv::Mat osd_frame_tmp(osd_height, osd_width, CV_8UC3, cv::Scalar(0, 0, 0));
-
-    int exact_division_x = 0;
-    int exact_division_y = 0;
-    int distance_tow_points = osd_width;
-    int distance_thred = every_block_width*0.3;
-    cv::Rect move_rect;
-    cv::Mat move_mat;
-    cv::Mat copy_blank;
-    cv::Mat copy_move;
-
-    if (strcmp(argv[5], "None") == 0)
-    {
-        image_puzzle_argb = cv::Mat(puzzle_height, puzzle_width, CV_8UC3, cv::Scalar(130, 150, 100));
-        for(int i = 0; i < level*level; i++)
-        {
-            cv::rectangle(image_puzzle_argb, cv::Rect((i%level)*every_block_width, (i/level)*every_block_height, every_block_width, every_block_height), cv::Scalar(255, 255, 255), 5);
-            std::string classString = to_string(i);
-            cv::Size textSize = cv::getTextSize(classString, cv::FONT_HERSHEY_DUPLEX, 7*ratio_num, 8*ratio_num, 0);
-            cv::putText(image_puzzle_argb, classString, cv::Point((i%level)*every_block_width + (every_block_width-textSize.width)/2,(i/level)*every_block_height + (every_block_height+textSize.height)/2),cv::FONT_HERSHEY_COMPLEX, 7*ratio_num, cv::Scalar(0, 0, 255), 8*ratio_num, 0);
-        }
-    }
-    else
-    {
-        bin_2_mat(argv[5], puzzle_width, puzzle_height, image_puzzle_argb);
-        for(int i = 0; i < level*level; i++)
-        {
-            cv::rectangle(image_puzzle_argb, cv::Rect((i%level)*every_block_width, (i/level)*every_block_height, every_block_width, every_block_height), cv::Scalar(255, 255, 255), 5);
-        }
-    }
-    std::cout << "1========================== " << std::endl;
-
-    cv::Mat blank_block_puzzle(every_block_height, every_block_width, CV_8UC3, cv::Scalar(114, 114, 114));
-    cv::Mat image_puzzle_argb_blank = image_puzzle_argb(cv::Rect(0,0,every_block_width,every_block_height));
-    blank_block_puzzle.copyTo(image_puzzle_argb_blank);
-
-    std::cout << puzzle_ori_width << " ====  " << puzzle_ori_height << std::endl;
-    cv::resize(image_puzzle_argb, image_puzzle_ori, cv::Size(puzzle_ori_width, puzzle_ori_height), cv::INTER_AREA);
-    std::cout << "44-------------------------------- " << std::endl;
-    cv::Mat copy_ori_image_0 = osd_frame_tmp(cv::Rect(0,0,puzzle_width,puzzle_height));
-    image_puzzle_argb.copyTo(copy_ori_image_0);
-    cv::Mat copy_ori_image_1;
-    std::cout << "-------------------------------- " << std::endl;
-
-    copy_ori_image_1 = osd_frame_tmp(cv::Rect(puzzle_width+2,(1080-puzzle_ori_height)/2,puzzle_ori_width,puzzle_ori_height));
-    image_puzzle_ori.copyTo(copy_ori_image_1);
-
-    cv::Mat blank_block(every_block_height, every_block_width, CV_8UC3, cv::Scalar(114, 114, 114));
-
-    std::cout << "2========================== " << std::endl;
-
-    srand((unsigned)time(NULL));
-    for(int i = 0; i < level*10; i++)
-    {
-        int k230_random = rand() % 4;
-        int blank_x_tmp = blank_x;
-        int blank_y_tmp = blank_y;
-        if (k230_random < 2)
-        {
-            blank_x_tmp = blank_x + direction_vec[k230_random];
-        }
-        else
-        {
-            blank_y_tmp = blank_y + direction_vec[k230_random];
-        }
-
-        if((blank_x_tmp >= 0 && blank_x_tmp < level) && (blank_y_tmp >= 0 && blank_y_tmp < level) && (std::abs(blank_x - blank_x_tmp) <= 1 && std::abs(blank_y - blank_y_tmp) <= 1))
-        {
-            move_rect = cv::Rect(blank_x_tmp*every_block_width,blank_y_tmp*every_block_height,every_block_width,every_block_height);
-            move_mat = osd_frame_tmp(move_rect);
-
-            copy_blank = osd_frame_tmp(cv::Rect(blank_x_tmp*every_block_width,blank_y_tmp*every_block_height,every_block_width,every_block_height));
-            copy_move = osd_frame_tmp(cv::Rect(blank_x*every_block_width,blank_y*every_block_height,every_block_width,every_block_height));
-            move_mat.copyTo(copy_move);
-            blank_block.copyTo(copy_blank);
-
-            blank_x = blank_x_tmp;
-            blank_y = blank_y_tmp;
-        }
-    }
-
-    std::cout << "3========================== " << std::endl;
-
     HandDetection hd(argv[1], atof(argv[2]), atof(argv[3]), {SENSOR_WIDTH, SENSOR_HEIGHT}, {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[7]));
     HandKeypoint hk(argv[4], {SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH}, atoi(argv[7]));
 
     std::vector<BoxInfo> results;
     std::vector<int> two_point;
+
+    int level = atoi(argv[6]);
+    SlidingPuzzle puzzle(level,osd_width,osd_height);
+    puzzle.initialize(osd_frame);
 
     // create tensors
     std::vector<std::tuple<int, void*>> tensors;
@@ -239,105 +144,26 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
         results.clear();
         two_point.clear();
         hd.post_process(results);
-        
-        osd_frame = cv::Mat(osd_height, osd_width, CV_8UC3, cv::Scalar(0, 0, 0));
 
-        float max_area_hand = 0;
-        int max_id_hand = -1;
-        for (int i = 0; i < results.size(); ++i)
-        {
-            float area_i = (results[i].x2 - results[i].x1) * (results[i].y2 - results[i].y1);
-            if (area_i > max_area_hand)
-            {
-                max_area_hand = area_i;
-                max_id_hand = i;
-            }
-        }
-
-        if (max_id_hand != -1)
-        {
-            std::string text = hd.labels_[results[max_id_hand].label] + ":" + std::to_string(round(results[max_id_hand].score * 100) / 100.0);
-
-            int w = results[max_id_hand].x2 - results[max_id_hand].x1 + 1;
-            int h = results[max_id_hand].y2 - results[max_id_hand].y1 + 1;
-            
+        if(results.size()==1){
+            BoxInfo r=results[0];
+            int w = r.x2 - r.x1 + 1;
+            int h = r.y2 - r.y1 + 1;
             int length = std::max(w,h)/2;
-            int cx = (results[max_id_hand].x1+results[max_id_hand].x2)/2;
-            int cy = (results[max_id_hand].y1+results[max_id_hand].y2)/2;
+            int cx = (r.x1+r.x2)/2;
+            int cy = (r.y1+r.y2)/2;
             int ratio_num = 1.26*length;
-
             int x1_1 = std::max(0,cx-ratio_num);
             int y1_1 = std::max(0,cy-ratio_num);
             int x2_1 = std::min(SENSOR_WIDTH-1, cx+ratio_num);
             int y2_1 = std::min(SENSOR_HEIGHT-1, cy+ratio_num);
             int w_1 = x2_1 - x1_1 + 1;
             int h_1 = y2_1 - y1_1 + 1;
-            
-            struct Bbox bbox = {x:x1_1,y:y1_1,w:w_1,h:h_1};
-            hk.pre_process(img_data, bbox);
-
+            Bbox bbox = {x:x1_1,y:y1_1,w:w_1,h:h_1};
+            hk.pre_process(img_data,bbox);
             hk.inference();
-
-            {
-                ScopedTiming st("osd draw", atoi(argv[7]));
-                hk.draw_keypoints(osd_frame, text, bbox, false, two_point);
-            }
-        }
-
-        if(max_id_hand != -1 && two_point[1] <= SENSOR_WIDTH)
-        {
-            distance_tow_points = std::sqrt(std::pow((two_point[0] - two_point[2]),2) + std::pow((two_point[1] - two_point[3]),2))* 1.0 / SENSOR_WIDTH * osd_width;
-            exact_division_x = (two_point[0] * 1.0 / SENSOR_WIDTH * osd_width)/every_block_width;
-            exact_division_y = (two_point[1] * 1.0 / SENSOR_HEIGHT * osd_height)/every_block_height;
-            if(distance_tow_points < distance_thred && exact_division_x >= 0 && exact_division_x < level && exact_division_y >= 0 && exact_division_y < level)
-            {   
-                if(std::abs(blank_x - exact_division_x) == 1 && std::abs(blank_y - exact_division_y) == 0)
-                {
-                    move_rect = cv::Rect(exact_division_x*every_block_width,exact_division_y*every_block_height,every_block_width,every_block_height);
-                    move_mat = osd_frame_tmp(move_rect);
-
-                    copy_blank = osd_frame_tmp(cv::Rect(exact_division_x*every_block_width,exact_division_y*every_block_height,every_block_width,every_block_height));
-                    copy_move = osd_frame_tmp(cv::Rect(blank_x*every_block_width,blank_y*every_block_height,every_block_width,every_block_height));
-                    move_mat.copyTo(copy_move);
-                    blank_block.copyTo(copy_blank);
-
-                    blank_x = exact_division_x;
-                }
-                else if (std::abs(blank_y - exact_division_y) == 1 && std::abs(blank_x - exact_division_x) == 0)
-                {
-                    move_rect = cv::Rect(exact_division_x*every_block_width,exact_division_y*every_block_height,every_block_width,every_block_height);
-                    move_mat = osd_frame_tmp(move_rect);
-
-                    copy_blank = osd_frame_tmp(cv::Rect(exact_division_x*every_block_width,exact_division_y*every_block_height,every_block_width,every_block_height));
-                    copy_move = osd_frame_tmp(cv::Rect(blank_x*every_block_width,blank_y*every_block_height,every_block_width,every_block_height));
-                    move_mat.copyTo(copy_move);
-                    blank_block.copyTo(copy_blank);
-
-                    blank_y = exact_division_y;
-                }
-
-                osd_frame = osd_frame_tmp.clone();
-                if(two_point.size() > 0)
-                {
-                    int x1 = two_point[0] * 1.0 / SENSOR_WIDTH * osd_width;
-                    int y1 = two_point[1] * 1.0 / SENSOR_HEIGHT * osd_height;
-                    cv::circle(osd_frame, cv::Point(x1, y1), 10, cv::Scalar(0, 255, 255), 10);
-                }
-            }
-            else
-            {
-                osd_frame = osd_frame_tmp.clone();
-                if(two_point.size() > 0)
-                {
-                    int x1 = two_point[0] * 1.0 / SENSOR_WIDTH * osd_width;
-                    int y1 = two_point[1] * 1.0 / SENSOR_HEIGHT * osd_height;
-                    cv::circle(osd_frame, cv::Point(x1, y1), 10, cv::Scalar(255, 255, 0), 10);
-                }
-            }
-        }
-        else
-        {
-            osd_frame = osd_frame_tmp.clone();
+            hk.get_two_point(osd_frame,bbox,two_point);
+            puzzle.process_hand(two_point, osd_frame);
         }
         result_mutex.unlock();
         kpu_frame_count += 1;
@@ -346,7 +172,14 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
     v4l2_drm_stop(&context);
 }
 
-//display
+/**
+ * @brief V4L2-DRM 显示帧处理函数（每帧触发一次）
+ *
+ * 该函数由 v4l2_drm_run 驱动循环回调，在每一帧显示数据时被调用。主要功能用于显示AI推理的结果。
+ * @param context V4L2-DRM 上下文结构体指针
+ * @param displayed 表示该帧是否已经被实际显示
+ * @return 返回 0 表示正常，返回 'q' 表示请求退出主循环（受控于 display_stop 标志）
+ */
 int frame_handler(struct v4l2_drm_context *context, bool displayed) 
 {
     static bool first_frame = true;
@@ -364,13 +197,38 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed)
             static struct display_buffer* last_drawed_buffer = nullptr;
             auto buffer = context[0].display_buffers[context[0].buffer_hold[context[0].wp]];
             if (buffer != last_drawed_buffer) {
-                auto img = cv::Mat(buffer->height, buffer->width, CV_8UC3, buffer->map);
-                result_mutex.lock();
-                osd_frame.copyTo(img,osd_frame);
-                result_mutex.unlock();
+                if (draw_buffer->width > draw_buffer->height)
+                {
+                    // 创建临时 BGRA 显示缓冲Mat（用于画图）
+                    cv::Mat temp_img(draw_buffer->height, draw_buffer->width, CV_8UC4);
+                    // 横屏
+                    temp_img.setTo(cv::Scalar(0, 0, 0, 0));
+                    result_mutex.lock();
+                    osd_frame.copyTo(temp_img);
+                    result_mutex.unlock();
+                    //---------------------- 显示缓冲同步 ----------------------
+                    // 将绘图图像复制到实际显示缓冲区
+                    memcpy(draw_buffer->map, temp_img.data, draw_buffer->size);
+                }
+                else
+                {
+                    // 创建临时 BGRA 显示缓冲Mat（用于画图）
+                    cv::Mat temp_img(draw_buffer->width, draw_buffer->height, CV_8UC4);
+                    // 横屏
+                    temp_img.setTo(cv::Scalar(0, 0, 0, 0));
+                    result_mutex.lock();
+                    osd_frame.copyTo(temp_img);
+                    result_mutex.unlock();
+                    // 旋转回屏幕方向
+                    cv::rotate(temp_img, temp_img, cv::ROTATE_90_CLOCKWISE);
+                    //---------------------- 显示缓冲同步 ----------------------
+                    // 将绘图图像复制到实际显示缓冲区
+                    memcpy(draw_buffer->map, temp_img.data, draw_buffer->size);
+                }
                 last_drawed_buffer = buffer;
                 // flush cache
                 thead_csi_dcache_clean_invalid_range(buffer->map, buffer->size);
+                display_update_buffer(draw_buffer, 0, 0);
             }
         }
         display_frame_count += 1;
@@ -395,40 +253,75 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed)
         gettimeofday(&tv, NULL);
     }
 
-    // key
-    char c;
-    ssize_t n = read(STDIN_FILENO, &c, 1);
-    if ((n > 0) && (c != '\n')) {
-        return c;
-    }
-    if ((n < 0) && (errno != EAGAIN)) {
-        return -1;
+    // 若收到退出信号，返回 'q' 表示主循环退出
+    if (display_stop) {
+        return 'q';
     }
     return 0;
 }
 
-static void display_proc(int video_device) 
+/**
+ * @brief 显示线程主函数，初始化 V4L2-DRM 并绑定绘制回调
+ *
+ * 根据屏幕方向（横屏 / 竖屏）配置对应的宽高、格式和旋转角度，
+ * 然后调用 `v4l2_drm_run()` 启动帧处理主循环，由 `frame_handler()` 每帧触发绘制。
+ *
+ * @param video_device 视频设备编号（如 /dev/video0 中的 1）
+ */
+void display_proc(int video_device) 
 {
     struct v4l2_drm_context context;
     v4l2_drm_default_context(&context);
     context.device = video_device;
-    context.width = display->width;
-    context.height = (display->width * SENSOR_HEIGHT / SENSOR_WIDTH) & 0xfff8;
-    osd_width = context.width,osd_height = context.height;
-    context.video_format = V4L2_PIX_FMT_BGR24;
-    context.display_format = 0; // auto
+    // 根据屏幕方向设置 width/height/rotation
+    if (display->width > display->height)
+    {
+        // 横屏
+        context.width = display->width;
+        context.height = (display->width * SENSOR_HEIGHT / SENSOR_WIDTH) & 0xfff8;
+        context.video_format = V4L2_PIX_FMT_NV12;
+        context.display_format = 0;
+        context.drm_rotation = rotation_0;
+    }
+    else 
+    {
+        // 竖屏
+        context.width = display->height;
+        context.height = display->width;
+        context.video_format = V4L2_PIX_FMT_NV12;
+        context.display_format = 0;
+        context.drm_rotation = rotation_90;
+    }
+
+    // 初始化 V4L2 + DRM 流
     if (v4l2_drm_setup(&context, 1, &display)) {
         std::cerr << "v4l2_drm_setup error" << std::endl;
         return;
     }
-    std::cout << "press 'q' to exit" << std::endl;
-    std::cout << "press 'd' to save a picture" << std::endl;
+
+    // 分配OSD显示 plane 和 buffer
+    struct display_plane* plane = display_get_plane(display, DRM_FORMAT_ARGB8888);
+    draw_buffer = display_allocate_buffer(plane, display->width, display->height);
+    display_commit_buffer(draw_buffer, 0, 0);
+
+    if (draw_buffer->width > draw_buffer->height)
+    {
+        osd_frame = cv::Mat(draw_buffer->height, draw_buffer->width, CV_8UC4, cv::Scalar(0,0, 0, 0));
+        osd_width = draw_buffer->width;
+        osd_height = draw_buffer->height;
+    }
+    else{
+        osd_frame = cv::Mat(draw_buffer->width, draw_buffer->height, CV_8UC4, cv::Scalar(0,0, 0, 0));
+        osd_width = draw_buffer->height;
+        osd_height = draw_buffer->width;
+    }
     gettimeofday(&tv, NULL);
     v4l2_drm_run(&context, 1, frame_handler);
+    // 清理资源
     if (display) {
+        display_free_plane(plane);
         display_exit(display);
     }
-    ai_stop.store(true);
     return;
 }
 
@@ -453,21 +346,35 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    // set stdin non-block
-    int flag = fcntl(STDIN_FILENO, F_GETFL);
-    flag |= O_NONBLOCK;
-    if (fcntl(STDIN_FILENO, F_SETFL, flag)) {
-        cerr << "can't set stdin non-block" << endl;
-        return -1;
-    }
+    // 锁住结果互斥量，等待首次帧到来后解锁
+        result_mutex.lock();
 
-    result_mutex.lock();
-    auto ai_thread = thread(ai_proc_dmabuf, argv, 2);
-    display_proc(1);
-    ai_thread.join();
+        // 启动分类任务推理线程
+        std::thread ai_thread(ai_proc, argv, 2);
+        // 启动显示线程（处理显示内容绘制）
+        std::thread display_thread(display_proc, 1);
 
-    // set stdin block
-    flag = fcntl(STDIN_FILENO, F_GETFL);
-    flag &= ~O_NONBLOCK;
-    fcntl(STDIN_FILENO, F_SETFL, flag);
+        // 输入提示信息
+        std::cout << "输入 'q'回车退出" << std::endl;
+
+        // 命令行输入处理主循环
+        std::string last_input = "";
+        while (true) {
+            std::string input;
+            std::getline(std::cin, input);  // 获取用户输入
+            if (input == "q") {
+                // 退出程序
+                display_stop.store(true); // 通知显示线程退出
+                usleep(100000);           // 稍作延迟，确保帧处理完成
+                ai_stop.store(true);      // 通知人脸线程退出
+                break;
+            }
+            else{
+                usleep(100000);
+            }
+        }
+
+        // 等待两个线程完成后退出程序
+        display_thread.join();
+        ai_thread.join();
 }

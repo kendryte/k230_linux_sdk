@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "vi_vo.h"
+#include "setting.h"
 #include "hand_keypoint.h"
 
 HandKeypoint::HandKeypoint(const char *kmodel_file, const int debug_mode)
@@ -75,37 +75,31 @@ void HandKeypoint::post_process(Bbox &bbox)
     // 绘制关键点像素坐标
     int64_t output_tensor_size = output_shapes_[0][1];// 关键点输出 （x,y）*21= 42
     results.clear();
-    minX = 1088;
-    maxX = 0;
-    minY = 1088;
-    maxY = 0;
-
     for (unsigned i = 0; i < output_tensor_size / 2; i++)
     {
         float x_kp;
         float y_kp;
-        x_kp = static_cast<int>(pred[i * 2] * bbox.w + bbox.x);
-        if (x_kp<minX)
-        {
-            minX = x_kp;
-        }
-        if (x_kp>maxX)
-        {
-            maxX = x_kp;
-        }
-        y_kp = static_cast<int>(pred[i * 2 + 1] * bbox.h + bbox.y);
-        if (y_kp<minY)
-        {
-            minY = y_kp;
-        }
-        if (y_kp>maxY)
-        {
-            maxY = y_kp;
-        }
-        results.push_back(x_kp);
-        results.push_back(y_kp);
+        x_kp = pred[i * 2] * bbox.w + bbox.x;
+        y_kp = pred[i * 2 + 1] * bbox.h + bbox.y;
+
+        results.push_back(static_cast<int>(x_kp));
+        results.push_back(static_cast<int>(y_kp));
+
     }
+
 }
+
+void HandKeypoint::get_two_point(cv::Mat &img,std::vector<int> &two_point)
+{
+    ScopedTiming st(model_name_ + " draw_keypoints", debug_mode_);
+    //食指和中指指尖坐标
+    two_point.push_back(results[8]*1.0/isp_shape_.width*img.cols);
+    two_point.push_back(results[9]*1.0/isp_shape_.height*img.rows);
+    two_point.push_back(results[16]*1.0/isp_shape_.width*img.cols);
+    two_point.push_back(results[17]*1.0/isp_shape_.height*img.rows);
+
+}
+
 
 void HandKeypoint::draw_keypoints(cv::Mat &img, Bbox &bbox, bool pic_mode)
 {

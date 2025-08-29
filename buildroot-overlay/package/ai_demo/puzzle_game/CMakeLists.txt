@@ -2,21 +2,21 @@ cmake_minimum_required(VERSION 3.10)
 if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     get_filename_component(CURRENT_DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
     project(${CURRENT_DIR_NAME})
-    set(src main.cc  hand_keypoint.cc hand_detection.cc)
+    set(src main.cc  hand_keypoint.cc hand_detection.cc sliding_puzzle.cc)
     include(../common/ai_demo_cml_common)
 
-    install(FILES ${KMODE_DIR}/hand_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
-    install(FILES ${KMODE_DIR}/handkp_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
-    install(FILES ${UTITLS}/pintu.bin DESTINATION  /root/app/${PROJECT_NAME}/)
-    install(PROGRAMS ${SHELL_DIR}/puzzle_game_bin_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
-    install(PROGRAMS ${SHELL_DIR}/puzzle_game_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${AIDEMO_KMODEL_DIR}/hand_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${AIDEMO_KMODEL_DIR}/handkp_det.kmodel DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(FILES ${AIDEMO_UTILS_DIR}/pintu.bin DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${AIDEMO_SHELL_DIR}/puzzle_game_bin_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
+    install(PROGRAMS ${AIDEMO_SHELL_DIR}/puzzle_game_isp.sh DESTINATION  /root/app/${PROJECT_NAME}/)
 else()
 
     set(src main.cc
         ${CMAKE_SOURCE_DIR}/common/utils.cc
         ${CMAKE_SOURCE_DIR}/common/ai_base.cc
         ${CMAKE_SOURCE_DIR}/common/sensor_buf_manager.cc
-        hand_keypoint.cc hand_detection.cc)
+        hand_keypoint.cc hand_detection.cc sliding_puzzle.cc)
     set(bin puzzle_game.elf)
 
     add_executable(${bin} ${src})

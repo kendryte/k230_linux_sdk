@@ -22,7 +22,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "vi_vo.h"
+#include "setting.h"
 #include "person_detect.h"
 
 PersonDetect::PersonDetect(const char *kmodel_file, float obj_thresh, float nms_thresh, const int debug_mode)

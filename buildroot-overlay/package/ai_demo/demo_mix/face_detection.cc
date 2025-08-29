@@ -22,7 +22,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "vi_vo.h"
+#include "setting.h"
 #include "face_detection.h"
 
 extern float kAnchors320[4200][4];
@@ -215,7 +215,7 @@ void FaceDetection::draw_result_video(cv::Mat& src_img,vector<FaceDetectionInfo>
         int y = b.y / SENSOR_HEIGHT * src_h;
         int w = b.w / SENSOR_WIDTH * src_w;
         int h = b.h / SENSOR_HEIGHT * src_h;
-        cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255), 6, 2, 0);
+        cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255,255), 6, 2, 0);
     }
 }
 

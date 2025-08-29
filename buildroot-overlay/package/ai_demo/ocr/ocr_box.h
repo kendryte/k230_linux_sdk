@@ -132,7 +132,7 @@ class OCRBox : public AIBase
         * @param writepen      用于绘画文本的组件实例，可以写中文
         * @return None
         */
-       static void draw_ocr_image(cv::Mat& frame, vector<ocr_det_res>& results,vector<std::string> &rec_results,ChineseTextRenderer &writepen);
+       static void draw_ocr_image(cv::Mat& frame, vector<ocr_det_res>& results,vector<std::string> &rec_results,TextRenderer &writepen);
 
         /**
         * @brief 将ocr检测和识别任务的结果绘制到屏幕的osd中
@@ -144,7 +144,7 @@ class OCRBox : public AIBase
         * @param writepen              用于绘画文本的组件实例，可以写中文
         * @return None
         */
-        static void draw_ocr_video(cv::Mat& frame, vector<ocr_det_res>& results,vector<std::string> &rec_results, FrameSize osd_frame_size, FrameSize sensor_frame_size,ChineseTextRenderer &writepen);
+        static void draw_ocr_video(cv::Mat& frame, vector<ocr_det_res>& results,vector<std::string> &rec_results, FrameSize osd_frame_size, FrameSize sensor_frame_size,TextRenderer &writepen);
 
         /**
         * @brief 透射变换后crop

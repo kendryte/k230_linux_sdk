@@ -175,15 +175,15 @@ void DynamicGesture::read_binary_file_bin(std::string file_name,unsigned char *o
     ifs.close();
 }
 
-void DynamicGesture::bin_2_mat(std::string bin_data_path, int mat_width, int mat_height, cv::Mat &image_rgb)
+void DynamicGesture::bin_2_mat(std::string bin_data_path, int mat_width, int mat_height, cv::Mat &image_bgra)
 {
     unsigned char *bin_data = new unsigned char[mat_width*mat_height*4];
     read_binary_file_bin(bin_data_path,bin_data);
-    std::vector<Mat> image_rgb_vec;
-    // image_rgb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data));
-    image_rgb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 1 * mat_width * mat_height));
-    image_rgb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 2 * mat_width * mat_height));
-    image_rgb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 3 * mat_width * mat_height));
-    cv::merge(image_rgb_vec, image_rgb);
+    std::vector<Mat> image_bgra_vec;
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 1 * mat_width * mat_height));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 2 * mat_width * mat_height));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 3 * mat_width * mat_height));
+    cv::merge(image_bgra_vec, image_bgra);
     delete[] bin_data;
 }

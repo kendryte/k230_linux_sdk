@@ -10,15 +10,17 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}   -mcpu=c908v -mabi=lp64d  -mtune=c908 -
 set(CMAKE_C_COMPILER $ENV{GCC_PATH}/riscv64-unknown-linux-gnu-gcc)
 set(CMAKE_SYSROOT $ENV{sysroot})
 
-find_package(OpenCV REQUIRED)
+message("CMAKE_SYSROOT =" ${CMAKE_SYSROOT})
+
 include_directories(./common)
 include_directories(${CMAKE_SYSROOT}/usr/include/libdrm)
 include_directories(${CMAKE_SYSROOT}/usr/include/freetype2)
 include_directories(${CMAKE_SYSROOT}/usr/include/alsa)
+include_directories(${CMAKE_SYSROOT}/usr/include/opencv4)
 
 
 # 定义要排除的目录列表
-set(exclude_dirs "cmake" "k230_bin" "shell" "out" "llamac" ".git" "common" "kmodel" "face_detect")
+set(exclude_dirs "k230_bin" "shell" "out" ".git" "common" "kmodel")
 
 file(GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/*")
 foreach(file ${files})

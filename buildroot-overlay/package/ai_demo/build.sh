@@ -6,9 +6,9 @@ GCC_PATH="$(cat ${SDK_ROOT}/output/$(cat ${SDK_ROOT}/.last_conf | cut -d= -f2)/.
 sysroot="$(realpath ${SDK_ROOT}/output/$(cat ${SDK_ROOT}/.last_conf | cut -d= -f2)/staging)"
 export GCC_PATH
 export sysroot
-KMODEL_DIR="${PWD}/kmodel"
+AIDEMO_KMODEL_DIR="${PWD}/kmodel"
 # 检查目录是否存在
-if [ -d "$KMODEL_DIR" ]; then
+if [ -d "$AIDEMO_KMODEL_DIR" ]; then
     echo "kmodel directory exists."
 else
     echo "kmodel directory does not exist."
@@ -181,7 +181,8 @@ for subdir in $(ls -d */); do
             cp out/bin/licence_det.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/LPD_640.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/images/licence.jpg ${k230_bin}/$subdir_name
-            cp -a shell/licence_detect_*.sh ${k230_bin}/$subdir_name
+            cp -a shell/licence_detect_isp.sh ${k230_bin}/$subdir_name
+            cp -a shell/licence_detect_image.sh ${k230_bin}/$subdir_name
       fi
 
       if [ "$subdir_name" = "licence_det_rec" ]; then
@@ -189,9 +190,9 @@ for subdir in $(ls -d */); do
             cp -a ${kmodel_root_dir}/kmodel/LPD_640.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/licence_reco.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/images/licence.jpg ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/utils/HZKf2424.hz ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/utils/Asci0816.zf ${k230_bin}/$subdir_name
-            cp -a shell/licence_detect_*.sh ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/SourceHanSansSC-Normal-Min.ttf  ${k230_bin}/$subdir_name
+            cp -a shell/licence_detect_rec_image.sh ${k230_bin}/$subdir_name
+            cp -a shell/licence_detect_rec_isp.sh ${k230_bin}/$subdir_name
       fi
 
       if [ "$subdir_name" = "llamac" ]; then
@@ -277,7 +278,7 @@ for subdir in $(ls -d */); do
             cp out/bin/bytetrack.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/bytetrack_yolov5n.kmodel ${k230_bin}/$subdir_name
             cp -ar ${kmodel_root_dir}/images/bytetrack_data ${k230_bin}/$subdir_name
-            cp -a shell/bytetrack_*.sh ${k230_bin}/$subdir_name
+            cp -a shell/bytetrack_img.sh ${k230_bin}/$subdir_name
             mkdir -p ${k230_bin}/$subdir_name/bytetrack_data/output
       fi
 
@@ -398,6 +399,7 @@ for subdir in $(ls -d */); do
             cp -a ${kmodel_root_dir}/kmodel/ocr_rec.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/images/input_ocr.jpg ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/utils/dict_6625.txt ${k230_bin}/$subdir_name
+            cp -a ${kmodel_root_dir}/utils/SourceHanSansSC-Normal-Min.ttf  ${k230_bin}/$subdir_name
             cp -a shell/handkpocr_cpp_*.sh ${k230_bin}/$subdir_name
       fi
 
@@ -467,7 +469,6 @@ for subdir in $(ls -d */); do
             cp -a ${kmodel_root_dir}/kmodel/zh_fastspeech_1.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/zh_fastspeech_2.kmodel ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/hifigan.kmodel ${k230_bin}/$subdir_name
-            cp -a ${kmodel_root_dir}/utils/wav_play.elf ${k230_bin}/$subdir_name
             cp -ar ${kmodel_root_dir}/utils/file ${k230_bin}/$subdir_name
             cp -a shell/tts_zh.sh ${k230_bin}/$subdir_name
       fi

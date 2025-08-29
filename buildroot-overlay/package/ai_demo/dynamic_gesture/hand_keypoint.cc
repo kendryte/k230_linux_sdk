@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "vi_vo.h"
+#include "setting.h"
 #include "hand_keypoint.h"
 
 HandKeypoint::HandKeypoint(const char *kmodel_file, const int debug_mode)

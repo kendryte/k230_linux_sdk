@@ -22,7 +22,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "vi_vo.h"
+#include "setting.h"
 #include "flower_recognition.h"
 #include "hand_detection.h"
 #include "hand_keypoint.h"
@@ -96,7 +96,7 @@ void FlowerRecognition::draw_flower_results(cv::Mat& img, vector<Sort::TrackingB
         int rect_w = (float)tb.box.width / SENSOR_WIDTH * src_width;
         int rect_h = (float)tb.box.height / SENSOR_HEIGHT  * src_height;
 
-        cv::rectangle(img, cv::Rect(rect_x, rect_y, rect_w, rect_h), cv::Scalar(255, 0, 255), 2, 2, 0);
+        cv::rectangle(img, cv::Rect(rect_x, rect_y, rect_w, rect_h), cv::Scalar(255, 0, 255,255), 2, 2, 0);
 
         HandKeypoint::draw_keypoints(img, hand_keypoint_results[i], false);
     }
@@ -106,14 +106,14 @@ void FlowerRecognition::draw_flower_results(cv::Mat& img, vector<Sort::TrackingB
     int flower_y2 = flower_recognition_results[0].y2 / SENSOR_HEIGHT  * src_height;
     cv::circle(img, cv::Point(flower_x1, flower_y1), 6, cv::Scalar(0,0,0), 3);
     cv::circle(img, cv::Point(flower_x2, flower_y2), 5, cv::Scalar(0,0,0), 3);
-    cv::rectangle(img, cv::Point(flower_x1, flower_y1),cv::Point(flower_x2, flower_y2), cv::Scalar(0, 255, 255), 2, 2, 0);
+    cv::rectangle(img, cv::Point(flower_x1, flower_y1),cv::Point(flower_x2, flower_y2), cv::Scalar(0, 255, 255,255), 2, 2, 0);
     if (flower_x1 < flower_x2)
     {
-        cv::putText(img, flower_recognition_results[0].label, cv::Point(flower_x1, flower_y1-20),cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0), 2);
+        cv::putText(img, flower_recognition_results[0].label, cv::Point(flower_x1, flower_y1-20),cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0,255), 2);
     }
     else
     {
-        cv::putText(img, flower_recognition_results[0].label, cv::Point(flower_x2, flower_y2-20),cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0), 2);
+        cv::putText(img, flower_recognition_results[0].label, cv::Point(flower_x2, flower_y2-20),cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0,255), 2);
     }
 }
 

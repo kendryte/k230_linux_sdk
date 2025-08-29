@@ -25,7 +25,7 @@
 #include <iostream>
 #include <thread>
 #include "utils.h"
-#include "vi_vo.h"
+#include "setting.h"
 #include "sensor_buf_manager.h"
 #include "ocr_box.h"
 #include "ocr_reco.h"
@@ -40,12 +40,16 @@ static std::mutex result_mutex;
 static vector<ocr_det_res> results;
 static vector<vector<Point2f>> vtds;
 static vector<std::string> rec_results;
-ChineseTextRenderer writepen("SourceHanSansSC-Normal-Min.ttf",24);
+TextRenderer writepen("SourceHanSansSC-Normal-Min.ttf",25);
 
 std::atomic<bool> ai_stop(false);
+// 显示线程退出标志
+std::atomic<bool> display_stop(false);
 static volatile unsigned kpu_frame_count = 0;
-static struct display* display;
 static struct timeval tv, tv2;
+// 显示实例和OSD缓冲区
+static struct display* display;
+struct display_buffer* draw_buffer;
 
 #define dict_len 6549
 
@@ -64,7 +68,7 @@ void print_usage(const char *name)
 }
 
 // zero copy, use less memory
-static void ai_proc_dmabuf(char *argv[], int video_device) {
+static void ai_proc(char *argv[], int video_device) {
     struct v4l2_drm_context context;
     struct v4l2_drm_video_buffer buffer;
     #define BUFFER_NUM 3
@@ -160,7 +164,14 @@ static void ai_proc_dmabuf(char *argv[], int video_device) {
     v4l2_drm_stop(&context);
 }
 
-//display
+/**
+ * @brief V4L2-DRM 显示帧处理函数（每帧触发一次）
+ *
+ * 该函数由 v4l2_drm_run 驱动循环回调，在每一帧显示数据时被调用。主要功能用于显示AI推理的结果。
+ * @param context V4L2-DRM 上下文结构体指针
+ * @param displayed 表示该帧是否已经被实际显示
+ * @return 返回 0 表示正常，返回 'q' 表示请求退出主循环（受控于 display_stop 标志）
+ */
 int frame_handler(struct v4l2_drm_context *context, bool displayed) 
 {
     
@@ -179,13 +190,38 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed)
             static struct display_buffer* last_drawed_buffer = nullptr;
             auto buffer = context[0].display_buffers[context[0].buffer_hold[context[0].wp]];
             if (buffer != last_drawed_buffer) {
-                auto img = cv::Mat(buffer->height, buffer->width, CV_8UC3, buffer->map);
-                result_mutex.lock();
-                OCRBox::draw_ocr_video(img, results, rec_results, {img.cols, img.rows}, {SENSOR_WIDTH, SENSOR_HEIGHT},writepen);
-                result_mutex.unlock();
+                if (draw_buffer->width > draw_buffer->height)
+                {
+                    // 创建临时 BGRA 显示缓冲Mat（用于画图）
+                    cv::Mat temp_img(draw_buffer->height, draw_buffer->width, CV_8UC4);
+                    // 横屏
+                    temp_img.setTo(cv::Scalar(0, 0, 0, 0));
+                    result_mutex.lock();
+                    OCRBox::draw_ocr_video(temp_img, results, rec_results, {temp_img.cols, temp_img.rows}, {SENSOR_WIDTH, SENSOR_HEIGHT},writepen);
+                    result_mutex.unlock();
+                    //---------------------- 显示缓冲同步 ----------------------
+                    // 将绘图图像复制到实际显示缓冲区
+                    memcpy(draw_buffer->map, temp_img.data, draw_buffer->size);
+                }
+                else
+                {
+                    // 创建临时 BGRA 显示缓冲Mat（用于画图）
+                    cv::Mat temp_img(draw_buffer->width, draw_buffer->height, CV_8UC4);
+                    // 横屏
+                    temp_img.setTo(cv::Scalar(0, 0, 0, 0));
+                    result_mutex.lock();
+                    OCRBox::draw_ocr_video(temp_img, results, rec_results, {temp_img.cols, temp_img.rows}, {SENSOR_WIDTH, SENSOR_HEIGHT},writepen);
+                    result_mutex.unlock();
+                    // 旋转回屏幕方向
+                    cv::rotate(temp_img, temp_img, cv::ROTATE_90_CLOCKWISE);
+                    //---------------------- 显示缓冲同步 ----------------------
+                    // 将绘图图像复制到实际显示缓冲区
+                    memcpy(draw_buffer->map, temp_img.data, draw_buffer->size);
+                }
                 last_drawed_buffer = buffer;
                 // flush cache
                 thead_csi_dcache_clean_invalid_range(buffer->map, buffer->size);
+                display_update_buffer(draw_buffer, 0, 0);
             }
         }
         display_frame_count += 1;
@@ -210,39 +246,63 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed)
         gettimeofday(&tv, NULL);
     }
 
-    // key
-    char c;
-    ssize_t n = read(STDIN_FILENO, &c, 1);
-    if ((n > 0) && (c != '\n')) {
-        return c;
-    }
-    if ((n < 0) && (errno != EAGAIN)) {
-        return -1;
+    // 若收到退出信号，返回 'q' 表示主循环退出
+    if (display_stop) {
+        return 'q';
     }
     return 0;
 }
 
-static void display_proc(int video_device) 
+/**
+ * @brief 显示线程主函数，初始化 V4L2-DRM 并绑定绘制回调
+ *
+ * 根据屏幕方向（横屏 / 竖屏）配置对应的宽高、格式和旋转角度，
+ * 然后调用 `v4l2_drm_run()` 启动帧处理主循环，由 `frame_handler()` 每帧触发绘制。
+ *
+ * @param video_device 视频设备编号（如 /dev/video0 中的 1）
+ */
+void display_proc(int video_device) 
 {
     struct v4l2_drm_context context;
     v4l2_drm_default_context(&context);
     context.device = video_device;
-    context.width = display->width;
-    context.height = (display->width * SENSOR_HEIGHT / SENSOR_WIDTH) & 0xfff8;
-    context.video_format = V4L2_PIX_FMT_BGR24;
-    context.display_format = 0; // auto
+    // 根据屏幕方向设置 width/height/rotation
+    if (display->width > display->height)
+    {
+        // 横屏
+        context.width = display->width;
+        context.height = (display->width * SENSOR_HEIGHT / SENSOR_WIDTH) & 0xfff8;
+        context.video_format = V4L2_PIX_FMT_NV12;
+        context.display_format = 0;
+        context.drm_rotation = rotation_0;
+    }
+    else 
+    {
+        // 竖屏
+        context.width = display->height;
+        context.height = display->width;
+        context.video_format = V4L2_PIX_FMT_NV12;
+        context.display_format = 0;
+        context.drm_rotation = rotation_90;
+    }
+
+    // 初始化 V4L2 + DRM 流
     if (v4l2_drm_setup(&context, 1, &display)) {
         std::cerr << "v4l2_drm_setup error" << std::endl;
         return;
     }
-    std::cout << "press 'q' to exit" << std::endl;
-    std::cout << "press 'd' to save a picture" << std::endl;
+
+    // 分配OSD显示 plane 和 buffer
+    struct display_plane* plane = display_get_plane(display, DRM_FORMAT_ARGB8888);
+    draw_buffer = display_allocate_buffer(plane, display->width, display->height);
+    display_commit_buffer(draw_buffer, 0, 0);
     gettimeofday(&tv, NULL);
     v4l2_drm_run(&context, 1, frame_handler);
+    // 清理资源
     if (display) {
+        display_free_plane(plane);
         display_exit(display);
     }
-    ai_stop.store(true);
     return;
 }
 
@@ -270,27 +330,40 @@ int main(int argc, char *argv[])
             return -1;
         }
 
-        // set stdin non-block
-        int flag = fcntl(STDIN_FILENO, F_GETFL);
-        flag |= O_NONBLOCK;
-        if (fcntl(STDIN_FILENO, F_SETFL, flag)) {
-            cerr << "can't set stdin non-block" << endl;
-            return -1;
+        // 锁住结果互斥量，等待首次帧到来后解锁
+        result_mutex.lock();
+
+        // 启动分类任务推理线程
+        std::thread ai_thread(ai_proc, argv, 2);
+        // 启动显示线程（处理显示内容绘制）
+        std::thread display_thread(display_proc, 1);
+
+        // 输入提示信息
+        std::cout << "输入 'q'回车退出" << std::endl;
+
+        // 命令行输入处理主循环
+        std::string last_input = "";
+        while (true) {
+            std::string input;
+            std::getline(std::cin, input);  // 获取用户输入
+            if (input == "q") {
+                // 退出程序
+                display_stop.store(true); // 通知显示线程退出
+                usleep(100000);           // 稍作延迟，确保帧处理完成
+                ai_stop.store(true);      // 通知人脸线程退出
+                break;
+            }
+            else{
+                usleep(100000);
+            }
         }
 
-        result_mutex.lock();
-        auto ai_thread = thread(ai_proc_dmabuf, argv, 2);
-        display_proc(1);
+        // 等待两个线程完成后退出程序
+        display_thread.join();
         ai_thread.join();
-
-        // set stdin block
-        flag = fcntl(STDIN_FILENO, F_GETFL);
-        flag &= ~O_NONBLOCK;
-        fcntl(STDIN_FILENO, F_SETFL, flag);
     }
     else
     {
-        ChineseTextRenderer writepen("SourceHanSansSC-Normal-Min.ttf", 24);
         vector<ocr_det_res> results;
         cv::Mat ori_img = cv::imread(argv[4]);
         cv::Mat draw_img = ori_img.clone();

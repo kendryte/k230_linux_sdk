@@ -22,7 +22,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "vi_vo.h"
+#include "setting.h"
 #include "face_dense_landmark.h"
 #include <vector>
 
@@ -51,15 +51,15 @@ cv::Scalar color_list_for_kp[] = {
     cv::Scalar(255, 30, 30)};
 
 cv::Scalar color_list_for_osd_kp[] = {
-    cv::Scalar(255, 0, 255, 0),
-    cv::Scalar(255, 0, 255, 0),
+    cv::Scalar(0, 255, 0, 255),
+    cv::Scalar(0, 255, 0, 255),
+    cv::Scalar(0, 255, 255, 255),
+    cv::Scalar(0, 255, 255, 255),
+    cv::Scalar(0, 0, 255, 255),
+    cv::Scalar(0, 170, 255, 255),
+    cv::Scalar(0, 255, 255, 255),
     cv::Scalar(255, 255, 0, 255),
-    cv::Scalar(255, 255, 0, 255),
-    cv::Scalar(255, 255, 0, 0),
-    cv::Scalar(255, 255, 170, 0),
-    cv::Scalar(255, 255, 255, 0),
-    cv::Scalar(255, 0, 255, 255),
-    cv::Scalar(255, 255, 220, 50),
+    cv::Scalar(50, 220, 255, 255),
     cv::Scalar(255, 30, 30, 255)};
 
 FaceDenseLandmark::FaceDenseLandmark(const char *kmodel_file, const int debug_mode) : AIBase(kmodel_file,"FaceDenseLandmark",debug_mode)
@@ -215,7 +215,7 @@ void FaceDenseLandmark::draw_contour_video(cv::Mat& src_img , FaceDenseLandmarkI
         face_sub_part_point_set_outline.push_back(face_sub_part_point_set);
         if (sub_part_index == 9 || sub_part_index == 6)
         {
-            cv::polylines(src_img, face_sub_part_point_set_outline, false, color_list_for_kp[sub_part_index], 3);
+            cv::polylines(src_img, face_sub_part_point_set_outline, false, color_list_for_osd_kp[sub_part_index], 3);
         }
         else if (sub_part_index == 4)
         {
@@ -226,7 +226,7 @@ void FaceDenseLandmark::draw_contour_video(cv::Mat& src_img , FaceDenseLandmarkI
         }
         else
         {
-            cv::drawContours(src_img, face_sub_part_point_set_outline, -1, color_list_for_kp[sub_part_index], 3);
+            cv::drawContours(src_img, face_sub_part_point_set_outline, -1, color_list_for_osd_kp[sub_part_index], 3);
         }
     }
 }

@@ -88,7 +88,7 @@ class OCRReco : public AIBase
         * @param results 后处理之后的字符的十六进制集合
         * @return None
         */
-        void post_process(vector<string> &results);
+        void post_process(string &results);
 
         /**
         * @brief 透射变换后crop

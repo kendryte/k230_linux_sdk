@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,16 +24,14 @@
  */
 
 #include "person_detect.h"
-#include "vi_vo.h"
+#include "setting.h"
 
 
 // for image
 personDetect::personDetect(const char *kmodel_file, float obj_thresh,float nms_thresh, const int debug_mode) 
 : obj_thresh_(obj_thresh),nms_thresh_(nms_thresh), AIBase(kmodel_file,"personDetect", debug_mode)
 {
-
     model_name_ = "personDetect";
-    
     ai2d_out_tensor_ = get_input_tensor(0);
 }   
 
@@ -42,11 +40,9 @@ personDetect::personDetect(const char *kmodel_file, float obj_thresh,float nms_t
 : obj_thresh_(obj_thresh),nms_thresh_(nms_thresh), AIBase(kmodel_file,"personDetect", debug_mode)
 {
     model_name_ = "personDetect";
-
     isp_shape_ = isp_shape;
     dims_t in_shape{1, isp_shape_.channel, isp_shape_.height, isp_shape_.width};
     int isp_size = isp_shape_.channel * isp_shape_.height * isp_shape_.width;
-
     // ai2d_out_tensor
     ai2d_out_tensor_ = get_input_tensor(0);
     // fixed padding resize param

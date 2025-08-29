@@ -115,7 +115,7 @@ void FaceMesh::draw_mesh_video(cv::Mat &src_img, vector<float>& vertices,int deb
     {
         x = vertices[ver_index];
         y = vertices[ver_index + post_ver_dim];
-        cv::circle(src_img, cv::Point(x, y), 2, cv::Scalar(0, 0, 255), 4); 
+        cv::circle(src_img, cv::Point(x, y), 2, cv::Scalar(255, 0, 0,255), 4); 
     }
 }
 

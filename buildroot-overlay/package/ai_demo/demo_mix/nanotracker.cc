@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -109,6 +109,6 @@ void NanoTracker::draw_track(std::vector<Tracker_box> track_boxes,FrameSize sens
         int w = (r_x2-r_x1)*1.0 / sensor_size.width * osd_size.width;
         int h = (r_y2-r_y1)*1.0 / sensor_size.height  * osd_size.height;
 
-        cv::rectangle(osd_frame, cv::Rect( x1,y1,w,h ), cv::Scalar(255, 255,0, 0), 8, 2, 0); // ARGB
+        cv::rectangle(osd_frame, cv::Rect( x1,y1,w,h ), cv::Scalar(255, 255,0, 255), 8, 2, 0); // ARGB
     }
 }

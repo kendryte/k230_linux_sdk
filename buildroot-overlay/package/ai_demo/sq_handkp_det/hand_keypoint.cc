@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "vi_vo.h"
+#include "setting.h"
 #include "hand_keypoint.h"
 
 HandKeypoint::HandKeypoint(const char *kmodel_file, const int debug_mode)
@@ -142,14 +142,14 @@ void HandKeypoint::draw_keypoints(cv::Mat &img, BoxInfo& bbox, HandKeyPointInfo&
         int rect_y = bbox.y1/ SENSOR_HEIGHT * src_height;
         int rect_w = (float)w / SENSOR_WIDTH * src_width;
         int rect_h = (float)h / SENSOR_HEIGHT  * src_height;
-        cv::rectangle(img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255), 2, 2, 0);
-        cv::putText(img, text , {rect_x,std::max(int(rect_y-10),0)}, cv::FONT_HERSHEY_COMPLEX, 2, cv::Scalar(255, 0, 0), 2, 8, 0);
+        cv::rectangle(img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255,255), 2, 2, 0);
+        cv::putText(img, text , {rect_x,std::max(int(rect_y-10),0)}, cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0,255), 2, 8, 0);
 
         for (unsigned i = 0; i < output_tensor_size / 2; i++)
         {
-            results[i * 2] = results[i * 2] / SENSOR_WIDTH * src_width;
-            results[i * 2 + 1] = results[i * 2 + 1] / SENSOR_HEIGHT * src_height;
-            cv::circle(img, cv::Point(results[i * 2], results[i * 2 + 1]), 2, cv::Scalar(255, 155, 0), 3);
+            int x = results[i * 2] / SENSOR_WIDTH * src_width;
+            int y = results[i * 2 + 1] / SENSOR_HEIGHT * src_height;
+            cv::circle(img, cv::Point(x, y), 2, cv::Scalar(0, 155, 255,255), 3);
         }
 
         for (unsigned k = 0; k < 5; k++)
@@ -167,10 +167,21 @@ void HandKeypoint::draw_keypoints(cv::Mat &img, BoxInfo& bbox, HandKeyPointInfo&
                 default: std::cout << "error" << std::endl;
             }
 
-            cv::line(img, cv::Point(results[0], results[1]), cv::Point(results[i + 2], results[i + 3]), cv::Scalar(B,G,R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 2], results[i + 3]), cv::Point(results[i + 4], results[i + 5]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 4], results[i + 5]), cv::Point(results[i + 6], results[i + 7]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 6], results[i + 7]), cv::Point(results[i + 8], results[i + 9]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
+            int x1 = results[0] / SENSOR_WIDTH * src_width;
+            int y1 = results[1] / SENSOR_HEIGHT * src_height;
+            int x2 = results[i + 2] / SENSOR_WIDTH * src_width;
+            int y2 = results[i + 3] / SENSOR_HEIGHT * src_height;
+            int x3 = results[i + 4] / SENSOR_WIDTH * src_width;
+            int y3 = results[i + 5] / SENSOR_HEIGHT * src_height;
+            int x4 = results[i + 6] / SENSOR_WIDTH * src_width;
+            int y4 = results[i + 7] / SENSOR_HEIGHT * src_height;
+            int x5 = results[i + 8] / SENSOR_WIDTH * src_width;
+            int y5 = results[i + 9] / SENSOR_HEIGHT * src_height;
+
+            cv::line(img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(B,G,R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(x2, y2), cv::Point(x3, y3), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(x3, y3), cv::Point(x4, y4), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(x4, y4), cv::Point(x5, y5), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
         }
     }
 }

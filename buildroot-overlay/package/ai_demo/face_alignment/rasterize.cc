@@ -108,46 +108,42 @@ void _rasterize(
 					p_depth = weight[0] * p0_depth + weight[1] * p1_depth + weight[2] * p2_depth;
 
 					if ((p_depth > depth_buffer[y * w + x])) {
-						//for (k = 0; k < c; k++) {
+						// 对于每个颜色通道（这里只处理 B, G, R 三个通道）
 						for (k = 0; k < 3; k++) {
 							p0_color = colors[3 * tri_p0_ind + k];
 							p1_color = colors[3 * tri_p1_ind + k];
 							p2_color = colors[3 * tri_p2_ind + k];
 
 							p_color = weight[0] * p0_color + weight[1] * p1_color + weight[2] * p2_color;
+
 							if (reverse) {
-								if (c == 3)    //bgr
-								{
+								if (c == 3) {  // BGR
 									image[(h - 1 - y) * w * c + x * c + k] = (unsigned char)(
 										(1 - alpha) * image[(h - 1 - y) * w * c + x * c + k] + alpha * 255 * p_color);
-									//                                image[(h - 1 - y) * w * c + x * c + k] = (unsigned char) (255 * p_color);
+								} else {  // BGRA
+									// 更新 Alpha 通道
+									image[(h - 1 - y) * w * c + x * c + 3] = 255;
+									// 更新 B, G, R 通道
+									image[(h - 1 - y) * w * c + x * c + k] = (unsigned char)(
+										(1 - alpha) * image[(h - 1 - y) * w * c + x * c + k] + alpha * 255 * p_color);
 								}
-								else          //c==4 ,argb
-								{
-									image[(h - 1 - y) * w * c + x * c + k + 1] = (unsigned char)(
-										(1 - alpha) * image[(h - 1 - y) * w * c + x * c + k + 1] + alpha * 255 * p_color);
-								}
-
-							}
-							else {
-								if (c == 3)  //bgr
-								{
+							} else {
+								if (c == 3) {  // BGR
 									image[y * w * c + x * c + k] = (unsigned char)(
 										(1 - alpha) * image[y * w * c + x * c + k] + alpha * 255 * p_color);
-
-								}
-								else			//c==4 ,argb
-								{
-									image[y * w * c + x * c] = 255;
-									image[y * w * c + x * c + k + 1] = (unsigned char)(
+								} else {  // BGRA
+									// 更新 Alpha 通道
+									image[y * w * c + x * c + 3] = 255;
+									// 更新 B, G, R 通道
+									image[y * w * c + x * c + k] = (unsigned char)(
 										(1 - alpha) * image[y * w * c + x * c + k] + alpha * 255 * p_color);
 								}
-
-								
 							}
 						}
+					
 
 						depth_buffer[y * w + x] = p_depth;
+
 					}
 				}
 			}

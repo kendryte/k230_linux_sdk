@@ -37,7 +37,7 @@ install(TARGETS ai_demo_common
 # install(DIRECTORY include/ DESTINATION include)
 # 安装多个头文件到目标位置
 install(FILES
-        ai_base.h  dma_buf_manager.h  sensor_buf_manager.h  utils.h  vi_vo.h  scoped_timing.hpp
+        ai_base.h  dma_buf_manager.h  sensor_buf_manager.h  utils.h  setting.h  scoped_timing.hpp
         DESTINATION include/ai_demo_common
 )
 

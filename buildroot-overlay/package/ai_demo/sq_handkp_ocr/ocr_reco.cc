@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -81,14 +81,11 @@ void OCRReco::inference()
     this->get_output();
 }
 
-void OCRReco::post_process(vector<string> &results)
+void OCRReco::post_process(string &results)
 {
+	results="";
     output = p_outputs_[0];
-
 	int size = input_width / 4;
-
-    // std::cout << size << std::endl;
-
 	ifstream dict(DICT);
 	vector<string> txt;
 	txt.push_back("blank");
@@ -117,7 +114,7 @@ void OCRReco::post_process(vector<string> &results)
 			continue;
 		if (i > 0 && result[i - 1] == result[i])
 			continue;
-		results.push_back(txt[result[i]]);
+		results+=txt[result[i]];
 	}
 }
 

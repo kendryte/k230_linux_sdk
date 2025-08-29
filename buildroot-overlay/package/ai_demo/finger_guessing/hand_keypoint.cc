@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "vi_vo.h"
+#include "setting.h"
 #include "hand_keypoint.h"
 
 HandKeypoint::HandKeypoint(const char *kmodel_file, const int debug_mode)
@@ -133,7 +133,7 @@ void HandKeypoint::draw_keypoints(cv::Mat &img, std::string text, Bbox &bbox, bo
         {
             results_vd[i * 2] = static_cast<float>(results[i*2]) / SENSOR_WIDTH * osd_width;
             results_vd[i * 2 + 1] = static_cast<float>(results[i*2+1]) / SENSOR_HEIGHT * osd_height;
-            cv::circle(img, cv::Point(results_vd[i * 2], results_vd[i * 2 + 1]), 4, cv::Scalar(255, 155, 0), 4);
+            cv::circle(img, cv::Point(results_vd[i * 2], results_vd[i * 2 + 1]), 4, cv::Scalar(255, 155, 0,255), 4);
         }
 
         for (unsigned k = 0; k < 5; k++)
@@ -151,10 +151,10 @@ void HandKeypoint::draw_keypoints(cv::Mat &img, std::string text, Bbox &bbox, bo
                 default: std::cout << "error" << std::endl;
             }
 
-            cv::line(img, cv::Point(results_vd[0], results_vd[1]), cv::Point(results_vd[i + 2], results_vd[i + 3]), cv::Scalar(B,G,R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results_vd[i + 2], results_vd[i + 3]), cv::Point(results_vd[i + 4], results_vd[i + 5]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results_vd[i + 4], results_vd[i + 5]), cv::Point(results_vd[i + 6], results_vd[i + 7]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results_vd[i + 6], results_vd[i + 7]), cv::Point(results_vd[i + 8], results_vd[i + 9]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(results_vd[0], results_vd[1]), cv::Point(results_vd[i + 2], results_vd[i + 3]), cv::Scalar(B,G,R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(results_vd[i + 2], results_vd[i + 3]), cv::Point(results_vd[i + 4], results_vd[i + 5]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(results_vd[i + 4], results_vd[i + 5]), cv::Point(results_vd[i + 6], results_vd[i + 7]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(results_vd[i + 6], results_vd[i + 7]), cv::Point(results_vd[i + 8], results_vd[i + 9]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
         }
     }
 
@@ -260,15 +260,15 @@ void HandKeypoint::read_binary_file_bin(std::string file_name,unsigned char *out
     ifs.close();
 }
 
-void HandKeypoint::bin_2_mat(std::string bin_data_path, int mat_width, int mat_height, cv::Mat &image_rgb)
+void HandKeypoint::bin_2_mat(std::string bin_data_path, int mat_width, int mat_height, cv::Mat &image_bgra)
 {
     unsigned char *bin_data = new unsigned char[mat_width*mat_height*4];
     read_binary_file_bin(bin_data_path,bin_data);
-    std::vector<Mat> image_rgb_vec;
-    // image_rgb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data));
-    image_rgb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 1 * mat_width * mat_height));
-    image_rgb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 2 * mat_width * mat_height));
-    image_rgb_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 3 * mat_width * mat_height));
-    cv::merge(image_rgb_vec, image_rgb);
+    std::vector<Mat> image_bgra_vec;
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 3 * mat_width * mat_height));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 2 * mat_width * mat_height));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data + 1 * mat_width * mat_height));
+    image_bgra_vec.push_back(cv::Mat(mat_height, mat_width, CV_8UC1, bin_data));
+    cv::merge(image_bgra_vec, image_bgra);
     delete[] bin_data;
 }

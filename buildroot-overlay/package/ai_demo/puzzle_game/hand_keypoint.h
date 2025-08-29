@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -102,18 +102,9 @@ public:
      */
     void inference();
 
-    /**
-     * @brief 将手部关键点画到原图
-     * @param img 原图
-     * @param text 显示的文本信息
-     * @param bbox 手部关键点输入框在原图的显示
-     * @param pic_mode    ture(原图片)，false(osd)
-     * @param two_point  拇指和食指的位置
-     * @return None
-     */
-    void draw_keypoints(cv::Mat &img, std::string text, Bbox &bbox, bool pic_mode, std::vector<int> &two_point);
+    void get_two_point(cv::Mat &img,Bbox &bbox,std::vector<int> &two_point);
 
-    vector<float*> get_out();
+    std::vector<int> results;
 
 private:
     std::unique_ptr<ai2d_builder> ai2d_builder_; // ai2d构建器

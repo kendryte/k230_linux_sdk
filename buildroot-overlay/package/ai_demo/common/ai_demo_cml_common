@@ -11,12 +11,10 @@ pkg_check_modules(DISPLAY REQUIRED display)
 pkg_check_modules(V4L2DRM REQUIRED v4l2-drm)
 include_directories(${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS} .)
 
-set(KMODE_DIR ${RELOCATED_HOST_DIR}/../build/common/kmodel/ai_poc/kmodel)
-
-set(UTITLS ${RELOCATED_HOST_DIR}/../build/common/kmodel/ai_poc/utils)
-set(KM_IMG ${RELOCATED_HOST_DIR}/../build/common/kmodel/ai_poc/images)
-set(SHELL_DIR ${RELOCATED_HOST_DIR}/../build/common/shell)
-
+set(AIDEMO_KMODEL_DIR ${RELOCATED_HOST_DIR}/../build/common/kmodel/ai_poc/kmodel)
+set(AIDEMO_UTILS_DIR ${RELOCATED_HOST_DIR}/../build/common/kmodel/ai_poc/utils)
+set(AIDEMO_IMAGES_DIR ${RELOCATED_HOST_DIR}/../build/common/kmodel/ai_poc/images)
+set(AIDEMO_SHELL_DIR ${RELOCATED_HOST_DIR}/../build/common/shell)
 
 set(bin ${PROJECT_NAME}.elf)
 

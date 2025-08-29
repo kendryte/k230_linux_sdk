@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -22,7 +22,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "vi_vo.h"
+#include "setting.h"
 #include "licence_det.h"
 
 LicenceDetect::LicenceDetect(const char *kmodel_file, float obj_thresh, float nms_thresh, const int debug_mode)
@@ -252,7 +252,7 @@ void LicenceDetect::draw_result_video(cv::Mat& src_img,vector<BoxPoint>& results
         cv::Point2f ver[4];
         rect.points(ver);
         for(int i = 0; i < 4; i++)
-            line(src_img, ver[i], ver[(i + 1) % 4], cv::Scalar(255,255, 0, 0), 3);
+            line(src_img, ver[i], ver[(i + 1) % 4], cv::Scalar(255,255, 0, 255), 3);
         // std::string text = "score:" + std::to_string(round(results[i].score * 100) / 100.0).substr(0, 4);
 
         // cv::putText(frame, text, cv::Point(results[i].meanx, results[i].meany), 

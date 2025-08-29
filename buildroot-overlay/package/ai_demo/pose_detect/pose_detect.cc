@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.f
  */
 
-#include "vi_vo.h"
+#include "setting.h"
 #include "pose_detect.h"
 
 // for image
@@ -367,7 +367,7 @@ void poseDetect::draw_result_video(cv::Mat& img, std::vector<OutputPose>& result
                 int kps_y1 =  (float)kps_y / SENSOR_HEIGHT  * osd_height;
 
                 if (kps_s > 0.0f){
-                    cv::Scalar kps_color = cv::Scalar(255,KPS_COLORS[k][0],KPS_COLORS[k][1],KPS_COLORS[k][2]);
+                    cv::Scalar kps_color = cv::Scalar(KPS_COLORS[k][0],KPS_COLORS[k][1],KPS_COLORS[k][2],255);
                     cv::circle(img, {kps_x1, kps_y1}, 5, kps_color, -3);
                 }
             }
@@ -389,7 +389,7 @@ void poseDetect::draw_result_video(cv::Mat& img, std::vector<OutputPose>& result
             float pos2_s = kps[(ske[1] -1) * 3 + 2];
  
             if (pos1_s > 0.0f && pos2_s >0.0f){// 不要设置为>0.5f ,>0.0f显示效果比较好
-                cv::Scalar limb_color = cv::Scalar(255,LIMB_COLORS[k][0], LIMB_COLORS[k][1], LIMB_COLORS[k][3]);
+                cv::Scalar limb_color = cv::Scalar(LIMB_COLORS[k][0], LIMB_COLORS[k][1], LIMB_COLORS[k][2],255);
                 cv::line(img, {pos1_x_, pos1_y_}, {pos2_x_, pos2_y_}, limb_color,3);
             }
         }
@@ -401,6 +401,6 @@ void poseDetect::draw_result_video(cv::Mat& img, std::vector<OutputPose>& result
 
         // std::cout << top + height << " " << kps[kps.size() - 2] << std::endl;
         // putText(img, label, cv::Point(plot_x1, plot_y1), cv::FONT_HERSHEY_SIMPLEX, 2, cv::Scalar(255,255,0,0), 4);
-        cv::rectangle(img, cv::Point(plot_x1, plot_y1), cv::Point(plot_x2, plot_y2+20), cv::Scalar(255, 255, 0, 0), 4);
+        cv::rectangle(img, cv::Point(plot_x1, plot_y1), cv::Point(plot_x2, plot_y2+20), cv::Scalar(255, 255, 0, 255), 4);
     }
 }
