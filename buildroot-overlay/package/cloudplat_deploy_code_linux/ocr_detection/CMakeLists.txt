@@ -13,7 +13,7 @@ set(common_files_src
 set(src main.cc ocr_box.cc clipper.cpp)
 set(all_src ${src} ${common_files_src})
 
-set(bin ocr_det.elf)
+set(bin ocr_detection.elf)
 
 add_executable(${bin} ${all_src})
 

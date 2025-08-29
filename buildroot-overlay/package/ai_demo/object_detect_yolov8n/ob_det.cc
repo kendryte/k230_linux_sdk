@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "vi_vo.h"
+#include "setting.h"
 #include "ob_det.h"
 
 OBDet::OBDet(const char *kmodel_file, float score_thres, float nms_thres, const int debug_mode)
@@ -217,7 +217,7 @@ void OBDet::draw_result_video(cv::Mat& frame, vector<Detection>& results)
         float rect_h = float(detection.box.height) / SENSOR_HEIGHT * src_h;
 
         cv::Rect box = cv::Rect(rect_x, rect_y, rect_w, rect_h);
-        cv::Scalar color = color_three[detection.class_id];
+        cv::Scalar color = color_four[detection.class_id];
         
         // Detection box
         cv::rectangle(frame, box, color, 2);
@@ -228,7 +228,7 @@ void OBDet::draw_result_video(cv::Mat& frame, vector<Detection>& results)
         cv::Rect textBox(box.x, box.y - 40, textSize.width + 10, textSize.height + 20);
 
         cv::rectangle(frame, textBox, color, cv::FILLED);
-        cv::putText(frame, classString, cv::Point(box.x + 5, box.y - 10), cv::FONT_HERSHEY_DUPLEX, 1, cv::Scalar(255,255,0), 2, 0);
+        cv::putText(frame, classString, cv::Point(box.x + 5, box.y - 10), cv::FONT_HERSHEY_DUPLEX, 1, cv::Scalar(255,255,0,255), 2, 0);
     }
 }
 

@@ -22,7 +22,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "vi_vo.h"
+#include "setting.h"
 #include "face_detection.h"
 
 extern float kAnchors320[4200][4];
@@ -41,8 +41,8 @@ cv::Scalar color_list_for_osd_det[] = {
     cv::Scalar(255, 0, 0, 255),
     cv::Scalar(255, 0, 255, 255),
     cv::Scalar(255, 255, 0, 255),
-    cv::Scalar(255, 0, 255, 0),
-    cv::Scalar(255, 255, 0, 0)
+    cv::Scalar(0, 0, 255, 255),
+    cv::Scalar(0, 255, 0, 255)
 };
 
 int nms_comparator(const void *pa, const void *pb)
@@ -205,7 +205,7 @@ void FaceDetection::draw_result_video(cv::Mat& src_img,vector<FaceDetectionInfo>
         {
             int32_t x0 = l.points[2 * ll] / SENSOR_WIDTH *src_w;
             int32_t y0 = l.points[2 * ll+1] / SENSOR_HEIGHT*src_h;
-            cv::circle(src_img, cv::Point(x0, y0), 4, color_list_for_det[ll], 8); 
+            cv::circle(src_img, cv::Point(x0, y0), 4, color_list_for_osd_det[ll], 8); 
         }
 
         auto& b = results[i].bbox;
@@ -215,7 +215,7 @@ void FaceDetection::draw_result_video(cv::Mat& src_img,vector<FaceDetectionInfo>
         int y = b.y / SENSOR_HEIGHT * src_h;
         int w = b.w / SENSOR_WIDTH * src_w;
         int h = b.h / SENSOR_HEIGHT * src_h;
-        cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255), 6, 2, 0);
+        cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255,255, 255, 255), 6, 2, 0);
     }
 }
 

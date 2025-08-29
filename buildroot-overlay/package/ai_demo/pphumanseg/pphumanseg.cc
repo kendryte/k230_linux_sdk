@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -89,30 +89,15 @@ cv::Mat SEG::post_process( )
     int net_len_w = input_shapes_[0][2];
     int net_len_h = input_shapes_[0][3];
     cv::Mat mask = cv::Mat::ones(net_len_w, net_len_h, CV_8UC1) * 255;
-
-    // {
-    //     // for NCHW
-	// 	for (int i = 0; i < net_len_h; i++)
-	// 	{
-	// 		for (int j = 0; j < net_len_w; j++)
-	// 		{
-	// 			mask.at<uchar>(i, j) = (output[j + net_len_w * i] > output[j + net_len_w * i + net_len_w * net_len_h] ? 255 : 0);
-	// 		}
-	// 	}
-    // }
-
-	{
-        // for NHWC
-		for (int i = 0; i < net_len_h; i++)
-		{
-			for (int j = 0; j < net_len_w; j++)
-			{
-				int idx = j + i * net_len_w;
-                mask.at<uchar>(i, j) = (output[2 * (j + net_len_w * i)] > output[2 * (j + net_len_w * i) + 1] ? 255 : 0);
-			}
-		}
-	}
-
+    // for NHWC
+    for (int i = 0; i < net_len_h; i++)
+    {
+        for (int j = 0; j < net_len_w; j++)
+        {
+            int idx = j + i * net_len_w;
+            mask.at<uchar>(i, j) = (output[2 * (j + net_len_w * i)] > output[2 * (j + net_len_w * i) + 1] ? 255 : 0);
+        }
+    }
 	cv::imwrite("mask.jpg", mask);
 	return mask;
 }

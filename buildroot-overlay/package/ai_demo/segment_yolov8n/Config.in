@@ -1,7 +1,7 @@
-config BR2_PACKAGE_SEGMENT_YOLOV8N
-    bool "segment_yolov8n"
+config BR2_PACKAGE_PUZZLE_GAME
+    bool "puzzle_game"
     select BR2_PACKAGE_GSL_LITE
     select BR2_PACKAGE_COMMON
     select BR2_PACKAGE_DISPLAY
     help
-        ai demo segment_yolov8n
+        ai demo puzzle_game

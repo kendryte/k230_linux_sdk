@@ -100,6 +100,8 @@ public:
      */
     void post_process(Bbox &bbox);
 
+    void get_two_point(cv::Mat &img,std::vector<int> &two_point);
+
     /**
      * @brief 将手部关键点画到原图
      * @param img 原图
@@ -116,11 +118,7 @@ public:
     vector<float*> get_out();
 
     std::vector<int> results;   //手部关键点在原图上的坐标
-    int minX;                   //手部关键点x方向的最小值
-    int maxX;                   //手部关键点x方向的最大值
-    int minY;                   //手部关键点y方向的最小值
-    int maxY;                   //手部关键点y方向的最小值
-
+    
 private:
     std::unique_ptr<ai2d_builder> ai2d_builder_; // ai2d构建器
     runtime_tensor ai2d_in_tensor_;              // ai2d输入tensor

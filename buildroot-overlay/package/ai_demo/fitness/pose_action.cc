@@ -153,7 +153,7 @@ void PoseAction::DrawPred_video(cv::Mat& img, FrameSize frame_size, std::vector<
                 int kps_y1 =   (float)kps_y / SENSOR_HEIGHT  * osd_height;
 
                 if (kps_s > 0.0f){
-                    cv::Scalar kps_color = cv::Scalar(KPS_COLORS[k][0],KPS_COLORS[k][1],KPS_COLORS[k][2]);
+                    cv::Scalar kps_color = cv::Scalar(KPS_COLORS[k][2],KPS_COLORS[k][1],KPS_COLORS[k][0],255);
                     cv::circle(img, {kps_x1, kps_y1}, 5, kps_color, -3);
                 }
             }
@@ -175,7 +175,7 @@ void PoseAction::DrawPred_video(cv::Mat& img, FrameSize frame_size, std::vector<
             float pos2_s = kps[(ske[1] -1) * 3 + 2];
  
             if (pos1_s > 0.0f && pos2_s >0.0f){// 不要设置为>0.5f ,>0.0f显示效果比较好
-                cv::Scalar limb_color = cv::Scalar(LIMB_COLORS[k][0], LIMB_COLORS[k][1], LIMB_COLORS[k][3]);
+                cv::Scalar limb_color = cv::Scalar(LIMB_COLORS[k][2], LIMB_COLORS[k][1], LIMB_COLORS[k][0],255);
                 cv::line(img, {pos1_x_, pos1_y_}, {pos2_x_, pos2_y_}, limb_color,3);
             }
         }
@@ -187,7 +187,7 @@ void PoseAction::action_count( cv::Mat& image, std::vector<KKeyPoint> keypoints,
 {
     int deepdown = PoseAction::single_action_check(keypoints, thresh, 3, 2);
     std::string deep = "deep-down:" + std::to_string(deepdown);
-    cv::putText(image, deep, cv::Point(10, 80), cv::FONT_HERSHEY_COMPLEX, 3, cv::Scalar(0, 255, 255), 2, 5, 0);
+    cv::putText(image, deep, cv::Point(10, 80), cv::FONT_HERSHEY_COMPLEX, 2, cv::Scalar(0, 255, 255,255), 2, 5, 0);
 }
 
 

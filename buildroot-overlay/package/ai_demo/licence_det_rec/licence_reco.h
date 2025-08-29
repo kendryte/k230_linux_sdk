@@ -29,6 +29,7 @@
 #include "utils.h"
 #include "ai_base.h"
 #include "licence_det.h"
+#include "text_paint.h"
 
 using namespace std;
 using namespace cv;
@@ -73,7 +74,7 @@ class LicenceReco : public AIBase
         * @param results 后处理之后的字符的十六进制集合
         * @return None
         */
-        void post_process(vector<unsigned char> &results);
+        void post_process(string &results);
 
         /**
          * @brief 透射变换后crop
@@ -86,24 +87,15 @@ class LicenceReco : public AIBase
         void warppersp(cv::Mat src, cv::Mat& dst, BoxPoint b, std::vector<Point2f>& vtd);
 
         /**
-         * @brief 单图 写文本
-         * @param x_offset    作图起始横坐标
-         * @param y_offset    作图起始纵坐标
-         * @param image       作图的图像
-         * @param vec16       文字的16进制表示
-         * @return None
-         */
-        void draw_text_img(int x_offset,int y_offset,cv::Mat& image,vector<unsigned char> vec16);
-
-        /**
          * @brief video 写文本
          * @param x_offset              作图起始横坐标
          * @param y_offset              作图起始纵坐标
          * @param image                 作图的图像
-         * @param vec16                 文字的16进制表示
+         * @param result                车牌识别结果
+         * @param writepen              文本渲染器
          * @return None
          */
-        static void draw_text_video(float x_offset,float y_offset,cv::Mat& src_img,vector<unsigned char> vec16);
+        static void draw_text(float x_offset,float y_offset,cv::Mat& src_img,string &result,TextRenderer& writepen);
 
     private:
         std::unique_ptr<ai2d_builder> ai2d_builder_; // ai2d构建器
@@ -113,6 +105,15 @@ class LicenceReco : public AIBase
 
         int input_width;        //车牌识别model输入高
         int input_height;       //车牌识别model输入宽
+
+        // 字符字典表
+        std::vector<std::string> dict = {
+            "挂", "使", "领", "澳", "港", "皖", "沪", "津", "渝", "冀", "晋", "蒙", "辽", "吉", "黑", "苏", "浙", "京", "闽", "赣", "鲁", "豫", "鄂", "湘", "粤", "桂", "琼", "川", "贵", "云", "藏", "陕", "甘", "青", "宁", "新", "警", "学",
+            "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            "A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+            "_", "-"
+        };
+
         
         int dict_size;          //车牌识别字典大小
 

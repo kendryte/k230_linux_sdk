@@ -22,7 +22,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "vi_vo.h"
+#include "setting.h"
 #include "face_mask.h"
 #include <vector>
 
@@ -98,8 +98,12 @@ void FaceMask::draw_result(cv::Mat& src_img,Bbox& bbox,FaceMaskInfo& result, boo
     int max_src_size = std::max(src_w,src_h);
 
     char text[30];
-    sprintf(text, "%s:%.2f",result.label.c_str(), result.score);
-	// sprintf(text, "%s",result.name.c_str());
+	if(result.label == "mask"){
+		sprintf(text, "%s:%.2f",result.label.c_str(), result.score);
+	}else{
+		sprintf(text, "%s:%.2f",result.label.c_str(), (1-result.score));
+	}
+    
 
     if(pic_mode)
     {
@@ -131,17 +135,21 @@ void FaceMask::draw_result_video(cv::Mat& src_img,Bbox& bbox,FaceMaskInfo& resul
     int max_src_size = std::max(src_w,src_h);
 
     char text[30];
-    sprintf(text, "%s:%.2f",result.label.c_str(), result.score);
+    if(result.label == "mask"){
+		sprintf(text, "%s:%.2f",result.label.c_str(), result.score);
+	}else{
+		sprintf(text, "%s:%.2f",result.label.c_str(), (1-result.score));
+	}
 
 	int x = bbox.x / SENSOR_WIDTH * src_w;
     int y = bbox.y / SENSOR_HEIGHT * src_h;
     int w = bbox.w / SENSOR_WIDTH * src_w;
     int h = bbox.h / SENSOR_HEIGHT  * src_h;
-    cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255), 2, 2, 0);
+    cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255,255), 2, 2, 0);
     if(result.label == "no mask")
-		cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255, 0, 0), 2, 8, 0);
+		cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255, 0, 0,255), 2, 8, 0);
 	else
-		cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(0, 0, 255), 2, 8, 0);
+		cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(0, 0, 255,255), 2, 8, 0);
     
 }
 

@@ -24,7 +24,7 @@
  */
 
 #include<random>
-#include "vi_vo.h"
+#include "setting.h"
 #include "head_detection.h"
 
 using std::min;
@@ -274,7 +274,7 @@ void HeadDetection::draw_result_video(cv::Mat& src_img,vector<Detection> &result
         
         if (debug_mode > 0)
         {
-            cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(0, 0, 255), 3, 2, 0);
+            cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(0, 0, 255,255), 3, 2, 0);
             std::string label_name = results[i].className; 
             cv::putText(src_img,label_name,cv::Point(x,y),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255,255, 0, 255), 1, 8, 0);
             if(results[i].class_id==0)
@@ -286,7 +286,7 @@ void HeadDetection::draw_result_video(cv::Mat& src_img,vector<Detection> &result
         {
             if(results[i].class_id==0)
             {    
-                cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(0, 0, 255), 3, 2, 0);
+                cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(0, 0, 255,255), 3, 2, 0);
                 head_count += 1;
             }
         }           

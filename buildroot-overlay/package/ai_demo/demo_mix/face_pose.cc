@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "face_pose.h"
-#include "vi_vo.h"
+#include "setting.h"
 #include <vector>
 
 #define PI (3.1415926)
@@ -183,11 +183,11 @@ void FacePose::draw_result_video(cv::Mat& src_img,Bbox& bbox,FacePoseInfo& resul
 			second_points.push_back(point);
 	}
 
-	cv::polylines(src_img, first_points, true, cv::Scalar(0, 0, 255), 5, 8, 0);
-	cv::polylines(src_img, second_points, true, cv::Scalar(0, 0, 255), 5, 8, 0);
+	cv::polylines(src_img, first_points, true, cv::Scalar(255, 0, 0,255), 5, 8, 0);
+	cv::polylines(src_img, second_points, true, cv::Scalar(255, 0, 0,255), 5, 8, 0);
 	for (uint32_t ll = 0; ll < 4; ll++)
 	{
-		cv::line(src_img, first_points[ll], second_points[ll], cv::Scalar(0, 0, 255), 5, 8, 0);
+		cv::line(src_img, first_points[ll], second_points[ll], cv::Scalar(255, 0, 0,255), 5, 8, 0);
 	}
 }
 

@@ -22,7 +22,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "vi_vo.h"
+#include "setting.h"
 #include "hand_detection.h"
 
 HandDetection::HandDetection(const char *kmodel_file, float obj_thresh, float nms_thresh, FrameSize frame_size,const int debug_mode)
@@ -219,8 +219,8 @@ void HandDetection::draw_result(cv::Mat& src_img,vector<BoxInfo>& results, bool 
             int rect_y = r.y1/ SENSOR_HEIGHT * src_h;
             int rect_w = (float)w / SENSOR_WIDTH * src_w;
             int rect_h = (float)h / SENSOR_HEIGHT  * src_h;
-            cv::rectangle(src_img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255), 2, 2, 0);
-            cv::putText(src_img, text , {rect_x,std::max(int(rect_y-10),0)}, cv::FONT_HERSHEY_COMPLEX, 2, cv::Scalar(255, 0, 0), 2, 8, 0);
+            cv::rectangle(src_img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255,255), 2, 2, 0);
+            cv::putText(src_img, text , {rect_x,std::max(int(rect_y-10),0)}, cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0,255), 2, 8, 0);
         }
     }   
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -281,7 +281,7 @@ void find_rectangle_vertices(const std::vector<Point2f>& points, Point2f& topLef
 	
 }
 
-void OCRBox::draw_ocr_image(cv::Mat& frame, vector<ocr_det_res>& results,vector<std::string> &rec_results,ChineseTextRenderer &writepen)
+void OCRBox::draw_ocr_image(cv::Mat& frame, vector<ocr_det_res>& results,vector<std::string> &rec_results,TextRenderer &writepen)
 {
     double fontsize = (frame.cols * frame.rows * 1.0) / (1100 * 1200);
     
@@ -310,12 +310,12 @@ void OCRBox::draw_ocr_image(cv::Mat& frame, vector<ocr_det_res>& results,vector<
         cv::putText(frame, text, cv::Point(results[i].meanx, results[i].meany), 
         cv::FONT_HERSHEY_SIMPLEX, fontsize, cv::Scalar(255, 255, 0), 2);
 
-        writepen.putChineseText(frame, rec_results[i], cv::Point(vtd[3].x,vtd[3].y+20), cv::Scalar(0, 0, 255));
+        writepen.putText(frame, rec_results[i], cv::Point(vtd[0].x,vtd[0].y-10), cv::Scalar(255, 0, 0));
 
     }
 }
 
-void OCRBox::draw_ocr_video(cv::Mat& frame, vector<ocr_det_res>& results,vector<std::string> &rec_results, FrameSize osd_frame_size, FrameSize sensor_frame_size,ChineseTextRenderer &writepen)
+void OCRBox::draw_ocr_video(cv::Mat& frame, vector<ocr_det_res>& results,vector<std::string> &rec_results, FrameSize osd_frame_size, FrameSize sensor_frame_size,TextRenderer &writepen)
 {
     for(int i = 0; i < results.size(); i++)
     {   
@@ -340,9 +340,10 @@ void OCRBox::draw_ocr_video(cv::Mat& frame, vector<ocr_det_res>& results,vector<
         expandRectangle(vtd[0], vtd[1], vtd[2], vtd[3],scaleFactor_width,scaleFactor_higt,maxWidth,maxHeight);
 
         for(int c = 0; c < 4; c++){
-            line(frame, vtd[c], vtd[(c + 1) % 4], Scalar(0, 0, 255), 3);
+            line(frame, vtd[c], vtd[(c + 1) % 4], Scalar(255, 0, 0,255), 3);
         }
-        writepen.putChineseText(frame, rec_results[i], cv::Point(vtd[3].x,vtd[3].y+20), cv::Scalar(0, 0, 255));
+
+        writepen.putText(frame, rec_results[i], cv::Point(vtd[0].x,vtd[0].y-10), cv::Scalar(255, 0, 0,255));
     }
 }
 

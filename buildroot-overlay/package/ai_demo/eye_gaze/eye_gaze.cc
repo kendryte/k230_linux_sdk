@@ -118,7 +118,7 @@ void EyeGaze::draw_result(cv::Mat& src_img,Bbox& bbox,EyeGazeInfo& result, bool 
         double dx = -length * sin(result.pitch) * cos(result.yaw);
 		double dy = -length * sin(result.yaw);
 		cv::arrowedLine(src_img, cv::Point(cvRound(center_x), cvRound(center_y)),
-					cv::Point(cvRound(center_x + dx), cvRound(center_y + dy)), cv::Scalar(255, 255, 0),
+					cv::Point(cvRound(center_x + dx), cvRound(center_y + dy)), cv::Scalar(255, 255, 0,255),
 					2, cv::LINE_AA, 0, 0.18);
 	} 
 }

@@ -24,7 +24,7 @@
  */
 
 #include "hand_recognition.h"
-#include "vi_vo.h"
+#include "setting.h"
 
 HandRecognition::HandRecognition(const char *kmodel_file, const int debug_mode) : AIBase(kmodel_file,"HandRecognition",debug_mode)
 {
@@ -130,7 +130,7 @@ void HandRecognition::draw_result(cv::Mat& src_img, BoxInfo& results, string tex
         int rect_y = results.y1/ SENSOR_HEIGHT * src_h;
         int rect_w = (float)w / SENSOR_WIDTH * src_w;
         int rect_h = (float)h / SENSOR_HEIGHT  * src_h;
-        cv::rectangle(src_img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255), 2, 2, 0);
-        cv::putText(src_img, text, {rect_x,std::max(int(rect_y-10),0)}, cv::FONT_HERSHEY_COMPLEX, 2, cv::Scalar(255, 0, 0), 2, 8, 0);
+        cv::rectangle(src_img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255,255), 2, 2, 0);
+        cv::putText(src_img, text, {rect_x,std::max(int(rect_y-10),0)}, cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0,255), 2, 8, 0);
     }   
 }

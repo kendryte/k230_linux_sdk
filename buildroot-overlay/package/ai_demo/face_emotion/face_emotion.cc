@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "face_emotion.h"
-#include "vi_vo.h"
+#include "setting.h"
 #include <vector>
 
 //图像颜色集
@@ -38,8 +38,8 @@ cv::Scalar color_list_for_emo[] = {
 
 //图像颜色集
 cv::Scalar color_list_for_osd_emo[] = {
-    cv::Scalar(255, 255, 255, 0),
-    cv::Scalar(255, 0, 255, 0),
+    cv::Scalar(255, 255, 255, 255),
+    cv::Scalar(255, 0, 255, 255),
     cv::Scalar(255, 50, 220, 255),
     cv::Scalar(255, 255, 0, 255),
     cv::Scalar(255, 0, 0, 255),
@@ -143,8 +143,8 @@ void FaceEmotion::draw_result_video(cv::Mat& src_img,Bbox& bbox,FaceEmotionInfo&
     int y = bbox.y / SENSOR_HEIGHT * src_h;
     int w = bbox.w / SENSOR_WIDTH * src_w;
     int h = bbox.h / SENSOR_HEIGHT * src_h;
-    cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255), 2, 2, 0);
-	cv::putText(src_img, text , {x,std::max(int(y-10),0)}, cv::FONT_HERSHEY_COMPLEX, 2, color_list_for_emo[result.idx], 2, 8, 0);
+    cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255,255), 2, 2, 0);
+	cv::putText(src_img, text , {x,std::max(int(y-10),0)}, cv::FONT_HERSHEY_COMPLEX, 2, color_list_for_osd_emo[result.idx], 2, 8, 0);
 }
 
 void FaceEmotion::svd22(const float a[4], float u[4], float s[2], float v[4])

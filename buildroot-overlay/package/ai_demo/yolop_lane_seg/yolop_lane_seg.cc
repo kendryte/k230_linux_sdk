@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -135,15 +135,15 @@ void SEG::post_process_video(  cv::Mat &outimg )
             int y = int(i * ratioh);
 			if (pdata_drive[y * net_len_w + x] < pdata_drive[area + y * net_len_w + x])
 			{
-                // outimg.at<cv::Vec4b>(i, j)[0] = 255;
-				outimg.at<cv::Vec4b>(i, j)[1] = 0;
-				outimg.at<cv::Vec4b>(i, j)[2] = 255;
-				outimg.at<cv::Vec4b>(i, j)[3] = 0;
+                outimg.at<cv::Vec4b>(i, j)[0] = 0;
+				outimg.at<cv::Vec4b>(i, j)[1] = 255;
+				outimg.at<cv::Vec4b>(i, j)[2] = 0;
+				outimg.at<cv::Vec4b>(i, j)[3] = 255;
 			}
 			if (pdata_lane_line[y * net_len_w + x]-0.1  <= pdata_lane_line[area + y * net_len_w + x])
 			{
 
-                // outimg.at<cv::Vec4b>(i, j)[0] = 255;
+                outimg.at<cv::Vec4b>(i, j)[0] = 255;
 				outimg.at<cv::Vec4b>(i, j)[1] = 0;
 				outimg.at<cv::Vec4b>(i, j)[2] = 0;
 				outimg.at<cv::Vec4b>(i, j)[3] = 255;

@@ -143,7 +143,7 @@ class Seg : public AIBase
          * @param results               分割结果集合
          * @return None
          */
-        static void draw_result_video(cv::Mat& frame, vector<OutputSeg>& results);
+        static void draw_result_video(cv::Mat& osd_frame, vector<OutputSeg>& results);
 
     private:
 

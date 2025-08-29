@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "face_gender.h"
-#include "vi_vo.h"
+#include "setting.h"
 #include <vector>
 
 FaceGender::FaceGender(const char *kmodel_file, const int debug_mode) : AIBase(kmodel_file,"FaceGender",debug_mode)
@@ -114,7 +114,7 @@ void FaceGender::draw_result(cv::Mat& src_img,Bbox& bbox,FaceGenderInfo& result,
         if(result.gender == "F")
 			cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255,255, 0, 255), 2, 8, 0);
 		else
-			cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255,255, 255, 0), 2, 8, 0);
+			cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255,255, 255, 255), 2, 8, 0);
     }  
 }
 
@@ -131,9 +131,9 @@ void FaceGender::draw_result_video(cv::Mat& src_img,Bbox& bbox,FaceGenderInfo& r
     int y = bbox.y / SENSOR_HEIGHT * src_h;
     int w = bbox.w / SENSOR_WIDTH * src_w;
     int h = bbox.h / SENSOR_HEIGHT * src_h;
-    cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255), 2, 2, 0);
+    cv::rectangle(src_img, cv::Rect(x, y , w, h), cv::Scalar(255, 255, 255,255), 2, 2, 0);
     if(result.gender == "F")
-		cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255, 0, 255), 2, 8, 0);
+		cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255, 0, 255,255), 2, 8, 0);
 	else
-		cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255, 255, 0), 2, 8, 0);
+		cv::putText(src_img,text,cv::Point(x,std::max(int(y-10),0)),cv::FONT_HERSHEY_COMPLEX,2,cv::Scalar(255, 255, 0,255), 2, 8, 0);
 }

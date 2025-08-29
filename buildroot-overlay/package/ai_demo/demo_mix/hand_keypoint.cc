@@ -23,7 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "vi_vo.h"
+#include "setting.h"
 #include "hand_keypoint.h"
 
 double vector_2d_angle(std::vector<double> v1, std::vector<double> v2)
@@ -230,13 +230,13 @@ std::string HandKeypoint::draw_keypoints(cv::Mat &img, BoxInfo& bbox, HandKeyPoi
         int rect_y = bbox.y1/ SENSOR_HEIGHT * src_height;
         int rect_w = (float)w / SENSOR_WIDTH * src_width;
         int rect_h = (float)h / SENSOR_HEIGHT  * src_height;
-        cv::rectangle(img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255), 2, 2, 0);
+        cv::rectangle(img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255,255), 2, 2, 0);
 
         for (unsigned i = 0; i < output_tensor_size / 2; i++)
         {
             results[i * 2] = results[i * 2] / SENSOR_WIDTH * src_width;
             results[i * 2 + 1] = results[i * 2 + 1] / SENSOR_HEIGHT * src_height;
-            cv::circle(img, cv::Point(results[i * 2], results[i * 2 + 1]), 2, cv::Scalar(255, 155, 0), 3);
+            cv::circle(img, cv::Point(results[i * 2], results[i * 2 + 1]), 2, cv::Scalar(255, 155, 0,255), 3);
         }
 
         for (unsigned k = 0; k < 5; k++)
@@ -254,16 +254,16 @@ std::string HandKeypoint::draw_keypoints(cv::Mat &img, BoxInfo& bbox, HandKeyPoi
                 default: std::cout << "error" << std::endl;
             }
 
-            cv::line(img, cv::Point(results[0], results[1]), cv::Point(results[i + 2], results[i + 3]), cv::Scalar(B,G,R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 2], results[i + 3]), cv::Point(results[i + 4], results[i + 5]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 4], results[i + 5]), cv::Point(results[i + 6], results[i + 7]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-            cv::line(img, cv::Point(results[i + 6], results[i + 7]), cv::Point(results[i + 8], results[i + 9]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(results[0], results[1]), cv::Point(results[i + 2], results[i + 3]), cv::Scalar(B,G,R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(results[i + 2], results[i + 3]), cv::Point(results[i + 4], results[i + 5]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(results[i + 4], results[i + 5]), cv::Point(results[i + 6], results[i + 7]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
+            cv::line(img, cv::Point(results[i + 6], results[i + 7]), cv::Point(results[i + 8], results[i + 9]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
         }
 
         std::vector<double> angle_list = hand_angle(results);
         std::string gesture = h_gesture(angle_list);
         std::string text = "Gesture: " + gesture;
-        cv::putText(img, text, cv::Point(rect_x,rect_y),cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0), 2);
+        cv::putText(img, text, cv::Point(rect_x,rect_y),cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0,255), 2);
         return text;
     } 
 }
@@ -282,13 +282,13 @@ void HandKeypoint::draw_keypoints_video(cv::Mat &img, BoxInfo& bbox, HandKeyPoin
     int rect_y = bbox.y1/ SENSOR_HEIGHT * src_height;
     int rect_w = (float)w / SENSOR_WIDTH * src_width;
     int rect_h = (float)h / SENSOR_HEIGHT  * src_height;
-    cv::rectangle(img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255), 2, 2, 0);
+    cv::rectangle(img, cv::Rect(rect_x, rect_y , rect_w, rect_h), cv::Scalar( 255,255, 255,255), 2, 2, 0);
 
     for (unsigned i = 0; i < output_tensor_size / 2; i++)
     {
         results[i * 2] = results[i * 2] / SENSOR_WIDTH * src_width;
         results[i * 2 + 1] = results[i * 2 + 1] / SENSOR_HEIGHT * src_height;
-        cv::circle(img, cv::Point(results[i * 2], results[i * 2 + 1]), 2, cv::Scalar(255, 155, 0), 3);
+        cv::circle(img, cv::Point(results[i * 2], results[i * 2 + 1]), 2, cv::Scalar(255, 155, 0,255), 3);
     }
 
     for (unsigned k = 0; k < 5; k++)
@@ -305,14 +305,14 @@ void HandKeypoint::draw_keypoints_video(cv::Mat &img, BoxInfo& bbox, HandKeyPoin
             case 4:R = 0; G = 0; B = 255;break;
             default: std::cout << "error" << std::endl;
         }
-        cv::line(img, cv::Point(results[0], results[1]), cv::Point(results[i + 2], results[i + 3]), cv::Scalar(B,G,R), 2, cv::LINE_AA);
-        cv::line(img, cv::Point(results[i + 2], results[i + 3]), cv::Point(results[i + 4], results[i + 5]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-        cv::line(img, cv::Point(results[i + 4], results[i + 5]), cv::Point(results[i + 6], results[i + 7]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
-        cv::line(img, cv::Point(results[i + 6], results[i + 7]), cv::Point(results[i + 8], results[i + 9]), cv::Scalar(B, G, R), 2, cv::LINE_AA);
+        cv::line(img, cv::Point(results[0], results[1]), cv::Point(results[i + 2], results[i + 3]), cv::Scalar(B,G,R,255), 2, cv::LINE_AA);
+        cv::line(img, cv::Point(results[i + 2], results[i + 3]), cv::Point(results[i + 4], results[i + 5]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
+        cv::line(img, cv::Point(results[i + 4], results[i + 5]), cv::Point(results[i + 6], results[i + 7]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
+        cv::line(img, cv::Point(results[i + 6], results[i + 7]), cv::Point(results[i + 8], results[i + 9]), cv::Scalar(B, G, R,255), 2, cv::LINE_AA);
     }
     std::vector<double> angle_list = hand_angle(results);
     std::string gesture = h_gesture(angle_list);
     std::string text = "Gesture: " + gesture;
-    cv::putText(img, text, cv::Point(rect_x,rect_y),cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0), 2);
+    cv::putText(img, text, cv::Point(rect_x,rect_y),cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 0, 0,255), 2);
 }
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -23,8 +23,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "vi_vo.h"
+#include "setting.h"
 #include "segment.h"
+#include "setting.h"
 
 Seg::Seg(const char *kmodel_file, float conf_thres, float nms_thres, float mask_thres, const int debug_mode)
 :conf_thres(conf_thres),nms_thres(nms_thres),mask_thres(mask_thres), AIBase(kmodel_file,"Seg", debug_mode)
@@ -222,26 +223,27 @@ void Seg::draw_segmentation(cv::Mat& frame, vector<OutputSeg>& results)
 }
 
 
-void Seg::draw_result_video(cv::Mat& frame,vector<OutputSeg>& results)
+void Seg::draw_result_video(cv::Mat& osd_frame,vector<OutputSeg>& results)
 {
-    int src_w = frame.cols;
-    int src_h = frame.rows;
+    int src_w = osd_frame.cols;
+    int src_h = osd_frame.rows;
+	cv::Mat frame(SENSOR_HEIGHT, SENSOR_WIDTH, CV_8UC4,cv::Scalar(0,0,0,0));
 	for (int i = 0; i < results.size(); i++) {
 		int left, top;
 		left = results[i].box.x;
 		top = results[i].box.y;
 		int color_num = i;
-		rectangle(frame, results[i].box, color_three[results[i].id], 2, 8);
-		
-		frame(results[i].box).setTo(color_three[results[i].id], results[i].boxMask);
+		cv::Scalar color(color_four[results[i].id][0],color_four[results[i].id][1],color_four[results[i].id][2],127);
+		rectangle(frame, results[i].box, color, 2, 8);
+		frame(results[i].box).setTo(color, results[i].boxMask);
 
         std::string classString = results[i].label + ' ' + std::to_string(results[i].confidence).substr(0, 4);
-
 		int baseLine;
 		Size labelSize = getTextSize(classString, FONT_HERSHEY_SIMPLEX, 2, 4, &baseLine);
 		top = max(top, labelSize.height);
-		putText(frame, classString, Point(left, top), FONT_HERSHEY_SIMPLEX, 2, cv::Scalar(255,255,0), 4);
+		putText(frame, classString, Point(left, top), FONT_HERSHEY_SIMPLEX, 2, cv::Scalar(255,255,0,255), 4);
 	}
+	cv::resize(frame, osd_frame, cv::Size(src_w, src_h));
 }
 
 

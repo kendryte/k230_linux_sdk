@@ -1,4 +1,4 @@
-/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,25 +26,25 @@
 #include <vector>
 
 cv::Vec3b color_list_for_pixel[] = {
-    cv::Vec3b(220, 20, 60),
-    cv::Vec3b(0, 0, 142),
-    cv::Vec3b(119, 11, 32),
-    cv::Vec3b(0, 0, 230),
-    cv::Vec3b(106, 0, 228),
-    cv::Vec3b(0, 60, 100),
-    cv::Vec3b(0, 80, 100),
-    cv::Vec3b(0, 0, 70),
-    cv::Vec3b(0, 0, 192),
-    cv::Vec3b(250, 170, 30),
-	cv::Vec3b(100, 170, 30),
-	cv::Vec3b(220, 220, 0),
-	cv::Vec3b(175, 116, 175),
-	cv::Vec3b(250, 0, 30),
-	cv::Vec3b(165, 42, 42),
-	cv::Vec3b(255, 77, 255),
-	cv::Vec3b(0, 226, 252),
-	cv::Vec3b(182, 182, 255),
-	cv::Vec3b(0, 82, 0)
+    cv::Vec3b(60, 20, 220),
+    cv::Vec3b(142, 0, 0),
+    cv::Vec3b(32, 11, 119),
+    cv::Vec3b(230, 0, 0),
+    cv::Vec3b(228, 0, 106),
+    cv::Vec3b(100, 60, 0),
+    cv::Vec3b(100, 80, 0),
+    cv::Vec3b(70, 0, 0),
+    cv::Vec3b(192, 0, 0),
+    cv::Vec3b(30, 170, 250),
+    cv::Vec3b(30, 170, 100),
+    cv::Vec3b(0, 220, 220),
+    cv::Vec3b(175, 175, 116),
+    cv::Vec3b(30, 0, 250),
+    cv::Vec3b(42, 42, 165),
+    cv::Vec3b(255, 77, 255),
+    cv::Vec3b(252, 226, 0),
+    cv::Vec3b(255, 182, 182),
+    cv::Vec3b(0, 82, 0)
 	};
 
 cv::Vec4b color_list_for_osd_pixel[] = {
@@ -179,7 +179,7 @@ void FaceParse::post_process(cv::Mat& src_img,Bbox& bbox, bool pic_mode)
 		cv::Mat mask(src_h, src_w, CV_8UC4, cv::Scalar(0, 0, 0, 0));
 		cv::warpAffine(net_image, mask, matrix_for_warp, cv::Size(src_w,src_h));
 		osd_frame = osd_frame + mask;
-		cv::cvtColor(osd_frame, src_img, cv::COLOR_BGRA2BGR);
+		osd_frame.copyTo(src_img);
 	}
 }
 
