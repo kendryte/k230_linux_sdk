@@ -91,6 +91,29 @@ void harts_early_init(void)
 	csr_write(pmpcfg0, 0x9999);
 #endif
 
+	#define USB_IDPULLUP0 		(1<<4)
+
+    u32 usb0_test_ctl3 = readl((void*)USB0_TEST_CTL3);
+    u32 usb1_test_ctl3 = readl((void*)USB1_TEST_CTL3);
+
+    usb0_test_ctl3 |= USB_IDPULLUP0;
+    usb1_test_ctl3 |= USB_IDPULLUP0;
+
+    writel(usb0_test_ctl3, (void*)USB0_TEST_CTL3);
+    writel(usb1_test_ctl3, (void*)USB1_TEST_CTL3);
+
+    writel(0x33881B, (void*)USB0_CTL0);
+	writel(0x33881B, (void*)USB1_CTL0);
+
+    writel(0x5E66A0, (void*)USB0_CTL1);
+    writel(0x5E66A0, (void*)USB1_CTL1);
+
+    #define SD_HOST_REG_VOL_STABLE      (1<<4)
+    #define SD_CARD_WRITE_PROT          (1<<6)
+    u32 sd0_ctrl = readl((void*)SD0_CTRL);
+    sd0_ctrl |= SD_HOST_REG_VOL_STABLE | SD_CARD_WRITE_PROT;
+    writel(sd0_ctrl, (void*)SD0_CTRL);
+
 	//improving_cpu_performance();
 }
 u32 spl_boot_device(void)
