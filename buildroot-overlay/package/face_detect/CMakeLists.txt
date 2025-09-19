@@ -1,47 +1,84 @@
 cmake_minimum_required(VERSION 3.5)
-
 set(CMAKE_CXX_STANDARD 17)
-
 project(face_detect)
 
-add_definitions(-mcpu=c908)
-#add_definitions(-fsanitize=address)
-#add_link_options(-fsanitize=address -static-libasan)
+message("CMAKE_TOOLCHAIN_FILE:" ${CMAKE_TOOLCHAIN_FILE})
 
-find_package(nncaseruntime REQUIRED)
-#find_package(nncase_rt_modules_k230 REQUIRED)
-find_package(gsl-lite REQUIRED)
-find_package(OpenCV)
+# ========== 源文件自动收集 ==========
+file(GLOB src CONFIGURE_DEPENDS src/*.cc)
+set(bin face_detect.elf)
 
+# ========== 创建可执行文件 ==========
+add_executable(${bin} ${src})
+
+# ========== 设置交叉编译工具链路径 ==========
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}   -mcpu=c908v -mabi=lp64d  -mtune=c908 -mrvv-v0p10-compatible  -mrvv-auto-vectorize")
 
-#message(nncaseruntime_LIBS=${nncaseruntime_LIBS} ${nncaseruntime_INCLUDE_DIRS})
+if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
+    # buildroot环境编译，默认编译器为buildroot的编译器
+else()
+    # shell脚本编译，设置编译器路径
+    set(CMAKE_C_COMPILER $ENV{GCC_PATH}/riscv64-unknown-linux-gnu-gcc)
+    set(CMAKE_CXX_COMPILER $ENV{GCC_PATH}/riscv64-unknown-linux-gnu-g++)
+    set(CMAKE_SYSROOT $ENV{sysroot})
+endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+message("CMAKE_C_COMPILER:" ${CMAKE_C_COMPILER})
+message("CMAKE_CXX_COMPILER:" ${CMAKE_CXX_COMPILER})
+message("CMAKE_SYSROOT:" ${CMAKE_SYSROOT})
 
-if(${OpenCV_FOUND})
+# ========== 设置 SDK 路径和 sysroot ==========
+set(usr_root ${CMAKE_SYSROOT}/usr)
 
-include(FindPkgConfig)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(DISPLAY REQUIRED display)
-pkg_check_modules(V4L2DRM REQUIRED v4l2-drm)
-add_definitions(-DWITH_OPENCV)
+# ========== 添加头文件搜索路径 ==========
+include_directories(
+    ${usr_root}/buildroot-overlay/package/libmmz/
+    ${usr_root}/include/nncase/include/
+    ${usr_root}/include
+    ${usr_root}/include/libdrm
+    ${usr_root}/include/opencv4
+)
 
-include_directories(${OpenCV_INCLUDE_DIRS} ${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS})
-add_executable(${PROJECT_NAME}.elf main_cv.cpp model.cc mobile_retinaface.cc anchors_320.cc util.cc)
-target_link_libraries(${PROJECT_NAME}.elf ${OpenCV_LIBS} ${DISPLAY_LIBRARIES} ${V4L2DRM_LIBRARIES})
-install(PROGRAMS run_cv.sh DESTINATION /root/app/face_detect)
+# ========== 添加链接库目录 ==========
+target_link_directories(${bin} PRIVATE
+    ${usr_root}/lib
+    ${CMAKE_SYSROOT}
+    ${CMAKE_SYSROOT}/usr/lib64/lp64d
+)
 
-else(${OpenCV_FOUND})
+# ========== 链接所需的库 ==========
+# 使用 --start-group 和 --end-group 包裹，解决静态库相互依赖的链接问题
+target_link_libraries(${bin}
+    -Wl,--start-group
+    Nncase.Runtime.Native
+    nncase.rt_modules.k230
+    functional_k230
+    opencv_imgcodecs
+    opencv_imgproc
+    opencv_core
+    sharpyuv
+    libjpeg.so.9
+    webp
+    png
+    z
+    v4l2-drm
+    drm
+    display
+    mmz
+    pthread
+    -Wl,--end-group
+)
 
-add_executable(${PROJECT_NAME}.elf main.cc model.cc mobile_retinaface.cc anchors_320.cc util.cc)
-install(PROGRAMS run.sh DESTINATION /root/app/face_detect)
+# ========== 安装规则 ==========
 
-endif(${OpenCV_FOUND})
-
-target_link_libraries(${PROJECT_NAME}.elf nncase.rt_modules.k230 nncaseruntime functional_k230 mmz pthread)
-#target_link_libraries(${PROJECT_NAME}.elf nncaseruntime nncase_rt_modules_k230 mmz)
-
-install(TARGETS ${PROJECT_NAME}.elf DESTINATION /root/app/face_detect)
-install(FILES face_detection_320.kmodel ai2d_input.bin DESTINATION /root/app/face_detect)
+if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
+    # Buildroot 环境
+    message(STATUS "使用 Buildroot 编译，安装到 /root/app/face_detect/")
+    install(TARGETS ${bin} DESTINATION /root/app/face_detect)
+    install(DIRECTORY utils/ DESTINATION /root/app/face_detect)
+else()
+    # 非 Buildroot，自己本地 build_app.sh 编译
+    message(STATUS "本地编译，安装到 ./k230_bin/")
+    install(TARGETS ${bin} DESTINATION bin)
+endif()

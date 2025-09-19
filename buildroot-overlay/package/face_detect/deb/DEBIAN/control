@@ -1,9 +1,0 @@
-Package: k230-face-detect
-Version: 1.0
-Section: utils
-Priority: optional
-Architecture: all
-Depends: libc6 (>= 2.15), libgcc1 (>= 1:3.0), libstdc++6 (>= 4.1.1)
-Maintainer: Your Name <yourname@email.com>
-Description: Test program
- Production of deb software package for testing
