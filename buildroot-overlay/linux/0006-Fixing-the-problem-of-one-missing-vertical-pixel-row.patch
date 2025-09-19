@@ -1,0 +1,25 @@
+From fd85aa80e20179ebb4492633182d105d00ad4e8c Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 19 Sep 2025 17:40:39 +0800
+Subject: [PATCH] Fixing the problem of one missing vertical pixel row
+
+---
+ drivers/gpu/drm/canaan/canaan_vo.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/canaan/canaan_vo.c b/drivers/gpu/drm/canaan/canaan_vo.c
+index 9b892fef4..52d6a4e9a 100755
+--- a/drivers/gpu/drm/canaan/canaan_vo.c
++++ b/drivers/gpu/drm/canaan/canaan_vo.c
+@@ -632,7 +632,7 @@ static void canaan_vo_set_timing(struct canaan_vo *vo,
+ 
+ 	// set yzone
+ 	reg = 0;
+-	reg = (vbp + 1) + (((vact + (vbp + 1)) - 1) << 16);
++	reg = (vbp ) + (((vact + (vbp)) - 1) << 16);
+ 	canaan_vo_write(vo, VO_DISP_YZONE_CTL, reg);
+ 
+ 	// set total size
+-- 
+2.25.1
+
