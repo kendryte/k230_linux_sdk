@@ -99,6 +99,6 @@ OPENSBI_OVERLAY_DIRS=$(TOPDIR)/../../buildroot-overlay/boot/opensbi/opensbi-1.4-
 $(OPENSBI_DIR)/.overlay_sync: $(OPENSBI_DIR)/.stamp_patched
 $(OPENSBI_DIR)/.stamp_configured:  $(OPENSBI_DIR)/.overlay_sync
 $(OPENSBI_DIR)/.stamp_dotconfig:  $(OPENSBI_DIR)/.overlay_sync
-$(OPENSBI_DIR)/.overlay_sync:$(TOPDIR)/../.oepnsbi_overlay_sync  $(OPENSBI_DIR)/.stamp_patched
+$(OPENSBI_DIR)/.overlay_sync:$(TOPDIR)/../.opensbi_overlay_sync  $(OPENSBI_DIR)/.stamp_patched
 	rsync -a $(OPENSBI_OVERLAY_DIRS)/ $(OPENSBI_DIR)/	
 	touch $@

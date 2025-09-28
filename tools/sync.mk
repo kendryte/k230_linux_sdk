@@ -32,9 +32,9 @@ output/.uboot_overlay_sync:$(UBOOT_OVERLAY_FS)
 # output/.linux_overlay_sync:$(LINUX_OVERLAY_FS)
 # 	mkdir -p $(@D);touch $@
 
-output/.oepnsbi_overlay_sync:$(OPENSBI_OVERLAY_FS)
+output/.opensbi_overlay_sync:$(OPENSBI_OVERLAY_FS)
 	mkdir -p $(@D);touch $@
 
 .PHONY:sync
-sync :$(BR_SRC_DIR)/.overlay_sync  output/.uboot_overlay_sync  output/.oepnsbi_overlay_sync
+sync :$(BR_SRC_DIR)/.overlay_sync  output/.uboot_overlay_sync  output/.opensbi_overlay_sync
 	@:
