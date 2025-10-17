@@ -104,7 +104,7 @@ static void ai_proc(char *argv[], int video_device) {
         if (ret) {
             perror("v4l2_drm_dump error");
             continue;
-        }        
+        }
         fd.pre_process(sensor_buf.get_buf_for_index(context.vbuffer.index));
         fd.inference();
         result_mutex.lock();

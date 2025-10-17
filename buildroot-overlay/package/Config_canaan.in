@@ -8,6 +8,7 @@ menu "canaan package"
 		source "package/face_detect/Config.in"
 		source "package/ai2d_kpu/Config.in"
 		source "package/yolo/Config.in"
+		source "package/usage_ai2d/Config.in"
 	endmenu
 	source "package/aic8800/Config.in"
 	source "package/aic8800_sdio/Config.in"
