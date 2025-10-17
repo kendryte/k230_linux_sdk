@@ -1,0 +1,7 @@
+config BR2_PACKAGE_USAGE_AI2D
+    bool "usage_ai2d"
+    select BR2_PACKAGE_GSL_LITE
+    select BR2_PACKAGE_OPENCV4
+    select BR2_PACKAGE_LIBMMZ
+    help
+         ai2d demo
