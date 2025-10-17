@@ -1,0 +1,40 @@
+if TARGET_K230_CANMV_GT6700
+
+config SYS_CPU
+	default "k230"
+
+config SYS_VENDOR
+    default "canaan"
+
+config SYS_BOARD
+    default "k230_canmv_gt6700"
+
+config SYS_CONFIG_NAME
+    default "k230_evb"
+
+
+config BOARD_SPECIFIC_OPTIONS # dummy
+	def_bool y
+	select RISCV_THEAD
+
+choice
+	prompt "ddr typy freq"
+    default CANMV_GT6700_LPDDR4_2667
+
+    config CANMV_GT6700_LPDDR4_2667
+	    bool "canmv gt6700 LP4_2667"
+        help
+            "CANMV GT6700,lushanpai,01studio"
+
+    config CANMV_GT6700_LPDDR4_3200
+	    bool "canmv gt6700 LP4_3200"
+        help
+            "CANMV GT6700,lushanpai,01studio"
+
+    config CANMV_GT6700_LPDDR4_1600_WITHOUT_ODT
+	    bool "canmv gt6700 LP4_1600 WITHOUT ODT"
+        help
+            "CANMV GT6700,lushanpai,01studio"
+endchoice
+
+endif
