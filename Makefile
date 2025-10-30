@@ -3,6 +3,8 @@ BR_NAME = buildroot-2025.02.1
 BR_SRC_DIR = output/$(BR_NAME)
 BR_OVERLAY_DIR = buildroot-overlay
 
+export FORCE_UNSAFE_CONFIGURE := 1
+
 ifeq ("$(origin CONF)", "command line")
 $(shell echo CONF=$(CONF)>.last_conf;)
 else
