@@ -12,7 +12,7 @@
 #include <linux/i2c.h>
 
 #define I2C_SLAVE_ADDRESS 0x37
-#define CHECK_ERROR(x) if(x)return -1
+#define CHECK_ERROR(x) if(x){printf("error f=%s l=%d \n",__func__, __LINE__); return -1;}
 
 #define GC2093_REG_CHIP_ID_H                                0x300a
 #define GC2093_REG_CHIP_ID_L                                0x300b
@@ -277,12 +277,12 @@ static struct reg_list gc2093_1920x1080_30fps[] = {
     {0x0417, 0x78},
     {0x04e0, 0x18},
     /*window*/
-    {0x0192, 0x02},	//out_win_y_off = 2 
-    {0x0194, 0x03},	//out_win_x_off = 3 
+    {0x0192, 0x02},	//out_win_y_off = 2
+    {0x0194, 0x03},	//out_win_x_off = 3
     {0x0195, 0x04},	//out_win_height = 1080
-    {0x0196, 0x38}, 
+    {0x0196, 0x38},
     {0x0197, 0x07},	//out_win_width = 1920
-    {0x0198, 0x80}, 
+    {0x0198, 0x80},
     /****DVP & MIPI****/
     {0x0199, 0x00},	//out window offset
     {0x019a, 0x06},

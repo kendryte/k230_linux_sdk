@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: GPL-2.0
 
 ifeq ($(BR2_PACKAGE_VVCAM_DEF_SENSOR), ov5647)
-
 ccflags-y += -DBR2_PACKAGE_VVCAM_DEF_SENSOR_OV5647
 #$(error "xccflags-y=$(ccflags-y)")
 else ifeq   ($(BR2_PACKAGE_VVCAM_DEF_SENSOR), gc2093)
 ccflags-y += -DBR2_PACKAGE_VVCAM_DEF_SENSOR_GC2093
 else ifeq   ($(BR2_PACKAGE_VVCAM_DEF_SENSOR), gc2053)
 ccflags-y += -DBR2_PACKAGE_VVCAM_DEF_SENSOR_GC2053
+else ifeq   ($(BR2_PACKAGE_VVCAM_DEF_SENSOR), imx335)
+ccflags-y += -DBR2_PACKAGE_VVCAM_DEF_SENSOR_IMX335
 endif
 
 ccflags-y	+= -DVVCAM_ISP0_BASE=0x90000000

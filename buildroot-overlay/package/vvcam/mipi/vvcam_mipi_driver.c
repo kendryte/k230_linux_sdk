@@ -67,6 +67,7 @@
 #include "vvcam_mipi_driver.h"
 #include "k230_vi.h"
 #include <linux/gpio/consumer.h>
+#include <linux/delay.h>
 
 
 static int vvcam_mipi_open(struct inode *inode, struct file *file)
@@ -306,9 +307,16 @@ static int vvcam_mipi_probe(struct platform_device *pdev)
     if (IS_ERR(mipi_dev->reset_gpio)) {
 		printk("failed to acquire reset gpio\n");
 		// return PTR_ERR(lt9611->reset_gpio);
-	}
+	}else {
+        gpiod_direction_output(mipi_dev->reset_gpio, true);//
+        mdelay(100);
+        gpiod_set_value_cansleep(mipi_dev->reset_gpio, false);
+        mdelay(100);
+        gpiod_set_value_cansleep(mipi_dev->reset_gpio, true);
+        printk("reset gpio init successwwwwwwjx \n");
 
-    gpiod_set_value_cansleep(mipi_dev->reset_gpio, 1);
+    }
+
 
     printk("---------------reset --- --------\n");
 
