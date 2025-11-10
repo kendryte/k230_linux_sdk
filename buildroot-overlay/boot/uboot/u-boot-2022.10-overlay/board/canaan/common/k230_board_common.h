@@ -123,4 +123,6 @@ int k230_img_boot_sys_bin(firmware_head_s * fhBUff);
 extern sysctl_boot_mode_e g_bootmod;
 extern void board_ddr_init(void);
 int k230_gpio(char opt, int pin, char *value);
+void wifi_sdio0_rst(void);
+void wifi_gpio_rst(int gpio);
 #endif
