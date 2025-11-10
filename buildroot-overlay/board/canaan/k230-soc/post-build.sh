@@ -65,6 +65,11 @@ auto_boot_proc()
 [ "\$1" = "stop" ] && exit 0
 
 EOF
+	BR2_CANAAN_AUTO_RUN_CMD=$(cat ${config} | grep BR2_CANAAN_AUTO_RUN_CMD | cut -d= -f2  |  tr -d '"' )
+	if [ ! -z "$BR2_CANAAN_AUTO_RUN_CMD" ] ; then
+		echo  "$BR2_CANAAN_AUTO_RUN_CMD" >> ${auto_boot_f}
+	fi
+
 
 	if  $(cat ${config} |  grep  BR2_PACKAGE_RTL8189FS=y >/dev/null 2>&1 ); then
 		echo " modprobe 8189fs " >> ${auto_boot_f}

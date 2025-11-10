@@ -1,0 +1,53 @@
+From 7e181d4444f6da75d6f8a9edb6364162e9160260 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 7 Nov 2025 17:38:01 +0800
+Subject: [PATCH] zero wifi reset
+
+---
+ arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts | 6 ++++++
+ arch/riscv/boot/dts/canaan/k230d-canmv.dts               | 6 ++++++
+ 2 files changed, 12 insertions(+)
+ mode change 100644 => 100755 arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+ mode change 100644 => 100755 arch/riscv/boot/dts/canaan/k230d-canmv.dts
+
+diff --git a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+old mode 100644
+new mode 100755
+index 2968402ca..ebc68a41d
+--- a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
++++ b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+@@ -42,6 +42,12 @@ &uart0 {
+ &uart2 {
+ 	status = "okay";
+ };
++&mmc_sd0 {
++        status = "okay";
++        no-1-8-v;
++        // rx_delay_line = <0x0d>;
++        // tx_delay_line = <0xc0>;
++};
+ &mmc_sd1{
+ 	status = "okay";
+ 	no-1-8-v;
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv.dts b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+old mode 100644
+new mode 100755
+index 8b1a1f573..e7ac49659
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+@@ -42,6 +42,12 @@ &uart0 {
+ &uart2 {
+ 	status = "okay";
+ };
++&mmc_sd0 {
++        status = "okay";
++        no-1-8-v;
++        // rx_delay_line = <0x0d>;
++        // tx_delay_line = <0xc0>;
++};
+ &mmc_sd1{
+ 	status = "okay";
+ 	no-1-8-v;
+-- 
+2.25.1
+

@@ -35,24 +35,7 @@ sysctl_boot_mode_e sysctl_boot_get_boot_mode(void)
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
-    #define USB_IDPULLUP0 		(1<<4)
-    #define USB_DMPULLDOWN0 	(1<<8)
-    #define USB_DPPULLDOWN0 	(1<<9)
-
-
-
-    u32 usb_ctl3 = readl((const volatile void __iomem *)(SDIO0_BASE_ADDR + 0x7c));
-
-	usb_ctl3 |= USB_IDPULLUP0;
-	usb_ctl3 &= ~(USB_DMPULLDOWN0 | USB_DPPULLDOWN0);
-	writel(usb_ctl3, ( volatile void __iomem *)(SDIO0_BASE_ADDR + 0x7c));
-	//printf("usb_ctl3 =%x\n",usb_ctl3);
-
-	usb_ctl3 = readl((const volatile void __iomem *)(SDIO0_BASE_ADDR + 0x9c));
-	usb_ctl3 |= USB_IDPULLUP0;
-	usb_ctl3 |= (USB_DMPULLDOWN0 | USB_DPPULLDOWN0);
-	writel(usb_ctl3, ( volatile void __iomem *)(SDIO0_BASE_ADDR + 0x9c));
-
+	wifi_gpio_rst(53);
 	env_set_ulong("mmc_boot_dev_num", g_bootmod - SYSCTL_BOOT_SDIO0);
 
 	//printf("usb_ctl3 =%x\n",usb_ctl3);

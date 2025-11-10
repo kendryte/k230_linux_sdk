@@ -232,7 +232,7 @@ make ddr_test_img_128 #build ddr 128MB test img,128 can be 512/1024/2048/128"
 
 for more ,please refer to:
 
-[K230 Linux SDK 文档](https://www.kendryte.com/k230_linux/dev/index.html)
+[K230 Linux SDK 文档](https://www.kendryte.com/zh/sdkResource/230linux)
 
 [k230问答社区](https://www.kendryte.com/answer/)
 

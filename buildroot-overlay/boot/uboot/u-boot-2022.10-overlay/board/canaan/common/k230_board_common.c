@@ -48,6 +48,8 @@
 #include <malloc.h>
 #include <memalign.h>
 #include <u-boot/crc.h>
+#include <linux/delay.h>
+#include <mmc.h>
 
 //weak
 int mmc_get_env_dev(void)
@@ -190,9 +192,7 @@ U_BOOT_CMD_COMPLETE(
 	NULL,
 	K230_BOOT_HELP, NULL
 );
-#endif
 
-#ifndef CONFIG_SPL_BUILD
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -440,6 +440,36 @@ void arch_print_bdinfo(void)
     printf("sp:%16lx ,%lx %lx \n", get_sp(), malloc(0),malloc(0));
 }
 
+
+void wifi_sdio0_rst(void)
+{
+    #define SDHCI_EMMC_CTRL_R   0x52C
+    #define EMMC_RST_N_OE       3
+    #define EMMC_RST_N          2
+
+    struct mmc *mmc;
+	mmc = find_mmc_device(0);
+    if(mmc ){
+        mmc_deferred_probe(mmc);
+        u32 wifi_regon_ctrl = readl((void*)(SDIO0_BASE_ADDR + SDHCI_EMMC_CTRL_R));
+        wifi_regon_ctrl |= (1<<EMMC_RST_N_OE);
+        wifi_regon_ctrl &= ~(1<<EMMC_RST_N);
+        writel(wifi_regon_ctrl, (void*)(SDIO0_BASE_ADDR + SDHCI_EMMC_CTRL_R));
+        mdelay(10);
+        wifi_regon_ctrl |= (1<<EMMC_RST_N);
+        writel(wifi_regon_ctrl, (void*)(SDIO0_BASE_ADDR + SDHCI_EMMC_CTRL_R));
+    }
+    return;
+}
+void wifi_gpio_rst(int gpio)
+{
+    char high = 1,low = 0;
+    // reset gpio -> WIFI REGON
+    k230_gpio('o', gpio, &low);
+    mdelay(10);
+    k230_gpio('s', gpio , &high);
+    return;
+}
 #endif
 
 #if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)

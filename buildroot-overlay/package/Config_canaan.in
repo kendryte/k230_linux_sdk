@@ -27,4 +27,9 @@ menu "canaan package"
 	source "package/display/Config.in"
 	source "package/vo_init/Config.in"
 	source "package/k230_noc/Config.in"
+
+	config BR2_CANAAN_AUTO_RUN_CMD
+		string "auto run cmd"
+		default ""
+
 endmenu
