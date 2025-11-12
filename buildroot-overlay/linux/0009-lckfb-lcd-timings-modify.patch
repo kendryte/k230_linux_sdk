@@ -1,0 +1,80 @@
+From e5aaa7b5155c24c11ddded9027b08302644df8a6 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 12 Nov 2025 14:27:19 +0800
+Subject: [PATCH] lckfb lcd timings modify
+
+---
+ .../boot/dts/canaan/k230-canmv-lckfb-lcd.dts  | 57 +++++++++++++++++++
+ 1 file changed, 57 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+index 6dc6ed035..ee19e7ebe 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+@@ -86,6 +86,63 @@ K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ &lcd {
+ 	dsi_reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_HIGH>;
+ 	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
++	panel-init-sequence = [
++			05 00 01 01
++			05 10 01 11
++			39 00 06 FF 77 01 00 00 11
++			15 00 02 D1 11
++			15 00 02 55 B0
++			39 00 06 FF 77 01 00 00 10
++			39 00 03 C0 63 00
++			39 00 03 C1 04 02
++			39 00 03 C2 37 08
++			15 00 02 C7 00
++			15 00 02 CC 38
++			39 00 11 B0 00 11 19 0C 10 06 07 0A 09 22 04 10 0E 28 30 1C
++			39 00 11 B1 00 12 19 0D 10 04 06 07 08 23 04 12 11 28 30 1C
++			39 00 06 FF 77 01 00 00 11
++			15 00 02 B0 4D
++			15 00 02 B1 60
++			15 00 02 B2 07
++			15 00 02 B3 80
++			15 00 02 B5 47
++			15 00 02 B7 8A
++			15 00 02 B8 21
++			15 00 02 C1 78
++			15 00 02 C2 78
++			15 00 02 D0 88
++			39 10 04 E0 00 00 02
++			39 00 0C E1 01 A0 03 A0 02 A0 04 A0 00 44 44
++			39 00 0C E2 00 00 00 00 00 00 00 00 00 00 00
++			39 00 05 E3 00 00 33 33
++			39 00 03 E4 44 44
++			39 00 11 E5 01 26 A0 A0 03 28 A0 A0 05 2A A0 A0 07 2C A0 A0
++			39 00 05 E6 00 00 33 33
++			39 00 03 E7 44 44
++			39 00 11 E8 02 26 A0 A0 04 28 A0 A0 06 2A A0 A0 08 2C A0 A0
++			39 00 08 EB 00 01 E4 E4 44 00 40
++			39 00 11 ED FF F7 65 4F 0B A1 CF FF FF FC 1A B0 F4 56 7F FF
++			15 00 02 EE 42
++			39 00 06 FF 77 01 00 00 00
++			15 00 02 36 00
++			15 00 02 3A 55
++			05 10 01 11
++			05 00 01 29
++		];
++		display-timings {
++			timing-0 {
++				clock-frequency = <24750000>;
++				hactive = <480>;
++				vactive = <800>;
++				hfront-porch = <32>;
++				hback-porch = <32>;
++				hsync-len = <8>;
++				vfront-porch = <140>;
++				vback-porch = <150>;
++				vsync-len = <10>;
++			};
++		};
++
+ };
+ &mmc_sd0 {
+ 	status = "okay";
+-- 
+2.25.1
+
