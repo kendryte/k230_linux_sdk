@@ -627,6 +627,7 @@ static int set_mode(void* ctx, uint32_t index) {
 	    exp_time =IMX335_VMAX_LINEAR - ((SHR0_m <<8) | SHR0_l);
 
 	    mode->ae_info.cur_integration_time =  mode->ae_info.one_line_exp_time * exp_time;
+        sensor->et_line = exp_time;
   	}
 
     // save current mode
@@ -660,7 +661,7 @@ static int set_analog_gain(void* ctx, float gain) {
     float SensorGain;
     int ret;
 
-    // printf("imx335 %s %f\n", __func__, gain);
+    //printf("imx335 %s %f\n", __func__, gain);
 
     again = (uint16_t)(log10f(gain)*200.0f/3.0f + 0.5f);     //20*log(gain)*10/3
     if(sensor->sensor_again !=again)
@@ -676,7 +677,19 @@ static int set_analog_gain(void* ctx, float gain) {
 }
 
 static int set_digital_gain(void* ctx, float gain) {
-   // printf("wjxxx f=%s l=%d\n", __func__, __LINE__ );
+    //printf("wjxxx f=%s l=%d gain=%0.9f \n", __func__, __LINE__, gain);
+
+    struct imx335_ctx* sensor = ctx;
+    struct vvcam_sensor_mode *current_mode = &sensor->mode;
+    //k_s32 ret = 0;
+    uint32_t dgain;
+
+    dgain = (uint32_t)(gain * 1024);
+    current_mode->ae_info.cur_dgain = dgain / 1024.0f;
+
+    current_mode->ae_info.cur_gain = current_mode->ae_info.cur_again * current_mode->ae_info.cur_dgain;
+    current_mode->ae_info.cur_long_gain = current_mode->ae_info.cur_gain;
+    current_mode->ae_info.cur_vs_gain = current_mode->ae_info.cur_gain;
     return 0;
 }
 
