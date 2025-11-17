@@ -1,0 +1,63 @@
+#!/bin/sh
+set -x
+#adb.exe device
+#adb.exe shell
+case "$1" in
+  start)
+    modprobe libcomposite.ko
+    modprobe usb_f_fs.ko
+
+    test -d /sys/kernel/config || mkdir /sys/kernel/config
+    mount -t configfs none /sys/kernel/config
+    mkdir /sys/kernel/config/usb_gadget/g1
+    cd /sys/kernel/config/usb_gadget/g1
+
+    echo 0x29F1 > idVendor  #canaan
+    echo 0x0105 > idProduct
+    echo 0x0100 > bcdDevice
+    echo 0x0200 > bcdUSB
+
+    mkdir strings/0x409
+    echo 0123456789ABCDEF > strings/0x409/serialnumber
+    echo "canaan" > strings/0x409/manufacturer
+    echo "k230_linux" > strings/0x409/product
+
+    mkdir configs/c.1
+    mkdir configs/c.1/strings/0x409
+    echo "Conf 1" > configs/c.1/strings/0x409/configuration
+    #echo 120 > configs/c.1/MaxPower
+
+
+    cur_path=`pwd`
+
+    # mkdir -p $cur_path'/functions/rndis.usb0'
+    # ln -s /sys/kernel/config/usb_gadget/g1/functions/rndis.usb0 /sys/kernel/config/usb_gadget/g1/configs/c.1/rndis.usb0
+
+
+    mkdir -p $cur_path'/functions/ffs.mtp'
+    ln -s /sys/kernel/config/usb_gadget/g1/functions/ffs.mtp /sys/kernel/config/usb_gadget/g1/configs/c.1/ffs.mtp
+    mkdir -p  /dev/usb-ffs/mtp
+    mount -t functionfs mtp  /dev/usb-ffs/mtp
+
+
+    mkdir -p $cur_path'/functions/ffs.adb'
+    ln -s /sys/kernel/config/usb_gadget/g1/functions/ffs.adb /sys/kernel/config/usb_gadget/g1/configs/c.1/ffs.adb
+    mkdir -p /dev/usb-ffs/adb
+    mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
+    cd /root/ && adbd &
+
+    umtprd &
+    cd / && sleep 1 && echo "91500000.usb" > /sys/kernel/config/usb_gadget/g1/UDC &
+    ;;
+  stop)
+    echo none > /sys/kernel/config/usb_gadget/g1/UDC
+    ;;
+  restart|reload|force-reload)
+    echo "Error: argument '$1' not supported" >&2
+    exit 3
+    ;;
+  *)
+    echo "Usage: adbd start|stop" >&2
+    exit 3
+    ;;
+esac
