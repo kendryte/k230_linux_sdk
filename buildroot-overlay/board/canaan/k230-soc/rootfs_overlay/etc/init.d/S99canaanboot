@@ -9,6 +9,7 @@ modprobe vvcam_isp_subdev
 modprobe vvcam_video
 ISP_MEDIA_SENSOR_DRIVER=/usr/lib/libvvcam.so /usr/bin/isp_media_server > /dev/null 2> /tmp/isp.err.log &
 
-cat /etc/version/release_version
 
 vo_init &
+
+cat /etc/version/release_version
