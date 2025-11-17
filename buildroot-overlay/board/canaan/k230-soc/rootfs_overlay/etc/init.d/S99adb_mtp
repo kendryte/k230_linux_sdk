@@ -2,15 +2,17 @@
 set -x
 #adb.exe device
 #adb.exe shell
+g1="/sys/kernel/config/usb_gadget/g1"
 case "$1" in
   start)
     modprobe libcomposite.ko
     modprobe usb_f_fs.ko
+    #modprobe usb_f_acm.ko  usb_f_rndis.ko
 
     test -d /sys/kernel/config || mkdir /sys/kernel/config
     mount -t configfs none /sys/kernel/config
-    mkdir /sys/kernel/config/usb_gadget/g1
-    cd /sys/kernel/config/usb_gadget/g1
+    mkdir "${g1}" && cd "${g1}"
+
 
     echo 0x29F1 > idVendor  #canaan
     echo 0x0105 > idProduct
@@ -28,29 +30,31 @@ case "$1" in
     #echo 120 > configs/c.1/MaxPower
 
 
-    cur_path=`pwd`
 
-    # mkdir -p $cur_path'/functions/rndis.usb0'
-    # ln -s /sys/kernel/config/usb_gadget/g1/functions/rndis.usb0 /sys/kernel/config/usb_gadget/g1/configs/c.1/rndis.usb0
+    # mkdir -p ${g1}'/functions/rndis.usb0'
+    # ln -s ${g1}/functions/rndis.usb0 ${g1}/configs/c.1/rndis.usb0
+
+    # mkdir -p ${g1}'/functions/acm.0'
+    # ln -s ${g1}/functions/acm.0  ${g1}/configs/c.1/acm.0
 
 
-    mkdir -p $cur_path'/functions/ffs.mtp'
-    ln -s /sys/kernel/config/usb_gadget/g1/functions/ffs.mtp /sys/kernel/config/usb_gadget/g1/configs/c.1/ffs.mtp
+    mkdir -p ${g1}'/functions/ffs.mtp'
+    ln -s ${g1}/functions/ffs.mtp ${g1}/configs/c.1/ffs.mtp
     mkdir -p  /dev/usb-ffs/mtp
     mount -t functionfs mtp  /dev/usb-ffs/mtp
 
 
-    mkdir -p $cur_path'/functions/ffs.adb'
-    ln -s /sys/kernel/config/usb_gadget/g1/functions/ffs.adb /sys/kernel/config/usb_gadget/g1/configs/c.1/ffs.adb
+    mkdir -p ${g1}'/functions/ffs.adb'
+    ln -s ${g1}/functions/ffs.adb ${g1}/configs/c.1/ffs.adb
     mkdir -p /dev/usb-ffs/adb
     mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
     cd /root/ && adbd &
 
     umtprd &
-    cd / && sleep 1 && echo "91500000.usb" > /sys/kernel/config/usb_gadget/g1/UDC &
+    cd / && sleep 1 && echo "91500000.usb" > ${g1}/UDC &
     ;;
   stop)
-    echo none > /sys/kernel/config/usb_gadget/g1/UDC
+    echo none > ${g1}/UDC
     ;;
   restart|reload|force-reload)
     echo "Error: argument '$1' not supported" >&2
