@@ -1,0 +1,382 @@
+From 33ea9ec47014506fa2680e1e49c532939ed70c1d Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 25 Nov 2025 12:06:04 +0800
+Subject: [PATCH] add ili9881-lcd
+
+---
+ .../dts/canaan/display-ili9881-800x1280.dtsi  | 255 ++++++++++++++++++
+ .../canaan/k230-canmv-lckfb-lcd-ili9881.dts   | 100 +++++++
+ 2 files changed, 355 insertions(+)
+ create mode 100755 arch/riscv/boot/dts/canaan/display-ili9881-800x1280.dtsi
+ create mode 100755 arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+
+diff --git a/arch/riscv/boot/dts/canaan/display-ili9881-800x1280.dtsi b/arch/riscv/boot/dts/canaan/display-ili9881-800x1280.dtsi
+new file mode 100755
+index 000000000..e10fe2680
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/display-ili9881-800x1280.dtsi
+@@ -0,0 +1,255 @@
++// SPDX-License-Identifier: GPL-2.0
++&vo {
++	vth_line = <10>;
++};
++
++&dsi {
++	ports {
++		port@1 {
++			reg = <1>;
++			dsi_out_ili9881: endpoint {
++				remote-endpoint = <&ili9881_in>;
++			};
++		};
++	};
++
++	lcd: panel@0 {
++		compatible = "canaan,universal";
++		reg = <0>;
++
++		panel-width-mm = <115>;
++		panel-height-mm = <186>;
++		panel-dsi-lane = <4>;
++
++		panel-init-sequence = [
++			39 00 04 ff 98 81 03
++			15 00 02 01 00
++			15 00 02 02 00
++			15 00 02 03 53
++			15 00 02 04 13
++			15 00 02 05 00
++			15 00 02 06 04
++			15 00 02 07 00
++			15 00 02 08 00
++			15 00 02 09 22
++			15 00 02 0a 22
++			15 00 02 0b 00
++			15 00 02 0c 01
++			15 00 02 0d 00
++			15 00 02 0e 00
++			15 00 02 0f 25
++			15 00 02 10 25
++			15 00 02 11 00
++			15 00 02 12 00
++			15 00 02 13 00
++			15 00 02 14 00
++			15 00 02 15 00
++			15 00 02 16 00
++			15 00 02 17 00
++			15 00 02 18 00
++			15 00 02 19 00
++			15 00 02 1a 00
++			15 00 02 1b 00
++			15 00 02 1c 00
++			15 00 02 1d 00
++			15 00 02 1e 44
++			15 00 02 1f 80
++			15 00 02 20 02
++			15 00 02 21 03
++			15 00 02 22 00
++			15 00 02 23 00
++			15 00 02 24 00
++			15 00 02 25 00
++			15 00 02 26 00
++			15 00 02 27 00
++			15 00 02 28 33
++			15 00 02 29 03
++			15 00 02 2a 00
++			15 00 02 2b 00
++			15 00 02 2c 00
++			15 00 02 2d 00
++			15 00 02 2e 00
++			15 00 02 2f 00
++			15 00 02 30 00
++			15 00 02 31 00
++			15 00 02 32 00
++			15 00 02 33 00
++			15 00 02 34 04
++			15 00 02 35 00
++			15 00 02 36 00
++			15 00 02 37 00
++			15 00 02 38 3c
++			15 00 02 39 00
++			15 00 02 3a 40
++			15 00 02 3b 40
++			15 00 02 3c 00
++			15 00 02 3d 00
++			15 00 02 3e 00
++			15 00 02 3f 00
++			15 00 02 40 00
++			15 00 02 41 00
++			15 00 02 42 00
++			15 00 02 43 00
++			15 00 02 44 00
++			15 00 02 50 01
++			15 00 02 51 23
++			15 00 02 52 45
++			15 00 02 53 67
++			15 00 02 54 89
++			15 00 02 55 ab
++			15 00 02 56 01
++			15 00 02 57 23
++			15 00 02 58 45
++			15 00 02 59 67
++			15 00 02 5a 89
++			15 00 02 5b ab
++			15 00 02 5c cd
++			15 00 02 5d ef
++			15 00 02 5e 11
++			15 00 02 5f 01
++			15 00 02 60 00
++			15 00 02 61 15
++			15 00 02 62 14
++			15 00 02 63 0c
++			15 00 02 64 0d
++			15 00 02 65 0e
++			15 00 02 66 0f
++			15 00 02 67 06
++			15 00 02 68 02
++			15 00 02 69 02
++			15 00 02 6a 02
++			15 00 02 6b 02
++			15 00 02 6c 02
++			15 00 02 6d 02
++			15 00 02 6e 08
++			15 00 02 6f 02
++			15 00 02 70 02
++			15 00 02 71 02
++			15 00 02 72 02
++			15 00 02 73 02
++			15 00 02 74 02
++			15 00 02 75 01
++			15 00 02 76 00
++			15 00 02 77 15
++			15 00 02 78 14
++			15 00 02 79 0c
++			15 00 02 7a 0d
++			15 00 02 7b 0e
++			15 00 02 7c 0f
++			15 00 02 7d 08
++			15 00 02 7e 02
++			15 00 02 7f 02
++			15 00 02 80 02
++			15 00 02 81 02
++			15 00 02 82 02
++			15 00 02 83 02
++			15 00 02 84 06
++			15 00 02 85 02
++			15 00 02 86 02
++			15 00 02 87 02
++			15 00 02 88 02
++			15 00 02 89 02
++			15 00 02 8a 02
++			39 00 04 ff 98 81 04
++			15 00 02 6c 15
++			15 00 02 6e 3b
++			15 00 02 6f 55
++			15 00 02 8d 14
++			15 00 02 87 ba
++			15 00 02 26 76
++			15 00 02 b2 d1
++			15 00 02 3b 98
++			15 00 02 35 1f
++			15 00 02 3A 24
++			15 00 02 b5 27
++			15 00 02 31 75
++			15 00 02 30 03
++			15 00 02 33 14
++			15 00 02 38 02
++			15 00 02 39 00
++			15 00 02 7a 10
++			39 00 04 ff 98 81 01
++			15 00 02 22 0a
++			15 00 02 31 0a
++			15 00 02 50 ae
++			15 00 02 51 a9
++			15 00 02 60 1f
++			15 00 02 62 07
++			15 00 02 63 00
++			15 00 02 52 00
++			15 00 02 53 56
++			15 00 02 54 00
++			15 00 02 55 59
++			15 00 02 a0 08
++			15 00 02 a1 20
++			15 00 02 a2 2d
++			15 00 02 a3 13
++			15 00 02 a4 16
++			15 00 02 a5 29
++			15 00 02 a6 1d
++			15 00 02 a7 1e
++			15 00 02 a8 77
++			15 00 02 a9 17
++			15 00 02 aa 24
++			15 00 02 ab 6a
++			15 00 02 ac 22
++			15 00 02 ad 24
++			15 00 02 ae 5a
++			15 00 02 af 2b
++			15 00 02 b0 2c
++			15 00 02 b1 4d
++			15 00 02 b2 6f
++			15 00 02 b3 3f
++			15 00 02 c0 08
++			15 00 02 c1 1e
++			15 00 02 c2 2b
++			15 00 02 c3 13
++			15 00 02 c4 16
++			15 00 02 c5 28
++			15 00 02 c6 1a
++			15 00 02 c7 1d
++			15 00 02 c8 75
++			15 00 02 c9 18
++			15 00 02 ca 25
++			15 00 02 cb 71
++			15 00 02 cc 23
++			15 00 02 cd 28
++			15 00 02 ce 59
++			15 00 02 cf 2c
++			15 00 02 d0 30
++			15 00 02 d1 55
++			15 00 02 d2 6b
++			15 00 02 d3 3f
++			39 00 04 ff 98 81 00
++			05 00 01 35
++			05 78 01 11
++			05 00 01 29
++		];
++
++		display-timings {
++			timing-0 {
++				clock-frequency = <74250000>;
++				hactive = <800>;
++				vactive = <1280>;
++				hfront-porch = <52>;
++				hback-porch = <48>;
++				hsync-len = <8>;
++				vfront-porch = <100>;
++				vback-porch = <16>;
++				vsync-len = <6>;
++			};
++		};
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++				ili9881_in: endpoint {
++					remote-endpoint = <&dsi_out_ili9881>;
++				};
++			};
++		};
++	};
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+new file mode 100755
+index 000000000..73984b8d4
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+@@ -0,0 +1,100 @@
++// SPDX-License-Identifier: GPL-2.0 OR MIT
++/*
++ * Copyright (C) 2024 Yangyu Chen <cyy@cyyself.name>
++ */
++
++#include "k230.dtsi"
++
++#include "display-ili9881-800x1280.dtsi"
++
++/ {
++	model = "Canaan CanMV-K230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++
++	aliases {
++		serial3 = &uart3;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
++		i2c0 = &i2c4;
++		i2c1 = &i2c3;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	ddr: memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x20000000>;
++	};
++
++	sound {
++		status                      = "okay";
++		compatible                  = "canaan,k230-audio-inno";
++		canaan,model                = "K230_I2S_INNO";
++		canaan,k230-i2s-controller  = <&i2s>;
++		canaan,k230-audio-codec     = <&inno_codec>;
++	};
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart3 {
++	status = "okay";
++};
++
++&mmc_sd1{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	mshc_ctrl_r = <0x00>;
++};
++
++&usb0 {
++	status = "okay";
++};
++
++&usb1 {
++	status = "okay";
++};
++
++&i2c3 {
++	status = "okay";
++	touchscreen@38 {
++		compatible = "edt,edt-ft5306";
++		reg = <0x38>;
++		reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_LOW>;
++		interrupt-parent = <&gpio0_ports>;
++		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++	};
++};
++
++&i2c4 {
++	status = "okay";
++};
++
++&mipi0
++{
++	// set to csi2
++	id = <2>;
++	reg = <0x0 0x9000a800 0x0 0x800>;
++	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
++			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
++	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++};
++
++&mmc_sd0 {
++	status = "okay";
++	no-1-8-v;
++	rx_delay_line = <0x0d>;
++	tx_delay_line = <0xc0>;
++};
++
++&lcd {
++	dsi_reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_HIGH>;
++	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
++};
+-- 
+2.25.1
+
