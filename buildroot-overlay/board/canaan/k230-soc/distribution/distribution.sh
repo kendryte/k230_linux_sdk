@@ -175,7 +175,7 @@ distribution_rootfs_replace()
     rm -rf ${distr_rootfs};tar -xf ${distr_rootfs}.tar.gz
     cp ${BINARIES_DIR}/../target/lib/modules ${distr_rootfs}/lib -r;
     cp ${BINARIES_DIR}/../target/bin/sta.sh ${distr_rootfs}/bin ;
-    cp ${BINARIES_DIR}/../target/bin/adb.sh ${distr_rootfs}/bin ;
+    #cp ${BINARIES_DIR}/../target/bin/adb.sh ${distr_rootfs}/bin ;
     cat  ${BINARIES_DIR}/../target/etc/version/release_version   >> ${distr_rootfs}/etc/issue ;
     {
         wget -c -r -np -nc -k -nd  -A "*.deb" -P  ${BINARIES_DIR}/deb/  ${DISTR_DOWN_URI}/deb/
