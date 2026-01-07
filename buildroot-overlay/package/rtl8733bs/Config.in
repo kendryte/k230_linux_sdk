@@ -1,0 +1,4 @@
+config BR2_PACKAGE_RTL8733BS
+    bool "RTL8733BS"
+    help
+        RTL8733BS
