@@ -219,15 +219,15 @@ int k230_display_logo(void)
         0,
         BACKGROUND_PINK_COLOR,
         10,
-        14,
+        23,
         1,
         K_DSI_2LAN,
         K_BURST_MODE,
         K_VO_LP_MODE,
-        { 9, 196, 0x17, 0xa3 }, // 0x96
-        { 23760, 285120, 600, 480,
-                    20, 20, 80, 1100,
-                     640, 10, 150, 300 },
+        { 3, 97, 0x27, 0xa5 }, // 0x96
+        { 24750, 297000, 550, 480,
+                    10, 10, 50, 1500,
+                     640, 10, 250, 600 },
     };
     #else
     k_connector_info info = {
