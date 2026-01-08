@@ -78,7 +78,7 @@ EOF
 	fi
 
 	if  $(cat ${config} |  grep  BR2_PACKAGE_RTL8733BS=y >/dev/null 2>&1 ); then
-		echo " modprobe 8733bs " >> ${auto_boot_f}
+		echo " modprobe 8733bs rtw_drv_log_level=3" >> ${auto_boot_f}
 	fi
 
 
