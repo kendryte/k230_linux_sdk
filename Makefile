@@ -5,6 +5,14 @@ BR_OVERLAY_DIR = buildroot-overlay
 
 export FORCE_UNSAFE_CONFIGURE := 1
 
+export BR2_PRIMARY_SITE ?= $(shell \
+	if curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl/ ;then  \
+	echo "https://ai.b-bug.org/k230/downloads/dl";\
+	else \
+	echo "https://kendryte-download.canaan-creative.com/k230/downloads/dl";\
+	fi ;)
+
+
 ifeq ("$(origin CONF)", "command line")
 $(shell echo CONF=$(CONF)>.last_conf;)
 else
@@ -25,12 +33,12 @@ ddr_test_img_% :sync buildroot ###128/512/1024/2048
 	@tools/ddr_test_img.sh  $*
 
 buildroot: $(BRW_BUILD_DIR)/.config
-	make -C $(BRW_BUILD_DIR) all
+	make -C $(BRW_BUILD_DIR) all   BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
 
 .PHONY:dl
 dl:   $(BRW_BUILD_DIR)/.config
 	echo "download all source"
-	make -C $(BRW_BUILD_DIR) source
+	make -C $(BRW_BUILD_DIR) source BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
 
 .PHONY:toolchain_and_depend
 toolchain_and_depend:
@@ -56,8 +64,8 @@ help:sync
 	@echo '    docker run -it --rm  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -v /opt/toolchain:/opt/toolchain -w $$(pwd) wjx/d:latest '
 	@echo ""
 	@echo "sdk build usage example:"
-	@echo "    make CONF=k230_canmv_defconfig   BR2_PRIMARY_SITE=https://kendryte-download.canaan-creative.com/k230/downloads/dl/"
-	@echo "          #note:k230_canmv_defconfig need replace, BR2_PRIMARY_SITE=xxxx is option"
+	@echo "    make CONF=k230_canmv_defconfig   "
+	@echo "          #note:k230_canmv_defconfig need replace"
 	@echo ""
 	@echo ""
 
@@ -89,7 +97,7 @@ sync:
 this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig  \
 				 debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def  toolchain_and_depend  ddr_test_img_%
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
-	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@
+	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@ BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
 	@( if [ $@ = linux-savedefconfig ];then \
 		lr="$$(make printvars VARS='LINUX_DIR' | grep LINUX_DIR  | cut -d= -f2 )";\
 		cp $${lr}/defconfig $${lr}/arch/riscv/configs/k230_defconfig ; \

@@ -2,12 +2,7 @@ COMMON_INSTALL_STAGING = YES
 COMMON_INSTALL_TARGET = NO
 
 
-COMMON_SITE := $(shell \
-	if curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/kmodel ;then  \
-	echo "https://ai.b-bug.org/k230/downloads/kmodel";\
-	else \
-	echo "https://kendryte-download.canaan-creative.com/k230/downloads/kmodel";\
-	fi ;)
+COMMON_SITE := https://kendryte-download.canaan-creative.com/k230/downloads/kmodel
 
 COMMON_SOURCE := kmodel_v2.10.0.tgz
 COMMON_DEPENDENCIES += libmmz libnncase gsl-lite
@@ -33,6 +28,5 @@ define COMMON_DOWNLOAD_KMODE_FILE
 endef
 COMMON_POST_DOWNLOAD_HOOKS += COMMON_DOWNLOAD_KMODE_FILE
 
-#https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.10.0.tgz;
 
 $(eval $(cmake-package))

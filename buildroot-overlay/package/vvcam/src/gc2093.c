@@ -10,8 +10,10 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include <linux/i2c.h>
+static uint8_t get_gc2093_iic_dev_addr();
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-#define I2C_SLAVE_ADDRESS 0x37
+#define GC2093_I2C_SLAVE_ADDRESS get_gc2093_iic_dev_addr()
 #define CHECK_ERROR(x) if(x){printf("error f=%s l=%d \n",__func__, __LINE__); return -1;}
 
 #define GC2093_REG_CHIP_ID_H                                0x300a
@@ -70,18 +72,55 @@ struct gc2093_ctx {
     uint32_t sensor_again;
     uint32_t et_line;
 };
+uint8_t get_gc2093_iic_dev_addr()
+{
+    static uint8_t g_gc2093_iic_add = 0;
+
+    uint8_t gc2093_adds[]={0x37,0x7e};
+    int fd,ret;
+
+
+    if(g_gc2093_iic_add)
+        return g_gc2093_iic_add;
+
+    //探测iic设备地址；
+    fd = open("/dev/i2c-0", O_RDWR);
+    if (fd < 0) {
+        perror("open /dev/i2c-0");
+        return 0x37;
+    }
+
+    for(uint8_t i = 0 ; i < ARRAY_SIZE(gc2093_adds);  i++){
+        if(ioctl(fd, I2C_SLAVE_FORCE, gc2093_adds[i]) == 0){
+            struct i2c_smbus_ioctl_data args;
+            union i2c_smbus_data data;
+
+            args.read_write = I2C_SMBUS_READ;
+            args.command = 0;
+            args.size = I2C_SMBUS_BYTE;
+            args.data = &data;
+            if(ioctl(fd, I2C_SMBUS, &args) == 0){
+                g_gc2093_iic_add = gc2093_adds[i];
+                //printf("gc2093 iic dev addr is 0x%02x \n",g_gc2093_iic_add);
+                break;
+            }
+        }
+    }
+    close(fd);
+    return g_gc2093_iic_add;
+}
 
 static int read_reg(struct gc2093_ctx* ctx, uint16_t addr, uint8_t* value) {
     struct i2c_msg msg[2];
     struct i2c_rdwr_ioctl_data data;
 
     addr = htobe16(addr);
-    msg[0].addr = I2C_SLAVE_ADDRESS;
+    msg[0].addr = GC2093_I2C_SLAVE_ADDRESS;
     msg[0].buf = (uint8_t*)&addr;
     msg[0].len = 2;
     msg[0].flags = 0;
 
-    msg[1].addr = I2C_SLAVE_ADDRESS;
+    msg[1].addr = GC2093_I2C_SLAVE_ADDRESS;
     msg[1].buf = value;
     msg[1].len = 1;
     msg[1].flags = I2C_M_RD;
@@ -114,6 +153,7 @@ static int write_reg(struct gc2093_ctx* ctx, uint16_t addr, uint8_t value) {
 
 
 static int open_i2c(struct gc2093_ctx* sensor) {
+    uint8_t gc2093_dev_add = GC2093_I2C_SLAVE_ADDRESS;
     // i2c
     if (sensor->i2c < 0) {
         sensor->i2c = open("/dev/i2c-0", O_RDWR);
@@ -121,7 +161,7 @@ static int open_i2c(struct gc2093_ctx* sensor) {
             perror("open /dev/i2c-0");
             return -1;
         }
-        if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS) < 0) {
+        if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, gc2093_dev_add) < 0) {
             perror("i2c ctrl 0x36");
             return -1;
         }
