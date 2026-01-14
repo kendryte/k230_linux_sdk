@@ -5,8 +5,8 @@ set -x
 g1="/sys/kernel/config/usb_gadget/g1"
 case "$1" in
   start)
-    modprobe libcomposite.ko
-    modprobe usb_f_fs.ko
+    modprobe libcomposite
+    modprobe usb_f_fs
     #modprobe usb_f_acm.ko  usb_f_rndis.ko
 
     test -d /sys/kernel/config || mkdir /sys/kernel/config

@@ -10,7 +10,7 @@ VVCAM_SITE = $(realpath $(TOPDIR))"/package/vvcam"
 VVCAM_SITE_METHOD = local
 VVCAM_INSTALL_STAGING = YES
 VVCAM_INSTALL_TARGET = YES
-VVCAM_DEPENDENCIES = mxml libmicrohttpd display
+VVCAM_DEPENDENCIES = mxml libmicrohttpd display umtprd  android-tools
 VVCAM_SUPPORTS_IN_SOURCE_BUILD = NO
 
 VVCAM_MODULE_MAKE_OPTS += BR2_PACKAGE_VVCAM_DEF_SENSOR=$(BR2_PACKAGE_VVCAM_DEF_SENSOR)
@@ -27,6 +27,11 @@ define VVCAM_BUILD_DEB
 	$(call COPYFILE ,$(@D)/isp_media_server_debian,$(@D)/deb/usr/bin/)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/v4l2-drm           ,$(@D)/deb/usr/bin/)
 	$(call COPYFILE ,$(TARGET_DIR)/lib/modules/6.6.36/updates/,$(@D)/deb/usr/lib/modules/6.6.36/)
+	$(call COPYFILE ,$(BR2_ROOTFS_OVERLAY)/etc/init.d/S99adb_mtp ,$(@D)/deb/etc/vvcam/)
+	$(call COPYFILE ,$(BR2_ROOTFS_OVERLAY)/etc/umtprd,$(@D)/deb/etc/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/sbin/umtprd,$(@D)/deb/usr/sbin/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/adbd ,$(@D)/deb/usr/bin/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libcrypt.so.2 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
 endef
 

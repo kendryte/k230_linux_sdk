@@ -188,6 +188,15 @@ distribution_rootfs_replace()
         #rsync -a --ignore-times  --chmod=u=rwX,go=rX --exclude .empty --exclude '*~' t/   ${distr_rootfs}/
     }
 
+    cp ${BINARIES_DIR}/../target/usr/lib/libjpeg.so.9  -fL ${distr_rootfs}/usr/lib/riscv64-linux-gnu/ ;
+    cp ${BINARIES_DIR}/../target/usr/lib/libcrypt.so.2  -rfL ${distr_rootfs}/usr/lib/riscv64-linux-gnu/ ;
+
+    cp ${BINARIES_DIR}/../target/etc/init.d/S99adb_mtp -rf ${distr_rootfs}/etc/vvcam/S99adb_mtp;
+    cp ${BINARIES_DIR}/../target/etc/umtprd  -rf ${distr_rootfs}/etc/;
+    cp ${BINARIES_DIR}/../target/usr/sbin/umtprd  -rf ${distr_rootfs}/usr/sbin/;
+    cp ${BINARIES_DIR}/../target/usr/bin/adbd  -rf ${distr_rootfs}/usr/bin/;
+    cd ${distr_rootfs}; rm -rf app ; ln -s root/app app; cd -;
+
 
     { # generate ${distr_rootfs}.ext4
         rm -rf ${distr_rootfs}.ext4;
