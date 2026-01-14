@@ -76,7 +76,7 @@ if(CMAKE_TOOLCHAIN_FILE MATCHES "buildroot/toolchainfile.cmake")
     # Buildroot 环境
     message(STATUS "使用 Buildroot 编译，安装到 /root/app/face_detect/")
     install(TARGETS ${bin} DESTINATION /root/app/face_detect)
-    install(DIRECTORY utils/ DESTINATION /root/app/face_detect)
+    install(DIRECTORY utils/ DESTINATION /root/app/face_detect  USE_SOURCE_PERMISSIONS )
 else()
     # 非 Buildroot，自己本地 build_app.sh 编译
     message(STATUS "本地编译，安装到 ./k230_bin/")

@@ -9,10 +9,11 @@ endif
 define FACE_DETECT_BUILD_DEB
 	# 创建目录
 	mkdir -p $(@D)/deb/DEBIAN
-	mkdir -p $(@D)/deb/app/
+	mkdir -p $(@D)/deb/root/app/
 
 	# 拷贝应用
-	$(call COPYFILE,$(TARGET_DIR)/root/app/face_detect,$(@D)/deb/app/)
+	$(call COPYFILE,$(TARGET_DIR)/root/app/face_detect,$(@D)/deb/root/app/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libjpeg.so.9 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 
 	# 写 control 文件
 	echo "Package: k230-face-detect"        >  $(@D)/deb/DEBIAN/control

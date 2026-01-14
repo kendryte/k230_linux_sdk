@@ -1,4 +1,5 @@
 #!/bin/bash
+/etc/vvcam/S99adb_mtp  start
 modprobe vvcam_isp
 modprobe vvcam_mipi
 modprobe vvcam_vb

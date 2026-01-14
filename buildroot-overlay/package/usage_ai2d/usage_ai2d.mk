@@ -12,7 +12,7 @@ define USAGE_AI2D_BUILD_DEB
 	mkdir -p $(@D)/deb/app/
 
 	# 拷贝应用
-	$(call COPYFILE,$(TARGET_DIR)/root/app/usage_ai2d,$(@D)/deb/app/)
+	$(call COPYFILE,$(TARGET_DIR)/root/app/usage_ai2d,$(@D)/deb/root/app/)
 
 	# 写 control 文件
 	echo "Package: k230-usage-ai2d"        >  $(@D)/deb/DEBIAN/control

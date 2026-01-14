@@ -3,6 +3,8 @@ config BR2_PACKAGE_VVCAM
     select BR2_PACKAGE_MXML
     select BR2_PACKAGE_LIBMICROHTTPD
     select BR2_PACKAGE_DISPLAY
+    select  BR2_PACKAGE_ANDROID_TOOLS
+    select BR2_PACKAGE_UMTPRD
     help
         K230 ISP server
 
