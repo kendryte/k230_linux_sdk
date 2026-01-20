@@ -1,0 +1,96 @@
+From 6471816454960b4a1a0e7d7671d91930ad7d7b53 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 20 Jan 2026 16:42:32 +0800
+Subject: [PATCH] Add touchscreen size properties for multiple device tree
+ source files
+
+---
+ arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts | 2 ++
+ arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts  | 2 ++
+ arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts   | 2 ++
+ arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts            | 2 ++
+ arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts      | 2 ++
+ arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts         | 2 ++
+ 6 files changed, 12 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+index ebc68a41d..fc23197db 100755
+--- a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
++++ b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+@@ -69,6 +69,8 @@ touchscreen@38 {
+ 		reset-gpios = <&gpio1_ports 4 GPIO_ACTIVE_LOW>;
+ 		interrupt-parent = <&gpio1_ports>;
+ 		interrupts = <27 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <800>;
+ 	};
+ };
+ 
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
+index 1fb516f81..85758cb28 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
+@@ -111,6 +111,8 @@ touchscreen@38
+ 		reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_LOW>;
+ 		interrupt-parent = <&gpio0_ports>;
+ 		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <800>;
+ 	};
+ };
+ 
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+index ada64cff9..54c55e12d 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -100,6 +100,8 @@ touchscreen@38
+ 		reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_LOW>;
+ 		interrupt-parent = <&gpio0_ports>;
+ 		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <800>;
+ 	};
+ };
+ 
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+index 4c50312e8..0c6ef7a4f 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+@@ -66,6 +66,8 @@ touchscreen@38 {
+ 		reset-gpios = <&gpio0_ports 21 GPIO_ACTIVE_LOW>;
+ 		interrupt-parent = <&gpio0_ports>;
+ 		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <800>;
+ 	};
+ };
+ 
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+index ee19e7ebe..d77f54650 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+@@ -64,6 +64,8 @@ touchscreen@38 {
+ 		reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_LOW>;
+ 		interrupt-parent = <&gpio0_ports>;
+ 		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <800>;
+ 	};
+ };
+ 
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+index fb1d61ea4..cd4668708 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+@@ -64,6 +64,8 @@ touchscreen@38 {
+ 		reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_LOW>;
+ 		interrupt-parent = <&gpio0_ports>;
+ 		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <800>;
+ 	};
+ };
+ 
+-- 
+2.25.1
+
