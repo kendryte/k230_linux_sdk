@@ -156,7 +156,7 @@ int main(void)
 
 
     /*Create a Demo*/
-    // lv_demo_widgets();
+    //lv_demo_widgets();
     lv_demo_music();
     _lv_demo_music_play(0);
     //printf("lvgl version:%d.%d.%d \n", lv_version_major(), lv_version_minor(), lv_version_patch());

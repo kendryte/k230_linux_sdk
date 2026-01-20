@@ -3,3 +3,11 @@ config BR2_PACKAGE_LVGL
     select BR2_PACKAGE_LIBDRM
     help
         LVGL demo and library
+
+config BR2_PACKAGE_LVGL_CUSTOM_VERSION
+	string "lvgl version"
+    default "59dc7e436ae97a25e32656739ea6a943f9f11b6a"
+    depends on  BR2_PACKAGE_LVGL
+	help
+	  This option allows to use a specific official version from
+	  lvgl, only surpport 8.3.7 and 59dc7e436ae97a25e32656739ea6a943f9f11b6a

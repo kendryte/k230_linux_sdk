@@ -6,7 +6,7 @@ BR_OVERLAY_DIR = buildroot-overlay
 export FORCE_UNSAFE_CONFIGURE := 1
 
 export BR2_PRIMARY_SITE ?= $(shell \
-	if curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl/ ;then  \
+	if curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl ;then  \
 	echo "https://ai.b-bug.org/k230/downloads/dl";\
 	else \
 	echo "https://kendryte-download.canaan-creative.com/k230/downloads/dl";\
@@ -65,7 +65,7 @@ help:sync
 	@echo ""
 	@echo "sdk build usage example:"
 	@echo "    make CONF=k230_canmv_defconfig   "
-	@echo "          #note:k230_canmv_defconfig need replace"
+	@echo "          #note:k230_canmv_defconfig need replace,  BR2_JLEVEL=1"
 	@echo ""
 	@echo ""
 
