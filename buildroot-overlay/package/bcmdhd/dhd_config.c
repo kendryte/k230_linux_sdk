@@ -1729,7 +1729,11 @@ dhd_conf_he_cmd(dhd_pub_t * dhd, char *cmd, char *buf)
 	char sub_cmd[32] = "", he_val_str[10] = "";
 
 	if (buf) {
-		sscanf(buf, "%s %s", sub_cmd, he_val_str);
+		int scanned = sscanf(buf, "%31s %9s", sub_cmd, he_val_str);
+		if (scanned < 1) {
+			sub_cmd[0] = '\0';
+			he_val_str[0] = '\0';
+		}
 	}
 
 	for (i=0; i<ARRAY_SIZE(he_cmd_list); i++, tpl++) {
@@ -1775,7 +1779,10 @@ dhd_conf_scan_mac(dhd_pub_t * dhd, char *cmd, char *buf)
 
 	memset(sub_cmd, 0, sizeof(sub_cmd));
 	if (buf) {
-		sscanf(buf, "%s %d", sub_cmd, &enable);
+		int scanned = sscanf(buf, "%31s %d", sub_cmd, &enable);
+		if (scanned < 1) {
+			sub_cmd[0] = '\0';
+		}
 	}
 
 	if (!strcmp(sub_cmd, "enable")) {

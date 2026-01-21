@@ -364,19 +364,11 @@ vg_lite_SetDebugFile(
 #endif
 
 #   ifdef __linux__
-#ifdef __STRICT_ANSI__  /* ANSI C does not have snprintf, vsnprintf functions */
-#   define vglitemSPRINTF(Destination, Size, Message, Value) \
-        sprintf(Destination, Message, Value)
-
-#   define vglitemVSPRINTF(Destination, Size, Message, Arguments) \
-        vsprintf(Destination, Message, Arguments)
-#else
 #   define vglitemSPRINTF(Destination, Size, Message, Value) \
         snprintf(Destination, Size, Message, Value)
 
 #   define vglitemVSPRINTF(Destination, Size, Message, Arguments) \
         vsnprintf(Destination, Size, Message, Arguments)
-#endif
 
 #   define vglitemSTRCAT(Destination, Size, String) \
     strncat(Destination, String, Size)
