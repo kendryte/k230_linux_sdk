@@ -51,7 +51,7 @@
 #include <unistd.h>
 #endif
 FILE* fp;
-char filename[30];
+char filename[64];
 #endif
 
 

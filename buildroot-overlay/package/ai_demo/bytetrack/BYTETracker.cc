@@ -1,4 +1,4 @@
-/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
+/* Copyright (c) 2023, Canaan Bright Sight Co., Ltd
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -543,15 +543,30 @@ vector<vector<float> > BYTETracker::iou_distance(vector<STrack> &atracks, vector
 double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowsol, vector<int> &colsol,
 	bool extend_cost, float cost_limit, bool return_cost)
 {
+	int n_rows = cost.size();
+	int n_cols = n_rows > 0 ? cost[0].size() : 0;
+
+	rowsol.assign(n_rows, -1);
+	colsol.assign(n_cols, -1);
+
+	if (n_rows == 0 || n_cols == 0)
+	{
+		return 0.0;
+	}
+
+	for (int i = 1; i < n_rows; i++)
+	{
+		if (cost[i].size() != n_cols)
+		{
+			cout << "invalid cost matrix" << endl;
+			return 0.0;
+		}
+	}
+
 	vector<vector<float> > cost_c;
 	cost_c.assign(cost.begin(), cost.end());
 
 	vector<vector<float> > cost_c_extended;
-
-	int n_rows = cost.size();
-	int n_cols = cost[0].size();
-	rowsol.resize(n_rows);
-	colsol.resize(n_cols);
 
 	int n = 0;
 	if (n_rows == n_cols)
@@ -624,10 +639,10 @@ double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowso
 		cost_c.assign(cost_c_extended.begin(), cost_c_extended.end());
 	}
 
-	double **cost_ptr;
-	cost_ptr = new double *[sizeof(double *) * n];
+	vector<double> cost_storage(n * n);
+	vector<double*> cost_ptr(n);
 	for (int i = 0; i < n; i++)
-		cost_ptr[i] = new double[sizeof(double) * n];
+		cost_ptr[i] = &cost_storage[i * n];
 
 	for (int i = 0; i < n; i++)
 	{
@@ -637,10 +652,10 @@ double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowso
 		}
 	}
 
-	int* x_c = new int[sizeof(int) * n];
-	int *y_c = new int[sizeof(int) * n];
+	vector<int> x_c(n, 0);
+	vector<int> y_c(n, 0);
 
-	int ret = lapjv_internal(n, cost_ptr, x_c, y_c);
+	int ret = lapjv_internal(n, cost_ptr.data(), x_c.data(), y_c.data());
 	if (ret != 0)
 	{
 		cout << "Calculate Wrong!" << endl;
@@ -688,14 +703,6 @@ double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowso
 		}
 	}
 
-	for (int i = 0; i < n; i++)
-	{
-		delete[]cost_ptr[i];
-	}
-	delete[]cost_ptr;
-	delete[]x_c;
-	delete[]y_c;
-
 	return opt;
 }
 
@@ -703,7 +710,7 @@ Scalar BYTETracker::get_color(int idx)
 {
 	idx += 3;
 	//return Scalar(37 * idx % 255, 17 * idx % 255, 29 * idx % 255);
-	return Scalar(10 * idx % 255, 100 * idx % 255, 50 * idx % 255,255);
+	return Scalar(10 * idx % 255, 100 * idx % 255, 50 * idx % 255);
 }
 
 Scalar BYTETracker::get_color_img(int idx)

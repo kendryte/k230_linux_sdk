@@ -1285,7 +1285,7 @@ vg_lite_error_t push_clut(vg_lite_context_t * context, uint32_t address, uint32_
     {
         uint32_t loops;
         if (strncmp(filename, "Commandbuffer", 13)) {
-            sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+            snprintf(filename, sizeof(filename), "Commandbuffer_pid%d.txt", getpid());
         }
 
         fp = fopen(filename, "a");
@@ -1337,7 +1337,7 @@ vg_lite_error_t push_state(vg_lite_context_t * context, uint32_t address, uint32
 
 #if DUMP_COMMAND
         if (strncmp(filename, "Commandbuffer", 13)) {
-            sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+            snprintf(filename, sizeof(filename), "Commandbuffer_pid%d.txt", getpid());
         }
 
         fp = fopen(filename, "a");
@@ -1382,7 +1382,7 @@ vg_lite_error_t push_state_ptr(vg_lite_context_t * context, uint32_t address, vo
 
 #if DUMP_COMMAND
         if (strncmp(filename, "Commandbuffer", 13)) {
-            sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+            snprintf(filename, sizeof(filename), "Commandbuffer_pid%d.txt", getpid());
         }
 
         fp = fopen(filename, "a");
@@ -1419,7 +1419,7 @@ vg_lite_error_t push_call(vg_lite_context_t * context, uint32_t address, uint32_
 
 #if DUMP_COMMAND
     if (strncmp(filename, "Commandbuffer", 13)) {
-        sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+        snprintf(filename, sizeof(filename), "Commandbuffer_pid%d.txt", getpid());
     }
 
     fp = fopen(filename, "a");
@@ -1483,7 +1483,7 @@ static vg_lite_error_t push_rectangle(vg_lite_context_t * context, int32_t x, in
 
 #if DUMP_COMMAND
     if (strncmp(filename, "Commandbuffer", 13)) {
-        sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+        snprintf(filename, sizeof(filename), "Commandbuffer_pid%d.txt", getpid());
     }
 
     fp = fopen(filename, "a");
@@ -1538,7 +1538,7 @@ vg_lite_error_t push_data(vg_lite_context_t * context, uint32_t size, void * dat
         int32_t loops;
 
         if (strncmp(filename, "Commandbuffer", 13)) {
-            sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+            snprintf(filename, sizeof(filename), "Commandbuffer_pid%d.txt", getpid());
         }
 
         fp = fopen(filename, "a");
@@ -1583,7 +1583,7 @@ vg_lite_error_t push_stall(vg_lite_context_t * context, uint32_t module)
 
 #if DUMP_COMMAND
     if (strncmp(filename, "Commandbuffer", 13)) {
-        sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+        snprintf(filename, sizeof(filename), "Commandbuffer_pid%d.txt", getpid());
     }
 
     fp = fopen(filename, "a");
@@ -1632,7 +1632,7 @@ static vg_lite_error_t submit(vg_lite_context_t *context)
 
 #if DUMP_COMMAND
     if (strncmp(filename, "Commandbuffer", 13)) {
-        sprintf(filename, "Commandbuffer_pid%d.txt", getpid());
+        snprintf(filename, sizeof(filename), "Commandbuffer_pid%d.txt", getpid());
     }
 
     fp = fopen(filename, "a");
@@ -2995,8 +2995,6 @@ vg_lite_error_t vg_lite_blit_rect(vg_lite_buffer_t* target,
                                 vg_lite_color_t color,
                                 vg_lite_filter_t filter)
 {
-    if (source->memory)
-        thead_csi_dcache_clean_invalid_range(source->memory, source->stride * source->height);
 #if gcFEATURE_VG_IM_INPUT
     vg_lite_error_t error;
     vg_lite_point_t point_min, point_max, temp;
