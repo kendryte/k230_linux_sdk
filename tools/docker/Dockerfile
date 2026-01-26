@@ -40,7 +40,7 @@ RUN apt-get install -y   git sed make binutils build-essential diffutils gcc  g+
 RUN echo 'ALL ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
+RUN python3 -m pip install pcpp
 
 ENTRYPOINT ["/entrypoint.sh"]
 

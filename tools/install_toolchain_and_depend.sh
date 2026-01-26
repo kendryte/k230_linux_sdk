@@ -41,7 +41,8 @@ function install_dependes()
     apt-get update;
     apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
         bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3  \
-        libssl-dev gawk cmake bison flex  bash-completion parted curl  xz-utils
+        libssl-dev gawk cmake bison flex  bash-completion parted curl  xz-utils;
+    python3 -m pip install pcpp;
 }
 
 if [ "$(id -u)" -ne 0 ]; then
