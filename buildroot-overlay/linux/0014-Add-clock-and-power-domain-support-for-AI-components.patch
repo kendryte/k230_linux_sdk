@@ -1,0 +1,333 @@
+From c59d2c323be4fc768edb23ccd5d8d3b1d230c93d Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 27 Jan 2026 16:00:21 +0800
+Subject: [PATCH] Add clock and power domain support for AI components in K230
+ SoC
+
+---
+ arch/riscv/boot/dts/canaan/k230.dtsi          |  6 ++
+ .../boot/dts/canaan/k230_clock_provider.dtsi  | 48 ++++++++++
+ drivers/misc/canaan/ai2d/k230_ai2d.c          | 13 +++
+ drivers/misc/canaan/gnne/k230_gnne.c          | 88 +++++++++++--------
+ drivers/soc/canaan/k230-power-domains.c       | 14 +--
+ 5 files changed, 120 insertions(+), 49 deletions(-)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230.dtsi b/arch/riscv/boot/dts/canaan/k230.dtsi
+index a5d02df63..1febd4bfe 100644
+--- a/arch/riscv/boot/dts/canaan/k230.dtsi
++++ b/arch/riscv/boot/dts/canaan/k230.dtsi
+@@ -804,6 +804,9 @@ gnne: gnne@80400000 {
+ 			compatible = "k230-gnne";
+ 			reg = <0x0 0x80400000 0x0 0x00000800>;
+ 			interrupts = <189 IRQ_TYPE_LEVEL_HIGH>;
++			clocks              = <&ai_clk>,<&ai_aclk>;
++			clock-names         = "ai_clk", "ai_aclk";
++			power-domains = <&sysctl_power K230_PM_DOMAIN_AI>;
+ 		};
+ 
+ 		ai2d: ai2d@80400c00 {
+@@ -811,6 +814,9 @@ ai2d: ai2d@80400c00 {
+ 			compatible = "k230-ai2d";
+ 			reg = <0x0 0x80400c00 0x0 0x00000400>;
+ 			interrupts = <191 IRQ_TYPE_LEVEL_HIGH>;
++			clocks              = <&ai_clk>,<&ai_aclk>;
++			clock-names         = "ai_clk", "ai_aclk";
++			power-domains = <&sysctl_power K230_PM_DOMAIN_AI>;
+ 		};
+ 
+ 		tsensor: tsensor@91107000 {
+diff --git a/arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi b/arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi
+index 83a8d0abd..616d6980d 100644
+--- a/arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi
++++ b/arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi
+@@ -2565,6 +2565,54 @@ timer5_clk: timer5_clk {
+ 	 *	3. nonai2d_aclk_gate: nonai2d axi clk gate;
+ 	 *	4. pdma_aclk_gate: peri dma axi clk gate;
+ 	 */
++	ai_clk: ai_clk_mux_gate_rate { //ai_CLK_CFG
++		#clock-cells							= <0>;
++		compatible		= "canaan,k230-clk-composite";
++		status								  = "okay";
++		read-only							   = <0>;
++
++		/* parents */
++		clocks				=  <&pll0_div2> , <&pll3_div2>;
++		clk-parent-reg-offset				   = <0x08>;
++		clk-parent-reg-value-shift			  = <0x2>;
++		clk-parent-reg-value-mask			   = <0x1>;
++
++		/* gate */
++		clk-gate-reg-offset					 = <0x8>;
++		clk-gate-reg-bit-enable				 = <0>;
++		clk-gate-reg-bit-reverse				= <0>;
++
++		/* rate */
++		clk-rate-conf-mul-min				   = <1>;
++		clk-rate-conf-mul-max				   = <1>;
++		clk-rate-conf-div-min				   = <1>;
++		clk-rate-conf-div-max				   = <8>;
++		clk-rate-calc-method				   = <1>;
++
++
++		clk-rate-reg-offset					 = <0x8>;
++		clk-rate-reg-mul-value-shift		 = <0>;
++		clk-rate-reg-mul-value-mask			 = <0>;
++
++		clk-rate-reg-div-value-shift			= <3>;
++		clk-rate-reg-div-value-mask			 = <0x7>;
++		clk-rate-reg-write-enable-bit		   = <31>;
++	};
++
++	ai_aclk: ai_aclk_gate {
++		#clock-cells							= <0>;
++		compatible		= "canaan,k230-clk-composite";
++		clocks								  = <&pll0_div4>;
++		status								  = "okay";
++		read-only							   = <0>;
++
++		/* gate */
++		clk-gate-reg-offset					 = <0x8>;
++		clk-gate-reg-bit-enable				 = <10>;
++		clk-gate-reg-bit-reverse			 = <0>;
++	};
++
++
+ 	shrm_src: shrm_src {
+ 		#clock-cells							= <0>;
+ 		compatible		= "canaan,k230-clk-composite";
+diff --git a/drivers/misc/canaan/ai2d/k230_ai2d.c b/drivers/misc/canaan/ai2d/k230_ai2d.c
+index fdd97db25..52324d248 100644
+--- a/drivers/misc/canaan/ai2d/k230_ai2d.c
++++ b/drivers/misc/canaan/ai2d/k230_ai2d.c
+@@ -35,6 +35,13 @@
+ #include <linux/irq.h>
+ #include <linux/interrupt.h>
+ #include <linux/poll.h>
++#include <linux/clk.h>
++#include <linux/pm_runtime.h>
++
++extern int ai_disable_power_and_clk(struct platform_device *pdev, int num_clks,
++														struct clk_bulk_data *clks);
++extern int ai_enable_power_and_clk(struct platform_device *pdev, int num_clks,
++														struct clk_bulk_data *clks);
+ 
+ #ifdef MODULE_IMPORT_NS
+ MODULE_IMPORT_NS(DMA_BUF);
+@@ -67,6 +74,7 @@ struct ai2d_plat {
+ 	struct device *dev;
+ 	struct cdev cdev;
+ 	struct list_head dmabuf;
++	struct clk_bulk_data clks[2];
+ };
+ 
+ static struct ai2d_plat *plat;
+@@ -326,6 +334,10 @@ static int ai2d_probe(struct platform_device *pdev)
+ 	}
+ 	plat->dev = &pdev->dev;
+ 
++	err = ai_enable_power_and_clk(pdev, ARRAY_SIZE(plat->clks), plat->clks);
++	if (err < 0)
++		goto cleanup_cdev;
++
+ 	return 0;
+ 
+ cleanup_cdev:
+@@ -351,6 +363,7 @@ static int ai2d_remove(struct platform_device *pdev)
+ 	class_destroy(plat->class);
+ 	iounmap(plat->regs);
+ 	free_irq(plat->irq, NULL);
++	ai_disable_power_and_clk(pdev,ARRAY_SIZE(plat->clks),plat->clks);
+ 	kfree(plat);
+ 
+ 	return 0;
+diff --git a/drivers/misc/canaan/gnne/k230_gnne.c b/drivers/misc/canaan/gnne/k230_gnne.c
+index 357369e36..e5ec64eba 100644
+--- a/drivers/misc/canaan/gnne/k230_gnne.c
++++ b/drivers/misc/canaan/gnne/k230_gnne.c
+@@ -35,6 +35,8 @@
+ #include <linux/interrupt.h>
+ #include <linux/poll.h>
+ #include <linux/dma-mapping.h>
++#include <linux/clk.h>
++#include <linux/pm_runtime.h>
+ 
+ #define gnne_writeq(v, addr)                       \
+ 	{                                         \
+@@ -51,6 +53,7 @@ struct gnne_plat {
+ 	struct class *class;
+ 	struct device *device;
+ 	struct cdev cdev;
++	struct clk_bulk_data clks[2];
+ };
+ 
+ static struct gnne_plat *plat;
+@@ -105,52 +108,14 @@ static unsigned int gnne_poll(struct file *file, poll_table *wait)
+ 
+ static int gnne_open(struct inode *inode, struct file *filp)
+ {
+-	void __iomem *sysctl_reg;
+-
+ 	gnne_int_flag = 0;
+-
+-	sysctl_reg = ioremap(0x91103028, 4);
+-	if (!sysctl_reg) {
+-		pr_err("can't remap gnne sysctl 0x%08X\n", 0x91103028);
+-		return -1;
+-	}
+-	iowrite32(0x00030002, sysctl_reg);
+-	iounmap(sysctl_reg);
+-
+-	sysctl_reg = ioremap(0x91100008, 4);
+-	if (!sysctl_reg) {
+-		pr_err("can't remap gnne sysctl 0x%08X\n", 0x91100008);
+-		return -1;
+-	}
+-	iowrite32(0x80000405, sysctl_reg);
+-	iowrite32(0x80000405, sysctl_reg);
+-	iounmap(sysctl_reg);
+-
+ 	return 0;
+ }
+ 
+ static int gnne_release(struct inode *inode, struct file *filp)
+ {
+-	void __iomem *sysctl_reg;
+ 
+ 	gnne_int_flag = 0;
+-
+-	sysctl_reg = ioremap(0x91103028, 4);
+-	if (!sysctl_reg) {
+-		pr_err("can't remap gnne sysctl 0x%08X\n", 0x91103028);
+-		return -1;
+-	}
+-	iowrite32(0x00030001, sysctl_reg);
+-	iounmap(sysctl_reg);
+-
+-	sysctl_reg = ioremap(0x91100008, 4);
+-	if (!sysctl_reg) {
+-		pr_err("can't remap gnne sysctl 0x%08X\n", 0x91100008);
+-		return -1;
+-	}
+-	iowrite32(0x00000404, sysctl_reg);
+-	iounmap(sysctl_reg);
+-
+ 	return 0;
+ }
+ 
+@@ -162,6 +127,47 @@ const struct file_operations gnne_fops = {
+ 	.fasync = gnne_drv_fasync,
+ };
+ 
++int ai_enable_power_and_clk(struct platform_device *pdev, int num_clks,
++														struct clk_bulk_data *clks)
++{
++	int err = 0;
++
++	pm_runtime_enable(&pdev->dev);
++	err = pm_runtime_resume_and_get(&pdev->dev);
++	if(err < 0)
++		goto err_pm_disable;
++
++	clks[0].id = "ai_clk";
++    clks[1].id = "ai_aclk";
++	err = devm_clk_bulk_get(&pdev->dev, num_clks, clks);
++	if (err < 0)
++		goto err_pm_put;
++
++	err = clk_bulk_prepare_enable(num_clks, clks);
++	if (err < 0)
++		goto err_clk_disable;
++
++	return 0;
++
++
++err_clk_disable:
++	clk_bulk_disable_unprepare(num_clks, clks);
++err_pm_put:
++    pm_runtime_put_sync(&pdev->dev);
++err_pm_disable:
++    pm_runtime_disable(&pdev->dev);
++
++	return err;
++}
++
++int ai_disable_power_and_clk(struct platform_device *pdev, int num_clks,
++														struct clk_bulk_data *clks)
++{
++	clk_bulk_disable_unprepare(num_clks, clks);
++	pm_runtime_put_sync(&pdev->dev);
++	pm_runtime_disable(&pdev->dev);
++	return 0;
++}
+ static int gnne_probe(struct platform_device *pdev)
+ {
+ 	struct resource *res;
+@@ -241,6 +247,11 @@ static int gnne_probe(struct platform_device *pdev)
+ 		goto cleanup_cdev;
+ 	}
+ 
++	err = ai_enable_power_and_clk(pdev,ARRAY_SIZE(plat->clks),plat->clks);
++
++	if(err)
++		goto cleanup_cdev;
++
+ 	return 0;
+ 
+ cleanup_cdev:
+@@ -266,6 +277,7 @@ static int gnne_remove(struct platform_device *pdev)
+ 	class_destroy(plat->class);
+ 	iounmap(plat->regs);
+ 	free_irq(plat->irq, NULL);
++	ai_disable_power_and_clk(pdev,ARRAY_SIZE(plat->clks),plat->clks);
+ 	kfree(plat);
+ 
+ 	return 0;
+diff --git a/drivers/soc/canaan/k230-power-domains.c b/drivers/soc/canaan/k230-power-domains.c
+index 5ca7cc1c7..0ecbcd0c3 100644
+--- a/drivers/soc/canaan/k230-power-domains.c
++++ b/drivers/soc/canaan/k230-power-domains.c
+@@ -43,9 +43,7 @@ struct k230_pm_domain {
+ #define PM_PWR_REPAIR_STAT(pd) ((pd)->reg_offset[REG_PM_REPAIR_STAT])
+ 
+ static void __iomem *sysctl_power_base;
+-static u32 hardlock_disp;
+-static u32 hardlock_disp_cpu0;
+-static u32 hardlock_disp_cpu1;
++
+ 
+ static int k230_power_on(struct generic_pm_domain *domain)
+ {
+@@ -160,7 +158,7 @@ int k230_pd_probe(struct platform_device *pdev,
+ 		return PTR_ERR(sysctl_power_base);
+ 
+ 	k230_pm_domains[K230_PM_DOMAIN_CPU1]->flags |= GENPD_FLAG_ALWAYS_ON;
+-	k230_pm_domains[K230_PM_DOMAIN_AI]->flags |= GENPD_FLAG_ALWAYS_ON;
++	//k230_pm_domains[K230_PM_DOMAIN_AI]->flags |= GENPD_FLAG_ALWAYS_ON;
+ 	// k230_pm_domains[K230_PM_DOMAIN_VPU]->flags |= GENPD_FLAG_ALWAYS_ON;
+ 	k230_pm_domains[K230_PM_DOMAIN_DPU]->flags |= GENPD_FLAG_ALWAYS_ON;
+ 
+@@ -168,7 +166,7 @@ int k230_pd_probe(struct platform_device *pdev,
+ 		k230_pm_domains[i]->power_on = k230_power_on;
+ 		k230_pm_domains[i]->power_off = k230_power_off;
+ 
+-		if (i == K230_PM_DOMAIN_DISP || i == K230_PM_DOMAIN_VPU)
++		if (i == K230_PM_DOMAIN_DISP || i == K230_PM_DOMAIN_VPU || i == K230_PM_DOMAIN_AI)
+ 			pm_genpd_init(k230_pm_domains[i], NULL, true);
+ 		else
+ 			pm_genpd_init(k230_pm_domains[i], NULL, false);
+@@ -176,12 +174,6 @@ int k230_pd_probe(struct platform_device *pdev,
+ 
+ 	of_genpd_add_provider_onecell(pdev->dev.of_node, genpd_data);
+ 
+-	of_property_read_u32_index(pdev->dev.of_node, "hardlock", 0,
+-				   &hardlock_disp);
+-	of_property_read_u32_index(pdev->dev.of_node, "hardlock", 1,
+-				   &hardlock_disp_cpu0);
+-	of_property_read_u32_index(pdev->dev.of_node, "hardlock", 2,
+-				   &hardlock_disp_cpu1);
+ 
+ 	dev_info(&pdev->dev, "powerdomain init ok\n");
+ 
+-- 
+2.25.1
+
