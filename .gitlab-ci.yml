@@ -1007,6 +1007,8 @@ build-image_all:
         - k230_canmv_01studio_defconfig
         - k230_canmv_lckfb_defconfig
         - k230_canmv_v3_defconfig
+        - k230_canmv_01studio_emmc_defconfig
+        - k230_canmv_dongshanpi_defconfig
   variables:
     DST_BASE: /data1/k230/gitlab-ci/images/${CI_PROJECT_NAME}
     SRC_DIR: ./output/${CONF}/images
