@@ -9,7 +9,7 @@ variables:
   NFS_SERVER: 10.10.1.94
   NFS_BASE: /data/nfs_server
   IMAGE_DIR: linux_sdk_images
-  IMAGE_NAME: "*_linux_*_nncase_*.img.gz"
+  IMAGE_NAME: "*_*_*_nncase_*.img.gz"
   TEST_CONFIGS: >
     k230_canmv_defconfig
     k230d_canmv_defconfig
@@ -241,6 +241,7 @@ before_script:
   - mkdir -p ~/.ssh
   - chmod 700 ~/.ssh
   - echo "$SSH_PRIVATE_KEY" | ssh-add - > ~/.ssh/id_ed25519 || exit 1
+  - chmod 600 ~/.ssh/id_ed25519
   - '[[ -f /.dockerenv ]] && echo -e "Host *\n    StrictHostKeyChecking no\n" > ~/.ssh/config'
   - echo $SHELL
   - echo "increate ssh timeout for github"
@@ -365,6 +366,22 @@ before_script:
     - time ./release_images.sh $CI_COMMIT_TAG $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR || time ./release_images.sh $CI_COMMIT_TAG $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR
     - echo "all release file published"
 
+.sync_daily_build_image:
+  timeout: 60m
+  retry: 2
+  tags:
+    - k230_sdk
+  script:
+    - cd $CI_PROJECT_DIR
+    - ls -alht
+    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/release/release_images.sh -O ./release_images.sh
+    - chmod +x ./release_images.sh
+    - echo "daily_build" || exit 1
+    - echo $CONF || exit 1
+    - time ./release_images.sh "daily_build" $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR || time ./release_images.sh "daily_build" $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR
+    - echo "all release file published"
+
+
 .update_version: &update_version
   - echo "---curren version ${SUB_BASE}"
   - >
@@ -383,6 +400,11 @@ before_script:
   - pwd
   - echo "----------start to build linux sdk image----------"
   - time make CONF=${CONF}  BR2_PRIMARY_SITE=${DL_SITE} || exit 1
+  - >
+    if [[ "${JOB_TYPE}" == "daily_build"  ||  "${JOB_TYPE}" == "release"  ]]; then
+      echo "need build debian";
+      time sudo make debian || exit 1;
+    fi
   - echo "----------show linux sdk image build output----------"
   - pwd
   - du -h -d 2 output/${CONF}/ || exit 1
@@ -485,6 +507,11 @@ before_script:
     - echo "----------image output----------"
     - echo "${image_path}"
     - echo "${image_url}"
+    - >
+      if [[ "${JOB_TYPE}" == "daily_build" ]]; then
+        test -h /data1/k230/release/linux_sdk_images/daily_build ||\
+        sudo ln -s  ${DST_DIR}/latest   /data1/k230/release/linux_sdk_images/daily_build
+      fi
   save_tftp:
     - pwd
     - echo "----------save image to tftp----------"
@@ -867,7 +894,6 @@ download_dir_release:
   extends:
     - .release_download_dir
 
-# sdk zip and image publish with tag
 release_image_publish:
   stage: release
   rules:
@@ -883,6 +909,23 @@ release_image_publish:
         - k230_canmv_v3_defconfig
   extends:
     - .sync_release_image
+
+dailybuild_image_publish:
+  stage: release
+  rules:
+   - if: $CI_PIPELINE_SOURCE == "schedule"
+  parallel:
+    matrix:
+      - CONF:
+        - k230_canmv_defconfig
+        - k230d_canmv_defconfig
+        - BPI-CanMV-K230D-Zero_defconfig
+        - k230_canmv_01studio_defconfig
+        - k230_canmv_lckfb_defconfig
+        - k230_canmv_v3_defconfig
+  extends:
+    - .sync_daily_build_image
+
 
 # main branch
 main_release:
@@ -981,8 +1024,7 @@ build-image:
   rules:
     # MR open
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-     # daily build
-    - if: $CI_PIPELINE_SOURCE == "schedule"
+
   timeout: 60m
   script:
     - *show_vars
@@ -1021,6 +1063,8 @@ build-image_all:
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
     # manual job
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG !~ /^v\d+\.\d+.*$/
+    # daily build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
   timeout: 60m
   script:
     - *show_vars

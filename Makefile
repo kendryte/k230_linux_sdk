@@ -25,7 +25,7 @@ BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 .PHONY: all buildroot  debian ubuntu openouler  ruyi  debian_rootfs ubuntu_rootfs
 all :  buildroot
 
-debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync  buildroot
+debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync
 	@$(BR_SRC_DIR)/board/canaan/k230-soc/distribution/distribution.sh  $@  $(BRW_BUILD_DIR)
 
 ddr_test_img_% :sync buildroot ###128/512/1024/2048
@@ -95,7 +95,7 @@ sync:
 	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
 
 this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig  \
-				 debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def  toolchain_and_depend  ddr_test_img_%
+				 debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def  toolchain_and_depend buildroot  ddr_test_img_%
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@ BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
 	@( if [ $@ = linux-savedefconfig ];then \
