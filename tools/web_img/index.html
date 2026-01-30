@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K230 linux sdk 镜像下载中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        [v-cloak] { display: none; }
+        .tab-button.active {
+            @apply border-b-2 border-blue-600 text-blue-600 font-semibold;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased text-gray-800">
+    <div id="app" v-cloak class="min-h-screen flex flex-col">
+        <nav class="bg-white shadow-sm border-b border-gray-100 py-4 px-6">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+
+                    <img src="https://www.kendryte.com/api/post/attachment?id=831" class="w-16 h-16 object-contain " alt="Company Logo">
+
+                    <span class="text-2xl font-bold tracking-tight">K230 linux sdk 镜像下载</span>
+                </div>
+                <div class="text-sm text-gray-400 hidden sm:block">
+                    <i class="fas fa-sync-alt mr-1"></i> CI/CD 自动更新
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-grow max-w-7xl mx-auto w-full flex flex-col md:flex-row p-6 gap-6">
+			 <aside class="w-full md:w-64 flex-shrink-0 space-y-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-2">
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">产品系列</h3>
+                    <button
+                        v-for="(product, id) in products"
+                        :key="id"
+                        @click="activeProductId = id"
+                        :class="['w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
+                                 activeProductId === id ? 'bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200' : 'text-gray-700 hover:bg-gray-100']">
+                        <img v-if="product.image_url" :src="product.image_url" class="w-7 h-7 object-cover rounded-md border border-gray-200" :alt="product.name">
+                        <span>{{ product.name }}</span>
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">常用资源</h3>
+                    <div class="flex flex-col space-y-1">
+                        <a href="https://developer.canaan-creative.com/" target="_blank" class="quick-link">
+                            <i class="fas fa-book w-4"></i> 开发者文档中心
+                        </a>
+                        <a href="https://github.com/kendryte/k230_sdk" target="_blank" class="quick-link">
+                            <i class="fab fa-github w-4"></i> GitHub 源代码
+                        </a>
+                        <a href="https://forum.canaan-creative.com/" target="_blank" class="quick-link">
+                            <i class="fas fa-comments w-4"></i> 技术支持社区
+                        </a>
+                        <a href="https://www.canaan-creative.com/product/k230" target="_blank" class="quick-link border-t border-gray-50 pt-2 mt-1">
+                            <i class="fas fa-external-link-alt w-4"></i> 嘉楠科技官网
+                        </a>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="flex-grow space-y-6" v-if="activeProduct">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="flex flex-col lg:flex-row p-6 lg:p-8 items-start lg:items-center gap-6">
+                        <img v-if="activeProduct.image_url" :src="activeProduct.image_url"
+                             class="w-32 h-32 object-cover rounded-lg shadow-md border border-gray-200 flex-shrink-0" :alt="activeProduct.name">
+
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-gray-900 mb-2">{{ activeProduct.name }}</h2>
+                            <p class="text-gray-500 text-lg max-w-2xl">{{ activeProduct.description }}</p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100 px-6 lg:px-8 pt-4">
+                        <div class="flex space-x-4 border-b border-gray-200">
+                           <button v-for="(variant, key) in activeProduct.variants" :key="key"
+                                @click="activeVariantKey = key"
+                                :class="['tab-button py-3 px-4 text-sm transition-all', activeVariantKey === key ? 'bg-blue-600 text-white font-bold shadow-md' : 'text-gray-500 hover:text-gray-800']">
+                                {{ key }} <span v-if="variant.arch" class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 font-normal">{{ variant.arch }}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-if="activeVariant" class="p-6 lg:p-8 space-y-8">
+                        <div class="bg-blue-50 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 ring-1 ring-blue-100">
+                            <div>
+                                <span class="block text-sm font-bold text-blue-700 mb-1">最新版本</span>
+                                <div class="text-3xl font-bold font-mono text-blue-900">{{ activeVariant.latest.version }}</div>
+                                <p class="text-sm text-blue-700 mt-2">发布于: {{ activeVariant.latest.date }}</p>
+                            </div>
+                            <div class="text-right flex flex-col items-end gap-3 w-full sm:w-auto">
+                                <span class="text-xs text-gray-500 break-all font-mono">md5: {{ activeVariant.latest.md5 }}</span>
+                                <a :href="activeVariant.latest.url" target="_blank" rel="noopener noreferrer"
+                                   class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-200 transition-all transform hover:-translate-y-0.5 inline-flex items-center gap-2">
+                                    <i class="fas fa-download"></i> 下载 / 查看
+                                </a>
+                            </div>
+                        </div>
+
+                        <div v-if="activeVariant.history.length > 0" class="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                            <h3 class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700 border-b border-gray-100">历史版本</h3>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-100">
+                                    <thead class="bg-gray-50 hidden md:table-header-group">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">版本号</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">发布日期</th>
+                                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-100">
+                                        <tr v-for="h in activeVariant.history" :key="h.version" class="hover:bg-gray-50 transition-colors">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">
+                                                {{ h.version }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {{ h.date || '-' }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <a :href="h.url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 flex justify-end items-center group">
+                                                    <span class="hidden group-hover:block mr-1 text-xs opacity-75">下载</span> <i class="fas fa-file-download"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-tools mr-2 text-blue-600"></i> 镜像烧录方法
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <span class="step-number">1</span>
+                                <p class="text-sm text-gray-600">准备一张 16GB 以上的高速 TF 卡（建议 Class 10）。</p>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="step-number">2</span>
+                                <p class="text-sm text-gray-600">下载并安装烧录工具，如 <strong>Etcher</strong> 或 <strong>Rufus</strong>。</p>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="step-number">3</span>
+                                <p class="text-sm text-gray-600">解压下载的镜像文件，并使用工具将其写入 TF 卡。</p>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="step-number">4</span>
+                                <p class="text-sm text-gray-600">将 TF 卡插入 K230 板卡插槽，拨动启动开关至 SD 卡启动位。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-orange-50 rounded-xl shadow-sm border border-orange-100 p-6">
+                        <h3 class="text-lg font-bold text-orange-800 mb-4 flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-2"></i> 注意事项
+                        </h3>
+                        <ul class="space-y-3 text-sm text-orange-700">
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                请核对 SHA256 校验码，确保镜像文件完整。
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                烧录过程中请勿拔掉读卡器，避免卡片损坏。
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                首次启动可能需要几分钟进行文件系统扩容，请耐心等待。
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                若无法启动，请检查电源供电（建议 12V/2A 以上）。
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+        <footer class="bg-white border-t border-gray-100 py-4 mt-8">
+            <div class="max-w-7xl mx-auto px-6 text-center text-gray-400 text-sm">
+                &copy; 2024 Your Company. All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+        createApp({
+            setup() {
+                const products = ref({});
+                const activeProductId = ref(null);
+                const activeVariantKey = ref(null); // 改为 Key 存储
+
+                const fetchProducts = async () => {
+                    try {
+                        const response = await fetch('./products.json?v=' + Date.now());
+                        const data = await response.json();
+                        products.value = data.products;
+                        if (Object.keys(data.products).length > 0) {
+                            const firstId = Object.keys(data.products)[0];
+                            activeProductId.value = firstId;
+                            // 初始化第一个 Variant 的 Key
+                            activeVariantKey.value = Object.keys(data.products[firstId].variants)[0];
+                        }
+                    } catch (error) {
+                        console.error("加载失败:", error);
+                    }
+                };
+
+                const activeProduct = computed(() => products.value[activeProductId.value]);
+
+                // 通过 Key 获取当前的 Variant
+                const activeVariant = computed(() => {
+                    return activeProduct.value?.variants[activeVariantKey.value];
+                });
+
+                // 切换产品时，默认选中该产品下的第一个 Variant
+                Vue.watch(activeProductId, (newVal) => {
+                    if (newVal && products.value[newVal]) {
+                        activeVariantKey.value = Object.keys(products.value[newVal].variants)[0];
+                    }
+                });
+
+                onMounted(fetchProducts);
+
+                return { products, activeProductId, activeVariantKey, activeProduct, activeVariant };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
