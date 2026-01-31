@@ -10,6 +10,7 @@ variables:
   NFS_BASE: /data/nfs_server
   IMAGE_DIR: linux_sdk_images
   IMAGE_NAME: "*_*_*_nncase_*.img.gz"
+  IMAGE_NAME_TFTP: "*_linux_*_nncase_*.img.gz"
   TEST_CONFIGS: >
     k230_canmv_defconfig
     k230d_canmv_defconfig
@@ -544,7 +545,7 @@ before_script:
             echo "current MR ID ${CI_MERGE_REQUEST_IID}";
             SUB_DIR="${CI_MERGE_REQUEST_IID}_${CI_PIPELINE_ID}/${CONF}";
             sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1;
-            src_file="${SRC_DIR}/${IMAGE_NAME}";
+            src_file="${SRC_DIR}/${IMAGE_NAME_TFTP}";
             echo ${SRC_DIR};
             echo ${src_file};
             ls -alht output/${CONF}/images/ || exit 1;
