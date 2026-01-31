@@ -40,7 +40,17 @@ def get_product_name_from_filepath(file_path:str)->str:
     if "linux_sdk_images" in file_path:
         return os.path.basename(os.path.dirname(file_path))
     elif "micropython" in file_path:
-        return os.path.basename(os.path.dirname(file_path))
+        filename = os.path.basename(file_path)
+        product_ = filename.split("_micropython")[0]
+        product_dict={
+            "CanMV_K230_01Studio"        :  "k230_canmv_01studio_defconfig" , 
+            "CanMV_K230_LCKFB"           :  "k230_canmv_lckfb_defconfig"   ,
+            "CanMV_K230_V1P0_P1"         :  "k230_canmv_v1p0p1_defconfig"  ,
+            "CanMV_K230_V3P0"            :  "k230_canmv_v3p0_defconfig"
+        }
+        return product_dict[product_] if product_ in product_dict else ""
+    
+
 
 def update_file_to_json(file=".", products={}):
     filename = os.path.basename(file)
@@ -54,14 +64,13 @@ def update_file_to_json(file=".", products={}):
 
     variant_key = "linux" if "linux" in filename else "debian" if "debian" in filename \
                                 else "micropython" if "micropython" in filename else "unknown"
-
-    variants = products[product_name].get("variants", {})
+    variants = products[product_name].get("variants", {})        
     if variant_key not in variants:
         #print(f"变体 {variant_key} 不在产品 {product_name} 的变体列表中，跳过。")
         return
-    #version_type = "latest" if "daily_build" in filename else "history"
+    #version_type = "latest" if "daily_build" in filename else "history" daily_build
     version_type = "latest" if ("latest" in file or "daily_build" in file) else "history"
-    print(f"proc: {file}  {product_name}, : {variant_key} {version_type}")
+    #print(f"proc: {file}  {product_name}, : {variant_key} {version_type}")
 
     if version_type == "latest":
         variants[variant_key][version_type] = {
@@ -110,7 +119,7 @@ def open_json(file_path:str)->dict:
     try:
         with open(file_path, encoding='utf-8') as f:
             data = json.load(f)
-        print(f"type of is : {type(data.get('products', {}))}")
+        #print(f"type of is : {type(data.get('products', {}))}")
         return data.get('products', {})
     except (OSError, json.JSONDecodeError) as e:
         print(f"read  {file_path} failed: {e}")
@@ -133,8 +142,8 @@ def save_json(products, file_path):
 
 def update_products_json(target_dir="."):
     products = open_json(".mod_products.json")
-    sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/",products, 5)
-    sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/",products, 5)
+    #sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/",products, 5)
+    sdk_release_dirs_2_json("micropython",products, 5)
     save_json(products ,"products.json")
 
 

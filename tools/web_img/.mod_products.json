@@ -7,7 +7,7 @@
       "variants": {
           "linux" : {  "type_name": "linux(buildroot)","latest": {}, "history": []},
           "debian" : { "type_name": "debian","latest": {}, "history": []},
-          "micropyton" : {"type_name": "micropyton","latest": {}, "history": []}
+          "micropython" : {"type_name": "micropython","latest": {}, "history": []}
       }
     },
     "k230_canmv_lckfb_defconfig": {
@@ -17,7 +17,7 @@
       "variants": {
           "linux" : {  "type_name": "linux(buildroot)","latest": {}, "history": [] },
           "debian" : { "type_name": "debian","latest": {}, "history": []},
-          "micropyton" : { "type_name": "micropyton","latest": {}, "history": []}
+          "micropython" : { "type_name": "micropython","latest": {}, "history": []}
       }
     }
   }
