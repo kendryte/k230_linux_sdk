@@ -16,6 +16,12 @@ variables:
     k230d_canmv_defconfig
     BPI-CanMV-K230D-Zero_defconfig
 
+  DEBIAN_BUILD_CONFIGS: >
+    k230_canmv_01studio_emmc_defconfig 
+    k230_canmv_01studio_defconfig
+    k230_canmv_lckfb_defconfig
+    k230_canmv_v3_defconfig
+
 default:
   image: ai.b-bug.org:5000/k230_sdk:latest
   tags:
@@ -403,8 +409,13 @@ before_script:
   - time make CONF=${CONF}  BR2_PRIMARY_SITE=${DL_SITE} || exit 1
   - >
     if [[ "${JOB_TYPE}" == "daily_build"  ||  "${JOB_TYPE}" == "release"  ]]; then
-      echo "need build debian";
-      time sudo make debian || exit 1;
+      for CONFIG in $DEBIAN_BUILD_CONFIGS;do 
+        if [[ "${CONF}" == "${CONFIG}" ]];then
+          echo "need build debian";
+          time sudo make debian || exit 1;
+          break;
+        fi;
+      done
     fi
   - echo "----------show linux sdk image build output----------"
   - pwd

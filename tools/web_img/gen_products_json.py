@@ -49,9 +49,11 @@ def get_product_name_from_filepath(file_path:str)->str:
             "CanMV_K230_V3P0"            :  "k230_canmv_v3p0_defconfig"
         }
         return product_dict[product_] if product_ in product_dict else ""
+def get_url(file):
+    a=file.replace("/data/kendryte-download","https://kendryte-download.canaan-creative.com")
+    return a.replace("/data1/k230/release/","https://ai.b-bug.org/k230/release/")
+        
     
-
-
 def update_file_to_json(file=".", products={}):
     filename = os.path.basename(file)
     if not file.endswith(".img.gz"):
@@ -70,20 +72,19 @@ def update_file_to_json(file=".", products={}):
         return
     #version_type = "latest" if "daily_build" in filename else "history" daily_build
     version_type = "latest" if ("latest" in file or "daily_build" in file) else "history"
-    #print(f"proc: {file}  {product_name}, : {variant_key} {version_type}")
-
+    
     if version_type == "latest":
         variants[variant_key][version_type] = {
             "version": get_version_from_filename(filename),
             "date": get_dir_creation_time(os.path.dirname(file)),
-            "url": f"./linux_sdk_images/v0.6.5/{product_name}/{filename}",
+            "url": get_url(file),
             "md5": get_md5_from_file(file)
         }
     else:
         ver_info = {
             "version": get_version_from_filename(filename),
             "date": get_dir_creation_time(os.path.dirname(file)),
-            "url": f"./linux_sdk_images/v0.6.5/{product_name}/{filename}",
+            "url": get_url(file),
             "md5": get_md5_from_file(file)
         }
         variants[variant_key][version_type].append(ver_info)
@@ -104,6 +105,8 @@ def update_directory_to_json(dir=".", products={}):
         update_file_to_json(file_path, products)
 
 def sdk_release_dirs_2_json(base_dir=".", products={}, max_dirs=3):
+    if not os.path.isdir(base_dir):
+        return    
     excludefiles =[] # ["latest"]
     subdirs = [
         os.path.join(base_dir, d)
@@ -126,6 +129,21 @@ def open_json(file_path:str)->dict:
         exit(1)
 
 def save_json(products, file_path):
+    for product, product_info in products.items():
+        variants = product_info["variants"]
+        variants_to_delete = []
+        for variant, variant_info in variants.items():
+            latest = variant_info.get("latest", {})
+            history = variant_info.get("history", [])
+            
+            if latest == {} and history == []:
+                variants_to_delete.append(variant)  # 仅收集键，不立即删除
+        
+        for variant in variants_to_delete:
+            variants.pop(variant, None)
+            
+        products[product]["variants"]=variants    
+               
     try:
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(
@@ -142,7 +160,7 @@ def save_json(products, file_path):
 
 def update_products_json(target_dir="."):
     products = open_json(".mod_products.json")
-    #sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/",products, 5)
+    sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/",products, 5)
     sdk_release_dirs_2_json("micropython",products, 5)
     save_json(products ,"products.json")
 
