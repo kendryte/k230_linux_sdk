@@ -80,7 +80,7 @@
                         <div class="flex space-x-4 border-b border-gray-200">
                            <button v-for="(variant, key) in activeProduct.variants" :key="key"
                                 @click="activeVariantKey = key"
-                                :class="['tab-button py-3 px-4 text-sm transition-all', activeVariantKey === key ? 'bg-blue-600 text-white font-bold shadow-md' : 'text-gray-500 hover:text-gray-800']">
+                                :class="['tab-button py-3 px-4 text-sm transition-all', activeVariantKey === key ? 'bg-blue-600 text-white font-bold shadow-md' : 'text-gray-700 bg-gray-50 hover:bg-gray-200 hover:text-gray-900 transition-colors']">
                                 {{ key }} <span v-if="variant.arch" class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 font-normal">{{ variant.arch }}</span>
                             </button>
                         </div>
@@ -110,6 +110,7 @@
                                         <tr>
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">版本号</th>
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">发布日期</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MD5</th>
                                             <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                                         </tr>
                                     </thead>
@@ -120,6 +121,9 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {{ h.date || '-' }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {{ h.md5 || '-' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a :href="h.url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 flex justify-end items-center group">
