@@ -957,7 +957,9 @@ update_download_html_json:
   - >
     daily_build_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/"
     scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 tools/web_img/* ${DNLD_SRV}:${daily_build_dir}/ || exit 1
-    ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "cd ${daily_build_dir}; python2.7 gen_products_json.py"
+    ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "cd ${daily_build_dir}; python ./gen_products_json.py"
+    cp  tools/web_img/* /data1/k230/release/linux_sdk_images/daily_build/;
+    cd /data1/k230/release/linux_sdk_images/daily_build/; python ./gen_products_json.py;
 
 # main branch
 main_release:

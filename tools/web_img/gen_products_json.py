@@ -5,68 +5,23 @@ import json
 import hashlib
 import re
 import sys
+import io
 from datetime import datetime
 from collections import OrderedDict
 
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
-
-json_str = '''
-{
-    "products": {
-        "k230_canmv_01studio_defconfig": {
-            "name": "01studio",
-            "description": "01studio canmv",
-            "image_url": "https://www.kendryte.com/api/post/attachment?id=833",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
-        },
-        "k230_canmv_lckfb_defconfig": {
-            "name": "嘉立创k230",
-            "description": "k230_canmv_lckfb",
-            "image_url": "https://www.kendryte.com/api/post/attachment?id=832",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : { "latest": {}, "history": []},"micropython" : {"latest": {}, "history": []} }
-        },
-        "k230_canmv_v3_defconfig": {
-            "name": "CanMV V3.0",
-            "description": "CanMV K230 V3.0(创乐博)",
-            "image_url": "https://www.kendryte.com/api/post/attachment?id=834",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
-        },
-        "k230_canmv_dongshanpi_defconfig": {
-            "name": "dongshanpai",
-            "description": "百问网，东山派",
-            "image_url": "https://eai.100ask.net/assets/images/image-20240729155648319-504e2c8f5bc5607d6e03148239c45087.png",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
-        },
-        "k230_canmv_defconfig": {
-            "name": "CanMV 1.0/1.1",
-            "description": "CanMV K230 1.0/1.1",
-            "image_url": "https://www.kendryte.com/k230_canmv/main/_images/CanMV-K230_front.png",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
-        },
-        "BPI-CanMV-K230D-Zero_defconfig": {
-            "name": "BPI-CanMV-K230D",
-            "description": "BPI-CanMV-K230D",
-            "image_url": "https://www.kendryte.com/api/post/attachment?id=482",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
-        },
-        "k230_canmv_01studio_emmc_defconfig": {
-            "name": "01studio emmc ",
-            "description": "01studio canmv base emmc board",
-            "image_url": "https://www.kendryte.com/api/post/attachment?id=835",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
-        }
-    }
-}
-'''
-
+# --- 兼容性处理 ---
+# Python 3 不再需要 reload(sys) 且 sys 模块没有 setdefaultencoding
+if sys.version_info[0] < 3:
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
 def get_md5_from_file(file_path):
     md5_file = file_path + ".md5"
     if os.path.exists(md5_file):
-        with open(md5_file, 'r') as f:
-            return f.read().split()[0]
+        # 使用 io.open 并指定编码，确保双版本下读取行为一致
+        with io.open(md5_file, 'r', encoding='utf-8') as f:
+            content = f.read().split()
+            return content[0] if content else "N/A"
     return "N/A"
 
 def get_dir_creation_time(dir_path):
@@ -74,9 +29,8 @@ def get_dir_creation_time(dir_path):
         return "dir '{0}' not exist".format(dir_path)
 
     dir_stat = os.stat(dir_path)
-
     try:
-        # Python 2.7 在某些平台上可能没有 st_birthtime
+        # 优先获取出生时间（macOS/FreeBSD），否则获取 ctime
         create_timestamp = getattr(dir_stat, 'st_birthtime', dir_stat.st_ctime)
     except AttributeError:
         create_timestamp = dir_stat.st_ctime
@@ -146,7 +100,6 @@ def update_file_to_json(file_path, products):
     if version_type == "latest":
         variants[variant_key][version_type] = ver_info
     else:
-        # 确保 history 是列表
         if not isinstance(variants[variant_key].get(version_type), list):
             variants[variant_key][version_type] = []
         variants[variant_key][version_type].append(ver_info)
@@ -158,11 +111,13 @@ def update_directory_to_json(directory, products):
     for root, _, files in os.walk(directory):
         for f in files:
             file_path = os.path.join(root, f)
-            file_mtime = os.path.getmtime(file_path)
-            file_info_list.append((file_mtime, file_path))
+            try:
+                file_mtime = os.path.getmtime(file_path)
+                file_info_list.append((file_mtime, file_path))
+            except OSError:
+                continue
 
-    # 排序
-    file_info_list.sort(key=lambda x: x[0], reverse=False)
+    file_info_list.sort(key=lambda x: x[0])
 
     for _, file_path in file_info_list:
         update_file_to_json(file_path, products)
@@ -170,55 +125,107 @@ def update_directory_to_json(directory, products):
 def sdk_release_dirs_2_json(base_dir, products, max_dirs=3):
     if not os.path.isdir(base_dir):
         return
-    excludefiles = []
     subdirs = [
         os.path.join(base_dir, d)
         for d in os.listdir(base_dir)
-        if d not in excludefiles and os.path.isdir(os.path.join(base_dir, d))
+        if os.path.isdir(os.path.join(base_dir, d))
     ]
     subdirs.sort(key=os.path.getmtime, reverse=True)
 
     for d in subdirs[:max_dirs]:
         update_directory_to_json(d, products)
 
+# 内置初始 JSON 字符串
+json_str = u'''
+{
+    "products": {
+        "k230_canmv_01studio_defconfig": {
+            "name": "01studio",
+            "description": "01studio canmv",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=833",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230_canmv_lckfb_defconfig": {
+            "name": "嘉立创k230",
+            "description": "k230_canmv_lckfb",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=832",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : { "latest": {}, "history": []},"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230_canmv_v3_defconfig": {
+            "name": "CanMV V3.0",
+            "description": "CanMV K230 V3.0(创乐博)",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=834",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230_canmv_dongshanpi_defconfig": {
+            "name": "dongshanpai",
+            "description": "百问网，东山派",
+            "image_url": "https://eai.100ask.net/assets/images/image-20240729155648319-504e2c8f5bc5607d6e03148239c45087.png",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230_canmv_defconfig": {
+            "name": "CanMV 1.0/1.1",
+            "description": "CanMV K230 1.0/1.1",
+            "image_url": "https://www.kendryte.com/k230_canmv/main/_images/CanMV-K230_front.png",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "BPI-CanMV-K230D-Zero_defconfig": {
+            "name": "BPI-CanMV-K230D",
+            "description": "BPI-CanMV-K230D",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=482",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230_canmv_01studio_emmc_defconfig": {
+            "name": "01studio emmc ",
+            "description": "01studio canmv base emmc board",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=835",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        }
+    }
+}
+'''
+
 def open_json():
-    data = json.loads(json_str,object_pairs_hook=OrderedDict)
+    # Python 3 中 json.loads 处理 unicode 字符串很稳健
+    data = json.loads(json_str, object_pairs_hook=OrderedDict)
     return data.get('products', {})
 
 def save_json(products, file_path):
-    # 清理空的 variants
+    # 清理逻辑
     for product in products:
         variants = products[product].get("variants", {})
         variants_to_delete = []
-        for variant in variants:
-            variant_info = variants[variant]
-            latest = variant_info.get("latest", {})
-            history = variant_info.get("history", [])
-
+        for v_name, v_info in variants.items():
+            latest = v_info.get("latest", {})
+            history = v_info.get("history", [])
             if not latest and not history:
-                variants_to_delete.append(variant)
+                variants_to_delete.append(v_name)
 
-        for variant in variants_to_delete:
-            variants.pop(variant, None)
-
+        for v_name in variants_to_delete:
+            variants.pop(v_name, None)
         products[product]["variants"] = variants
 
     try:
-        with open(file_path, 'w') as f:
-            # ensure_ascii=False 在 Python 2 中处理 unicode 很有用
-            json_str = json.dumps(
+        # 使用 io.open 并指定 utf-8，这是解决 Python 2/3 乱码问题的通用方法
+        with io.open(file_path, 'w', encoding='utf-8') as f:
+            output = json.dumps(
                 {"products": products},
                 indent=4,
-                ensure_ascii=False
+                ensure_ascii=False,
+                sort_keys=False
             )
-            f.write(json_str)
+            # Python 2 中 dumps 返回的是 str(utf-8)，Python 3 返回的是 unicode
+            # io.open 在 Python 2 中期望输入 unicode，所以需要转换
+            if sys.version_info[0] < 3 and isinstance(output, str):
+                output = output.decode('utf-8')
+            f.write(output)
     except Exception as e:
         print("save error: {0}".format(str(e)))
         raise
 
 def update_products_json():
-    # 注意：确保 .mod_products.json 文件存在
     products = open_json()
+    # 路径根据实际环境可能需要调整
     sdk_release_dirs_2_json("/data/kendryte-download/k230/release/linux_sdk_images", products, 5)
     sdk_release_dirs_2_json("/data/kendryte-download/developer/releases/canmv_k230_micropython", products, 5)
     sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/", products, 5)
