@@ -17,7 +17,7 @@ variables:
     BPI-CanMV-K230D-Zero_defconfig
 
   DEBIAN_BUILD_CONFIGS: >
-    k230_canmv_01studio_emmc_defconfig 
+    k230_canmv_01studio_emmc_defconfig
     k230_canmv_01studio_defconfig
     k230_canmv_lckfb_defconfig
     k230_canmv_v3_defconfig
@@ -33,6 +33,7 @@ stages:
   - smoke_test
   - test
   - release
+  - update_html_web
   - send_msg
 
 .show_vars: &show_vars
@@ -385,6 +386,9 @@ before_script:
     - chmod +x ./release_images.sh
     - echo "daily_build" || exit 1
     - echo $CONF || exit 1
+    - >
+      daily_build_conf_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/$CONF"
+      ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "mkdir -p ${daily_build_conf_dir};"
     - time ./release_images.sh "daily_build" $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR || time ./release_images.sh "daily_build" $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR
     - echo "all release file published"
 
@@ -409,7 +413,7 @@ before_script:
   - time make CONF=${CONF}  BR2_PRIMARY_SITE=${DL_SITE} || exit 1
   - >
     if [[ "${JOB_TYPE}" == "daily_build"  ||  "${JOB_TYPE}" == "release"  ]]; then
-      for CONFIG in $DEBIAN_BUILD_CONFIGS;do 
+      for CONFIG in $DEBIAN_BUILD_CONFIGS;do
         if [[ "${CONF}" == "${CONFIG}" ]];then
           echo "need build debian";
           time sudo make debian || exit 1;
@@ -938,6 +942,22 @@ dailybuild_image_publish:
   extends:
     - .sync_daily_build_image
 
+update_download_html_json:
+  stage: update_html_web
+  timeout: 10m
+  tags:
+    - k230_sdk
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+  script:
+  - echo "update_download_html_json"
+  - cd $CI_PROJECT_DIR
+  - ls -alht;pwd;
+  - >
+    daily_build_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/"
+    scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 tools/web_img/* ${DNLD_SRV}:${daily_build_dir}/ || exit 1
+    ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "cd ${daily_build_dir}; python2.7 gen_products_json.py"
 
 # main branch
 main_release:

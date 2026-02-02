@@ -48,17 +48,17 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
                     <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">常用资源</h3>
                     <div class="flex flex-col space-y-1">
-                        <a href="https://developer.canaan-creative.com/" target="_blank" class="quick-link">
-                            <i class="fas fa-book w-4"></i> 开发者文档中心
+                        <a href="https://www.kendryte.com/answer/" target="_blank" class="quick-link">
+                            <i class="fas fa-comments w-4"></i> 嘉楠问答社区
                         </a>
-                        <a href="https://github.com/kendryte/k230_sdk" target="_blank" class="quick-link">
-                            <i class="fab fa-github w-4"></i> GitHub 源代码
+                        <a href="https://www.kendryte.com/zh/document" target="_blank" class="quick-link">
+                            <i class="fas fa-book w-4"></i> 开发者文档
                         </a>
-                        <a href="https://forum.canaan-creative.com/" target="_blank" class="quick-link">
-                            <i class="fas fa-comments w-4"></i> 技术支持社区
+                        <a href="https://www.kendryte.com/zh/products" target="_blank" class="quick-link">
+                            <i class="fas fa-external-link-alt w-4"></i> 产品中心
                         </a>
-                        <a href="https://www.canaan-creative.com/product/k230" target="_blank" class="quick-link border-t border-gray-50 pt-2 mt-1">
-                            <i class="fas fa-external-link-alt w-4"></i> 嘉楠科技官网
+                        <a href="https://github.com/kendryte/k230_linux_sdk/" target="_blank" class="quick-link border-t border-gray-50 pt-2 mt-1">
+                            <i class="fab fa-github w-4"></i> linux sdk 源码仓库
                         </a>
                     </div>
                 </div>
@@ -68,7 +68,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="flex flex-col lg:flex-row p-6 lg:p-8 items-start lg:items-center gap-6">
                         <img v-if="activeProduct.image_url" :src="activeProduct.image_url"
-                             class="w-32 h-32 object-cover rounded-lg shadow-md border border-gray-200 flex-shrink-0" :alt="activeProduct.name">
+                             class="w-45 h-32 object-cover rounded-lg shadow-md border border-gray-200 flex-shrink-0" :alt="activeProduct.name">
 
                         <div>
                             <h2 class="text-3xl font-extrabold text-gray-900 mb-2">{{ activeProduct.name }}</h2>
