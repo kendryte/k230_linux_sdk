@@ -359,40 +359,6 @@ before_script:
     - time ./release_download_dir.sh || time ./release_download_dir.sh
     - echo "all file synced"
 
-.sync_release_image:
-  timeout: 60m
-  retry: 2
-  tags:
-    - k230_sdk
-  script:
-    - cd $CI_PROJECT_DIR
-    - ls -alht
-    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/release/release_images.sh -O ./release_images.sh
-    - chmod +x ./release_images.sh
-    - echo $CI_COMMIT_TAG || exit 1
-    - echo $CONF || exit 1
-    - time ./release_images.sh $CI_COMMIT_TAG $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR || time ./release_images.sh $CI_COMMIT_TAG $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR
-    - echo "all release file published"
-
-.sync_daily_build_image:
-  timeout: 60m
-  retry: 2
-  tags:
-    - k230_sdk
-  script:
-    - cd $CI_PROJECT_DIR
-    - ls -alht
-    - wget -qc https://ai.b-bug.org/k230/test_resources/ci/release/release_images.sh -O ./release_images.sh
-    - chmod +x ./release_images.sh
-    - echo "daily_build" || exit 1
-    - echo $CONF || exit 1
-    - >
-      daily_build_conf_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/$CONF"
-      ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "mkdir -p ${daily_build_conf_dir};"
-    - time ./release_images.sh "daily_build" $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR || time ./release_images.sh "daily_build" $CONF $IMAGE_DIR $IMAGE_NAME $IMAGE_DIR
-    - echo "all release file published"
-
-
 .update_version: &update_version
   - echo "---curren version ${SUB_BASE}"
   - >
@@ -912,7 +878,9 @@ download_dir_release:
 
 release_image_publish:
   stage: release
+  timeout: 20m
   rules:
+   - if: $CI_PIPELINE_SOURCE == "schedule"
    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
   parallel:
     matrix:
@@ -923,28 +891,22 @@ release_image_publish:
         - k230_canmv_01studio_defconfig
         - k230_canmv_lckfb_defconfig
         - k230_canmv_v3_defconfig
-  extends:
-    - .sync_release_image
-
-dailybuild_image_publish:
-  stage: release
-  rules:
-   - if: $CI_PIPELINE_SOURCE == "schedule"
-  parallel:
-    matrix:
-      - CONF:
-        - k230_canmv_defconfig
-        - k230d_canmv_defconfig
-        - BPI-CanMV-K230D-Zero_defconfig
-        - k230_canmv_01studio_defconfig
-        - k230_canmv_lckfb_defconfig
-        - k230_canmv_v3_defconfig
-  extends:
-    - .sync_daily_build_image
+  script:
+    - echo "daily build image publish for ${CONF}"
+    - if [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
+        remote_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/${CONF}";
+        local_dir="/data1/k230/release/linux_sdk_images/daily_build/${CONF}"
+      else
+        remote_dir="/data/kendryte-download/k230/release/linux_sdk_images/${CI_COMMIT_TAG}/${CONF}";
+        local_dir="/data1/k230/release/linux_sdk_images/${CI_COMMIT_TAG}/${CONF}"
+      fi
+    - echo "remote_dir is ${local_dir},${remote_dir}"
+    - ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  " mkdir -p ${remote_dir}"" || exit 1;
+    - scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${local_dir}/* ${DNLD_SRV}:${remote_dir}/ || exit 1;
 
 update_download_html_json:
   stage: update_html_web
-  timeout: 10m
+  timeout: 5m
   tags:
     - k230_sdk
   rules:
@@ -953,13 +915,12 @@ update_download_html_json:
   script:
   - echo "update_download_html_json"
   - cd $CI_PROJECT_DIR
-  - ls -alht;pwd;
-  - >
-    daily_build_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/"
-    scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 tools/web_img/* ${DNLD_SRV}:${daily_build_dir}/ || exit 1
-    ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "cd ${daily_build_dir}; python ./gen_products_json.py"
-    cp  tools/web_img/* /data1/k230/release/linux_sdk_images/daily_build/;
-    cd /data1/k230/release/linux_sdk_images/daily_build/; python ./gen_products_json.py;
+  - remote_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/";
+  - scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 tools/web_img/* ${DNLD_SRV}:${remote_dir}/ || exit 1;
+  - ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "cd ${remote_dir}; python ./gen_products_json.py";
+  - local_dir="/data1/k230/release/linux_sdk_images/daily_build/";
+  - cp  tools/web_img/* ${local_dir}/ || exit 1;
+  - cd ${local_dir}; python ./gen_products_json.py;
 
 # main branch
 main_release:

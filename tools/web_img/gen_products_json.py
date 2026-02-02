@@ -40,7 +40,7 @@ def get_dir_creation_time(dir_path):
 
 def get_version_from_filename(filename):
     if "micropython" in filename:
-        pattern = r'v.\d+\.\d+(?:-\w+)?'
+        pattern = r'v\d+\.\d+(?:\.\d+)?'
     else:
         pattern = r'v\d+\.\d+(?:\.\d+)?'
 
