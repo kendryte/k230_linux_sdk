@@ -15,3 +15,8 @@ echo 0 xml=/etc/vvcam/imx335.xml > /proc/vsi/isp_subdev0
 echo 0 manu_json=/etc/vvcam/imx335.xml > /proc/vsi/isp_subdev0
 echo 0 auto_json=/etc/vvcam/imx335.xml > /proc/vsi/isp_subdev0
 
+echo 0 sensor=gc2093 > /proc/vsi/isp_subdev0
+echo 0 mode=0 > /proc/vsi/isp_subdev0
+echo 0 xml=/etc/vvcam/gc2093-1920x1080.xml > /proc/vsi/isp_subdev0
+echo 0 manu_json=/etc/vvcam/gc2093-1920x1080_manual.json > /proc/vsi/isp_subdev0
+echo 0 auto_json=/etc/vvcam/gc2093-1920x1080_auto.json > /proc/vsi/isp_subdev0
