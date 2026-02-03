@@ -917,10 +917,10 @@ update_download_html_json:
   - echo "update_download_html_json"
   - cd $CI_PROJECT_DIR
   - remote_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/";
-  - scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 tools/web_img/* ${DNLD_SRV}:${remote_dir}/ || exit 1;
+  - scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 tools/web_img/* ${DNLD_SRV}:${remote_dir}/;
   - ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "cd ${remote_dir}; python ./gen_products_json.py";
   - local_dir="/data1/k230/release/linux_sdk_images/daily_build/";
-  - cp  tools/web_img/* ${local_dir}/ || exit 1;
+  - cp  tools/web_img/* ${local_dir}/ ;
   - cd ${local_dir}; python ./gen_products_json.py;
 
 # main branch

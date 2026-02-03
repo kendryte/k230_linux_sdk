@@ -25,7 +25,7 @@
                     <span class="text-2xl font-bold tracking-tight">K230 linux sdk 镜像下载</span>
                 </div>
                 <div class="text-sm text-gray-400 hidden sm:block">
-                    <i class="fas fa-sync-alt mr-1"></i> CI/CD 自动更新
+                    <i class="fas fa-sync-alt mr-1"></i> CI/CD 更新时间: {{ updatetime }}
                 </div>
             </div>
         </nav>
@@ -51,6 +51,9 @@
                         <a href="https://www.kendryte.com/answer/" target="_blank" class="quick-link">
                             <i class="fas fa-comments w-4"></i> 嘉楠问答社区
                         </a>
+                         <a href="https://www.kendryte.com/zh/resource/chip_manual,k230" target="_blank" class="quick-link">
+                            <i class="fas fa-file-pdf w-4"></i> 芯片手册
+                        </a>
                         <a href="https://www.kendryte.com/zh/document" target="_blank" class="quick-link">
                             <i class="fas fa-book w-4"></i> 开发者文档
                         </a>
@@ -58,7 +61,7 @@
                             <i class="fas fa-external-link-alt w-4"></i> 产品中心
                         </a>
                         <a href="https://github.com/kendryte/k230_linux_sdk/" target="_blank" class="quick-link border-t border-gray-50 pt-2 mt-1">
-                            <i class="fab fa-github w-4"></i> linux sdk 源码仓库
+                            <i class="fab fa-github w-4"></i> linux sdk源码
                         </a>
                     </div>
                 </div>
@@ -97,7 +100,7 @@
                                 <span class="text-xs text-gray-500 break-all font-mono">md5: {{ activeVariant.latest.md5 }}</span>
                                 <a :href="activeVariant.latest.url" target="_blank" rel="noopener noreferrer"
                                    class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-200 transition-all transform hover:-translate-y-0.5 inline-flex items-center gap-2">
-                                    <i class="fas fa-download"></i> 下载 / 查看
+                                    <i class="fas fa-download"></i> 下载
                                 </a>
                             </div>
                         </div>
@@ -137,55 +140,30 @@
                         </div>
                     </div>
                 </div>
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-tools mr-2 text-blue-600"></i> 镜像烧录方法
-                        </h3>
-                        <div class="space-y-4">
-                            <div class="flex items-start">
-                                <span class="step-number">1</span>
-                                <p class="text-sm text-gray-600">准备一张 16GB 以上的高速 TF 卡（建议 Class 10）。</p>
-                            </div>
-                            <div class="flex items-start">
-                                <span class="step-number">2</span>
-                                <p class="text-sm text-gray-600">下载并安装烧录工具，如 <strong>Etcher</strong> 或 <strong>Rufus</strong>。</p>
-                            </div>
-                            <div class="flex items-start">
-                                <span class="step-number">3</span>
-                                <p class="text-sm text-gray-600">解压下载的镜像文件，并使用工具将其写入 TF 卡。</p>
-                            </div>
-                            <div class="flex items-start">
-                                <span class="step-number">4</span>
-                                <p class="text-sm text-gray-600">将 TF 卡插入 K230 板卡插槽，拨动启动开关至 SD 卡启动位。</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-orange-50 rounded-xl shadow-sm border border-orange-100 p-6">
-                        <h3 class="text-lg font-bold text-orange-800 mb-4 flex items-center">
-                            <i class="fas fa-exclamation-triangle mr-2"></i> 注意事项
-                        </h3>
-                        <ul class="space-y-3 text-sm text-orange-700">
-                            <li class="flex items-center gap-2">
-                                <i class="fas fa-check-circle text-orange-400"></i>
-                                请核对 SHA256 校验码，确保镜像文件完整。
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <i class="fas fa-check-circle text-orange-400"></i>
-                                烧录过程中请勿拔掉读卡器，避免卡片损坏。
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <i class="fas fa-check-circle text-orange-400"></i>
-                                首次启动可能需要几分钟进行文件系统扩容，请耐心等待。
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <i class="fas fa-check-circle text-orange-400"></i>
-                                若无法启动，请检查电源供电（建议 12V/2A 以上）。
-                            </li>
-                        </ul>
-                    </div>
+                <div class="bg-orange-50 rounded-xl shadow-sm border border-orange-100 p-6">
+                    <h3 class="text-lg font-bold text-orange-800 mb-4 flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> 特别说明
+                    </h3>
+                    <ul class="space-y-3 text-sm text-orange-700">
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-orange-400"></i>
+                            烧录镜像和串口连接板子请参考<a href="https://www.kendryte.com/k230_linux/zh/dev/userguide/how_to_flash.html#linux" target="_blank" class="text-blue-600 hover:underline">烧录和连接指导 </a>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-orange-400"></i>
+                            烧录过程中请勿拔掉读卡器，避免卡片损坏，首次启动可能需要几分钟进行文件系统扩容，请耐心等待;
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-orange-400"></i>
+                            canmv ide(micropython)不适用于linux sdk,若启动失败,请使用标准串口软件(比如putty)查看失败原因,也可以换个烧录软件(比如balenaEtcher)重新烧录试下;
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-orange-400"></i>
+                            如有问题请到<a href="https://www.kendryte.com/answer/" target="_blank" class="text-blue-600 hover:underline">嘉楠问答社区</a>寻求帮助,请先搜索历史帖子,避免重复提问;
+                        </li>
+                    </ul>
                 </div>
+
 
             </section>
         </main>
@@ -204,11 +182,13 @@
                 const products = ref({});
                 const activeProductId = ref(null);
                 const activeVariantKey = ref(null); // 改为 Key 存储
+                const updatetime = ref(null);
 
                 const fetchProducts = async () => {
                     try {
                         const response = await fetch('./products.json?v=' + Date.now());
                         const data = await response.json();
+                        updatetime.value = data.time;
                         products.value = data.products;
                         if (Object.keys(data.products).length > 0) {
                             const firstId = Object.keys(data.products)[0];
@@ -237,7 +217,7 @@
 
                 onMounted(fetchProducts);
 
-                return { products, activeProductId, activeVariantKey, activeProduct, activeVariant };
+                return { products, activeProductId, activeVariantKey, activeProduct, activeVariant , updatetime};
             }
         }).mount('#app');
     </script>

@@ -6,7 +6,7 @@ import hashlib
 import re
 import sys
 import io
-from datetime import datetime
+from datetime import datetime,timedelta
 from collections import OrderedDict
 
 # --- 兼容性处理 ---
@@ -14,6 +14,19 @@ from collections import OrderedDict
 if sys.version_info[0] < 3:
     reload(sys)
     sys.setdefaultencoding('utf-8')
+
+def get_china_time():
+    if sys.version_info[0] >= 3 and sys.version_info[1] >= 12:
+        # Python 3.12+：推荐使用带时区的方式（兼容新版）
+        utc_now = datetime.now(datetime.UTC)
+    else:
+        # Python 2.7 + Python 3.11及以下：使用utcnow()获取UTC时间（无时区标识，跨版本兼容）
+        utc_now = datetime.utcnow()
+
+    china_now = utc_now + timedelta(hours=8)
+
+    # 格式化返回，忽略时区标识（仅保留标准时间字符串，符合CSV/JSON存储需求）
+    return china_now.strftime('%Y-%m-%d %H:%M:%S')
 
 def get_md5_from_file(file_path):
     md5_file = file_path + ".md5"
@@ -56,10 +69,20 @@ def get_product_name_from_filepath(file_path):
         product_dict = {
             "CanMV_K230_01Studio": "k230_canmv_01studio_defconfig",
             "CanMV_K230_LCKFB": "k230_canmv_lckfb_defconfig",
-            "CanMV_K230_V1P0_P1": "k230_canmv_v1p0p1_defconfig",
-            "CanMV_K230_V3P0": "k230_canmv_v3p0_defconfig"
+            "CanMV_K230_V1P0_P1": "k230_canmv_defconfig",
+            "CanMV-K230_DONGSHANPI": "k230_canmv_dongshanpi_defconfig",
+            "CanMV_K230D_Zero": "BPI-CanMV-K230D-Zero_defconfig",
+            "CanMV_K230_01Studio_Emmc": "k230_canmv_01studio_emmc_defconfig",
+            "CanMV-K230_RTT_EVB_BOARD":"k230_canmv_rtt_evb_defconfig",
+            "k230_canmv_rtt_evb_defconfig":"CanMV-K230_RTT_EVB_BOARD",
+            "CanMV_K230D_ATK_DNK230D":"k230d_canmv_atk_dnk230d_defconfig",
+            "CanMV_K230_Hiwonder":"k230_canmv_hiwonder_defconfig",
+            "CanMV_K230_YAHBOOM":"k230_canmv_yahboom_defconfig",
+            "CanMV_K230_GT6700" :"k230_canmv_gt6700_defconfig",
+            "CanMV_K230D_LabPlusAiCamera":"k230d_canmv_labplus_ai_camera_defconfig",
+            "CanMV_K230_V3P0": "k230_canmv_v3_defconfig"
         }
-        return product_dict.get(product_, "")
+        return product_dict.get(product_, product_)
     return ""
 
 def get_url(file_path):
@@ -138,6 +161,7 @@ def sdk_release_dirs_2_json(base_dir, products, max_dirs=3):
 # 内置初始 JSON 字符串
 json_str = u'''
 {
+    "time": "2024-07-29 16:00:00",
     "products": {
         "k230_canmv_01studio_defconfig": {
             "name": "01studio",
@@ -175,6 +199,42 @@ json_str = u'''
             "image_url": "https://www.kendryte.com/api/post/attachment?id=482",
             "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
+        "k230_canmv_rtt_evb_defconfig": {
+            "name": "rtt evb",
+            "description": "k230_canmv_rtt_evb_defconfig",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230d_canmv_atk_dnk230d_defconfig": {
+            "name": "正点原子",
+            "description": "k230d_canmv_atk_dnk230d_defconfig",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230_canmv_hiwonder_defconfig": {
+            "name": "hiwonder",
+            "description": "k230_canmv_hiwonder_defconfig",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230_canmv_yahboom_defconfig": {
+            "name": "亚博",
+            "description": "k230_canmv_yahboom_defconfig",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230_canmv_gt6700_defconfig": {
+            "name": "银杏",
+            "description": "k230_canmv_gt6700_defconfig",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230d_canmv_labplus_ai_camera_defconfig": {
+            "name": "labplus",
+            "description": "k230d_canmv_labplus_ai_camera_defconfig",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
         "k230_canmv_01studio_emmc_defconfig": {
             "name": "01studio emmc ",
             "description": "01studio canmv base emmc board",
@@ -209,7 +269,7 @@ def save_json(products, file_path):
         # 使用 io.open 并指定 utf-8，这是解决 Python 2/3 乱码问题的通用方法
         with io.open(file_path, 'w', encoding='utf-8') as f:
             output = json.dumps(
-                {"products": products},
+                { "time" : get_china_time(), "products": products},
                 indent=4,
                 ensure_ascii=False,
                 sort_keys=False
@@ -227,7 +287,7 @@ def update_products_json():
     products = open_json()
     # 路径根据实际环境可能需要调整
     sdk_release_dirs_2_json("/data/kendryte-download/k230/release/linux_sdk_images", products, 5)
-    sdk_release_dirs_2_json("/data/kendryte-download/developer/releases/canmv_k230_micropython", products, 5)
+    sdk_release_dirs_2_json("/data/kendryte-download/developer/releases/canmv_k230_micropython", products, 10)
     sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/", products, 5)
     save_json(products, "products.json")
 
