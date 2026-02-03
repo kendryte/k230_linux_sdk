@@ -893,16 +893,17 @@ release_image_publish:
         - k230_canmv_v3_defconfig
   script:
     - echo "daily build image publish for ${CONF}"
-    - if [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
+    - |
+      if [[ $CI_PIPELINE_SOURCE == "schedule" ]]; then
         remote_dir="/data/kendryte-download/k230/release/linux_sdk_images/daily_build/${CONF}";
         local_dir="/data1/k230/release/linux_sdk_images/daily_build/${CONF}"
       else
         remote_dir="/data/kendryte-download/k230/release/linux_sdk_images/${CI_COMMIT_TAG}/${CONF}";
         local_dir="/data1/k230/release/linux_sdk_images/${CI_COMMIT_TAG}/${CONF}"
       fi
-    - echo "remote_dir is ${local_dir},${remote_dir}"
-    - ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  " mkdir -p ${remote_dir}"" || exit 1;
-    - scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${local_dir}/* ${DNLD_SRV}:${remote_dir}/ || exit 1;
+    - echo "remote_dir is ${local_dir},${remote_dir}";
+    - ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  " mkdir -p ${remote_dir}" ;
+    - scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${local_dir}/* ${DNLD_SRV}:${remote_dir}/;
 
 update_download_html_json:
   stage: update_html_web
