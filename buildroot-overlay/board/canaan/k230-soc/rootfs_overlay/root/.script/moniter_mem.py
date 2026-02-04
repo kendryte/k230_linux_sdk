@@ -148,4 +148,4 @@ def monitor_memory_over_night(interval=300, duration=36000, output_dir='./memory
 
 if __name__ == "__main__":
     # 一整晚监控参数配置（中国时间，无废弃警告，直接运行即可）
-    monitor_memory_over_night(interval=300, duration=36000)
+    monitor_memory_over_night(interval=120, duration=1000000)

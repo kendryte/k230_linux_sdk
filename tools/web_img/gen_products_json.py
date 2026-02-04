@@ -193,6 +193,12 @@ json_str = u'''
             "image_url": "https://www.kendryte.com/k230_canmv/main/_images/CanMV-K230_front.png",
             "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
+        "k230_canmv_01studio_emmc_defconfig": {
+            "name": "01studio emmc ",
+            "description": "01studio canmv base emmc board",
+            "image_url": "https://www.kendryte.com/api/post/attachment?id=835",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
         "BPI-CanMV-K230D-Zero_defconfig": {
             "name": "BPI-CanMV-K230D",
             "description": "BPI-CanMV-K230D",
@@ -234,12 +240,6 @@ json_str = u'''
             "description": "k230d_canmv_labplus_ai_camera_defconfig",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
             "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
-        },
-        "k230_canmv_01studio_emmc_defconfig": {
-            "name": "01studio emmc ",
-            "description": "01studio canmv base emmc board",
-            "image_url": "https://www.kendryte.com/api/post/attachment?id=835",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         }
     }
 }
@@ -252,18 +252,21 @@ def open_json():
 
 def save_json(products, file_path):
     # 清理逻辑
-    for product in products:
+    for product in list(products.keys()):  # 遍历产品键的副本，避免遍历中修改字典导致异常
         variants = products[product].get("variants", {})
-        variants_to_delete = []
-        for v_name, v_info in variants.items():
-            latest = v_info.get("latest", {})
-            history = v_info.get("history", [])
-            if not latest and not history:
-                variants_to_delete.append(v_name)
 
-        for v_name in variants_to_delete:
-            variants.pop(v_name, None)
-        products[product]["variants"] = variants
+        valid_variants = {
+            v_name: v_info
+            for v_name, v_info in variants.items()
+            if v_info.get("latest", {}) or v_info.get("history", [])
+        }
+
+        # 2. 更新或删除产品
+        if valid_variants:
+            products[product]["variants"] = valid_variants
+        else:
+            products.pop(product, None)
+
 
     try:
         # 使用 io.open 并指定 utf-8，这是解决 Python 2/3 乱码问题的通用方法
@@ -287,7 +290,7 @@ def update_products_json():
     products = open_json()
     # 路径根据实际环境可能需要调整
     sdk_release_dirs_2_json("/data/kendryte-download/k230/release/linux_sdk_images", products, 5)
-    sdk_release_dirs_2_json("/data/kendryte-download/developer/releases/canmv_k230_micropython", products, 10)
+    #sdk_release_dirs_2_json("/data/kendryte-download/developer/releases/canmv_k230_micropython", products, 10)
     sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/", products, 5)
     save_json(products, "products.json")
 

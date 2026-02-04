@@ -147,19 +147,19 @@
                     <ul class="space-y-3 text-sm text-orange-700">
                         <li class="flex items-center gap-2">
                             <i class="fas fa-check-circle text-orange-400"></i>
-                            烧录镜像和串口连接板子请参考<a href="https://www.kendryte.com/k230_linux/zh/dev/userguide/how_to_flash.html#linux" target="_blank" class="text-blue-600 hover:underline">烧录和连接指导 </a>
+                            镜像烧录与串口连接请参考<a href="https://www.kendryte.com/k230_linux/zh/dev/userguide/how_to_flash.html#linux" target="_blank" class="text-blue-600 hover:underline">《烧录与连接操作指南》</a>
                         </li>
                         <li class="flex items-center gap-2">
                             <i class="fas fa-check-circle text-orange-400"></i>
-                            烧录过程中请勿拔掉读卡器，避免卡片损坏，首次启动可能需要几分钟进行文件系统扩容，请耐心等待;
+                            CanMV IDE（基于 MicroPython）不适用于 Linux SDK，请使用标准串口终端工具（如 PuTTY）来操作 Linux 系统。
                         </li>
                         <li class="flex items-center gap-2">
                             <i class="fas fa-check-circle text-orange-400"></i>
-                            canmv ide(micropython)不适用于linux sdk,若启动失败,请使用标准串口软件(比如putty)查看失败原因,也可以换个烧录软件(比如balenaEtcher)重新烧录试下;
+                            首次启动可能需要几分钟进行文件系统扩容，请耐心等待, 部分烧录软件可能存在 Bug（例如<a href="https://www.kendryte.com/answer/questions/10010000000002910" target="_blank" class="text-blue-600 hover:underline"> 此次提到的问题</a> ）
                         </li>
                         <li class="flex items-center gap-2">
                             <i class="fas fa-check-circle text-orange-400"></i>
-                            如有问题请到<a href="https://www.kendryte.com/answer/" target="_blank" class="text-blue-600 hover:underline">嘉楠问答社区</a>寻求帮助,请先搜索历史帖子,避免重复提问;
+                            Linux SDK 仍在开发中。如遇问题，欢迎前往  <a href="https://www.kendryte.com/answer/" target="_blank" class="text-blue-600 hover:underline">嘉楠问答社区</a> 寻求帮助。提问前请先搜索历史帖子，避免重复提问
                         </li>
                     </ul>
                 </div>
@@ -170,7 +170,7 @@
 
         <footer class="bg-white border-t border-gray-100 py-4 mt-8">
             <div class="max-w-7xl mx-auto px-6 text-center text-gray-400 text-sm">
-                &copy; 2024 Your Company. All rights reserved.
+               <p class="text-center mb-0 small text-secondary">版权所有 © 2025 嘉楠 | 京ICP备2025124317号 | 京公网安备11010802045870号</p>
             </div>
         </footer>
     </div>

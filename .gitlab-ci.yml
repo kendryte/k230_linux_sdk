@@ -21,6 +21,7 @@ variables:
     k230_canmv_01studio_defconfig
     k230_canmv_lckfb_defconfig
     k230_canmv_v3_defconfig
+    k230_canmv_dongshanpi_defconfig
 
 default:
   image: ai.b-bug.org:5000/k230_sdk:latest
@@ -891,6 +892,8 @@ release_image_publish:
         - k230_canmv_01studio_defconfig
         - k230_canmv_lckfb_defconfig
         - k230_canmv_v3_defconfig
+        - k230_canmv_01studio_emmc_defconfig
+        - k230_canmv_dongshanpi_defconfig
   script:
     - echo "daily build image publish for ${CONF}"
     - |
@@ -920,8 +923,8 @@ update_download_html_json:
   - scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 tools/web_img/* ${DNLD_SRV}:${remote_dir}/;
   - ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "cd ${remote_dir}; python ./gen_products_json.py";
   - local_dir="/data1/k230/release/linux_sdk_images/daily_build/";
-  - cp  tools/web_img/* ${local_dir}/ ;
-  - cd ${local_dir}; python ./gen_products_json.py;
+  - sudo cp  tools/web_img/* ${local_dir}/ ;
+  - cd ${local_dir}; sudo python ./gen_products_json.py;
 
 # main branch
 main_release:

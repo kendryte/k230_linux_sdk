@@ -30,6 +30,8 @@ make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both
 # make help # view help
 ```
 
+>The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://kendryte-download.canaan-creative.com/k230/release/linux_sdk_images/daily_build/)
+>
 ## output
 
 ```bash
@@ -73,62 +75,64 @@ make debian #generate debian distribution image
 make ubuntu #generate ubuntu distribution image
 ```
 
+>The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://kendryte-download.canaan-creative.com/k230/release/linux_sdk_images/daily_build/)
+>
 >For more information about Debian, please refer to [<<K230 debian 系统指南>>](https://kvftsfijpo.feishu.cn/drive/folder/ENyifLFdJl3cQ7du5RDcc6SDnFc?from=from_copylink)
 
 ## ai_demo
 
 The AI-related demos currently integrated are as follows:
 
-| name                   | 说明                                                                 |
-|------------------------|----------------------------------------------------------------------|
-| anomaly_det            | 异常检测                                                             |
-| bytetrack              | ByteTrack（一种多目标跟踪算法）                                      |
-| crosswalk_detect       | 斑马线检测                                                           |
-| demo_mix               | 演示混合                                                             |
-| dynamic_gesture        | 动态手势识别                                                         |
-| eye_gaze               | 视线追踪/眼动检测                                                    |
-| face_alignment         | 人脸对齐                                                             |
-| face_detection         | 人脸检测                                                             |
-| face_emotion           | 面部情绪识别                                                         |
-| face_gender            | 人脸性别识别                                                         |
-| face_glasses           | 人脸眼镜检测                                                         |
-| face_landmark          | 人脸关键点检测                                                       |
-| face_mask              | 口罩检测                                                             |
-| face_mesh              | 人脸网格                                                             |
-| face_parse             | 人脸解析                                                             |
-| face_pose              | 人脸姿态检测                                                         |
-| face_verification      | 人脸验证                                                             |
-| falldown_detect        | 跌倒检测                                                             |
-| finger_guessing        | 猜拳/手势识别（可能特指手指游戏）                                    |
-| fitness                | 健身/运动检测                                                        |
-| head_detection         | 头部检测                                                             |
-| helmet_detect          | 头盔检测                                                             |
-| kws                    | 关键词唤醒                                                           |
-| licence_det            | 车牌检测                                                             |
-| licence_det_rec        | 车牌检测与识别                                                       |
-| llamac                 | 大语言模型                                                           |
-| object_detect_yolov8   | YOLOv8 目标检测                                                      |
-| ocr                    | 光学字符识别                                                         |
-| person_attr            | 人体属性识别                                                         |
-| person_detect          | 人体检测                                                             |
-| person_distance        | 人体距离检测                                                         |
-| pose_detect            | 姿态检测/人体姿势检测                                                |
-| pphumanseg             | 飞桨（PaddlePaddle）人体分割模型                                     |
-| puzzle_game            | 拼图游戏                                                             |
-| segment_yolov8n        | YOLOv8n 语义分割                                                     |
-| smoke_detect           | 烟雾检测                                                             |
-| space_resize           | 空间尺寸调整                                                         |
-| sq_hand_det            | 手掌检测                                                             |
-| sq_handkp_class        | 手掌关键点分类                                                       |
-| sq_handkp_det          | 手掌关键点检测                                                       |
-| sq_handkp_flower       | 手掌关键点（花朵相关场景）检测                                       |
-| sq_handkp_ocr          | 手掌关键点 OCR 识别                                                  |
-| sq_handreco            | 手掌识别                                                             |
-| traffic_light_detect   | 交通信号灯检测                                                       |
-| tts_zh                 | 中文语音合成                                                         |
-| vehicle_attr           | 车辆属性识别                                                         |
-| virtual_keyboard       | 虚拟键盘                                                             |
-| yolop_lane_seg         | YOLOP 车道线分割                                                     |
+| name                 | 说明                              |
+| -------------------- | --------------------------------- |
+| anomaly_det          | 异常检测                          |
+| bytetrack            | ByteTrack（一种多目标跟踪算法）   |
+| crosswalk_detect     | 斑马线检测                        |
+| demo_mix             | 演示混合                          |
+| dynamic_gesture      | 动态手势识别                      |
+| eye_gaze             | 视线追踪/眼动检测                 |
+| face_alignment       | 人脸对齐                          |
+| face_detection       | 人脸检测                          |
+| face_emotion         | 面部情绪识别                      |
+| face_gender          | 人脸性别识别                      |
+| face_glasses         | 人脸眼镜检测                      |
+| face_landmark        | 人脸关键点检测                    |
+| face_mask            | 口罩检测                          |
+| face_mesh            | 人脸网格                          |
+| face_parse           | 人脸解析                          |
+| face_pose            | 人脸姿态检测                      |
+| face_verification    | 人脸验证                          |
+| falldown_detect      | 跌倒检测                          |
+| finger_guessing      | 猜拳/手势识别（可能特指手指游戏） |
+| fitness              | 健身/运动检测                     |
+| head_detection       | 头部检测                          |
+| helmet_detect        | 头盔检测                          |
+| kws                  | 关键词唤醒                        |
+| licence_det          | 车牌检测                          |
+| licence_det_rec      | 车牌检测与识别                    |
+| llamac               | 大语言模型                        |
+| object_detect_yolov8 | YOLOv8 目标检测                   |
+| ocr                  | 光学字符识别                      |
+| person_attr          | 人体属性识别                      |
+| person_detect        | 人体检测                          |
+| person_distance      | 人体距离检测                      |
+| pose_detect          | 姿态检测/人体姿势检测             |
+| pphumanseg           | 飞桨（PaddlePaddle）人体分割模型  |
+| puzzle_game          | 拼图游戏                          |
+| segment_yolov8n      | YOLOv8n 语义分割                  |
+| smoke_detect         | 烟雾检测                          |
+| space_resize         | 空间尺寸调整                      |
+| sq_hand_det          | 手掌检测                          |
+| sq_handkp_class      | 手掌关键点分类                    |
+| sq_handkp_det        | 手掌关键点检测                    |
+| sq_handkp_flower     | 手掌关键点（花朵相关场景）检测    |
+| sq_handkp_ocr        | 手掌关键点 OCR 识别               |
+| sq_handreco          | 手掌识别                          |
+| traffic_light_detect | 交通信号灯检测                    |
+| tts_zh               | 中文语音合成                      |
+| vehicle_attr         | 车辆属性识别                      |
+| virtual_keyboard     | 虚拟键盘                          |
+| yolop_lane_seg       | YOLOP 车道线分割                  |
 
 >
 > - demo source code directory ：buildroot-overlay/package/ai_demo
