@@ -251,22 +251,21 @@ def open_json():
     return data.get('products', {})
 
 def save_json(products, file_path):
-    # 清理逻辑
-    for product in list(products.keys()):  # 遍历产品键的副本，避免遍历中修改字典导致异常
+    for product in list(products.keys()):
         variants = products[product].get("variants", {})
+        variants_to_delete = []
+        for v_name, v_info in variants.items():
+            latest = v_info.get("latest", {})
+            history = v_info.get("history", [])
+            if not latest and not history:
+                variants_to_delete.append(v_name)
 
-        valid_variants = {
-            v_name: v_info
-            for v_name, v_info in variants.items()
-            if v_info.get("latest", {}) or v_info.get("history", [])
-        }
-
-        # 2. 更新或删除产品
-        if valid_variants:
-            products[product]["variants"] = valid_variants
+        for v_name in variants_to_delete:
+            variants.pop(v_name, None)
+        if variants:
+            products[product]["variants"] = variants
         else:
             products.pop(product, None)
-
 
     try:
         # 使用 io.open 并指定 utf-8，这是解决 Python 2/3 乱码问题的通用方法

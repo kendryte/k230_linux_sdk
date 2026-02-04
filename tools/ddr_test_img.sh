@@ -108,3 +108,4 @@ cp    ${uboot_spl_file}.bak    ${uboot_spl_file}
 
 rm -rf ${SDK_DIR}/output/${CONF}/target/${vpu}  ${default_env_file}.bak  ${uboot_spl_file}.bak
 rm -rf ${SDK_DIR}/output/${CONF}/target/${cpu}
+printf '\033[32mDDR Test Image generated successfully!\n%s\033[0m\n' "${SDK_DIR}/output/${CONF}/sysimage-sdcard.img.gz"
