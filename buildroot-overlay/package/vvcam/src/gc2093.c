@@ -505,7 +505,6 @@ static const struct reg_list gc2093_mipi2lane_1080p_60fps_mclk_24m_linear[] = {
 };
 
 
-
 static struct gc2093_mode modes[] = {
     {
         .mode = {
@@ -551,7 +550,7 @@ static struct gc2093_mode modes[] = {
                 .cur_fps = 30,
             }
         },
-        .regs = gc2093_1920x1080_30fps
+        .regs = gc2093_1920x1080_30fps,
     },
     {
         .mode = {
@@ -597,7 +596,7 @@ static struct gc2093_mode modes[] = {
                 .cur_fps = 60,
             },
         },
-        .regs = gc2093_mipi2lane_1080p_60fps_mclk_24m_linear
+        .regs = gc2093_mipi2lane_1080p_60fps_mclk_24m_linear,
     }
 };
 

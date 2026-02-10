@@ -1,0 +1,162 @@
+From 96e9a71d13f77f678fd7b6b08a2e17a3b306f663 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 10 Feb 2026 11:44:19 +0800
+Subject: [PATCH] dts add sensor reset
+
+---
+ arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts     | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts      | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts          | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts        | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts            | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts               | 4 ++++
+ arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts         | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts            | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-v3.dts                | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv.dts                   | 3 +++
+ 12 files changed, 17 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts
+index 85758cb28..e14475b02 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts
+@@ -98,6 +98,7 @@ &mipi0
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
+ };
+ 
+ &i2c3
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
+index f72d4c20f..16c323c6c 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
+@@ -136,4 +136,5 @@ &mipi0
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+index 54c55e12d..b4284843c 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -87,6 +87,7 @@ &mipi0
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
+ };
+ 
+ &i2c3
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+index 13a580788..8cc77993f 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+@@ -135,4 +135,5 @@ &mipi0
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+index c4cb6d1e8..79b57cdb7 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+@@ -104,6 +104,7 @@ K230_RESET_M2_REG_OFFSET
+ 			  K230_RESET_M2_TYPE
+ 			  K230_RESET_M2_DONE_BIT
+ 			  K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 21 GPIO_ACTIVE_HIGH>;
+ };
+ &i2c3 {
+ 	status = "okay";
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts b/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
+index 837827d83..5bdd1a466 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
+@@ -104,6 +104,7 @@ K230_RESET_M2_REG_OFFSET
+ 			  K230_RESET_M2_TYPE
+ 			  K230_RESET_M2_DONE_BIT
+ 			  K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 21 GPIO_ACTIVE_HIGH>;
+ };
+ 
+ &i2c3 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+index 0c6ef7a4f..ec8bce44e 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+@@ -94,3 +94,7 @@ spidev@0{
+ 		spi-max-frequency = <100000000>;
+ 	};
+ };
++
++&mipi0 {
++	reset-gpios = <&gpio0_ports 0 GPIO_ACTIVE_HIGH>;
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+index 73984b8d4..48c254620 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+@@ -85,6 +85,7 @@ &mipi0
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 13 GPIO_ACTIVE_HIGH>;
+ };
+ 
+ &mmc_sd0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+index d77f54650..80caca334 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+@@ -82,6 +82,7 @@ &mipi0
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 13 GPIO_ACTIVE_HIGH>;
+ };
+ 
+ 
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+index cd4668708..9418c70d0 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+@@ -83,6 +83,7 @@ &mipi0
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 21 GPIO_ACTIVE_HIGH>;
+ };
+ 
+ 
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
+index cb80f870d..1e0303d59 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
+@@ -98,6 +98,7 @@ &mipi0
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 21 GPIO_ACTIVE_HIGH>;
+ };
+ 
+ &dsi {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv.dts b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+index 5b51bdc60..42e092523 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+@@ -134,3 +134,6 @@ spidev@0{
+ 		spi-max-frequency = <100000000>;
+ 	};
+ };
++&mipi0 {
++	reset-gpios = <&gpio0_ports 0 GPIO_ACTIVE_HIGH>;
++};
+-- 
+2.25.1
+
