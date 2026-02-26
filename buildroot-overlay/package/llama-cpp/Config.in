@@ -24,11 +24,13 @@ if BR2_PACKAGE_LLAMA_CPP
 
 config BR2_PACKAGE_LLAMA_CPP_TOOLS
 	bool "Enable tools"
+	default y
 	help
 	  Build CLI tools like llama-cli, llama-bench, etc.
 
 config BR2_PACKAGE_LLAMA_CPP_SERVER
 	bool "Enable server"
+	default y
 	help
 	  Build OpenAI API-compatible web server, llama-server.
 
