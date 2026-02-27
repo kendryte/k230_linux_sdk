@@ -54,7 +54,44 @@ case "$1" in
     cd / && sleep 1 && echo "91500000.usb" > ${g1}/UDC &
     ;;
   stop)
-    echo none > ${g1}/UDC
+    killall adbd 2>/dev/null
+    killall umtprd 2>/dev/null
+
+    sleep 1
+    # 2. 卸载 functionfs
+    umount /dev/usb-ffs/adb 2>/dev/null
+    umount /dev/usb-ffs/mtp 2>/dev/null
+
+    sleep 1
+    # 3. 解绑 UDC（放后面）
+    if [ -e ${g1}/UDC ]; then
+      echo "" > ${g1}/UDC
+      # 如果内核要求写 none
+      # echo none > ${g1}/UDC
+    fi
+
+    sleep 1
+
+    # 4. 删除链接
+    rm -f ${g1}/configs/c.1/ffs.adb
+    rm -f ${g1}/configs/c.1/ffs.mtp
+
+    # 5. 删除 function
+    rmdir ${g1}/functions/ffs.adb 2>/dev/null
+    rmdir ${g1}/functions/ffs.mtp 2>/dev/null
+
+    # 6. 删除 config
+    rmdir ${g1}/configs/c.1/strings/0x409 2>/dev/null
+    rmdir ${g1}/configs/c.1 2>/dev/null
+
+    # 7. 删除 strings
+    rmdir ${g1}/strings/0x409 2>/dev/null
+
+    cd /
+    rmdir ${g1} 2>/dev/null
+
+    echo "USB gadget stopped"
+
     ;;
   restart|reload|force-reload)
     echo "Error: argument '$1' not supported" >&2
