@@ -905,7 +905,7 @@ release_image_publish:
         local_dir="/data1/k230/release/linux_sdk_images/${CI_COMMIT_TAG}/${CONF}"
       fi
     - echo "remote_dir is ${local_dir},${remote_dir}";
-    - ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  " mkdir -p ${remote_dir}" ;
+    - ssh -p ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${DNLD_SRV}  "rm -rf ${remote_dir}; mkdir -p ${remote_dir}" ;
     - scp -P ${DNLD_SRV_PORT} -i ~/.ssh/id_ed25519 ${local_dir}/* ${DNLD_SRV}:${remote_dir}/;
 
 update_download_html_json:
