@@ -3,11 +3,13 @@ CompileFlags:
   #Compiler: "/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2/bin/riscv64-unknown-linux-gnu-g++"
   Remove:
     - "-mcpu=c908v"          # 移除未知的 c908v CPU 参数
-    - "-mabi=lp64"           # 移除和 lp64d 冲突的 abi 参数
+    - "-mtune=c908"           # 移除和 lp64d 冲突的 abi 参数
     - "-march=rv64imac_zicsr_zifencei"  # 移除冲突的 march 参数
     - "-mno-riscv-attribute"
     - "-fno-allow-store-data-races"
     - "-fconserve-stack"
+    - "-mrvv-v0p10-compatible"
+    - "-mrvv-auto-vectorize"
   # 补充 K230 架构必需的编译参数（避免架构相关报错）
   Add:
     - "-mabi=lp64d"

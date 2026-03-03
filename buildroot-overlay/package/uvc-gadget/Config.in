@@ -1,0 +1,9 @@
+config BR2_PACKAGE_UVC_GADGET
+    bool "uvc-gadget"
+    select BR2_PACKAGE_LIBV4L
+    help
+      USB Video Class (UVC) gadget test application.
+      Now built with Meson.
+
+      https://git.ideasonboard.org/uvc-gadget.git
+      https://gitlab.freedesktop.org/camera/uvc-gadget

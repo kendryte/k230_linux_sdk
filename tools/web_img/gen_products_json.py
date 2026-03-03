@@ -111,7 +111,7 @@ def update_file_to_json(file_path, products):
     if variant_key not in variants:
         return
 
-    version_type = "latest" if ("latest" in file_path or "daily_build" in file_path) else "history"
+    version_type = "latest" if ("daily_build" in file_path) else "history"
 
     ver_info = {
         "version": get_version_from_filename(filename),

@@ -1,5 +1,5 @@
 #!/bin/sh
-set -x
+#set -x
 #adb.exe device
 #adb.exe shell
 g1="/sys/kernel/config/usb_gadget/g1"
