@@ -34,7 +34,7 @@ RUN apt-get clean all &&  apt-get update
 RUN apt-get install -y --fix-broken --fix-missing --no-install-recommends   sudo
 
 RUN apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
-        bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3  \
+        bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3 python3-pip  \
         libssl-dev gawk cmake bison flex  bash-completion  parted curl
 
 RUN echo 'ALL ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers
