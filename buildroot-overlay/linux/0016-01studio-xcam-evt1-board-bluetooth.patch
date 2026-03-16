@@ -1,0 +1,26 @@
+From e91230c6896f97766c1b1041241c08dda5bfb26a Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Mon, 16 Mar 2026 17:49:53 +0800
+Subject: [PATCH] 01studio-xcam-evt1 board bluetooth
+
+---
+ arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+index b4284843c..9f28eaec8 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -40,6 +40,9 @@ sound {
+ &uart0 {
+ 	status = "okay";
+ };
++&uart1 {
++	status = "okay";
++};
+ &uart3 {
+ 	status = "okay";
+ };
+-- 
+2.25.1
+

@@ -94,6 +94,9 @@ def update_file_to_json(file_path, products):
     if not file_path.endswith(".img.gz"):
         return
 
+    if "latest" in file_path:
+        return
+
     product_name = get_product_name_from_filepath(file_path)
     if product_name not in products:
         return
@@ -288,9 +291,9 @@ def save_json(products, file_path):
 def update_products_json():
     products = open_json()
     # 路径根据实际环境可能需要调整
-    sdk_release_dirs_2_json("/data/kendryte-download/k230/release/linux_sdk_images", products, 5)
+    sdk_release_dirs_2_json("/data/kendryte-download/k230/release/linux_sdk_images", products, 20)
     #sdk_release_dirs_2_json("/data/kendryte-download/developer/releases/canmv_k230_micropython", products, 10)
-    sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/", products, 5)
+    sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/", products, 20)
     save_json(products, "products.json")
 
 if __name__ == "__main__":
