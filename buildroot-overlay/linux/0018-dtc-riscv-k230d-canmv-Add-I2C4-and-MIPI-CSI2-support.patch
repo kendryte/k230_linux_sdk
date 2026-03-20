@@ -1,0 +1,57 @@
+From 532c91a42eef9362d532bbe83191fa967dbb553f Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 20 Mar 2026 17:42:49 +0800
+Subject: [PATCH] dtc: riscv: k230d-canmv: Add I2C4 and MIPI CSI2 support
+
+- Add i2c4 alias to device tree aliases
+- Enable I2C4 interface
+- Add MIPI CSI2 controller configuration with reset and interrupt settings
+---
+ arch/riscv/boot/dts/canaan/k230d-canmv.dts | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv.dts b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+index e7ac49659..ce9b96c93 100755
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+@@ -14,6 +14,7 @@ aliases {
+ 		serial2 = &uart2;
+ 		mmc0 = &mmc_sd1;
+ 		mmc1 = &mmc_sd0;
++		i2c0 = &i2c4;
+ 	};
+ 
+ 	chosen {
+@@ -61,6 +62,9 @@ &usb1 {
+ 	status = "okay";
+ };
+ 
++&i2c4 {
++	status = "okay";
++};
+ &i2c3 {
+ 	status = "okay";
+ 	touchscreen@38 {
+@@ -76,3 +80,19 @@ &lcd {
+ 	dsi_reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_HIGH>;
+ 	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
+ };
++&mipi0 {
++	// set to csi2
++	id = <2>;
++	reg = <0x0 0x9000a800 0x0 0x800>;
++	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset
++			  K230_RESET_CSI2_REG_OFFSET
++			  K230_RESET_CSI2_TYPE
++			  K230_RESET_CSI2_DONE_BIT
++			  K230_RESET_CSI2_ASSERT_BIT>,
++			 <&sysctl_reset
++			  K230_RESET_M2_REG_OFFSET
++			  K230_RESET_M2_TYPE
++			  K230_RESET_M2_DONE_BIT
++			  K230_RESET_M2_ASSERT_BIT>;
++};
+-- 
+2.25.1
+
