@@ -4,26 +4,27 @@ import datetime
 
 def get_china_time():
     """
-    获取标准中国时间（东八区，UTC+8），消除utcnow()废弃警告，纯Python实现
-    返回：格式化后的时间字符串（YYYY-MM-DD HH:MM:SS）
+    Get standard China time (UTC+8, East 8th zone), eliminate deprecated utcnow() warning,
+    pure Python implementation.
+    Returns: formatted time string (YYYY-MM-DD HH:MM:SS)
     """
-    # 替代废弃的utcnow()，使用带时区标识的UTC时间（Python3.12+推荐）
+    # Use timezone-aware UTC time instead of deprecated utcnow() (Python 3.12+ recommended)
     utc_now = datetime.datetime.now(datetime.UTC)
-    # 加上8小时，转换为中国时间（UTC+8）
+    # Add 8 hours to convert to China time (UTC+8)
     china_now = utc_now + datetime.timedelta(hours=8)
-    # 格式化返回，忽略时区标识（仅保留标准时间字符串，符合CSV存储需求）
+    # Format and return, ignoring timezone identifier (keep standard time string for CSV storage)
     return china_now.strftime('%Y-%m-%d %H:%M:%S')
 
 def get_memory_info():
     """
-    读取/proc/meminfo，解析Linux内存使用情况（适配Buildroot嵌入式系统）
-    返回：包含中国时间的内存信息字典（单位：MB）
+    Read /proc/meminfo and parse Linux memory usage (compatible with Buildroot embedded system).
+    Returns: dictionary containing memory info with China time (unit: MB).
     """
     mem_info = {}
     meminfo_path = '/proc/meminfo'
 
     if not os.path.exists(meminfo_path):
-        raise FileNotFoundError(f"无法找到 {meminfo_path}，非标准Linux环境（Buildroot）？")
+        raise FileNotFoundError(f"Cannot find {meminfo_path}, non-standard Linux environment (Buildroot)?")
 
     try:
         with open(meminfo_path, 'r', encoding='utf-8') as f:
@@ -35,37 +36,39 @@ def get_memory_info():
                 if len(key_value) != 2:
                     continue
                 key, value = key_value
-                # 提取数值并转换为MB（/proc/meminfo单位为KB，1MB=1024KB）
+                # Extract numeric value and convert to MB (/proc/meminfo unit is KB, 1MB = 1024KB)
                 try:
                     num = int(value.strip().split()[0]) / 1024
                     mem_info[key] = round(num, 2)
                 except (ValueError, IndexError):
                     mem_info[key] = 0.0
     except Exception as e:
-        print(f"当前采集读取失败：{e}，跳过本次采集")
+        print(f"Current collection read failed: {e}, skipping this collection")
         return None
 
-    # 计算核心内存指标，采集时间替换为中国时间（无废弃警告）
+    # Calculate core memory metrics, using China time for timestamp
     mem_stats = {
-        '采集时间(中国时间)': get_china_time(),
-        '总内存(MB)': mem_info.get('MemTotal', 0.0),
-        '空闲内存(MB)': mem_info.get('MemFree', 0.0),
-        '可用内存(MB)': mem_info.get('MemAvailable', 0.0),
-        '已用内存(MB)': round(mem_info.get('MemTotal', 0.0) - mem_info.get('MemAvailable', 0.0), 2),
-        '缓存(MB)': mem_info.get('Cached', 0.0),
-        '缓冲区(MB)': mem_info.get('Buffers', 0.0)
+        'Collection Time (China)': get_china_time(),
+        'Total Memory (MB)': mem_info.get('MemTotal', 0.0),
+        'Free Memory (MB)': mem_info.get('MemFree', 0.0),
+        'Available Memory (MB)': mem_info.get('MemAvailable', 0.0),
+        'Used Memory (MB)': round(mem_info.get('MemTotal', 0.0) - mem_info.get('MemAvailable', 0.0), 2),
+        'Cached (MB)': mem_info.get('Cached', 0.0),
+        'Buffers (MB)': mem_info.get('Buffers', 0.0)
     }
 
     return mem_stats
 
 def monitor_memory_over_night(interval=300, duration=36000, output_dir='./memory_night_report'):
     """
-    纯Python无依赖：一整晚内存监控（中国时间，无废弃警告）并生成CSV（适配Buildroot系统）
-    :param interval: 采集间隔（秒），默认300秒/5分钟
-    :param duration: 监控总时长（秒），默认36000秒/10小时
-    :param output_dir: CSV输出目录，默认当前目录memory_night_report
+    Pure Python with no dependencies: overnight memory monitoring (China time,
+    no deprecated warnings) and CSV generation (compatible with Buildroot system).
+
+    :param interval: Collection interval in seconds, default 300 seconds (5 minutes)
+    :param duration: Total monitoring duration in seconds, default 36000 seconds (10 hours)
+    :param output_dir: CSV output directory, default ./memory_night_report
     """
-    # 1. 目录创建（优先持久化目录，若失败切换到/tmp）
+    # 1. Directory creation (prefer persistent directory, fall back to /tmp on failure)
     persist_dir = output_dir
     tmp_dir = '/tmp/memory_night_report'
     try:
@@ -73,79 +76,80 @@ def monitor_memory_over_night(interval=300, duration=36000, output_dir='./memory
             os.makedirs(persist_dir)
         use_dir = persist_dir
     except OSError as e:
-        print(f"持久化目录 {persist_dir} 创建失败（可能无写入权限）：{e}")
-        print(f"切换到临时目录 {tmp_dir} 存储，注意：设备重启后数据丢失！")
+        print(f"Persistent directory {persist_dir} creation failed (possibly no write permission): {e}")
+        print(f"Switching to temporary directory {tmp_dir} for storage, note: data will be lost after reboot!")
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
         use_dir = tmp_dir
 
-    # 2. 初始化参数
+    # 2. Initialize parameters
     memory_data_list = []
     total_times = int(duration / interval)
-    # 计算预计结束时间（中国时间，无废弃警告）
+    # Calculate expected end time (China time)
     china_now = datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=8)
     end_time_china = china_now + datetime.timedelta(seconds=duration)
     print("="*60)
-    print(f"开始一整晚内存监控（Buildroot专用，中国时间，无废弃警告）")
-    print(f"采集间隔：{interval} 秒（{int(interval/60)} 分钟）")
-    print(f"总采集次数：{total_times} 次")
-    print(f"总监控时长：{duration} 秒（{int(duration/3600)} 小时）")
-    print(f"当前中国时间：{get_china_time()}")
-    print(f"预计结束时间（中国时间）：{end_time_china.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"报表存储目录：{use_dir}")
+    print(f"Starting overnight memory monitoring (Buildroot, China time, no deprecation warnings)")
+    print(f"Collection interval: {interval} seconds ({int(interval/60)} minutes)")
+    print(f"Total collections: {total_times}")
+    print(f"Total monitoring duration: {duration} seconds ({int(duration/3600)} hours)")
+    print(f"Current China time: {get_china_time()}")
+    print(f"Expected end time (China time): {end_time_china.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Report save directory: {use_dir}")
     print("="*60 + "\n")
 
-    # 3. 长时间循环采集
+    # 3. Long-running collection loop
     try:
         for i in range(total_times):
-            # 采集当前内存信息（跳过异常采集）
+            # Collect current memory info (skip on failure)
             current_mem = get_memory_info()
             if current_mem is not None:
                 memory_data_list.append(current_mem)
-                print(f"第 {i+1}/{total_times} 次采集完成：{current_mem['采集时间(中国时间)']}，已用内存 {current_mem['已用内存(MB)']} MB")
+                print(f"Collection {i+1}/{total_times} completed: {current_mem['Collection Time (China)']}, "
+                      f"Used Memory {current_mem['Used Memory (MB)']} MB")
             else:
-                print(f"第 {i+1}/{total_times} 次采集失败，跳过本次")
+                print(f"Collection {i+1}/{total_times} failed, skipping")
 
-            # 间隔等待（最后一次无需等待，节省资源）
+            # Wait for interval (no wait after last collection to save resources)
             if i < total_times - 1:
                 time.sleep(interval)
 
     except KeyboardInterrupt:
-        print("\n\n用户手动终止监控，正在生成已采集数据的CSV报表...")
+        print("\n\nUser manually terminated monitoring, generating CSV report from collected data...")
     except Exception as e:
-        print(f"\n\n监控过程中出现严重错误：{e}，正在生成已采集数据的CSV报表...")
+        print(f"\n\nCritical error during monitoring: {e}, generating CSV report from collected data...")
 
-    # 4. 生成CSV文件（无有效数据则跳过）
+    # 4. Generate CSV file (skip if no valid data)
     if not memory_data_list:
-        print("无有效采集数据，无法生成CSV报表")
+        print("No valid collection data, cannot generate CSV report")
         return
 
-    # 生成带中国时间戳的CSV文件名
-    start_time_str = memory_data_list[0]['采集时间(中国时间)'].replace(' ', '_').replace(':', '')
-    end_time_str = memory_data_list[-1]['采集时间(中国时间)'].replace(' ', '_').replace(':', '')
+    # Generate CSV filename with China timestamp
+    start_time_str = memory_data_list[0]['Collection Time (China)'].replace(' ', '_').replace(':', '')
+    end_time_str = memory_data_list[-1]['Collection Time (China)'].replace(' ', '_').replace(':', '')
     csv_filename = os.path.join(use_dir, f"memory_monitor_night_{start_time_str}_to_{end_time_str}.csv")
 
-    # 写入CSV文件（utf-8-sig编码，兼容Windows Excel打开）
+    # Write CSV file (utf-8-sig encoding for Windows Excel compatibility)
     try:
         with open(csv_filename, 'w', encoding='utf-8-sig', newline='') as f:
-            # 写入表头
+            # Write header row
             headers = list(memory_data_list[0].keys())
             f.write(','.join(headers) + '\n')
 
-            # 写入所有采集数据
+            # Write all collected data
             for data in memory_data_list:
                 row_data = [str(data[header]) for header in headers]
                 f.write(','.join(row_data) + '\n')
 
         print("\n" + "="*60)
-        print(f"CSV报表生成成功！")
-        print(f"文件路径：{csv_filename}")
-        print(f"有效采集记录：{len(memory_data_list)} 条")
-        print(f"可通过scp导出到PC用Excel打开分析")
+        print(f"CSV report generated successfully!")
+        print(f"File path: {csv_filename}")
+        print(f"Valid collection records: {len(memory_data_list)}")
+        print(f"Can export to PC via scp for Excel analysis")
         print("="*60)
     except OSError as e:
-        print(f"写入CSV文件失败：{e}，请检查目录写入权限")
+        print(f"Failed to write CSV file: {e}, please check directory write permissions")
 
 if __name__ == "__main__":
-    # 一整晚监控参数配置（中国时间，无废弃警告，直接运行即可）
+    # Overseas monitoring parameters (China time, no deprecation warnings, run directly)
     monitor_memory_over_night(interval=120, duration=1000000)

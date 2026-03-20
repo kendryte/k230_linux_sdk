@@ -168,7 +168,7 @@ json_str = u'''
     "products": {
         "k230_canmv_01studio_defconfig": {
             "name": "01studio",
-            "description": "01studio canmv",
+            "description": "01studio canmv and xCAM EVT1",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=833",
             "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },

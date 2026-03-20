@@ -1,0 +1,97 @@
+From dfe81a29bb4d85fd50f677d0d82c3d30fd008af8 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 20 Mar 2026 10:57:27 +0800
+Subject: [PATCH] clk: k230: Fix AI clock rate setting and multiplexer
+ configuration
+
+  - Add clk_set_rate() call in ai_enable_power_and_clk() to set AI clock
+    rate to 800MHz before enabling clocks
+  - Fix k230_clk_composite_set_parent() to preserve gate register values
+    when configuring mux
+  - Add CLK_SET_RATE_NO_REPARENT flag to composite clock initialization
+  - Update DTSI clock node names for consistency
+---
+ arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi | 4 ++--
+ drivers/clk/clk-k230.c                              | 4 +++-
+ drivers/misc/canaan/gnne/k230_gnne.c                | 5 +++++
+ 3 files changed, 10 insertions(+), 3 deletions(-)
+ mode change 100644 => 100755 arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi
+ mode change 100644 => 100755 drivers/clk/clk-k230.c
+ mode change 100644 => 100755 drivers/misc/canaan/gnne/k230_gnne.c
+
+diff --git a/arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi b/arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi
+old mode 100644
+new mode 100755
+index 616d6980d..f4fe18aca
+--- a/arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi
++++ b/arch/riscv/boot/dts/canaan/k230_clock_provider.dtsi
+@@ -2565,7 +2565,7 @@ timer5_clk: timer5_clk {
+ 	 *	3. nonai2d_aclk_gate: nonai2d axi clk gate;
+ 	 *	4. pdma_aclk_gate: peri dma axi clk gate;
+ 	 */
+-	ai_clk: ai_clk_mux_gate_rate { //ai_CLK_CFG
++	ai_clk: ai_clk { //ai_CLK_CFG  ai_clk_mux_gate_rate
+ 		#clock-cells							= <0>;
+ 		compatible		= "canaan,k230-clk-composite";
+ 		status								  = "okay";
+@@ -2599,7 +2599,7 @@ ai_clk: ai_clk_mux_gate_rate { //ai_CLK_CFG
+ 		clk-rate-reg-write-enable-bit		   = <31>;
+ 	};
+ 
+-	ai_aclk: ai_aclk_gate {
++	ai_aclk: ai_aclk { //ai_aclk_gate
+ 		#clock-cells							= <0>;
+ 		compatible		= "canaan,k230-clk-composite";
+ 		clocks								  = <&pll0_div4>;
+diff --git a/drivers/clk/clk-k230.c b/drivers/clk/clk-k230.c
+old mode 100644
+new mode 100755
+index 71d38f7d4..ac022ef1e
+--- a/drivers/clk/clk-k230.c
++++ b/drivers/clk/clk-k230.c
+@@ -499,6 +499,8 @@ static int k230_clk_composite_set_parent(struct clk_hw *hw, u8 index)
+ 				  << k230_composite->mux_shift;
+ 
+ 	spin_lock_irqsave(k230_composite->composite_spinlock, flags);
++	composite_mux_value |= readl(k230_composite->gate_reg) &
++		    ~(k230_composite->mux_mask << k230_composite->mux_shift);
+ 	writel(composite_mux_value, k230_composite->mux_reg);
+ 	spin_unlock_irqrestore(k230_composite->composite_spinlock, flags);
+ 
+@@ -765,7 +767,7 @@ static struct clk *_of_cannan_k230_clk_composite_setup(struct device_node *node)
+ 	init.parent_names = parent_name;
+ 	init.name = node->name;
+ 	init.ops = p_clk_ops;
+-	init.flags = CLK_IS_BASIC /*|flags*/;
++	init.flags = CLK_IS_BASIC | CLK_SET_RATE_NO_REPARENT/*|flags*/;
+ 	k230_clk_composite->hw.init = &init;
+ 
+ 	hw = &k230_clk_composite->hw;
+diff --git a/drivers/misc/canaan/gnne/k230_gnne.c b/drivers/misc/canaan/gnne/k230_gnne.c
+old mode 100644
+new mode 100755
+index e5ec64eba..a06298680
+--- a/drivers/misc/canaan/gnne/k230_gnne.c
++++ b/drivers/misc/canaan/gnne/k230_gnne.c
+@@ -147,6 +147,10 @@ int ai_enable_power_and_clk(struct platform_device *pdev, int num_clks,
+ 	if (err < 0)
+ 		goto err_clk_disable;
+ 
++	err = clk_set_rate(clks[0].clk, 800000000); /* 800M */
++	if (err < 0)
++		goto err_clk_disable;
++	clk_rate_exclusive_get(clks[0].clk);
+ 	return 0;
+ 
+ 
+@@ -163,6 +167,7 @@ int ai_enable_power_and_clk(struct platform_device *pdev, int num_clks,
+ int ai_disable_power_and_clk(struct platform_device *pdev, int num_clks,
+ 														struct clk_bulk_data *clks)
+ {
++	clk_rate_exclusive_put(clks[0].clk);
+ 	clk_bulk_disable_unprepare(num_clks, clks);
+ 	pm_runtime_put_sync(&pdev->dev);
+ 	pm_runtime_disable(&pdev->dev);
+-- 
+2.25.1
+
