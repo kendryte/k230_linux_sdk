@@ -4,7 +4,7 @@
 #   docker run -it --rm  -h k230  -e uid=$(id -u) -e gid=$(id -g) -e user=${USER} -v $HOME:$HOME -v /opt/toolchain:/opt/toolchain  -w $(pwd) wjx/d:latest
 #   docker run -it --rm --entrypoint "/bin/bash"  -h k230 -v /opt/toolchain:/opt/toolchain   -v $HOME:$HOME  -w $(pwd) wjx/d:latest
 
-#FROM ubuntu:24.04 22.04 20.04
+#FROM ubuntu:24.04 22.04
 FROM ubuntu:22.04
 # LABEL verdor=Canaan
 # LABEL name=k230_sdk
@@ -33,14 +33,20 @@ RUN apt-get clean all &&  apt-get update
 
 RUN apt-get install -y --fix-broken --fix-missing --no-install-recommends   sudo
 
-RUN apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
+RUN apt-get install -y  --fix-broken --fix-missing   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
         bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3 python3-pip  \
         libssl-dev gawk cmake bison flex  bash-completion  parted curl
+
+RUN UBUNTU_VERSION=$(awk -F'"' '/VERSION=/{print $2}' /etc/os-release | cut -d. -f1-2) && \
+    if [ "${UBUNTU_VERSION}" = "24.04" ]; then \
+        apt-get install -y python3-pcpp; \
+    else \
+        pip3 install pcpp; \
+    fi
 
 RUN echo 'ALL ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-RUN python3 -m pip install pcpp
 
 ENTRYPOINT ["/entrypoint.sh"]
 

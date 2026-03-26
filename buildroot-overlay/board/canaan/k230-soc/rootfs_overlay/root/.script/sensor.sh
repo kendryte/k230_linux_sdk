@@ -2,6 +2,8 @@ s="${1:-192.168.1.1}"
 killall isp_media_server
 scp wangjianxin@$s:/home/wangjianxin/k230/k230_linux_sdk/output/k230_canmv_01studio_defconfig/build/vvcam/buildroot-build/libvvcam.so  /usr/lib/
 scp wangjianxin@$s:/home/wangjianxin/k230/k230_linux_sdk/output/k230_canmv_01studio_defconfig/images/boot/k230-canmv-01studio-lcd.dtb  /boot/k230-canmv-01studio-lcd.dtb
+scp wangjianxin@$s:/home/wangjianxin/k230/k230_linux_sdk/output/k230_canmv_01studio_defconfig/images/Image  /boot/Image
+
 
 cat /proc/vsi/isp_subdev0
 
