@@ -1,0 +1,146 @@
+From d673040111f2d578709489eb4db8fe0474614d56 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 27 Mar 2026 15:41:22 +0800
+Subject: [PATCH] pinctrl: k230-iomux: Simplify driver by using pinctrl_desc
+ directly
+
+- Replace private num_pins field with desc pointer
+- Use iomux->desc->npins and iomux->desc->pins throughout
+- Remove dynamic pin name allocation, use static k230_group_names array
+- Simplify get_group_pins by directly referencing desc pins instead of static buffer
+- Remove static char name[16] from get_group_name, use pre-defined array
+
+This reduces memory usage (no per-pin name allocations) and simplifies
+the code by leveraging the pinctrl core's descriptor infrastructure.
+---
+ drivers/pinctrl/canaan/pinctrl-k230-iomux.c | 42 ++++++++-------------
+ 1 file changed, 16 insertions(+), 26 deletions(-)
+
+diff --git a/drivers/pinctrl/canaan/pinctrl-k230-iomux.c b/drivers/pinctrl/canaan/pinctrl-k230-iomux.c
+index 6e6506a46..53beed80b 100755
+--- a/drivers/pinctrl/canaan/pinctrl-k230-iomux.c
++++ b/drivers/pinctrl/canaan/pinctrl-k230-iomux.c
+@@ -117,28 +117,25 @@ struct k230_iomux {
+ 	void __iomem *base;
+ 	struct pinctrl_dev *pctl;
+ 	struct clk *clk;
+-	unsigned num_pins;
++	struct pinctrl_desc *desc;
+ };
+ 
+ /* PINCTRL核心回调 */
+ static int k230_iomux_get_groups_count(struct pinctrl_dev *pctl)
+ {
+ 	struct k230_iomux *iomux = pinctrl_dev_get_drvdata(pctl);
+-	return iomux->num_pins;
++	return iomux->desc->npins;
+ }
+ 
+ static const char *k230_iomux_get_group_name(struct pinctrl_dev *pctl,
+ 					      unsigned int group)
+ {
+ 	struct k230_iomux *iomux = pinctrl_dev_get_drvdata(pctl);
+-	static char name[16];
+-
+ 	/* Validate group number against actual number of pins */
+-	if (group >= iomux->num_pins)
++	if (group >= iomux->desc->npins)
+ 		return NULL;
+ 
+-	snprintf(name, sizeof(name), "io%d", group);
+-	return name;
++	return k230_group_names[group];
+ }
+ 
+ static int k230_iomux_get_group_pins(struct pinctrl_dev *pctl,
+@@ -148,19 +145,14 @@ static int k230_iomux_get_group_pins(struct pinctrl_dev *pctl,
+ {
+ 	struct k230_iomux *iomux = pinctrl_dev_get_drvdata(pctl);
+ 
+-	if (group >= iomux->num_pins)
++	if (group >= iomux->desc->npins)
+ 		return -EINVAL;
+ 
+ 	/*
+ 	 * For this simple pinctrl driver, each group contains exactly one pin.
+ 	 * The pin number is the same as the group number.
+-	 * Using a static buffer is safe here because the pinctrl core copies
+-	 * the pins array before this function returns.
+ 	 */
+-	static unsigned int pin_buf;
+-
+-	pin_buf = group;
+-	*pins = &pin_buf;
++	*pins = &iomux->desc->pins[group].number;
+ 	*num_pins = 1;
+ 	return 0;
+ }
+@@ -170,7 +162,6 @@ static int k230_iomux_get_functions_count(struct pinctrl_dev *pctl)
+ {
+ 	return K230_NUM_FUNCTIONS;
+ }
+-
+ static const char *k230_iomux_get_function_name(struct pinctrl_dev *pctl,
+ 						 unsigned int function)
+ {
+@@ -188,7 +179,7 @@ static int k230_iomux_get_function_groups(struct pinctrl_dev *pctl,
+ 
+ 	/* All pins can be used with any function */
+ 	*groups = k230_group_names;
+-	*num_groups = iomux->num_pins;
++	*num_groups = iomux->desc->npins;
+ 	return 0;
+ }
+ 
+@@ -351,6 +342,7 @@ static int k230_iomux_probe(struct platform_device *pdev)
+ 	struct pinctrl_desc *desc;
+ 	int ret;
+ 	resource_size_t size;
++	int num_pins;
+ 
+ 	iomux = devm_kzalloc(&pdev->dev, sizeof(*iomux), GFP_KERNEL);
+ 	if (!iomux)
+@@ -369,13 +361,13 @@ static int k230_iomux_probe(struct platform_device *pdev)
+ 		return PTR_ERR(iomux->base);
+ 	/* Calculate number of pins from register space size */
+ 	/* Each pin has a 32-bit (4 byte) register */
+-	iomux->num_pins = size / 4;
++	num_pins = size / 4;
+ 	/* Validate the calculated number of pins */
+-	if (iomux->num_pins == 0 || iomux->num_pins > 64) {
++	if (num_pins == 0 || num_pins > 64) {
+ 		dev_err(&pdev->dev, "Invalid register size %pa, expected 4-256 bytes\n", &size);
+ 		return -EINVAL;
+ 	}
+-	/* Register pinctrl with dynamically initialized desc */
++	/* Allocate and initialize pinctrl_desc */
+ 	desc = devm_kzalloc(&pdev->dev, sizeof(*desc), GFP_KERNEL);
+ 	if (!desc)
+ 		return -ENOMEM;
+@@ -387,18 +379,16 @@ static int k230_iomux_probe(struct platform_device *pdev)
+ 		.owner = THIS_MODULE,
+ 	};
+ 	/* Allocate and initialize pin descriptors dynamically */
+-	desc->pins = devm_kcalloc(&pdev->dev, iomux->num_pins,
++	desc->pins = devm_kcalloc(&pdev->dev, num_pins,
+ 				  sizeof(struct pinctrl_pin_desc), GFP_KERNEL);
+ 	if (!desc->pins)
+ 		return -ENOMEM;
+-	for (unsigned int i = 0; i < iomux->num_pins; i++) {
+-		char *pin_name = devm_kasprintf(&pdev->dev, GFP_KERNEL, "io%d", i);
+-		if (!pin_name)
+-			return -ENOMEM;
++	for (unsigned int i = 0; i < num_pins; i++) {
+ 		((struct pinctrl_pin_desc *)desc->pins)[i].number = i;
+-		((struct pinctrl_pin_desc *)desc->pins)[i].name = pin_name;
++		((struct pinctrl_pin_desc *)desc->pins)[i].name = k230_group_names[i];
+ 	}
+-	desc->npins = iomux->num_pins;
++	desc->npins = num_pins;
++	iomux->desc = desc;
+ 	ret = devm_pinctrl_register_and_init(&pdev->dev, desc, iomux, &iomux->pctl);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "Failed to register pinctrl: %d\n", ret);
+-- 
+2.25.1
+
