@@ -6,10 +6,15 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <atomic>
+
+static constexpr size_t kMaxRawPacketQueueSize = 6;
+
+#include "osd.h"
 
 int KdMedia::configure_media_features(const KdMediaInputConfig &input_config, const KdMediaFeatureConfig &feature_config)
 {
@@ -68,6 +73,15 @@ int KdMedia::disable_media_features()
         camera_venc_stream_tid_ = 0;
     }
 
+    {
+        std::unique_lock<std::mutex> lock(list_mutex_);
+        while (!packet_list_.empty()) {
+            AVPacket *pkt = packet_list_.front();
+            packet_list_.pop_front();
+            av_packet_free(&pkt);
+        }
+    }
+
 
     if (frame_ != nullptr) {
         av_frame_free(&frame_);
@@ -116,6 +130,9 @@ int KdMedia::_init_camera(AVFormatContext *&fmt_ctx) {
 
     av_dict_set(&options, "fflags", "nobuffer", 0);      // 禁用内部缓存
     av_dict_set(&options, "flags", "low_delay", 0);      // 全局低延迟模式
+
+    // av_dict_set(&options, "mem_type", "dmabuf", 0);
+    // camera_dmabuf_ = true;
 
     if (avformat_open_input(&fmt_ctx,input_config_.camera_device.c_str(), input_fmt, &options) != 0) {
         std::cerr << "Cannot open input" << std::endl;
@@ -205,6 +222,9 @@ int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
     av_dict_set_int(&codec_options, "num_output_buffers", 1, 0);
     // 设置输出缓冲区数量（编码帧缓冲区）
     av_dict_set_int(&codec_options, "num_capture_buffers", 1, 0);
+    // 启用 dmabuf 模式
+    if(input_config_.osd_region)
+        av_dict_set(&codec_options, "in_mem_type", "dmabuf", 0);
 
     // 设置额外的低延迟参数
     av_dict_set(&codec_options, "tune", "zerolatency", 0);
@@ -235,7 +255,7 @@ static uint64_t get_precise_timestamp_us() {
 
 void *KdMedia::camera_capture_frame_thread(void *arg)
 {
-    printf("camera_capture_frame_thread start\n");
+    printf("camera_capture_frame_thread start, TID: %d\n", syscall(SYS_gettid));
     KdMedia *media = static_cast<KdMedia *>(arg);
     AVCodecContext *codec_ctx = media->codec_ctx_;
     AVFrame *frame = media->frame_;
@@ -271,10 +291,14 @@ void *KdMedia::camera_capture_frame_thread(void *arg)
 
             // 使用智能锁进行线程安全操作
             std::unique_lock<std::mutex> lock(media->list_mutex_);
+            while (media->packet_list_.size() >= kMaxRawPacketQueueSize) {
+                AVPacket *old_pkt = media->packet_list_.front();
+                media->packet_list_.pop_front();
+                av_packet_free(&old_pkt);
+            }
             // 将AVPacket加入链表（不进行深拷贝，仅转移所有权）
             media->packet_list_.push_back(new_pkt);
             lock.unlock();
-
         }
         else {
             // 非视频流数据包，释放
@@ -286,9 +310,9 @@ void *KdMedia::camera_capture_frame_thread(void *arg)
     return nullptr;
 }
 
-
 void *KdMedia::camera_venc_stream_thread(void *arg)
 {
+    printf("camera_venc_stream_thread start, TID: %d\n", syscall(SYS_gettid));
     KdMedia *media = static_cast<KdMedia*>(arg);
     AVFrame *frame = media->frame_;
     AVFormatContext *fmt_ctx = media->fmt_ctx_;
@@ -296,8 +320,28 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
     AVPacket *pkt2 = media->pkt_;
     KdMediaFeatureConfig &feature_config = media->feature_config_;
     KdMediaInputConfig &input_config = media->input_config_;
+    OsdManager osd_manager;
+    bool osd_ready = false;
     int ret;
     bool bget_pkt = false;
+
+    if(input_config.osd_region)
+    {
+        ret = osd_manager.Init(
+            input_config.venc_width,
+            input_config.venc_height,
+            (AVRational){1, 30},
+            input_config.osd_region,
+            "mmap", "dmabuf");
+        if (ret < 0) {
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(ret, errbuf, sizeof(errbuf));
+            std::cerr << "nonai2d osd init failed: " << errbuf << std::endl;
+        } else {
+            osd_ready = true;
+        }
+    }
+
     while(true){
         AVPacket *pkt = nullptr;
         if (media->stop_flag_) {
@@ -337,13 +381,28 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
         }
 
         if (pkt) {
-            // Y平面
-            frame->data[0] = pkt->data;
-            frame->linesize[0] = fmt_ctx->streams[0]->codecpar->width;
-            // UV平面 (NV12格式中，UV数据紧跟在Y数据后)
-            frame->data[1] = pkt->data + fmt_ctx->streams[0]->codecpar->width * fmt_ctx->streams[0]->codecpar->height; // UV平面起始地址为Y平面后
-            frame->linesize[1] = fmt_ctx->streams[0]->codecpar->width; // NV12的UV平面宽度等于Y平面宽度
-            frame->pts = pkt->pts; // 设置帧的时间戳
+            if(media->camera_dmabuf_) {
+                frame->opaque = pkt->side_data;
+                frame->pts = pkt->pts;
+            } else {
+                // Y平面
+                frame->data[0] = pkt->data;
+                frame->linesize[0] = fmt_ctx->streams[0]->codecpar->width;
+                // UV平面 (NV12格式中，UV数据紧跟在Y数据后)
+                frame->data[1] = pkt->data + fmt_ctx->streams[0]->codecpar->width * fmt_ctx->streams[0]->codecpar->height; // UV平面起始地址为Y平面后
+                frame->linesize[1] = fmt_ctx->streams[0]->codecpar->width; // NV12的UV平面宽度等于Y平面宽度
+                frame->pts = pkt->pts; // 设置帧的时间戳
+            }
+
+            if (osd_ready) {
+                ret = osd_manager.Apply(frame);
+                if (ret < 0) {
+                    char errbuf[AV_ERROR_MAX_STRING_SIZE];
+                    av_strerror(ret, errbuf, sizeof(errbuf));
+                    std::cerr << "nonai2d osd apply failed, fallback bypass osd: " << errbuf << std::endl;
+                    osd_ready = false;
+                }
+            }
 
             // Send frame to encoder
             ret = avcodec_send_frame(codec_ctx, frame);

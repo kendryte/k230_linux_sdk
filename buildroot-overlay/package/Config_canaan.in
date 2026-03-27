@@ -30,6 +30,7 @@ menu "canaan package"
 	source "package/rtl8733bs/Config.in"
 	source "package/llama-cpp/Config.in"
 	source "package/uvc-gadget/Config.in"
+	source "package/nonai2d/Config.in"
 
 	config BR2_CANAAN_AUTO_RUN_CMD
 		string "auto run cmd"

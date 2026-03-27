@@ -23,13 +23,14 @@ static void Usage() {
     std::cout << "-b: the video encoder bitrate(kbps), default 2000" << std::endl;
     std::cout << "-c: the RTSP server type: 0=live555, 1=smolrtsp, default 0" << std::endl;
     std::cout << "-l: enable log, default 0" << std::endl;
+    std::cout << "-r: osd region count, default 0" << std::endl;
     exit(-1);
 }
 
 int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
     int result;
     opterr = 0;
-    while ((result = getopt(argc, argv, "H:t:w:h:b:c:l:")) != -1) {
+    while ((result = getopt(argc, argv, "H:t:w:h:b:c:l:r:")) != -1) {
         switch(result) {
         case 'H' : {
             Usage(); break;
@@ -37,7 +38,7 @@ int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
         case 't': {
             std::string s = optarg;
             if (s == "h264") config.video_type = KdMediaVideoType::kVideoTypeH264;
-            else if (s == "h265") config.video_type = KdMediaVideoType::kVideoTypeH264;
+            else if (s == "h265") config.video_type = KdMediaVideoType::kVideoTypeH265;
             else Usage();
             break;
         }
@@ -72,6 +73,12 @@ int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
             config.enable_log = n;
             break;
         }
+        case 'r': {
+            int n = atoi(optarg);
+            if (n < 0) Usage();
+            config.osd_region = n;
+            break;
+        }
         default: Usage(); break;
         }
     }
@@ -83,6 +90,7 @@ int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
     printf("Video encoder bitrate (kbps): %d\n", config.bitrate_kbps);
     printf("RTSP server type: %s\n", (config.rtsp_server_type == 0) ? "live555" : "smolrtsp");
     printf("Enable log: %s\n", (config.enable_log == 1) ? "true" : "false");
+    printf("OSD region count: %d\n", config.osd_region);
     printf("\n");
     return 0;
 }

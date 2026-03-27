@@ -1,0 +1,25 @@
+--- a/arch/riscv/boot/dts/canaan/k230.dtsi
++++ b/arch/riscv/boot/dts/canaan/k230.dtsi
+@@ -625,6 +625,22 @@
+ 			clock-names         = "vpu";
+ 		};
+
++		nonai2d: nonai2d@0x8080C000 {
++			status              = "okay";
++			compatible          = "canaan,nonai-2d";
++			reg                 = <0x0 0x8080C000 0x0 0x1000>;
++			interrupts          = <141 IRQ_TYPE_LEVEL_HIGH>;
++			power-domains       = <&sysctl_power K230_PM_DOMAIN_VPU>;
++		};
++
++		gdma: gdma@0x80800000 {
++			status              = "okay";
++			compatible          = "canaan,gdma";
++			reg                 = <0x0 0x80800000 0x0 0x1000>;
++			interrupts          = <140 IRQ_TYPE_LEVEL_HIGH>;
++			power-domains       = <&sysctl_power K230_PM_DOMAIN_VPU>;
++		};
++
+ 		pdma: pdma@0x80804000 {
+ 			#dma-cells          = <4>;
+ 			dma-channels        = <8>;

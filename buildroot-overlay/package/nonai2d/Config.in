@@ -1,0 +1,5 @@
+config BR2_PACKAGE_NONAI2D
+    bool "nonai2d"
+    default n
+    help
+        k230 nonai 2d driver

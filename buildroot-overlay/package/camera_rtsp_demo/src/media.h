@@ -31,7 +31,7 @@ struct KdMediaInputConfig {
   std::string camera_device = "/dev/video1";
   int rtsp_server_type = 0; // 0=live555, 1=smolrtsp
   int enable_log = 0; // Enable log
-
+  int osd_region = 0; // OSD region count, 0 means no OSD, up to NONAI2D_OSD_REGION_NUM
 };
 
 class IOnVEncData {
@@ -104,6 +104,8 @@ class KdMedia {
 
   std::list<AVPacket*> packet_list_;
   std::mutex list_mutex_;
+
+  bool camera_dmabuf_=false;
 };
 
 #endif // _KD_MEDIA_H
