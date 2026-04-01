@@ -94,14 +94,16 @@ stages:
     if [[ "$SEND" == "TRUE" ]];
     then
       test -d bin || mkdir ./bin;
-      test -f ./bin/send_feishu && rm -rf ./bin/send_feishu;
-      echo "start to download send_feishu";
-      wget -qc https://ai.b-bug.org/k230/test_resources/ci/tools/send_feishu -O ./bin/send_feishu;
-      chmod +x ./bin/send_feishu;
+      test -f ./bin/send_feishu.py && rm -rf ./bin/send_feishu.py;
+      echo "start to download send_feishu.py";
+      wget -qc https://ai.b-bug.org/k230/test_resources/ci/tools/send_feishu.py -O ./bin/send_feishu.py;
+      chmod +x ./bin/send_feishu.py;
+
       echo "---start to send feishu msg in for loop"
         stime=$(date +'%Y-%m-%d %H:%M:%S')
         echo "---run send feishu msg start time: $stime"
-        send_cmd="timeout 1m ./bin/send_feishu --msg_type pipeline --gitlab_repo $CI_PROJECT_NAME --pipeline_source $CI_PIPELINE_SOURCE --pipeline_version ${SUB_BASE} --pipeline_seconds $total_seconds --pipeline_stage $CI_JOB_STAGE --pipeline_url $CI_PIPELINE_URL --pipeline_result $CI_JOB_STATUS --image_url '$image_url' --job_name='$CI_JOB_NAME'"
+        send_cmd="timeout 1m python3 ./bin/send_feishu.py --msg_type pipeline --gitlab_repo $CI_PROJECT_NAME --pipeline_source $CI_PIPELINE_SOURCE --pipeline_version ${SUB_BASE} --pipeline_seconds $total_seconds --pipeline_stage $CI_JOB_STAGE --pipeline_url $CI_PIPELINE_URL --pipeline_result $CI_JOB_STATUS --image_url '$image_url' --job_name='$CI_JOB_NAME' --pipeline_id='$CI_PIPELINE_ID'"
+
         for i in {1..6}; do
           if [ $i -eq 6 ]
           then
