@@ -625,94 +625,94 @@ static int nonai_2d_s_ctrl(struct v4l2_ctrl *ctrl)
                 int index, j;
                 dma_addr_t dma_handle;
 
-                index = attrs->index;
-                if(index >= K_MAX_2D_OSD_REGION_NUM) {
-                    v4l2_err(&ctx->drv_ctx->v4l2_dev, "set 2d osd attr[%d] failed, invalid index\n", index);
-                    return -EINVAL;
-                }
+                for(index = 0; index < NONAI2D_OSD_REGION_NUM; index++) {
 
-                chn->osd_attr[index].width = attrs->width;
-                chn->osd_attr[index].height = attrs->height;
-                chn->osd_attr[index].startx = attrs->startx;
-                chn->osd_attr[index].starty = attrs->starty;
-                chn->osd_attr[index].bg_alpha = attrs->bg_alpha;
-                chn->osd_attr[index].osd_alpha = attrs->osd_alpha;
-                chn->osd_attr[index].video_alpha = attrs->video_alpha;
-                chn->osd_attr[index].add_order = (enum k_2d_add_order)attrs->add_order;
-                chn->osd_attr[index].bg_color = attrs->bg_color;
+                    chn->osd_valid |= attrs[index].valid << index;
 
-                /* Helper to find format */
-                chn->osd_attr[index].fmt = K_2D_OSD_FMT_ARGB8888; // Default
-                bytes_per_pixel = 4;
-                for (j = 0; j < ARRAY_SIZE(formats); j++) {
-                    if (formats[j].fourcc == attrs->pixfmt) {
-                        chn->osd_attr[index].fmt = formats[j].fmt_osd;
-                        bytes_per_pixel = DIV_ROUND_UP(formats[j].depth, 8);
-                        break;
+                    if(attrs[index].valid == 0) {
+                        nonai_2d_release_osd_dmabuf(ctx->drv_ctx, chn, index);
+                        continue;
                     }
-                }
+                    chn->osd_attr[index].width = attrs[index].width;
+                    chn->osd_attr[index].height = attrs[index].height;
+                    chn->osd_attr[index].startx = attrs[index].startx;
+                    chn->osd_attr[index].starty = attrs[index].starty;
+                    chn->osd_attr[index].bg_alpha = attrs[index].bg_alpha;
+                    chn->osd_attr[index].osd_alpha = attrs[index].osd_alpha;
+                    chn->osd_attr[index].video_alpha = attrs[index].video_alpha;
+                    chn->osd_attr[index].add_order = (enum k_2d_add_order)attrs[index].add_order;
+                    chn->osd_attr[index].bg_color = attrs[index].bg_color;
 
-                if (!attrs->data) {
-                    v4l2_err(&ctx->drv_ctx->v4l2_dev, "set 2d osd attr[%d] failed, data is null\n", index);
-                    return -EINVAL;
-                }
+                    /* Helper to find format */
+                    chn->osd_attr[index].fmt = K_2D_OSD_FMT_ARGB8888; // Default
+                    bytes_per_pixel = 4;
+                    for (j = 0; j < ARRAY_SIZE(formats); j++) {
+                        if (formats[j].fourcc == attrs[index].pixfmt) {
+                            chn->osd_attr[index].fmt = formats[j].fmt_osd;
+                            bytes_per_pixel = DIV_ROUND_UP(formats[j].depth, 8);
+                            break;
+                        }
+                    }
 
-                osd_size = (size_t)attrs->width * attrs->height * bytes_per_pixel;
-                if (osd_size == 0) {
-                    v4l2_err(&ctx->drv_ctx->v4l2_dev, "set 2d osd attr[%d] failed, invalid size\n", index);
-                    return -EINVAL;
-                }
+                    if (!attrs[index].data) {
+                        v4l2_err(&ctx->drv_ctx->v4l2_dev, "set 2d osd attr[%d] failed, data is null\n", index);
+                        return -EINVAL;
+                    }
 
-                if (!chn->osd_dmabuf[index] || chn->osd_dmabuf_size[index] != osd_size) {
-                    nonai_2d_release_osd_dmabuf(ctx->drv_ctx, chn, index);
+                    osd_size = (size_t)attrs[index].width * attrs[index].height * bytes_per_pixel;
+                    if (osd_size == 0) {
+                        v4l2_err(&ctx->drv_ctx->v4l2_dev, "set 2d osd attr[%d] failed, invalid size\n", index);
+                        return -EINVAL;
+                    }
 
-                    dmabuf = dma_alloc_coherent(ctx->drv_ctx->dev, osd_size,
-                                    &dma_handle, GFP_KERNEL);
-                    if (!dmabuf) {
+                    if (!chn->osd_dmabuf[index] || chn->osd_dmabuf_size[index] != osd_size) {
+                        nonai_2d_release_osd_dmabuf(ctx->drv_ctx, chn, index);
+
+                        dmabuf = dma_alloc_coherent(ctx->drv_ctx->dev, osd_size,
+                                        &dma_handle, GFP_KERNEL);
+                        if (!dmabuf) {
+                            v4l2_err(&ctx->drv_ctx->v4l2_dev,
+                                "set 2d osd attr[%d] failed, dma alloc size=%zu\n",
+                                index, osd_size);
+                            return -ENOMEM;
+                        }
+
+                        chn->osd_dmabuf[index] = dmabuf;
+                        chn->osd_dmabuf_size[index] = osd_size;
+                        chn->osd_dma_handle[index] = dma_handle;
+                    }
+
+                    dmabuf = chn->osd_dmabuf[index];
+                    if (copy_from_user(dmabuf, (const void __user *)attrs[index].data,
+                            osd_size)) {
                         v4l2_err(&ctx->drv_ctx->v4l2_dev,
-                             "set 2d osd attr[%d] failed, dma alloc size=%zu\n",
-                             index, osd_size);
-                        return -ENOMEM;
+                            "set 2d osd attr[%d] failed, copy data size=%zu\n",
+                            index, osd_size);
+                        return -EFAULT;
                     }
 
-                    chn->osd_dmabuf[index] = dmabuf;
-                    chn->osd_dmabuf_size[index] = osd_size;
-                    chn->osd_dma_handle[index] = dma_handle;
+                    chn->osd_attr[index].phys_addr[0] = (uint32_t)chn->osd_dma_handle[index];
+                    chn->osd_attr[index].phys_addr[1] = 0;
+                    chn->osd_attr[index].phys_addr[2] = 0;
+
+                    nonai_2d_info(
+                        "set osd_attr idx=%d w=%u h=%u x=%u y=%u bg_a=%u osd_a=%u vid_a=%u order=%u bg=0x%08x pixfmt=0x%08x fmt=%u dma=0x%llx size=%zu valid=0x%x\n",
+                        index,
+                        attrs[index].width,
+                        attrs[index].height,
+                        attrs[index].startx,
+                        attrs[index].starty,
+                        attrs[index].bg_alpha,
+                        attrs[index].osd_alpha,
+                        attrs[index].video_alpha,
+                        attrs[index].add_order,
+                        attrs[index].bg_color,
+                        attrs[index].pixfmt,
+                        chn->osd_attr[index].fmt,
+                        (unsigned long long)chn->osd_dma_handle[index],
+                        osd_size,
+                        chn->osd_valid);
                 }
-
-                dmabuf = chn->osd_dmabuf[index];
-                if (copy_from_user(dmabuf, (const void __user *)attrs->data,
-                           osd_size)) {
-                    v4l2_err(&ctx->drv_ctx->v4l2_dev,
-                         "set 2d osd attr[%d] failed, copy data size=%zu\n",
-                         index, osd_size);
-                    return -EFAULT;
-                }
-
-                chn->osd_attr[index].phys_addr[0] = (uint32_t)chn->osd_dma_handle[index];
-                chn->osd_attr[index].phys_addr[1] = 0;
-                chn->osd_attr[index].phys_addr[2] = 0;
-
-                chn->osd_valid |= 1 << index;
-
-                nonai_2d_info(
-                    "set osd_attr idx=%d w=%u h=%u x=%u y=%u bg_a=%u osd_a=%u vid_a=%u order=%u bg=0x%08x pixfmt=0x%08x fmt=%u dma=0x%llx size=%zu valid=0x%x\n",
-                    index,
-                    attrs->width,
-                    attrs->height,
-                    attrs->startx,
-                    attrs->starty,
-                    attrs->bg_alpha,
-                    attrs->osd_alpha,
-                    attrs->video_alpha,
-                    attrs->add_order,
-                    attrs->bg_color,
-                    attrs->pixfmt,
-                    chn->osd_attr[index].fmt,
-                    (unsigned long long)chn->osd_dma_handle[index],
-                    osd_size,
-                    chn->osd_valid);
-
             }
             break;
         case V4L2_CID_USER_NONAI2D_BORDER_ATTR:
@@ -780,7 +780,7 @@ static const struct v4l2_ctrl_config nonai_2d_ctrl_osd_attr_cfg = {
     .step = 1,
     .def = 0,
     .elem_size = sizeof(u8),
-    .dims = { sizeof(nonai2d_osd_attr), 0, 0, 0 },
+    .dims = { sizeof(nonai2d_osd_attr)*NONAI2D_OSD_REGION_NUM, 0, 0, 0 },
 };
 
 static const struct v4l2_ctrl_config nonai_2d_ctrl_border_attr_cfg = {

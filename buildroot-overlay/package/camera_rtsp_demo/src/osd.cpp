@@ -24,22 +24,46 @@
 #include <sys/stat.h>
 #include "OSD1_40x40_argb.c"
 
-static constexpr char kNonai2dCommandTarget[] = "nonai2d_osd";
+static constexpr char kNonai2dCommandTarget[] = "nonai2d";
+
+static AVFilterContext *FindNonai2dContext(AVFilterGraph *graph) {
+    if (!graph) {
+        return nullptr;
+    }
+
+    AVFilterContext *ctx = avfilter_graph_get_filter(graph, kNonai2dCommandTarget);
+    if (ctx) {
+        return ctx;
+    }
+
+    ctx = avfilter_graph_get_filter(graph, "Parsed_nonai2d_osd_0");
+    if (ctx) {
+        return ctx;
+    }
+
+    for (unsigned i = 0; i < graph->nb_filters; ++i) {
+        AVFilterContext *it = graph->filters[i];
+        if (!it || !it->filter || !it->filter->name) {
+            continue;
+        }
+        if (strcmp(it->filter->name, "nonai2d_osd") == 0) {
+            return it;
+        }
+    }
+
+    return nullptr;
+}
 
 OsdManager::OsdManager() {
     graph_ = nullptr;
     main_src_ = nullptr;
-    osd_src_ = nullptr;
+    osd_ctx_ = nullptr;
     sink_ = nullptr;
     width_ = 0;
     height_ = 0;
     time_base_ = {0, 0};
     inited_ = false;
     frame_cnt_ = 0;
-
-    for (int i = 0; i < NONAI2D_OSD_REGION_NUM; ++i) {
-        osd_frame_[i] = nullptr;
-    }
 }
 
 OsdManager::~OsdManager() {
@@ -55,18 +79,14 @@ void OsdManager::Deinit() {
         return;
     }
 
-    for (int i = 0; i < NONAI2D_OSD_REGION_NUM; ++i) {
-        if (osd_frame_[i]) {
-            av_frame_free(&osd_frame_[i]);
-            osd_frame_[i] = nullptr;
-        }
-    }
-
     if (graph_) {
         avfilter_graph_free(&graph_);
         graph_ = nullptr;
     }
 
+    main_src_ = nullptr;
+    osd_ctx_ = nullptr;
+    sink_ = nullptr;
     inited_ = false;
 }
 
@@ -90,31 +110,13 @@ int OsdManager::TriWave(int t, int max_v) {
     return period - p;
 }
 
-int OsdManager::SendNonai2dOsdCommand(const char *cmd, int value) {
-    char arg[32];
-    char res[128];
-
-    if (!graph_ || !cmd) {
-        return AVERROR(EINVAL);
-    }
-
-    snprintf(arg, sizeof(arg), "%d", value);
-    return avfilter_graph_send_command(graph_,
-                                       kNonai2dCommandTarget,
-                                       cmd,
-                                       arg,
-                                       res,
-                                       sizeof(res),
-                                       0);
-}
-
-int OsdManager::ReconfigNonai2dOsdPosition(int base_x, int base_y) {
+int OsdManager::ReconfigOsd(int base_x, int base_y) {
     int ret;
     int changed = 0;
     int max_x;
     int max_y;
 
-    if (!graph_) {
+    if (!graph_ || !osd_ctx_) {
         return AVERROR(EINVAL);
     }
 
@@ -122,7 +124,6 @@ int OsdManager::ReconfigNonai2dOsdPosition(int base_x, int base_y) {
     max_y = height_ > 40 ? height_ - 40 : 0;
 
     for (int i = 0; i < osd_config_.region_num; ++i) {
-        char key[16];
         int x = base_x + i * 48;
         int y = base_y + (i % 2) * 36;
 
@@ -143,14 +144,19 @@ int OsdManager::ReconfigNonai2dOsdPosition(int base_x, int base_y) {
             continue;
         }
 
-        snprintf(key, sizeof(key), "x%d", i);
-        ret = SendNonai2dOsdCommand(key, x);
-        if (ret < 0) {
-            return ret;
-        }
+        char args[512];
+        char res[128];
 
-        snprintf(key, sizeof(key), "y%d", i);
-        ret = SendNonai2dOsdCommand(key, y);
+        snprintf(args, sizeof(args),
+               "%d:index:%d:x:%d:y:%d:width:%d:height:%d:valid:%d:data:%p",
+               i, i, x, y, 40, 40, 1, osd_data);
+
+        ret = avfilter_process_command(osd_ctx_,
+                                       "config_region",
+                                       args,
+                                       res,
+                                       sizeof(res),
+                                       0);
         if (ret < 0) {
             return ret;
         }
@@ -166,7 +172,6 @@ int OsdManager::ReconfigNonai2dOsdPosition(int base_x, int base_y) {
 int OsdManager::Init(int width, int height, AVRational time_base, int regions,
                      const char* in_mem_type, const char* out_mem_type) {
     int ret;
-    int region_num;
     char args[256];
     char region_args[384];
     std::string filter_desc;
@@ -175,27 +180,9 @@ int OsdManager::Init(int width, int height, AVRational time_base, int regions,
     AVFilterInOut *inputs = NULL;
     AVFilterInOut *outputs = NULL;
     std::string nonai2d_dev;
-    const char *eof_action_str = "repeat";
-    Nonai2dOsdConfig osd_cfg;
 
-    osd_cfg.device = "";
-
-    osd_cfg.region_num = regions;
-    for (int i = 0; i < regions; ++i) {
-        osd_cfg.x[i] = 100 + i*50;
-        osd_cfg.y[i] = 100;
-        osd_cfg.index[i] = i;
-        osd_cfg.bg_alpha[i] = 200;
-        osd_cfg.osd_alpha[i] = 200;
-        osd_cfg.video_alpha[i] = 200;
-        osd_cfg.add_order[i] = 0;
-        osd_cfg.bg_color[i] = 0xC88080;
-        osd_cfg.data[i] = nullptr;
-    }
-    osd_cfg.eof_action = 0;
-    osd_cfg.shortest = 0;
-    osd_cfg.repeatlast = 1;
-
+    osd_config_.device = "";
+    osd_config_.region_num = regions;
     auto detect_nonai2d_device = []() -> std::string {
         for (int i = 0; i < 64; ++i) {
             char name_path[128];
@@ -227,7 +214,6 @@ int OsdManager::Init(int width, int height, AVRational time_base, int regions,
     width_ = width;
     height_ = height;
     time_base_ = time_base;
-    osd_config_ = osd_cfg;
 
     snprintf(args, sizeof(args),
              "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=1/1",
@@ -237,68 +223,23 @@ int OsdManager::Init(int width, int height, AVRational time_base, int regions,
         goto osd_init_fail;
     }
 
-    snprintf(args, sizeof(args),
-             "video_size=40x40:pix_fmt=%d:time_base=%d/%d:pixel_aspect=1/1",
-             AV_PIX_FMT_ARGB, time_base.num, time_base.den);
-    ret = avfilter_graph_create_filter(&osd_src_, buffer, "osd", args, NULL, graph_);
-    if (ret < 0) {
-        goto osd_init_fail;
-    }
-
     ret = avfilter_graph_create_filter(&sink_, buffersink, "out", NULL, NULL, graph_);
     if (ret < 0) {
         goto osd_init_fail;
     }
 
-    if (!osd_cfg.device.empty()) {
-        nonai2d_dev = osd_cfg.device;
+    if (!osd_config_.device.empty()) {
+        nonai2d_dev = osd_config_.device;
     } else {
         nonai2d_dev = detect_nonai2d_device();
     }
 
-    if (osd_cfg.eof_action == 1) {
-        eof_action_str = "endall";
-    } else if (osd_cfg.eof_action == 2) {
-        eof_action_str = "pass";
-    }
-
-    region_num = osd_cfg.region_num;
-    if (region_num < 1) {
-        region_num = 1;
-    }
-    if (region_num > NONAI2D_OSD_REGION_NUM) {
-        region_num = NONAI2D_OSD_REGION_NUM;
-    }
-    osd_config_.region_num = region_num;
-
     snprintf(region_args, sizeof(region_args),
-             "[in][osd]nonai2d_osd=device=%s:region_num=%d:in_mem_type=%s:out_mem_type=%s:",
-             nonai2d_dev.c_str(),
-             region_num,
-             in_mem_type,
-             out_mem_type);
+            "[in]nonai2d_osd@nonai2d=device=%s:in_mem_type=%s:out_mem_type=%s[out]",
+            nonai2d_dev.c_str(),
+            in_mem_type,
+            out_mem_type);
     filter_desc = region_args;
-
-    for (int i = 0; i < region_num; ++i) {
-        snprintf(region_args, sizeof(region_args),
-                 "x%d=%d:y%d=%d:index%d=%d:bg_alpha%d=%d:osd_alpha%d=%d:video_alpha%d=%d:add_order%d=%d:bg_color%d=0x%08X:",
-                 i, osd_cfg.x[i],
-                 i, osd_cfg.y[i],
-                 i, osd_cfg.index[i],
-                 i, osd_cfg.bg_alpha[i],
-                 i, osd_cfg.osd_alpha[i],
-                 i, osd_cfg.video_alpha[i],
-                 i, osd_cfg.add_order[i],
-                 i, osd_cfg.bg_color[i]);
-        filter_desc += region_args;
-    }
-
-    snprintf(region_args, sizeof(region_args),
-             "eof_action=%s:shortest=%d:repeatlast=%d[out]",
-             eof_action_str,
-             osd_cfg.shortest,
-             osd_cfg.repeatlast);
-    filter_desc += region_args;
 
     std::cout << "nonai2d_osd filter desc: " << filter_desc << std::endl;
     std::cout << "nonai2d_osd use device: " << nonai2d_dev << std::endl;
@@ -313,15 +254,7 @@ int OsdManager::Init(int width, int height, AVRational time_base, int regions,
     outputs->name = av_strdup("in");
     outputs->filter_ctx = main_src_;
     outputs->pad_idx = 0;
-    outputs->next = avfilter_inout_alloc();
-    if (!outputs->next) {
-        ret = AVERROR(ENOMEM);
-        goto osd_init_fail;
-    }
-    outputs->next->name = av_strdup("osd");
-    outputs->next->filter_ctx = osd_src_;
-    outputs->next->pad_idx = 0;
-    outputs->next->next = NULL;
+    outputs->next = NULL;
 
     inputs->name = av_strdup("out");
     inputs->filter_ctx = sink_;
@@ -338,34 +271,13 @@ int OsdManager::Init(int width, int height, AVRational time_base, int regions,
         goto osd_init_fail;
     }
 
-    for (int i = 0; i < region_num; ++i) {
-        osd_frame_[i] = av_frame_alloc();
-        if (!osd_frame_[i]) {
-            ret = AVERROR(ENOMEM);
-            goto osd_init_fail;
-        }
-
-        osd_frame_[i]->format = AV_PIX_FMT_ARGB;
-        osd_frame_[i]->width = 40;
-        osd_frame_[i]->height = 40;
-        osd_frame_[i]->pts = 0;
-
-        ret = av_frame_get_buffer(osd_frame_[i], 32);
-        if (ret < 0) {
-            goto osd_init_fail;
-        }
-
-        ret = av_frame_make_writable(osd_frame_[i]);
-        if (ret < 0) {
-            goto osd_init_fail;
-        }
-
-        for (int y = 0; y < 40; y++) {
-            memcpy(osd_frame_[i]->data[0] + y * osd_frame_[i]->linesize[0],
-                   ((const uint8_t *)osd_data) + y * 40 * 4,
-                   40 * 4);
-        }
+    osd_ctx_ = FindNonai2dContext(graph_);
+    if (!osd_ctx_) {
+        printf("%s>failed line %d\n", __func__, __LINE__);
+        ret = AVERROR_FILTER_NOT_FOUND;
+        goto osd_init_fail;
     }
+
 
     inited_ = true;
     avfilter_inout_free(&inputs);
@@ -381,7 +293,6 @@ osd_init_fail:
 
 int OsdManager::Apply(AVFrame *frame) {
     int ret;
-    AVFrame *osd_frame;
 
     if (!inited_ || !frame) {
         printf("%s>failed line %d\n", __func__, __LINE__);
@@ -395,7 +306,7 @@ int OsdManager::Apply(AVFrame *frame) {
         int x = TriWave(step * 14, max_x);
         int y = TriWave(step * 9 + 37, max_y);
 
-        ret = ReconfigNonai2dOsdPosition(x, y);
+        ret = ReconfigOsd(x, y);
         if (ret < 0) {
             printf("%s>failed line %d, reconfig ret=%d\n", __func__, __LINE__, ret);
             return ret;
@@ -403,18 +314,6 @@ int OsdManager::Apply(AVFrame *frame) {
     }
 
     ret = av_buffersrc_add_frame_flags(main_src_, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
-    if (ret < 0) {
-        printf("%s>failed line %d\n", __func__, __LINE__);
-        return ret;
-    }
-
-    osd_frame = osd_frame_[0];
-    if (!osd_frame) {
-        return AVERROR(EINVAL);
-    }
-
-    osd_frame->pts = frame->pts;
-    ret = av_buffersrc_add_frame_flags(osd_src_, osd_frame, AV_BUFFERSRC_FLAG_KEEP_REF);
     if (ret < 0) {
         printf("%s>failed line %d\n", __func__, __LINE__);
         return ret;

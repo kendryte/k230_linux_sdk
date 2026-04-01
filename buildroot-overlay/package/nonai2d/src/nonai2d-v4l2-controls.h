@@ -45,6 +45,7 @@ typedef enum {
 
 typedef struct {
     uint8_t  index;                     /* OSD region index, should be less than NONAI2D_OSD_REGION_NUM */
+    uint8_t  valid;                     /* Enable or disable of OSD region */
     uint16_t width;                     /* Width of OSD image */
     uint16_t height;                    /* Height of OSD image */
     uint16_t startx;                    /* Start coordinate in horizontal of OSD image */

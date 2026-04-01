@@ -26,9 +26,10 @@ typedef struct {
     int add_order[NONAI2D_OSD_REGION_NUM];
     uint32_t bg_color[NONAI2D_OSD_REGION_NUM];
     char *data[NONAI2D_OSD_REGION_NUM];
-    int eof_action;
-    int shortest;
-    int repeatlast;
+    int width[NONAI2D_OSD_REGION_NUM];
+    int height[NONAI2D_OSD_REGION_NUM];
+    int pixfmt[NONAI2D_OSD_REGION_NUM];
+    int valid[NONAI2D_OSD_REGION_NUM];
 } Nonai2dOsdConfig;
 
 class OsdManager {
@@ -43,15 +44,12 @@ public:
 
 private:
     int TriWave(int t, int max_v);
-    int SendNonai2dOsdCommand(const char *cmd, int value);
-    int ReconfigNonai2dOsdPosition(int base_x, int base_y);
-    void DumpNonai2dOsdOutputOnce(const AVFrame *frame);
+    int ReconfigOsd(int base_x, int base_y);
 
     AVFilterGraph *graph_;
     AVFilterContext *main_src_;
-    AVFilterContext *osd_src_;
+    AVFilterContext *osd_ctx_;
     AVFilterContext *sink_;
-    AVFrame *osd_frame_[NONAI2D_OSD_REGION_NUM];
     int width_;
     int height_;
     AVRational time_base_;

@@ -7,6 +7,7 @@
 #include <string>
 #include <list>
 #include <mutex>
+#include "osd.h"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -88,6 +89,7 @@ class KdMedia {
   static void *camera_venc_stream_thread(void *arg);
   int _init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame);
   int _init_camera(AVFormatContext *&fmt_ctx);
+  int _init_osd();
 
   private:
   KdMediaInputConfig input_config_;
@@ -106,6 +108,7 @@ class KdMedia {
   std::mutex list_mutex_;
 
   bool camera_dmabuf_=false;
+  OsdManager osd_manager_;
 };
 
 #endif // _KD_MEDIA_H

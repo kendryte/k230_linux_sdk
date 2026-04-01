@@ -13,9 +13,6 @@
 #include <atomic>
 
 static constexpr size_t kMaxRawPacketQueueSize = 6;
-
-#include "osd.h"
-
 int KdMedia::configure_media_features(const KdMediaInputConfig &input_config, const KdMediaFeatureConfig &feature_config)
 {
     input_config_ = input_config;
@@ -33,6 +30,10 @@ int KdMedia::enable_media_features()
 
     if (_init_encoder(codec_ctx_, frame_) < 0) {
         avformat_close_input(&fmt_ctx_);
+        return -1;
+    }
+
+    if (_init_osd() < 0) {
         return -1;
     }
 
@@ -246,6 +247,27 @@ int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
     return 0;
 }
 
+int KdMedia::_init_osd() {
+
+    int ret=0;
+
+    if(input_config_.osd_region)
+    {
+        ret = osd_manager_.Init(
+            input_config_.venc_width,
+            input_config_.venc_height,
+            (AVRational){1, 30},
+            input_config_.osd_region,
+            "mmap", "dmabuf");
+        if (ret < 0) {
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(ret, errbuf, sizeof(errbuf));
+            std::cerr << "nonai2d osd init failed: " << errbuf << std::endl;
+        }
+    }
+    return ret;
+}
+
 #include <time.h>
 static uint64_t get_precise_timestamp_us() {
     struct timespec ts;
@@ -320,27 +342,9 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
     AVPacket *pkt2 = media->pkt_;
     KdMediaFeatureConfig &feature_config = media->feature_config_;
     KdMediaInputConfig &input_config = media->input_config_;
-    OsdManager osd_manager;
-    bool osd_ready = false;
+    OsdManager &osd_manager = media->osd_manager_;
     int ret;
     bool bget_pkt = false;
-
-    if(input_config.osd_region)
-    {
-        ret = osd_manager.Init(
-            input_config.venc_width,
-            input_config.venc_height,
-            (AVRational){1, 30},
-            input_config.osd_region,
-            "mmap", "dmabuf");
-        if (ret < 0) {
-            char errbuf[AV_ERROR_MAX_STRING_SIZE];
-            av_strerror(ret, errbuf, sizeof(errbuf));
-            std::cerr << "nonai2d osd init failed: " << errbuf << std::endl;
-        } else {
-            osd_ready = true;
-        }
-    }
 
     while(true){
         AVPacket *pkt = nullptr;
@@ -394,13 +398,12 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
                 frame->pts = pkt->pts; // 设置帧的时间戳
             }
 
-            if (osd_ready) {
+            if (input_config.osd_region) {
                 ret = osd_manager.Apply(frame);
                 if (ret < 0) {
                     char errbuf[AV_ERROR_MAX_STRING_SIZE];
                     av_strerror(ret, errbuf, sizeof(errbuf));
                     std::cerr << "nonai2d osd apply failed, fallback bypass osd: " << errbuf << std::endl;
-                    osd_ready = false;
                 }
             }
 
