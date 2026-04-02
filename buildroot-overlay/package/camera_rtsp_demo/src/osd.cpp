@@ -24,14 +24,12 @@
 #include <sys/stat.h>
 #include "OSD1_40x40_argb.c"
 
-static constexpr char kNonai2dCommandTarget[] = "nonai2d";
-
 static AVFilterContext *FindNonai2dContext(AVFilterGraph *graph) {
     if (!graph) {
         return nullptr;
     }
 
-    AVFilterContext *ctx = avfilter_graph_get_filter(graph, kNonai2dCommandTarget);
+    AVFilterContext *ctx = avfilter_graph_get_filter(graph, "nonai2d");
     if (ctx) {
         return ctx;
     }

@@ -626,8 +626,10 @@ static int nonai_2d_s_ctrl(struct v4l2_ctrl *ctrl)
                 dma_addr_t dma_handle;
 
                 for(index = 0; index < NONAI2D_OSD_REGION_NUM; index++) {
-
-                    chn->osd_valid |= attrs[index].valid << index;
+                    if (attrs[index].valid)
+                        chn->osd_valid |= (1U << index);
+                    else
+                        chn->osd_valid &= ~(1U << index);
 
                     if(attrs[index].valid == 0) {
                         nonai_2d_release_osd_dmabuf(ctx->drv_ctx, chn, index);
@@ -683,6 +685,7 @@ static int nonai_2d_s_ctrl(struct v4l2_ctrl *ctrl)
                     }
 
                     dmabuf = chn->osd_dmabuf[index];
+
                     if (copy_from_user(dmabuf, (const void __user *)attrs[index].data,
                             osd_size)) {
                         v4l2_err(&ctx->drv_ctx->v4l2_dev,
@@ -775,6 +778,7 @@ static const struct v4l2_ctrl_config nonai_2d_ctrl_osd_attr_cfg = {
     .id = V4L2_CID_USER_NONAI2D_OSD_ATTR,
     .name = "nonai2d osd attr",
     .type = V4L2_CTRL_TYPE_U8,
+    .flags = V4L2_CTRL_FLAG_EXECUTE_ON_WRITE,
     .min = 0,
     .max = 0xff,
     .step = 1,

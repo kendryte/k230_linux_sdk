@@ -8,16 +8,6 @@
  ocr_filter_deps="libtesseract"
  ocv_filter_deps="libopencv"
  openclsrc_filter_deps="opencl"
---- a/libavfilter/Makefile
-+++ b/libavfilter/Makefile
-@@ -340,6 +340,7 @@
- OBJS-$(CONFIG_NLMEANS_FILTER)                += vf_nlmeans.o
- OBJS-$(CONFIG_NLMEANS_OPENCL_FILTER)         += vf_nlmeans_opencl.o opencl.o opencl/nlmeans.o
- OBJS-$(CONFIG_NNEDI_FILTER)                  += vf_nnedi.o
-+OBJS-$(CONFIG_NONAI2D_OSD_FILTER)            += vf_nonai2d_osd.o framesync.o
- OBJS-$(CONFIG_NOFORMAT_FILTER)               += vf_format.o
- OBJS-$(CONFIG_NOISE_FILTER)                  += vf_noise.o
- OBJS-$(CONFIG_NORMALIZE_FILTER)              += vf_normalize.o
 --- a/libavfilter/allfilters.c
 +++ b/libavfilter/allfilters.c
 @@ -325,6 +325,7 @@
@@ -28,9 +18,19 @@
  extern AVFilter ff_vf_noformat;
  extern AVFilter ff_vf_noise;
  extern AVFilter ff_vf_normalize;
+--- a/libavfilter/Makefile
++++ b/libavfilter/Makefile
+@@ -340,6 +340,7 @@
+ OBJS-$(CONFIG_NLMEANS_FILTER)                += vf_nlmeans.o
+ OBJS-$(CONFIG_NLMEANS_OPENCL_FILTER)         += vf_nlmeans_opencl.o opencl.o opencl/nlmeans.o
+ OBJS-$(CONFIG_NNEDI_FILTER)                  += vf_nnedi.o
++OBJS-$(CONFIG_NONAI2D_OSD_FILTER)            += vf_nonai2d_osd.o framesync.o
+ OBJS-$(CONFIG_NOFORMAT_FILTER)               += vf_format.o
+ OBJS-$(CONFIG_NOISE_FILTER)                  += vf_noise.o
+ OBJS-$(CONFIG_NORMALIZE_FILTER)              += vf_normalize.o
 --- a/libavfilter/vf_nonai2d_osd.c
 +++ b/libavfilter/vf_nonai2d_osd.c
-@@ -0,0 +1,982 @@
+@@ -0,0 +1,1153 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -73,7 +73,7 @@
 +#include "internal.h"
 +#include "video.h"
 +
-+#define NONAI2D_OSD_REGION_NUM (8)             /* Max region number of osd */
++#define NONAI2D_OSD_MAX_REGION (8)             /* Max region number of osd */
 +#define NONAI2D_BORDER_NUM (32)                /* Max number of border */
 +
 +#define V4L2_CID_USER_NONAI2D_BASE              (V4L2_CID_USER_BASE + 0x1200)
@@ -108,7 +108,8 @@
 +} nonai2d_osd_order;
 +
 +typedef struct {
-+    uint8_t  index;                     /* OSD region index, should be less than NONAI2D_OSD_REGION_NUM */
++    uint8_t  index;                     /* OSD region index, should be less than NONAI2D_OSD_NONAI2D_OSD_MAX_REGION */
++    uint8_t  valid;                     /* Enable or disable of OSD region */
 +    uint16_t width;                     /* Width of OSD image */
 +    uint16_t height;                    /* Height of OSD image */
 +    uint16_t startx;                    /* Start coordinate in horizontal of OSD image */
@@ -165,15 +166,12 @@
 +} nonai2d_coef_attr;
 +
 +#define MAIN_INPUT 0
-+#define OSD_INPUT  1
-+#define NONAI2D_OSD_MAX_REGION 8
 +
 +typedef struct Nonai2dOSDContext {
 +    const AVClass *class;
 +
 +    FFFrameSync fs;
 +    char *device;
-+    int region_num;
 +    int x[NONAI2D_OSD_MAX_REGION];
 +    int y[NONAI2D_OSD_MAX_REGION];
 +    int index[NONAI2D_OSD_MAX_REGION];
@@ -183,19 +181,19 @@
 +    int add_order[NONAI2D_OSD_MAX_REGION];
 +    uint32_t bg_color[NONAI2D_OSD_MAX_REGION];
 +    uint8_t *data[NONAI2D_OSD_MAX_REGION];
++    int width[NONAI2D_OSD_MAX_REGION];
++    int height[NONAI2D_OSD_MAX_REGION];
++    enum AVPixelFormat pixfmt[NONAI2D_OSD_MAX_REGION];
++    int valid[NONAI2D_OSD_MAX_REGION];
 +
 +    int fd;
 +    int streaming;
 +    int configured;
 +
 +    enum AVPixelFormat main_fmt;
-+    enum AVPixelFormat osd_fmt;
 +    int main_w;
 +    int main_h;
-+    int osd_w;
-+    int osd_h;
 +    uint32_t main_fourcc;
-+    uint32_t osd_fourcc;
 +    int main_plane_num;
 +    int osd_plane_num;
 +    int osd_buf_count;
@@ -213,6 +211,8 @@
 +    size_t main_len[VIDEO_MAX_PLANES];
 +
 +    int osd_attr_needs_update;
++    char* in_mem_type;
++    char* out_mem_type;
 +
 +    uint32_t frame_cnt;
 +} Nonai2dOSDContext;
@@ -227,92 +227,120 @@
 +
 +static const AVOption nonai2d_osd_options[] = {
 +    { "device", "nonai2d v4l2 device path", OFFSET(device), AV_OPT_TYPE_STRING, { .str = "/dev/video0" }, 0, 0, FLAGS },
-+    { "region_num", "OSD region count", OFFSET(region_num), AV_OPT_TYPE_INT, { .i64 = 1 }, 1, NONAI2D_OSD_MAX_REGION, TFLAGS },
++    { "in_mem_type", "input buffer type: mmap/dmabuf", OFFSET(in_mem_type), AV_OPT_TYPE_STRING, { .str = "mmap" }, 0, 0, FLAGS },
++    { "out_mem_type", "output buffer type: mmap/dmabuf", OFFSET(out_mem_type), AV_OPT_TYPE_STRING, { .str = "mmap" }, 0, 0, FLAGS },
 +
 +    OSD_REGION_OPT("x", "OSD region left", x, 0, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("y", "OSD region top", y, 0, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("index", "OSD region index", index, 0, 0, 0, NONAI2D_OSD_MAX_REGION - 1),
-+    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 0, 0, 0, 255),
-+    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 0, 255, 0, 255),
-+    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 0, 255, 0, 255),
++    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 0, 200, 0, 255),
++    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 0, 200, 0, 255),
++    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 0, 200, 0, 255),
 +    OSD_REGION_OPT("add_order", "OSD add order", add_order, 0, NONAI2D_ADD_ORDER_VIDEO_OSD, 0, 9),
-+    OSD_REGION_OPT("bg_color", "Background color", bg_color, 0, 0x00000000, INT32_MIN, INT32_MAX),
-+    OSD_REGION_OPT_STR("data", "OSD data path", data, 0, NULL),
++    OSD_REGION_OPT("bg_color", "Background color", bg_color, 0, 0xC88080, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT_STR("data", "OSD data pointer", data, 0, NULL),
++    OSD_REGION_OPT("width", "OSD region width", width, 0, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("height", "OSD region height", height, 0, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("pixfmt", "OSD pixel format", pixfmt, 0, AV_PIX_FMT_ARGB, 0, INT32_MAX),
++    OSD_REGION_OPT("valid", "OSD region valid or not", valid, 0, 0, 0, 1),
 +
 +    OSD_REGION_OPT("x", "OSD region left", x, 1, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("y", "OSD region top", y, 1, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("index", "OSD region index", index, 1, 1, 0, NONAI2D_OSD_MAX_REGION - 1),
-+    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 1, 0, 0, 255),
-+    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 1, 255, 0, 255),
-+    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 1, 255, 0, 255),
++    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 1, 200, 0, 255),
++    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 1, 200, 0, 255),
++    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 1, 200, 0, 255),
 +    OSD_REGION_OPT("add_order", "OSD add order", add_order, 1, NONAI2D_ADD_ORDER_VIDEO_OSD, 0, 9),
-+    OSD_REGION_OPT("bg_color", "Background color", bg_color, 1, 0x00000000, INT32_MIN, INT32_MAX),
-+    OSD_REGION_OPT_STR("data", "OSD data path", data, 1, NULL),
++    OSD_REGION_OPT("bg_color", "Background color", bg_color, 1, 0xC88080, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT_STR("data", "OSD data pointer", data, 1, NULL),
++    OSD_REGION_OPT("width", "OSD region width", width, 1, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("height", "OSD region height", height, 1, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("pixfmt", "OSD pixel format", pixfmt, 1, AV_PIX_FMT_ARGB, 0, INT32_MAX),
++    OSD_REGION_OPT("valid", "OSD region valid or not", valid, 1, 0, 0, 1),
 +
 +    OSD_REGION_OPT("x", "OSD region left", x, 2, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("y", "OSD region top", y, 2, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("index", "OSD region index", index, 2, 2, 0, NONAI2D_OSD_MAX_REGION - 1),
-+    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 2, 0, 0, 255),
-+    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 2, 255, 0, 255),
-+    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 2, 255, 0, 255),
++    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 2, 200, 0, 255),
++    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 2, 200, 0, 255),
++    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 2, 200, 0, 255),
 +    OSD_REGION_OPT("add_order", "OSD add order", add_order, 2, NONAI2D_ADD_ORDER_VIDEO_OSD, 0, 9),
-+    OSD_REGION_OPT("bg_color", "Background color", bg_color, 2, 0x00000000, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT("bg_color", "Background color", bg_color, 2, 0xC88080, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT_STR("data", "OSD data pointer", data, 2, NULL),
++    OSD_REGION_OPT("width", "OSD region width", width, 2, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("height", "OSD region height", height, 2, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("pixfmt", "OSD pixel format", pixfmt, 2, AV_PIX_FMT_ARGB, 0, INT32_MAX),
++    OSD_REGION_OPT("valid", "OSD region valid or not", valid, 2, 0, 0, 1),
 +
 +    OSD_REGION_OPT("x", "OSD region left", x, 3, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("y", "OSD region top", y, 3, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("index", "OSD region index", index, 3, 3, 0, NONAI2D_OSD_MAX_REGION - 1),
-+    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 3, 0, 0, 255),
-+    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 3, 255, 0, 255),
-+    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 3, 255, 0, 255),
++    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 3, 200, 0, 255),
++    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 3, 200, 0, 255),
++    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 3, 200, 0, 255),
 +    OSD_REGION_OPT("add_order", "OSD add order", add_order, 3, NONAI2D_ADD_ORDER_VIDEO_OSD, 0, 9),
-+    OSD_REGION_OPT("bg_color", "Background color", bg_color, 3, 0x00000000, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT("bg_color", "Background color", bg_color, 3, 0xC88080, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT_STR("data", "OSD data pointer", data, 3, NULL),
++    OSD_REGION_OPT("width", "OSD region width", width, 3, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("height", "OSD region height", height, 3, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("pixfmt", "OSD pixel format", pixfmt, 3, AV_PIX_FMT_ARGB, 0, INT32_MAX),
++    OSD_REGION_OPT("valid", "OSD region valid or not", valid, 3, 0, 0, 1),
 +
 +    OSD_REGION_OPT("x", "OSD region left", x, 4, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("y", "OSD region top", y, 4, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("index", "OSD region index", index, 4, 4, 0, NONAI2D_OSD_MAX_REGION - 1),
-+    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 4, 0, 0, 255),
-+    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 4, 255, 0, 255),
-+    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 4, 255, 0, 255),
++    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 4, 200, 0, 255),
++    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 4, 200, 0, 255),
++    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 4, 200, 0, 255),
 +    OSD_REGION_OPT("add_order", "OSD add order", add_order, 4, NONAI2D_ADD_ORDER_VIDEO_OSD, 0, 9),
-+    OSD_REGION_OPT("bg_color", "Background color", bg_color, 4, 0x00000000, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT("bg_color", "Background color", bg_color, 4, 0xC88080, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT_STR("data", "OSD data pointer", data, 4, NULL),
++    OSD_REGION_OPT("width", "OSD region width", width, 4, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("height", "OSD region height", height, 4, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("pixfmt", "OSD pixel format", pixfmt, 4, AV_PIX_FMT_ARGB, 0, INT32_MAX),
++    OSD_REGION_OPT("valid", "OSD region valid or not", valid, 4, 0, 0, 1),
 +
 +    OSD_REGION_OPT("x", "OSD region left", x, 5, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("y", "OSD region top", y, 5, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("index", "OSD region index", index, 5, 5, 0, NONAI2D_OSD_MAX_REGION - 1),
-+    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 5, 0, 0, 255),
-+    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 5, 255, 0, 255),
-+    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 5, 255, 0, 255),
++    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 5, 200, 0, 255),
++    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 5, 200, 0, 255),
++    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 5, 200, 0, 255),
 +    OSD_REGION_OPT("add_order", "OSD add order", add_order, 5, NONAI2D_ADD_ORDER_VIDEO_OSD, 0, 9),
-+    OSD_REGION_OPT("bg_color", "Background color", bg_color, 5, 0x00000000, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT("bg_color", "Background color", bg_color, 5, 0xC88080, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT_STR("data", "OSD data pointer", data, 5, NULL),
++    OSD_REGION_OPT("width", "OSD region width", width, 5, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("height", "OSD region height", height, 5, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("pixfmt", "OSD pixel format", pixfmt, 5, AV_PIX_FMT_ARGB, 0, INT32_MAX),
++    OSD_REGION_OPT("valid", "OSD region valid or not", valid, 5, 0, 0, 1),
 +
 +    OSD_REGION_OPT("x", "OSD region left", x, 6, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("y", "OSD region top", y, 6, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("index", "OSD region index", index, 6, 6, 0, NONAI2D_OSD_MAX_REGION - 1),
-+    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 6, 0, 0, 255),
-+    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 6, 255, 0, 255),
-+    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 6, 255, 0, 255),
++    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 6, 200, 0, 255),
++    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 6, 200, 0, 255),
++    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 6, 200, 0, 255),
 +    OSD_REGION_OPT("add_order", "OSD add order", add_order, 6, NONAI2D_ADD_ORDER_VIDEO_OSD, 0, 9),
-+    OSD_REGION_OPT("bg_color", "Background color", bg_color, 6, 0x00000000, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT("bg_color", "Background color", bg_color, 6, 0xC88080, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT_STR("data", "OSD data pointer", data, 6, NULL),
++    OSD_REGION_OPT("width", "OSD region width", width, 6, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("height", "OSD region height", height, 6, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("pixfmt", "OSD pixel format", pixfmt, 6, AV_PIX_FMT_ARGB, 0, INT32_MAX),
++    OSD_REGION_OPT("valid", "OSD region valid or not", valid, 6, 0, 0, 1),
 +
 +    OSD_REGION_OPT("x", "OSD region left", x, 7, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("y", "OSD region top", y, 7, 0, 0, INT16_MAX),
 +    OSD_REGION_OPT("index", "OSD region index", index, 7, 7, 0, NONAI2D_OSD_MAX_REGION - 1),
-+    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 7, 0, 0, 255),
-+    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 7, 255, 0, 255),
-+    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 7, 255, 0, 255),
++    OSD_REGION_OPT("bg_alpha", "Background alpha", bg_alpha, 7, 200, 0, 255),
++    OSD_REGION_OPT("osd_alpha", "OSD alpha", osd_alpha, 7, 200, 0, 255),
++    OSD_REGION_OPT("video_alpha", "Video alpha", video_alpha, 7, 200, 0, 255),
 +    OSD_REGION_OPT("add_order", "OSD add order", add_order, 7, NONAI2D_ADD_ORDER_VIDEO_OSD, 0, 9),
-+    OSD_REGION_OPT("bg_color", "Background color", bg_color, 7, 0x00000000, INT32_MIN, INT32_MAX),
-+    OSD_REGION_OPT_STR("data", "OSD data path", data, 7, NULL),
-+
-+    { "x", "OSD region left #0", OFFSET(x[0]), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, INT16_MAX, TFLAGS },
-+    { "y", "OSD region top #0", OFFSET(y[0]), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, INT16_MAX, TFLAGS },
-+    { "index", "OSD region index #0", OFFSET(index[0]), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, NONAI2D_OSD_MAX_REGION - 1, TFLAGS },
-+    { "bg_alpha", "Background alpha #0", OFFSET(bg_alpha[0]), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 255, TFLAGS },
-+    { "osd_alpha", "OSD alpha #0", OFFSET(osd_alpha[0]), AV_OPT_TYPE_INT, { .i64 = 255 }, 0, 255, TFLAGS },
-+    { "video_alpha", "Video alpha #0", OFFSET(video_alpha[0]), AV_OPT_TYPE_INT, { .i64 = 255 }, 0, 255, TFLAGS },
-+    { "add_order", "OSD add order #0", OFFSET(add_order[0]), AV_OPT_TYPE_INT, { .i64 = NONAI2D_ADD_ORDER_VIDEO_OSD }, 0, 9, TFLAGS },
-+    { "bg_color", "Background color #0", OFFSET(bg_color[0]), AV_OPT_TYPE_INT, { .i64 = 0x00000000 }, INT32_MIN, INT32_MAX, TFLAGS },
-+    { "data", "OSD data path #0", OFFSET(data[0]), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, TFLAGS },
++    OSD_REGION_OPT("bg_color", "Background color", bg_color, 7, 0xC88080, INT32_MIN, INT32_MAX),
++    OSD_REGION_OPT_STR("data", "OSD data pointer", data, 7, NULL),
++    OSD_REGION_OPT("width", "OSD region width", width, 7, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("height", "OSD region height", height, 7, 0, 0, INT16_MAX),
++    OSD_REGION_OPT("pixfmt", "OSD pixel format", pixfmt, 7, AV_PIX_FMT_ARGB, 0, INT32_MAX),
++    OSD_REGION_OPT("valid", "OSD region valid or not", valid, 7, 0, 0, 1),
 +
 +    { "eof_action", "Action to take when encountering EOF from secondary input ",
 +        OFFSET(fs.opt_eof_action), AV_OPT_TYPE_INT, { .i64 = EOF_ACTION_REPEAT },
@@ -336,6 +364,18 @@
 +    if (ret < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
 +        av_log(ctx, AV_LOG_ERROR, "ioctl 0x%lx failed: %s\n", request, av_err2str(AVERROR(errno)));
 +    return ret;
++}
++
++static enum v4l2_memory get_v4l2_memory_type(AVFilterContext *ctx, const char* mem_type_str)
++{
++    if (strcmp(mem_type_str, "mmap") == 0)
++        return V4L2_MEMORY_MMAP;
++    else if (strcmp(mem_type_str, "dmabuf") == 0)
++        return V4L2_MEMORY_DMABUF;
++    else {
++        av_log(ctx, AV_LOG_ERROR, "Invalid memory type: %s\n", mem_type_str);
++        return -1;
++    }
 +}
 +
 +static int ffpix_to_v4l2(enum AVPixelFormat fmt, uint32_t *fourcc)
@@ -378,15 +418,16 @@
 +                             void *map_addr[VIDEO_MAX_PLANES],
 +                             size_t map_len[VIDEO_MAX_PLANES])
 +{
-+    struct v4l2_requestbuffers req = {0};
++    struct v4l2_requestbuffers req;
 +    struct v4l2_buffer *buf;
 +    struct v4l2_plane *planes;
 +    Nonai2dOSDContext *s = ctx->priv;
 +    int i;
++    enum v4l2_memory memory_type = get_v4l2_memory_type(ctx, s->in_mem_type);
 +
 +    req.count  = 1;
 +    req.type   = type;
-+    req.memory = V4L2_MEMORY_MMAP;
++    req.memory = memory_type;
 +
 +    if (xioctl(ctx, fd, VIDIOC_REQBUFS, &req) < 0)
 +        return AVERROR(errno);
@@ -407,7 +448,7 @@
 +    memset(planes, 0, sizeof(*planes));
 +
 +    buf->type   = type;
-+    buf->memory = V4L2_MEMORY_MMAP;
++    buf->memory = memory_type;
 +    buf->index  = 0;
 +    buf->length = plane_num;
 +    buf->m.planes = planes;
@@ -415,21 +456,24 @@
 +    if (xioctl(ctx, fd, VIDIOC_QUERYBUF, buf) < 0)
 +        return AVERROR(errno);
 +
-+    for (i = 0; i < plane_num; i++) {
++    /* In in_mem_type mode, skip mmap - buffers are already allocated */
++    if (memory_type == V4L2_MEMORY_MMAP) {
++        for (i = 0; i < plane_num; i++) {
 +
-+        map_len[i] = planes[i].length;
++            map_len[i] = planes[i].length;
 +
-+        map_addr[i] = mmap(NULL,
-+                           planes[i].length,
-+                           PROT_READ | PROT_WRITE,
-+                           MAP_SHARED,
-+                           fd,
-+                           planes[i].m.mem_offset);
++            map_addr[i] = mmap(NULL,
++                               planes[i].length,
++                               PROT_READ | PROT_WRITE,
++                               MAP_SHARED,
++                               fd,
++                               planes[i].m.mem_offset);
 +
-+        if (map_addr[i] == MAP_FAILED) {
-+            map_addr[i] = NULL;
-+            map_len[i] = 0;
-+            return AVERROR(errno);
++            if (map_addr[i] == MAP_FAILED) {
++                map_addr[i] = NULL;
++                map_len[i] = 0;
++                return AVERROR(errno);
++            }
 +        }
 +    }
 +
@@ -442,8 +486,10 @@
 +                                void *map_addr[VIDEO_MAX_PLANES],
 +                                size_t map_len[VIDEO_MAX_PLANES])
 +{
-+    struct v4l2_requestbuffers req = {0};
++    struct v4l2_requestbuffers req;
++    Nonai2dOSDContext *s = ctx->priv;
 +    int i;
++    enum v4l2_memory memory_type = get_v4l2_memory_type(ctx, s->in_mem_type);
 +
 +    for (i = 0; i < plane_num; i++) {
 +        if (map_addr[i] && map_len[i])
@@ -453,8 +499,9 @@
 +        map_len[i] = 0;
 +    }
 +
++    memset(&req, 0, sizeof(req));
 +    req.type = type;
-+    req.memory = V4L2_MEMORY_MMAP;
++    req.memory = memory_type;
 +    req.count = 0;
 +
 +    if (fd >= 0)
@@ -578,31 +625,45 @@
 +    return 0;
 +}
 +
-+static int set_nonai2d_osd_attr(AVFilterContext *ctx, Nonai2dOSDContext *s, const AVFrame *osd, int region)
++static int set_nonai2d_osd_attr(AVFilterContext *ctx, Nonai2dOSDContext *s)
 +{
 +    struct v4l2_ext_control ext = { 0 };
 +    struct v4l2_ext_controls exts = { 0 };
-+    nonai2d_osd_attr attr = { 0 };
++    nonai2d_osd_attr attr[NONAI2D_OSD_MAX_REGION];
++    uint32_t v4l2_pixfmt;
++    int ret, i;
 +
-+    attr.index = s->index[region];
-+    attr.width = s->osd_w;
-+    attr.height = s->osd_h;
-+    attr.startx = s->x[region];
-+    attr.starty = s->y[region];
-+    attr.bg_alpha = s->bg_alpha[region];
-+    attr.osd_alpha = s->osd_alpha[region];
-+    attr.video_alpha = s->video_alpha[region];
-+    attr.add_order = s->add_order[region];
-+    attr.bg_color = s->bg_color[region];
-+    attr.pixfmt = s->osd_fourcc;
-+    if (osd && osd->data[0])
-+        attr.data = (uint8_t *)osd->data[0];
-+    else
-+        attr.data = (uint8_t *)s->data[region];
++    for (i = 0; i < NONAI2D_OSD_MAX_REGION; i++) {
 +
-+    if (!attr.data) {
-+        av_log(ctx, AV_LOG_ERROR, "osd data is null for region %d\n", region);
-+        return AVERROR(EINVAL);
++        if (!s->valid[i]) {
++            memset(&attr[i], 0, sizeof(attr[i]));
++            continue;
++        }
++        attr[i].index = s->index[i];
++        attr[i].width = s->width[i];
++        attr[i].height = s->height[i];
++        attr[i].startx = s->x[i];
++        attr[i].starty = s->y[i];
++        attr[i].bg_alpha = s->bg_alpha[i];
++        attr[i].osd_alpha = s->osd_alpha[i];
++        attr[i].video_alpha = s->video_alpha[i];
++        attr[i].add_order = s->add_order[i];
++        attr[i].bg_color = s->bg_color[i];
++        attr[i].valid = s->valid[i];
++
++        ret = ffpix_to_v4l2(s->pixfmt[i], &v4l2_pixfmt);
++        if (ret < 0) {
++            av_log(ctx, AV_LOG_ERROR, "unsupported OSD pixel format for region %d: %s\n",
++                   i, av_get_pix_fmt_name(s->pixfmt[i]));
++            return ret;
++        }
++        attr[i].pixfmt = v4l2_pixfmt;
++
++        attr[i].data = (uint8_t *)s->data[i];
++        if (!attr[i].data) {
++            av_log(ctx, AV_LOG_ERROR, "osd data is null for enabled region %d\n", i);
++            return AVERROR(EINVAL);
++        }
 +    }
 +
 +    ext.id = V4L2_CID_USER_NONAI2D_OSD_ATTR;
@@ -642,33 +703,18 @@
 +    s->osd_attr_needs_update = 1;
 +}
 +
-+static int nonai2d_configure_device(AVFilterContext *ctx, AVFrame *main, AVFrame *osd)
++static int nonai2d_configure_device(AVFilterContext *ctx, AVFrame *main)
 +{
 +    Nonai2dOSDContext *s = ctx->priv;
 +    size_t dst_image_size = 0;
 +    int ret;
-+    int i;
 +
-+    if (!main || !osd) {
++    if (!main) {
 +        av_log(ctx, AV_LOG_ERROR, "%s>line %d\n", __func__, __LINE__);
 +        return AVERROR(EINVAL);
 +    }
 +
-+    if (s->configured &&
-+        s->main_fmt == main->format &&
-+        s->main_w == main->width && s->main_h == main->height &&
-+        s->osd_fmt == osd->format &&
-+        s->osd_w == osd->width && s->osd_h == osd->height) {
-+        if (s->osd_attr_needs_update) {
-+            for (i = 0; i < s->region_num; i++) {
-+                ret = set_nonai2d_osd_attr(ctx, s, osd, i);
-+                if (ret < 0) {
-+                    av_log(ctx, AV_LOG_ERROR, "%s>line %d\n", __func__, __LINE__);
-+                    return ret;
-+                }
-+            }
-+            s->osd_attr_needs_update = 0;
-+        }
++    if (s->configured) {
 +        return 0;
 +    }
 +
@@ -676,12 +722,6 @@
 +    if (ret < 0) {
 +        av_log(ctx, AV_LOG_ERROR, "unsupported main pixel format: %s\n",
 +               av_get_pix_fmt_name(main->format));
-+        return ret;
-+    }
-+    ret = ffpix_to_v4l2(osd->format, &s->osd_fourcc);
-+    if (ret < 0) {
-+        av_log(ctx, AV_LOG_ERROR, "unsupported osd pixel format: %s\n",
-+               av_get_pix_fmt_name(osd->format));
 +        return ret;
 +    }
 +
@@ -692,11 +732,8 @@
 +    }
 +
 +    s->main_fmt = main->format;
-+    s->osd_fmt = osd->format;
 +    s->main_w = main->width;
 +    s->main_h = main->height;
-+    s->osd_w = osd->width;
-+    s->osd_h = osd->height;
 +
 +    ret = set_nonai2d_mode(ctx, s);
 +    if (ret < 0) {
@@ -712,14 +749,11 @@
 +        goto fail;
 +    }
 +
-+    for (i = 0; i < s->region_num; i++) {
-+        ret = set_nonai2d_osd_attr(ctx, s, osd, i);
-+        if (ret < 0) {
-+            av_log(ctx, AV_LOG_ERROR, "%s>line %d\n", __func__, __LINE__);
-+            goto fail;
-+        }
++    ret = set_nonai2d_osd_attr(ctx, s);
++    if (ret < 0) {
++        av_log(ctx, AV_LOG_ERROR, "%s>line %d\n", __func__, __LINE__);
++        goto fail;
 +    }
-+    s->osd_attr_needs_update = 0;
 +
 +    ret = setup_mmap_buffer(ctx, s->fd,
 +                        V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
@@ -739,7 +773,7 @@
 +    return ret;
 +}
 +
-+static int run_nonai2d_osd(AVFilterContext *ctx, AVFrame *main, AVFrame *osd)
++static int run_nonai2d_osd(AVFilterContext *ctx, AVFrame *main)
 +{
 +    Nonai2dOSDContext *s = ctx->priv;
 +    uint8_t *dst_data[4] = { 0 };
@@ -753,14 +787,28 @@
 +
 +    av_image_fill_linesizes(dst_linesize, s->main_fmt, s->main_w);
 +
-+    av_image_copy(dst_data, dst_linesize,
-+              (const uint8_t **)main->data, main->linesize,
-+              s->main_fmt, s->main_w, s->main_h);
-+
++    /* Setup buffer for QBUF */
 +    s->main_buf.length = s->main_plane_num;
 +    s->main_buf.m.planes = s->main_planes;
-+    for (i = 0; i < s->main_plane_num; i++)
-+        s->main_planes[i].bytesused = s->main_plane_size[i];
++
++    if (get_v4l2_memory_type(ctx, s->in_mem_type) == V4L2_MEMORY_DMABUF) {
++        /* In dmabuf mode, get fd from frame->opaque and set it to planes */
++        for (i = 0; i < s->main_plane_num; i++) {
++            s->main_planes[i].m.fd = ((int *)main->opaque)[i];
++            s->main_planes[i].data_offset = 0;
++            s->main_planes[i].bytesused = s->main_plane_size[i];
++            s->main_planes[i].length = s->main_plane_size[i];
++        }
++    } else {
++        /* In mmap mode, copy data to mmap buffer */
++        av_image_copy(dst_data, dst_linesize,
++                  (const uint8_t **)main->data, main->linesize,
++                  s->main_fmt, s->main_w, s->main_h);
++
++        for (i = 0; i < s->main_plane_num; i++) {
++            s->main_planes[i].bytesused = s->main_plane_size[i];
++        }
++    }
 +
 +    if (xioctl(ctx, s->fd, VIDIOC_QBUF, &s->main_buf) < 0) {
 +        av_log(ctx, AV_LOG_ERROR, "qbuf capture failed: %d(%s)\n", errno, strerror(errno));
@@ -792,14 +840,47 @@
 +        return AVERROR(errno);
 +    }
 +
++    if (get_v4l2_memory_type(ctx, s->out_mem_type) == V4L2_MEMORY_MMAP) {
++        for (i = 0; i < AV_NUM_DATA_POINTERS; i++) {
++            if (i < s->main_plane_num) {
++                main->data[i] = dst_data[i];
++                main->linesize[i] = dst_linesize[i];
++            } else {
++                main->data[i] = NULL;
++                main->linesize[i] = 0;
++            }
++        }
++    } else {
++        if (get_v4l2_memory_type(ctx, s->out_mem_type) == V4L2_MEMORY_DMABUF &&
++            get_v4l2_memory_type(ctx, s->in_mem_type) == V4L2_MEMORY_MMAP) {
 +
-+    for (i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-+        if (i < s->main_plane_num) {
-+            main->data[i] = dst_data[i];
-+            main->linesize[i] = dst_linesize[i];
-+        } else {
-+            main->data[i] = NULL;
-+            main->linesize[i] = 0;
++            AVBufferRef *fd_ref;
++            struct v4l2_exportbuffer expbuf = {
++                .type  = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
++                .index = s->main_buf.index,
++                .flags = FD_CLOEXEC | O_RDWR
++            };
++
++            fd_ref = av_buffer_alloc(sizeof(int) * s->main_plane_num);
++            if (!fd_ref) {
++                av_log(ctx, AV_LOG_ERROR, "Failed to allocate av_buffer\n");
++                return AVERROR(ENOMEM);
++            }
++
++            for (i = 0; i < s->main_plane_num; i++) {
++                expbuf.plane = i;
++                if (xioctl(ctx, s->fd, VIDIOC_EXPBUF, &expbuf) < 0) {
++                    av_buffer_unref(&fd_ref);
++                    av_log(ctx, AV_LOG_ERROR, "expbuf osd failed: %d(%s)\n", errno, strerror(errno));
++                    return AVERROR(errno);
++                }
++
++                ((int *)fd_ref->data)[i] = expbuf.fd;
++            }
++
++            if (main->opaque_ref)
++                av_buffer_unref(&main->opaque_ref);
++            main->opaque_ref = fd_ref;
 +        }
 +    }
 +
@@ -811,39 +892,29 @@
 +    AVFilterContext *ctx = fs->parent;
 +    Nonai2dOSDContext *s = ctx->priv;
 +    AVFrame *main = NULL;
-+    AVFrame *osd = NULL;
 +    int ret;
 +
-+    ret = ff_framesync_dualinput_get_writable(fs, &main, &osd);
++    ret = ff_framesync_get_frame(fs, 0, &main, 1);
 +
 +    if (ret < 0) {
 +        av_log(ctx, AV_LOG_ERROR, "%s>line %d\n", __func__, __LINE__);
 +        return ret;
 +    }
-+    if (!osd) {
-+        av_log(ctx, AV_LOG_ERROR, "%s>line %d\n", __func__, __LINE__);
-+        return ff_filter_frame(ctx->outputs[0], main);
-+    }
 +
-+    ret = nonai2d_configure_device(ctx, main, osd);
++    ret = nonai2d_configure_device(ctx, main);
 +    if (ret < 0) {
 +        av_log(ctx, AV_LOG_ERROR, "%s>line %d\n", __func__, __LINE__);
-+        goto fail;
++        return ret;
 +    }
 +
-+    ret = run_nonai2d_osd(ctx, main, osd);
++    ret = run_nonai2d_osd(ctx, main);
 +    if (ret < 0) {
 +        av_log(ctx, AV_LOG_ERROR, "%s>line %d\n", __func__, __LINE__);
-+        goto fail;
++        return ret;
 +    }
 +
 +    s->frame_cnt++;
 +    return ff_filter_frame(ctx->outputs[0], main);
-+
-+fail:
-+    av_frame_free(&main);
-+    av_frame_free(&osd);
-+    return ret;
 +}
 +
 +static int query_formats(AVFilterContext *ctx)
@@ -860,42 +931,81 @@
 +        AV_PIX_FMT_RGB565LE,
 +        AV_PIX_FMT_NONE,
 +    };
-+    static const enum AVPixelFormat osd_formats[] = {
-+        AV_PIX_FMT_ARGB,
-+        AV_PIX_FMT_BGRA,
-+        AV_PIX_FMT_RGB24,
-+        AV_PIX_FMT_BGR24,
-+        AV_PIX_FMT_RGB0,
-+        AV_PIX_FMT_RGB565LE,
-+        AV_PIX_FMT_NONE,
-+    };
 +    AVFilterFormats *formats;
 +    int ret;
 +
 +    formats = ff_make_format_list(main_formats);
-+    if ((ret = ff_formats_ref(formats, &ctx->inputs[MAIN_INPUT]->outcfg.formats)) < 0 ||
++    if ((ret = ff_formats_ref(formats, &ctx->inputs[0]->outcfg.formats)) < 0 ||
 +        (ret = ff_formats_ref(formats, &ctx->outputs[0]->incfg.formats)) < 0)
 +        return ret;
 +
-+    return ff_formats_ref(ff_make_format_list(osd_formats),
-+                          &ctx->inputs[OSD_INPUT]->outcfg.formats);
++    return 0;
 +}
 +
-+static int is_region_option_command(const char *cmd)
++static int update_region_param(AVFilterContext *ctx, Nonai2dOSDContext *s,
++                               int *region_idx, const char *param_name,
++                               const char *param_value)
 +{
-+    if (!cmd)
-+        return 0;
++    int idx = *region_idx;
++    char *endptr = NULL;
++    long v;
 +
-+    return !strcmp(cmd, "region_num") ||
-+           !strncmp(cmd, "x", 1) ||
-+           !strncmp(cmd, "y", 1) ||
-+           !strncmp(cmd, "index", 5) ||
-+           !strncmp(cmd, "bg_alpha", 8) ||
-+           !strncmp(cmd, "osd_alpha", 9) ||
-+           !strncmp(cmd, "video_alpha", 11) ||
-+           !strncmp(cmd, "add_order", 9) ||
-+           !strncmp(cmd, "bg_color", 8) ||
-+           !strncmp(cmd, "data", 4);
++    if (!param_name || !param_value) {
++        av_log(ctx, AV_LOG_ERROR, "config_region invalid param pair: name=%p value=%p\n",
++               param_name, param_value);
++        return AVERROR(EINVAL);
++    }
++
++    if (!strcmp(param_name, "index")) {
++        v = strtol(param_value, &endptr, 10);
++        if (endptr == param_value || *endptr != '\0' ||
++            v < 0 || v >= NONAI2D_OSD_MAX_REGION) {
++            av_log(ctx, AV_LOG_ERROR, "config_region invalid index value: %s\n", param_value);
++            return AVERROR(EINVAL);
++        }
++        *region_idx = (int)v;
++        return 0;
++    }
++
++    if (idx < 0 || idx >= NONAI2D_OSD_MAX_REGION) {
++        av_log(ctx, AV_LOG_ERROR, "config_region has invalid active index=%d\n", idx);
++        return AVERROR(EINVAL);
++    }
++
++    if (!strcmp(param_name, "data")) {
++        uintptr_t p = (uintptr_t)strtoull(param_value, &endptr, 0);
++        if (endptr == param_value || *endptr != '\0') {
++            av_log(ctx, AV_LOG_ERROR, "config_region invalid data pointer: %s\n", param_value);
++            return AVERROR(EINVAL);
++        }
++        s->data[idx] = (uint8_t *)p;
++        return 0;
++    }
++
++    v = strtol(param_value, &endptr, 10);
++    if (endptr == param_value || *endptr != '\0') {
++        av_log(ctx, AV_LOG_ERROR, "config_region invalid integer for %s: %s\n",
++               param_name, param_value);
++        return AVERROR(EINVAL);
++    }
++
++    if (!strcmp(param_name, "x")) s->x[idx] = (int)v;
++    else if (!strcmp(param_name, "y")) s->y[idx] = (int)v;
++    else if (!strcmp(param_name, "width")) s->width[idx] = (int)v;
++    else if (!strcmp(param_name, "height")) s->height[idx] = (int)v;
++    else if (!strcmp(param_name, "bg_alpha")) s->bg_alpha[idx] = (int)v;
++    else if (!strcmp(param_name, "osd_alpha")) s->osd_alpha[idx] = (int)v;
++    else if (!strcmp(param_name, "video_alpha")) s->video_alpha[idx] = (int)v;
++    else if (!strcmp(param_name, "add_order")) s->add_order[idx] = (int)v;
++    else if (!strcmp(param_name, "bg_color")) s->bg_color[idx] = (uint32_t)v;
++    else if (!strcmp(param_name, "pixfmt")) s->pixfmt[idx] = (enum AVPixelFormat)v;
++    else if (!strcmp(param_name, "valid")) s->valid[idx] = (int)v;
++    else {
++        av_log(ctx, AV_LOG_ERROR, "unsupported config_region param: %s\n", param_name);
++        return AVERROR(EINVAL);
++    }
++
++    return 0;
 +}
 +
 +static int process_command(AVFilterContext *ctx, const char *cmd, const char *args,
@@ -904,14 +1014,72 @@
 +    Nonai2dOSDContext *s = ctx->priv;
 +    int ret;
 +
-+    ret = ff_filter_process_command(ctx, cmd, args, res, res_len, flags);
-+    if (ret < 0)
-+        return ret;
++    if (cmd && !strcmp(cmd, "config_region")) {
++        char *saveptr = NULL;
++        char *token;
++        int region_idx = -1;
++        char *args_copy;
 +
-+    if (is_region_option_command(cmd)) {
-+        s->osd_attr_needs_update = 1;
-+        if (s->configured)
-+            nonai2d_close(ctx);
++        if (!args) {
++            av_log(ctx, AV_LOG_ERROR, "config_region missing args\n");
++            return AVERROR(EINVAL);
++        }
++
++        args_copy = av_strdup(args);
++
++        if (!args_copy) {
++            av_log(ctx, AV_LOG_ERROR, "config_region alloc args_copy failed\n");
++            return AVERROR(ENOMEM);
++        }
++
++        token = strtok_r(args_copy, ":", &saveptr);
++        if (!token) {
++            av_log(ctx, AV_LOG_ERROR, "config_region args parse failed: %s\n", args);
++            av_free(args_copy);
++            return AVERROR(EINVAL);
++        }
++
++        ret = update_region_param(ctx, s, &region_idx, "index", token);
++        if (ret < 0) {
++            av_log(ctx, AV_LOG_ERROR, "config_region parse index failed: ret=%d\n", ret);
++            av_free(args_copy);
++            return ret;
++        }
++
++        while ((token = strtok_r(NULL, ":", &saveptr))) {
++            const char *param_name = token;
++            const char *param_value = strtok_r(NULL, ":", &saveptr);
++            if (!param_value) {
++                av_log(ctx, AV_LOG_ERROR, "config_region missing value for key=%s\n", param_name);
++                av_free(args_copy);
++                return AVERROR(EINVAL);
++            }
++
++            ret = update_region_param(ctx, s, &region_idx, param_name, param_value);
++            if (ret < 0) {
++                av_log(ctx, AV_LOG_ERROR,
++                       "config_region update failed: region=%d key=%s value=%s ret=%d\n",
++                       region_idx, param_name, param_value, ret);
++                av_free(args_copy);
++                return ret;
++            }
++        }
++
++        av_free(args_copy);
++        if (s->configured && s->fd >= 0) {
++            ret = set_nonai2d_osd_attr(ctx, s);
++            if (ret < 0) {
++                av_log(ctx, AV_LOG_ERROR, "config_region apply to driver failed: ret=%d\n", ret);
++                return ret;
++            }
++            s->osd_attr_needs_update = 0;
++        } else {
++            av_log(ctx, AV_LOG_VERBOSE,
++                   "config_region deferred: device not configured yet (fd=%d configured=%d)\n",
++                   s->fd, s->configured);
++            s->osd_attr_needs_update = 1;
++        }
++        return 0;
 +    }
 +
 +    return 0;
@@ -922,7 +1090,6 @@
 +    AVFilterContext *ctx = outlink->src;
 +    Nonai2dOSDContext *s = ctx->priv;
 +    AVFilterLink *main_link = ctx->inputs[MAIN_INPUT];
-+    AVFilterLink *osd_link = ctx->inputs[OSD_INPUT];
 +    FFFrameSyncIn *in;
 +    int ret;
 +
@@ -932,19 +1099,15 @@
 +    outlink->sample_aspect_ratio = main_link->sample_aspect_ratio;
 +    outlink->frame_rate = main_link->frame_rate;
 +
-+    ret = ff_framesync_init(&s->fs, ctx, 2);
++    ret = ff_framesync_init(&s->fs, ctx, 1);
 +    if (ret < 0)
 +        return ret;
 +
 +    in = s->fs.in;
 +    in[MAIN_INPUT].time_base = main_link->time_base;
-+    in[OSD_INPUT].time_base  = osd_link->time_base;
 +    in[MAIN_INPUT].sync   = 1;
 +    in[MAIN_INPUT].before = EXT_STOP;
 +    in[MAIN_INPUT].after  = EXT_INFINITY;
-+    in[OSD_INPUT].sync    = 1;
-+    in[OSD_INPUT].before  = EXT_STOP;
-+    in[OSD_INPUT].after   = EXT_INFINITY;
 +    s->fs.opaque = s;
 +    s->fs.on_event = process_frame;
 +    s->osd_attr_needs_update = 1;
@@ -959,6 +1122,18 @@
 +    s->osd_buf_count = 0;
 +    s->osd_attr_needs_update = 1;
 +    s->frame_cnt = 0;
++    if(get_v4l2_memory_type(ctx, s->in_mem_type) != V4L2_MEMORY_DMABUF &&
++        get_v4l2_memory_type(ctx, s->in_mem_type) != V4L2_MEMORY_MMAP) {
++        av_log(ctx, AV_LOG_ERROR, "in_mem_type %s is unsupported\n", s->in_mem_type);
++        return AVERROR(EINVAL);
++    }
++
++    if(get_v4l2_memory_type(ctx, s->out_mem_type) != V4L2_MEMORY_DMABUF &&
++        get_v4l2_memory_type(ctx, s->out_mem_type) != V4L2_MEMORY_MMAP) {
++        av_log(ctx, AV_LOG_ERROR, "out_mem_type %s is unsupported\n", s->out_mem_type);
++        return AVERROR(EINVAL);
++    }
++
 +    return 0;
 +}
 +
@@ -979,11 +1154,7 @@
 +
 +static const AVFilterPad nonai2d_osd_inputs[] = {
 +    {
-+        .name = "main",
-+        .type = AVMEDIA_TYPE_VIDEO,
-+    },
-+    {
-+        .name = "osd",
++        .name = "default",
 +        .type = AVMEDIA_TYPE_VIDEO,
 +    },
 +    { NULL }

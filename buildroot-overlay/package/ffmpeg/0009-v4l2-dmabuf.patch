@@ -3,7 +3,7 @@
 @@ -49,6 +49,16 @@
      return buf_to_m2mctx(buf)->avctx;
  }
-
+ 
 +static inline enum v4l2_memory v4l2_buf_memory_type(V4L2Buffer *buf)
 +{
 +    V4L2m2mContext *s = buf_to_m2mctx(buf);
@@ -20,16 +20,16 @@
 @@ -496,7 +506,7 @@
      V4L2Context *ctx = avbuf->context;
      int ret, i;
-
+ 
 -    avbuf->buf.memory = V4L2_MEMORY_MMAP;
 +    avbuf->buf.memory = v4l2_buf_memory_type(avbuf);
      avbuf->buf.type = ctx->type;
      avbuf->buf.index = index;
-
+ 
 @@ -505,6 +515,30 @@
          avbuf->buf.m.planes = avbuf->planes;
      }
-
+ 
 +    if (avbuf->buf.memory == V4L2_MEMORY_DMABUF) {
 +        avbuf->num_planes = V4L2_TYPE_IS_MULTIPLANAR(ctx->type) ?
 +                            FFMAX((int)ctx->format.fmt.pix_mp.num_planes, 1) : 1;
@@ -63,10 +63,10 @@
      int ret;
 +    int saved_fds[VIDEO_MAX_PLANES];
 +    int i;
-
+ 
 +    avbuf->buf.memory = v4l2_buf_memory_type(avbuf);
      avbuf->buf.flags = avbuf->flags;
-
+ 
 +    memset(saved_fds, -1, sizeof(saved_fds));
 +
 +    // save fd
@@ -96,9 +96,9 @@
 +                close(saved_fds[i]);
 +        }
 +    }
-
+ 
      avbuf->status = V4L2BUF_IN_DRIVER;
-
+ 
 --- a/libavcodec/v4l2_context.c
 +++ b/libavcodec/v4l2_context.c
 @@ -27,8 +27,10 @@
@@ -115,7 +115,7 @@
 @@ -53,6 +55,16 @@
      return ctx_to_m2mctx(ctx)->avctx;
  }
-
+ 
 +static inline enum v4l2_memory v4l2_get_memory_type(V4L2Context *ctx)
 +{
 +    V4L2m2mContext *s = ctx_to_m2mctx(ctx);
@@ -130,7 +130,7 @@
  {
      return V4L2_TYPE_IS_MULTIPLANAR(fmt->type) ? fmt->fmt.pix_mp.width : fmt->fmt.pix.width;
 @@ -386,7 +398,7 @@
-
+ 
  dequeue:
          memset(&buf, 0, sizeof(buf));
 -        buf.memory = V4L2_MEMORY_MMAP;
@@ -150,7 +150,7 @@
 @@ -600,9 +612,46 @@
      return 0;
  }
-
+ 
 +static int v4l2_set_dmabuf_from_frame(V4L2Buffer *avbuf, const AVFrame *frame)
 +{
 +    V4L2Context *ctx = avbuf->context;
@@ -194,7 +194,7 @@
 -    V4L2m2mContext *s = ctx_to_m2mctx(ctx);
      V4L2Buffer* avbuf;
      int ret;
-
+ 
 @@ -610,7 +659,7 @@
          ret = v4l2_stop_encode(ctx);
          if (ret)
@@ -203,11 +203,11 @@
 +        ctx_to_m2mctx(ctx)->draining = 1;
          return 0;
      }
-
+ 
 @@ -618,9 +667,18 @@
      if (!avbuf)
          return AVERROR(EAGAIN);
-
+ 
 -    ret = ff_v4l2_buffer_avframe_to_buf(frame, avbuf);
 -    if (ret)
 -        return ret;
@@ -223,11 +223,11 @@
 +        if (ret)
 +            return ret;
 +    }
-
+ 
      return ff_v4l2_buffer_enqueue(avbuf);
  }
 @@ -753,7 +811,7 @@
-
+ 
      memset(&req, 0, sizeof(req));
      req.count = ctx->num_buffers;
 -    req.memory = V4L2_MEMORY_MMAP;
@@ -240,7 +240,7 @@
 @@ -332,6 +332,19 @@
      return ff_v4l2_context_dequeue_packet(capture, avpkt);
  }
-
+ 
 +static enum v4l2_memory get_v4l2_memory_type(AVCodecContext *ctx, const char* mem_type_str)
 +{
 +    if (strcmp(mem_type_str, "mmap") == 0)
@@ -260,30 +260,30 @@
 @@ -360,6 +373,8 @@
      capture->av_codec_id = avctx->codec_id;
      capture->av_pix_fmt = AV_PIX_FMT_NONE;
-
+ 
 +    s->memory_mode = get_v4l2_memory_type(avctx, priv->in_mem_type);
 +
      s->avctx = avctx;
      ret = ff_v4l2_m2m_codec_init(priv);
      if (ret) {
 @@ -403,6 +418,7 @@
-
+ 
  static const AVOption options[] = {
      V4L_M2M_CAPTURE_OPTS,
 +    { "in_mem_type", "input buffer type: mmap/dmabuf", OFFSET(in_mem_type), AV_OPT_TYPE_STRING, { .str = "mmap" }, 0, 0, FLAGS },
      { NULL },
  };
-
+ 
 --- a/libavcodec/v4l2_m2m.h
 +++ b/libavcodec/v4l2_m2m.h
 @@ -66,6 +66,8 @@
-
+ 
      /* reference back to V4L2m2mPriv */
      void *priv;
 +
 +    enum v4l2_memory memory_mode;
  } V4L2m2mContext;
-
+ 
  typedef struct V4L2m2mPriv {
 @@ -78,6 +80,7 @@
      int num_capture_buffers;
@@ -291,253 +291,14 @@
      int dsl_height;
 +    char *in_mem_type;
  } V4L2m2mPriv;
-
+ 
  /**
---- a/libavfilter/vf_nonai2d_osd.c
-+++ b/libavfilter/vf_nonai2d_osd.c
-@@ -180,6 +180,8 @@
-     size_t main_len[VIDEO_MAX_PLANES];
-
-     int osd_attr_needs_update;
-+    char* in_mem_type;
-+    char* out_mem_type;
-
-     uint32_t frame_cnt;
- } Nonai2dOSDContext;
-@@ -194,6 +196,8 @@
-
- static const AVOption nonai2d_osd_options[] = {
-     { "device", "nonai2d v4l2 device path", OFFSET(device), AV_OPT_TYPE_STRING, { .str = "/dev/video0" }, 0, 0, FLAGS },
-+    { "in_mem_type", "input buffer type: mmap/dmabuf", OFFSET(in_mem_type), AV_OPT_TYPE_STRING, { .str = "mmap" }, 0, 0, FLAGS },
-+    { "out_mem_type", "output buffer type: mmap/dmabuf", OFFSET(out_mem_type), AV_OPT_TYPE_STRING, { .str = "mmap" }, 0, 0, FLAGS },
-     { "region_num", "OSD region count", OFFSET(region_num), AV_OPT_TYPE_INT, { .i64 = 1 }, 1, NONAI2D_OSD_MAX_REGION, TFLAGS },
-
-     OSD_REGION_OPT("x", "OSD region left", x, 0, 0, 0, INT16_MAX),
-@@ -305,6 +309,18 @@
-     return ret;
- }
-
-+static enum v4l2_memory get_v4l2_memory_type(AVFilterContext *ctx, const char* mem_type_str)
-+{
-+    if (strcmp(mem_type_str, "mmap") == 0)
-+        return V4L2_MEMORY_MMAP;
-+    else if (strcmp(mem_type_str, "dmabuf") == 0)
-+        return V4L2_MEMORY_DMABUF;
-+    else {
-+        av_log(ctx, AV_LOG_ERROR, "Invalid memory type: %s\n", mem_type_str);
-+        return -1;
-+    }
-+}
-+
- static int ffpix_to_v4l2(enum AVPixelFormat fmt, uint32_t *fourcc)
- {
-     switch (fmt) {
-@@ -345,15 +361,16 @@
-                              void *map_addr[VIDEO_MAX_PLANES],
-                              size_t map_len[VIDEO_MAX_PLANES])
- {
--    struct v4l2_requestbuffers req = {0};
-+    struct v4l2_requestbuffers req;
-     struct v4l2_buffer *buf;
-     struct v4l2_plane *planes;
-     Nonai2dOSDContext *s = ctx->priv;
-     int i;
-+    enum v4l2_memory memory_type = get_v4l2_memory_type(ctx, s->in_mem_type);
-
-     req.count  = 1;
-     req.type   = type;
--    req.memory = V4L2_MEMORY_MMAP;
-+    req.memory = memory_type;
-
-     if (xioctl(ctx, fd, VIDIOC_REQBUFS, &req) < 0)
-         return AVERROR(errno);
-@@ -374,7 +391,7 @@
-     memset(planes, 0, sizeof(*planes));
-
-     buf->type   = type;
--    buf->memory = V4L2_MEMORY_MMAP;
-+    buf->memory = memory_type;
-     buf->index  = 0;
-     buf->length = plane_num;
-     buf->m.planes = planes;
-@@ -382,21 +399,24 @@
-     if (xioctl(ctx, fd, VIDIOC_QUERYBUF, buf) < 0)
-         return AVERROR(errno);
-
--    for (i = 0; i < plane_num; i++) {
--
--        map_len[i] = planes[i].length;
--
--        map_addr[i] = mmap(NULL,
--                           planes[i].length,
--                           PROT_READ | PROT_WRITE,
--                           MAP_SHARED,
--                           fd,
--                           planes[i].m.mem_offset);
--
--        if (map_addr[i] == MAP_FAILED) {
--            map_addr[i] = NULL;
--            map_len[i] = 0;
--            return AVERROR(errno);
-+    /* In in_mem_type mode, skip mmap - buffers are already allocated */
-+    if (memory_type == V4L2_MEMORY_MMAP) {
-+        for (i = 0; i < plane_num; i++) {
-+
-+            map_len[i] = planes[i].length;
-+
-+            map_addr[i] = mmap(NULL,
-+                               planes[i].length,
-+                               PROT_READ | PROT_WRITE,
-+                               MAP_SHARED,
-+                               fd,
-+                               planes[i].m.mem_offset);
-+
-+            if (map_addr[i] == MAP_FAILED) {
-+                map_addr[i] = NULL;
-+                map_len[i] = 0;
-+                return AVERROR(errno);
-+            }
-         }
-     }
-
-@@ -409,8 +429,10 @@
-                                 void *map_addr[VIDEO_MAX_PLANES],
-                                 size_t map_len[VIDEO_MAX_PLANES])
- {
--    struct v4l2_requestbuffers req = {0};
-+    struct v4l2_requestbuffers req;
-+    Nonai2dOSDContext *s = ctx->priv;
-     int i;
-+    enum v4l2_memory memory_type = get_v4l2_memory_type(ctx, s->in_mem_type);
-
-     for (i = 0; i < plane_num; i++) {
-         if (map_addr[i] && map_len[i])
-@@ -420,8 +442,9 @@
-         map_len[i] = 0;
-     }
-
-+    memset(&req, 0, sizeof(req));
-     req.type = type;
--    req.memory = V4L2_MEMORY_MMAP;
-+    req.memory = memory_type;
-     req.count = 0;
-
-     if (fd >= 0)
-@@ -720,14 +743,28 @@
-
-     av_image_fill_linesizes(dst_linesize, s->main_fmt, s->main_w);
-
--    av_image_copy(dst_data, dst_linesize,
--              (const uint8_t **)main->data, main->linesize,
--              s->main_fmt, s->main_w, s->main_h);
--
-+    /* Setup buffer for QBUF */
-     s->main_buf.length = s->main_plane_num;
-     s->main_buf.m.planes = s->main_planes;
--    for (i = 0; i < s->main_plane_num; i++)
--        s->main_planes[i].bytesused = s->main_plane_size[i];
-+
-+    if (get_v4l2_memory_type(ctx, s->in_mem_type) == V4L2_MEMORY_DMABUF) {
-+        /* In dmabuf mode, get fd from frame->opaque and set it to planes */
-+        for (i = 0; i < s->main_plane_num; i++) {
-+            s->main_planes[i].m.fd = ((int *)main->opaque)[i];
-+            s->main_planes[i].data_offset = 0;
-+            s->main_planes[i].bytesused = s->main_plane_size[i];
-+            s->main_planes[i].length = s->main_plane_size[i];
-+        }
-+    } else {
-+        /* In mmap mode, copy data to mmap buffer */
-+        av_image_copy(dst_data, dst_linesize,
-+                  (const uint8_t **)main->data, main->linesize,
-+                  s->main_fmt, s->main_w, s->main_h);
-+
-+        for (i = 0; i < s->main_plane_num; i++) {
-+            s->main_planes[i].bytesused = s->main_plane_size[i];
-+        }
-+    }
-
-     if (xioctl(ctx, s->fd, VIDIOC_QBUF, &s->main_buf) < 0) {
-         av_log(ctx, AV_LOG_ERROR, "qbuf capture failed: %d(%s)\n", errno, strerror(errno));
-@@ -759,14 +796,47 @@
-         return AVERROR(errno);
-     }
-
-+    if (get_v4l2_memory_type(ctx, s->out_mem_type) == V4L2_MEMORY_MMAP) {
-+        for (i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-+            if (i < s->main_plane_num) {
-+                main->data[i] = dst_data[i];
-+                main->linesize[i] = dst_linesize[i];
-+            } else {
-+                main->data[i] = NULL;
-+                main->linesize[i] = 0;
-+            }
-+        }
-+    } else {
-+        if (get_v4l2_memory_type(ctx, s->out_mem_type) == V4L2_MEMORY_DMABUF &&
-+            get_v4l2_memory_type(ctx, s->in_mem_type) == V4L2_MEMORY_MMAP) {
-+
-+            AVBufferRef *fd_ref;
-+            struct v4l2_exportbuffer expbuf = {
-+                .type  = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
-+                .index = s->main_buf.index,
-+                .flags = FD_CLOEXEC | O_RDWR
-+            };
-+
-+            fd_ref = av_buffer_alloc(sizeof(int) * s->main_plane_num);
-+            if (!fd_ref) {
-+                av_log(ctx, AV_LOG_ERROR, "Failed to allocate av_buffer\n");
-+                return AVERROR(ENOMEM);
-+            }
-+
-+            for (i = 0; i < s->main_plane_num; i++) {
-+                expbuf.plane = i;
-+                if (xioctl(ctx, s->fd, VIDIOC_EXPBUF, &expbuf) < 0) {
-+                    av_buffer_unref(&fd_ref);
-+                    av_log(ctx, AV_LOG_ERROR, "expbuf osd failed: %d(%s)\n", errno, strerror(errno));
-+                    return AVERROR(errno);
-+                }
-+
-+                ((int *)fd_ref->data)[i] = expbuf.fd;
-+            }
-
--    for (i = 0; i < AV_NUM_DATA_POINTERS; i++) {
--        if (i < s->main_plane_num) {
--            main->data[i] = dst_data[i];
--            main->linesize[i] = dst_linesize[i];
--        } else {
--            main->data[i] = NULL;
--            main->linesize[i] = 0;
-+            if (main->opaque_ref)
-+                av_buffer_unref(&main->opaque_ref);
-+            main->opaque_ref = fd_ref;
-         }
-     }
-
-@@ -926,6 +996,18 @@
-     s->osd_buf_count = 0;
-     s->osd_attr_needs_update = 1;
-     s->frame_cnt = 0;
-+    if(get_v4l2_memory_type(ctx, s->in_mem_type) != V4L2_MEMORY_DMABUF &&
-+        get_v4l2_memory_type(ctx, s->in_mem_type) != V4L2_MEMORY_MMAP) {
-+        av_log(ctx, AV_LOG_ERROR, "in_mem_type %s is unsupported\n", s->in_mem_type);
-+        return AVERROR(EINVAL);
-+    }
-+
-+    if(get_v4l2_memory_type(ctx, s->out_mem_type) != V4L2_MEMORY_DMABUF &&
-+        get_v4l2_memory_type(ctx, s->out_mem_type) != V4L2_MEMORY_MMAP) {
-+        av_log(ctx, AV_LOG_ERROR, "out_mem_type %s is unsupported\n", s->out_mem_type);
-+        return AVERROR(EINVAL);
-+    }
-+
-     return 0;
- }
-
 --- a/libavdevice/v4l2.c
 +++ b/libavdevice/v4l2.c
 @@ -79,6 +79,9 @@
      TimeFilter *timefilter;
      int64_t last_time_m;
-
+ 
 +    int multiplanar;
 +    enum v4l2_buf_type buf_type;
 +
@@ -549,13 +310,32 @@
      int list_standard;  /**< Set by a private option. */
      char *framerate;    /**< Set by a private option. */
 +    char *mem_type;
-
+ 
      int use_libv4l2;
      int (*open_f)(const char *file, int oflag, ...);
-@@ -169,7 +173,13 @@
+@@ -110,6 +114,18 @@
+     int index;
+ };
+ 
++static enum v4l2_memory get_v4l2_memory_type(AVFormatContext *ctx, const char* mem_type_str)
++{
++    if (strcmp(mem_type_str, "mmap") == 0)
++        return V4L2_MEMORY_MMAP;
++    else if (strcmp(mem_type_str, "dmabuf") == 0)
++        return V4L2_MEMORY_DMABUF;
++    else {
++        av_log(ctx, AV_LOG_ERROR, "Invalid memory type: %s\n", mem_type_str);
++        return -1;
++    }
++}
++
+ static int device_open(AVFormatContext *ctx, const char* device_path)
+ {
+     struct video_data *s = ctx->priv_data;
+@@ -169,7 +185,13 @@
      av_log(ctx, AV_LOG_VERBOSE, "fd:%d capabilities:%x\n",
             fd, cap.capabilities);
-
+ 
 -    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
 +    if (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) {
 +        s->multiplanar = 0;
@@ -567,25 +347,25 @@
          av_log(ctx, AV_LOG_ERROR, "Not a video capture device.\n");
          err = AVERROR(ENODEV);
          goto fail;
-@@ -193,7 +203,7 @@
+@@ -193,7 +215,7 @@
                         uint32_t pixelformat)
  {
      struct video_data *s = ctx->priv_data;
 -    struct v4l2_format fmt = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
 +    struct v4l2_format fmt = { .type = s->buf_type };
      int res = 0;
-
+ 
      fmt.fmt.pix.width = *width;
-@@ -275,7 +285,7 @@
+@@ -275,7 +297,7 @@
  static void list_formats(AVFormatContext *ctx, int type)
  {
      const struct video_data *s = ctx->priv_data;
 -    struct v4l2_fmtdesc vfd = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
 +    struct v4l2_fmtdesc vfd = { .type = s->buf_type };
-
+ 
      while(!v4l2_ioctl(s->fd, VIDIOC_ENUM_FMT, &vfd)) {
          enum AVCodecID codec_id = ff_fmt_v4l2codec(vfd.pixelformat);
-@@ -339,7 +349,7 @@
+@@ -339,7 +361,7 @@
      int i, res;
      struct video_data *s = ctx->priv_data;
      struct v4l2_requestbuffers req = {
@@ -594,9 +374,9 @@
          .count  = desired_video_buffers,
          .memory = V4L2_MEMORY_MMAP
      };
-@@ -368,10 +378,14 @@
+@@ -368,10 +390,14 @@
      }
-
+ 
      for (i = 0; i < req.count; i++) {
 +        unsigned int buf_length, buf_offset;
 +        struct v4l2_plane planes[VIDEO_MAX_PLANES];
@@ -611,15 +391,21 @@
          };
          if (v4l2_ioctl(s->fd, VIDIOC_QUERYBUF, &buf) < 0) {
              res = AVERROR(errno);
-@@ -379,16 +393,28 @@
+@@ -379,16 +405,42 @@
              return res;
          }
-
+ 
 -        s->buf_len[i] = buf.length;
 +        if (s->multiplanar) {
 +            if (buf.length != 1) {
-+                av_log(ctx, AV_LOG_ERROR, "multiplanar only supported when buf.length == 1\n");
-+                return AVERROR_PATCHWELCOME;
++                if (get_v4l2_memory_type(ctx, s->mem_type) != V4L2_MEMORY_DMABUF) {
++                    av_log(ctx, AV_LOG_ERROR,
++                           "multiplanar only supported when buf.length == 1 for mmap mode\n");
++                    return AVERROR_PATCHWELCOME;
++                }
++                av_log(ctx, AV_LOG_WARNING,
++                       "multiplanar with %u planes in dmabuf mode, mmap fallback uses plane 0\n",
++                       buf.length);
 +            }
 +            buf_length = buf.m.planes[0].length;
 +            buf_offset = buf.m.planes[0].m.mem_offset;
@@ -630,28 +416,40 @@
 +
 +        s->buf_len[i] = buf_length;
          if (s->frame_size > 0 && s->buf_len[i] < s->frame_size) {
-             av_log(ctx, AV_LOG_ERROR,
-                    "buf_len[%d] = %d < expected frame size %d\n",
-                    i, s->buf_len[i], s->frame_size);
-             return AVERROR(ENOMEM);
+-            av_log(ctx, AV_LOG_ERROR,
+-                   "buf_len[%d] = %d < expected frame size %d\n",
+-                   i, s->buf_len[i], s->frame_size);
+-            return AVERROR(ENOMEM);
++            if (s->multiplanar &&
++                buf.length > 1 &&
++                get_v4l2_memory_type(ctx, s->mem_type) == V4L2_MEMORY_DMABUF) {
++                av_log(ctx, AV_LOG_WARNING,
++                       "buf_len[%d] = %d < expected frame size %d, ignoring in dmabuf mplane mode\n",
++                       i, s->buf_len[i], s->frame_size);
++            } else {
++              av_log(ctx, AV_LOG_ERROR,
++                  "buf_len[%d] = %d < expected frame size %d\n",
++                  i, s->buf_len[i], s->frame_size);
++              return AVERROR(ENOMEM);
++            }
          }
 -        s->buf_start[i] = v4l2_mmap(NULL, buf.length,
 +        s->buf_start[i] = v4l2_mmap(NULL, buf_length,
                                 PROT_READ | PROT_WRITE, MAP_SHARED,
 -                               s->fd, buf.m.offset);
 +                               s->fd, buf_offset);
-
+ 
          if (s->buf_start[i] == MAP_FAILED) {
              res = AVERROR(errno);
-@@ -416,13 +442,16 @@
-
+@@ -416,13 +468,16 @@
+ 
  static void mmap_release_buffer(void *opaque, uint8_t *data)
  {
 +    struct v4l2_plane planes[VIDEO_MAX_PLANES];
      struct v4l2_buffer buf = { 0 };
      struct buff_data *buf_descriptor = opaque;
      struct video_data *s = buf_descriptor->s;
-
+ 
 -    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 +    buf.type = s->buf_type;
      buf.memory = V4L2_MEMORY_MMAP;
@@ -659,24 +457,9 @@
 +    buf.m.planes = s->multiplanar ? planes : NULL;
 +    buf.length   = s->multiplanar ? VIDEO_MAX_PLANES : 0;
      av_free(buf_descriptor);
-
+ 
      enqueue_buffer(s, &buf);
-@@ -489,14 +518,30 @@
-     return 0;
- }
-
-+static enum v4l2_memory get_v4l2_memory_type(AVFormatContext *ctx, const char* mem_type_str)
-+{
-+    if (strcmp(mem_type_str, "mmap") == 0)
-+        return V4L2_MEMORY_MMAP;
-+    else if (strcmp(mem_type_str, "dmabuf") == 0)
-+        return V4L2_MEMORY_DMABUF;
-+    else {
-+        av_log(ctx, AV_LOG_ERROR, "Invalid memory type: %s\n", mem_type_str);
-+        return -1;
-+    }
-+}
-+
+@@ -492,11 +547,15 @@
  static int mmap_read_frame(AVFormatContext *ctx, AVPacket *pkt)
  {
      struct video_data *s = ctx->priv_data;
@@ -692,13 +475,20 @@
      struct timeval buf_ts;
 +    unsigned int bytesused;
      int res;
-
+ 
      pkt->size = 0;
-@@ -523,38 +568,40 @@
+@@ -523,38 +582,47 @@
      // always keep at least one buffer queued
      av_assert0(atomic_load(&s->buffers_queued) >= 1);
-
-+    bytesused = s->multiplanar ? buf.m.planes[0].bytesused : buf.bytesused;
+ 
++    if (s->multiplanar) {
++        unsigned int i;
++        bytesused = 0;
++        for (i = 0; i < buf.length; i++)
++            bytesused += buf.m.planes[i].bytesused;
++    } else {
++        bytesused = buf.bytesused;
++    }
 +
  #ifdef V4L2_BUF_FLAG_ERROR
      if (buf.flags & V4L2_BUF_FLAG_ERROR) {
@@ -716,7 +506,7 @@
          if (ctx->video_codec_id == AV_CODEC_ID_CPIA)
 -            s->frame_size = buf.bytesused;
 +            s->frame_size = bytesused;
-
+ 
 -        if (s->frame_size > 0 && buf.bytesused != s->frame_size) {
 +        if (s->frame_size > 0 && bytesused != s->frame_size) {
              av_log(ctx, AV_LOG_WARNING,
@@ -727,7 +517,7 @@
 +            bytesused = 0;
          }
      }
-
+ 
      /* Image is at s->buff_start[buf.index] */
      if (atomic_load(&s->buffers_queued) == FFMAX(s->buffers / 8, 1)) {
          /* when we start getting low on queued buffers, fall back on copying data */
@@ -740,22 +530,22 @@
          }
 -        memcpy(pkt->data, s->buf_start[buf.index], buf.bytesused);
 +        memcpy(pkt->data, s->buf_start[buf.index], bytesused);
-
+ 
          res = enqueue_buffer(s, &buf);
          if (res) {
-@@ -565,7 +612,7 @@
+@@ -565,7 +633,7 @@
          struct buff_data *buf_descriptor;
-
+ 
          pkt->data     = s->buf_start[buf.index];
 -        pkt->size     = buf.bytesused;
 +        pkt->size     = bytesused;
-
+ 
          buf_descriptor = av_malloc(sizeof(struct buff_data));
          if (!buf_descriptor) {
-@@ -592,6 +639,39 @@
+@@ -592,6 +660,39 @@
      pkt->pts = buf_ts.tv_sec * INT64_C(1000000) + buf_ts.tv_usec;
      convert_timestamp(ctx, &pkt->pts);
-
+ 
 +    if (get_v4l2_memory_type(ctx, s->mem_type) == V4L2_MEMORY_DMABUF)
 +    {
 +        uint8_t *side_data;
@@ -785,16 +575,16 @@
 +                       buf.index, i, errno, strerror(errno));
 +                return AVERROR(errno);
 +            }
-+
++            printf("v4l2 export buffer: index=%d plane=%d fd=%d\n", buf.index, i, expbuf.fd);
 +            ((int *)side_data)[i] = expbuf.fd;
 +        }
 +    }
      return pkt->size;
  }
-
-@@ -602,10 +682,13 @@
+ 
+@@ -602,10 +703,13 @@
      int i, res;
-
+ 
      for (i = 0; i < s->buffers; i++) {
 +        struct v4l2_plane planes[VIDEO_MAX_PLANES];
          struct v4l2_buffer buf = {
@@ -806,48 +596,48 @@
 +            .m.planes = s->multiplanar ? planes : NULL,
 +            .length   = s->multiplanar ? VIDEO_MAX_PLANES : 0,
          };
-
+ 
          if (v4l2_ioctl(s->fd, VIDIOC_QBUF, &buf) < 0) {
-@@ -617,7 +700,7 @@
+@@ -617,7 +721,7 @@
      }
      atomic_store(&s->buffers_queued, s->buffers);
-
+ 
 -    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 +    type = s->buf_type;
      if (v4l2_ioctl(s->fd, VIDIOC_STREAMON, &type) < 0) {
          res = AVERROR(errno);
          av_log(ctx, AV_LOG_ERROR, "ioctl(VIDIOC_STREAMON): %s\n",
-@@ -633,7 +716,7 @@
+@@ -633,7 +737,7 @@
      enum v4l2_buf_type type;
      int i;
-
+ 
 -    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 +    type = s->buf_type;
      /* We do not check for the result, because we could
       * not do anything about it anyway...
       */
-@@ -720,7 +803,7 @@
+@@ -720,7 +824,7 @@
          tpf = &streamparm.parm.capture.timeperframe;
      }
-
+ 
 -    streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 +    streamparm.type = s->buf_type;
      if (v4l2_ioctl(s->fd, VIDIOC_G_PARM, &streamparm) < 0) {
          ret = AVERROR(errno);
          av_log(ctx, AV_LOG_WARNING, "ioctl(VIDIOC_G_PARM): %s\n", av_err2str(ret));
-@@ -908,7 +991,7 @@
+@@ -908,7 +1012,7 @@
      }
-
+ 
      if (!s->width && !s->height) {
 -        struct v4l2_format fmt = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
 +        struct v4l2_format fmt = { .type = s->buf_type };
-
+ 
          av_log(ctx, AV_LOG_VERBOSE,
                 "Querying the device for the current frame size\n");
-@@ -919,8 +1002,13 @@
+@@ -919,8 +1023,13 @@
              goto fail;
          }
-
+ 
 -        s->width  = fmt.fmt.pix.width;
 -        s->height = fmt.fmt.pix.height;
 +        if (s->multiplanar) {
@@ -860,11 +650,11 @@
          av_log(ctx, AV_LOG_VERBOSE,
                 "Setting frame size to %dx%d\n", s->width, s->height);
      }
-@@ -1121,6 +1209,7 @@
+@@ -1121,6 +1230,7 @@
      { "abs",          "use absolute timestamps (wall clock)",                     OFFSET(ts_mode),      AV_OPT_TYPE_CONST,  {.i64 = V4L_TS_ABS      }, 0, 2, DEC, "timestamps" },
      { "mono2abs",     "force conversion from monotonic to absolute timestamps",   OFFSET(ts_mode),      AV_OPT_TYPE_CONST,  {.i64 = V4L_TS_MONO2ABS }, 0, 2, DEC, "timestamps" },
      { "use_libv4l2",  "use libv4l2 (v4l-utils) conversion functions",             OFFSET(use_libv4l2),  AV_OPT_TYPE_BOOL,   {.i64 = 0}, 0, 1, DEC },
 +    { "mem_type",     "output buffer type: mmap/dmabuf",                          OFFSET(mem_type),     AV_OPT_TYPE_STRING, {.str = "mmap" },         0, 0, DEC },
      { NULL },
  };
-
+ 
