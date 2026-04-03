@@ -26,7 +26,6 @@ typedef struct {
 
 typedef struct {
     std::string device;
-    int region_num;
     int x[NONAI2D_OSD_REGION_NUM];
     int y[NONAI2D_OSD_REGION_NUM];
     int index[NONAI2D_OSD_REGION_NUM];
@@ -47,7 +46,7 @@ public:
     OsdManager();
     ~OsdManager();
 
-    int Init(int width, int height, AVRational time_base, int regions, const char* in_mem_type, const char* out_mem_type);
+    int Init(int width, int height, AVRational time_base, const char* in_mem_type, const char* out_mem_type);
     int Apply(AVFrame *frame, OsdRegion* regions, int region_count);
     void Deinit();
     bool IsReady() const;

@@ -112,6 +112,7 @@ class KdMedia {
 
   bool camera_dmabuf_=false;
   OsdManager osd_manager_;
+  OsdRegion regions_[NONAI2D_OSD_REGION_NUM];
 };
 
 #endif // _KD_MEDIA_H

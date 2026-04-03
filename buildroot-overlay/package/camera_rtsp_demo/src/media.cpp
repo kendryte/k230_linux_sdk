@@ -250,19 +250,22 @@ int KdMedia::_init_encoder(AVCodecContext *&codec_ctx, AVFrame *&frame) {
 int KdMedia::_init_osd() {
 
     int ret=0;
-
     if(input_config_.osd_region)
     {
         ret = osd_manager_.Init(
             input_config_.venc_width,
             input_config_.venc_height,
             (AVRational){1, 30},
-            input_config_.osd_region,
             "mmap", "dmabuf");
         if (ret < 0) {
             char errbuf[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(ret, errbuf, sizeof(errbuf));
             std::cerr << "nonai2d osd init failed: " << errbuf << std::endl;
+        }
+
+        for (int i = 0; i < NONAI2D_OSD_REGION_NUM; ++i) {
+            regions_[i].enabled = 0;
+            regions_[i].osd_image_data = nullptr;
         }
     }
     return ret;
@@ -345,20 +348,7 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
     OsdManager &osd_manager = media->osd_manager_;
     int ret;
     bool bget_pkt = false;
-    OsdRegion regions[NONAI2D_OSD_REGION_NUM];
-
-    if (input_config.osd_region > 0) {
-        ret = osd_manager.Init(input_config.venc_width, input_config.venc_height,
-                               (AVRational){1, 30}, input_config.osd_region, "mmap", "dmabuf");
-        if (ret < 0) {
-            std::cerr << "OSD init failed: " << ret << std::endl;
-        }
-        for (int i = 0; i < NONAI2D_OSD_REGION_NUM; ++i) {
-            regions[i].enabled = 0;
-            regions[i].osd_image_data = nullptr;
-        }
-    }
-
+    
     while(true){
         AVPacket *pkt = nullptr;
         if (media->stop_flag_) {
@@ -413,9 +403,9 @@ void *KdMedia::camera_venc_stream_thread(void *arg)
 
             if (input_config.osd_region > 0 && osd_manager.IsReady()) {
                 if (input_config.osd_callback) {
-                    input_config.osd_callback(regions, input_config.osd_region, input_config.osd_user_data);
+                    input_config.osd_callback(media->regions_, input_config.osd_region, input_config.osd_user_data);
                 }
-                ret = osd_manager.Apply(frame, regions, input_config.osd_region);
+                ret = osd_manager.Apply(frame, media->regions_, input_config.osd_region);
                 if (ret < 0) {
                     std::cerr << "OSD apply failed: " << ret << std::endl;
                 }

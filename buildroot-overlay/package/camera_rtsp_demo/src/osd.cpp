@@ -22,7 +22,6 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#include "OSD1_40x40_argb.c"
 
 static AVFilterContext *FindNonai2dContext(AVFilterGraph *graph) {
     if (!graph) {
@@ -88,7 +87,7 @@ void OsdManager::Deinit() {
     inited_ = false;
 }
 
-int OsdManager::Init(int width, int height, AVRational time_base, int regions,
+int OsdManager::Init(int width, int height, AVRational time_base, 
                      const char* in_mem_type, const char* out_mem_type) {
     int ret;
     char args[256];
@@ -101,7 +100,6 @@ int OsdManager::Init(int width, int height, AVRational time_base, int regions,
     std::string nonai2d_dev;
 
     osd_config_.device = "";
-    osd_config_.region_num = regions;
     auto detect_nonai2d_device = []() -> std::string {
         for (int i = 0; i < 64; ++i) {
             char name_path[128];
