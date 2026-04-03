@@ -88,85 +88,6 @@ void OsdManager::Deinit() {
     inited_ = false;
 }
 
-int OsdManager::TriWave(int t, int max_v) {
-    int period;
-    int p;
-
-    if (max_v <= 0) {
-        return 0;
-    }
-
-    period = max_v * 2;
-    if (period <= 0) {
-        return 0;
-    }
-
-    p = t % period;
-    if (p <= max_v) {
-        return p;
-    }
-    return period - p;
-}
-
-int OsdManager::ReconfigOsd(int base_x, int base_y) {
-    int ret;
-    int changed = 0;
-    int max_x;
-    int max_y;
-
-    if (!graph_ || !osd_ctx_) {
-        return AVERROR(EINVAL);
-    }
-
-    max_x = width_ > 40 ? width_ - 40 : 0;
-    max_y = height_ > 40 ? height_ - 40 : 0;
-
-    for (int i = 0; i < osd_config_.region_num; ++i) {
-        int x = base_x + i * 48;
-        int y = base_y + (i % 2) * 36;
-
-        if (x < 0) {
-            x = 0;
-        }
-        if (x > max_x) {
-            x = max_x;
-        }
-        if (y < 0) {
-            y = 0;
-        }
-        if (y > max_y) {
-            y = max_y;
-        }
-
-        if (x == osd_config_.x[i] && y == osd_config_.y[i]) {
-            continue;
-        }
-
-        char args[512];
-        char res[128];
-
-        snprintf(args, sizeof(args),
-               "%d:index:%d:x:%d:y:%d:width:%d:height:%d:valid:%d:data:%p",
-               i, i, x, y, 40, 40, 1, osd_data);
-
-        ret = avfilter_process_command(osd_ctx_,
-                                       "config_region",
-                                       args,
-                                       res,
-                                       sizeof(res),
-                                       0);
-        if (ret < 0) {
-            return ret;
-        }
-
-        osd_config_.x[i] = x;
-        osd_config_.y[i] = y;
-        changed = 1;
-    }
-
-    return 0;
-}
-
 int OsdManager::Init(int width, int height, AVRational time_base, int regions,
                      const char* in_mem_type, const char* out_mem_type) {
     int ret;
@@ -289,7 +210,7 @@ osd_init_fail:
     return ret;
 }
 
-int OsdManager::Apply(AVFrame *frame) {
+int OsdManager::Apply(AVFrame *frame, OsdRegion* regions, int region_count) {
     int ret;
 
     if (!inited_ || !frame) {
@@ -297,18 +218,41 @@ int OsdManager::Apply(AVFrame *frame) {
         return AVERROR(EINVAL);
     }
 
-    if (frame_cnt_ % 90 == 0) {
-        int step = frame_cnt_ / 15;
-        int max_x = width_ > 40 ? width_ - 40 : 0;
-        int max_y = height_ > 40 ? height_ - 40 : 0;
-        int x = TriWave(step * 14, max_x);
-        int y = TriWave(step * 9 + 37, max_y);
+    if (!regions || region_count <= 0 || region_count > NONAI2D_OSD_REGION_NUM) {
+        printf("%s>failed line %d, invalid regions\n", __func__, __LINE__);
+        return AVERROR(EINVAL);
+    }
 
-        ret = ReconfigOsd(x, y);
+    for (int i = 0; i < region_count; ++i) {
+        OsdRegion* region = &regions[i];
+        
+        if (!region->enabled || !region->osd_image_data) {
+            continue;
+        }
+
+        char args[512];
+        char res[128];
+
+        snprintf(args, sizeof(args),
+               "%d:index:%d:x:%d:y:%d:width:%d:height:%d:valid:%d:data:%p",
+               i, i, region->x, region->y, region->width, region->height, 1, region->osd_image_data);
+
+        ret = avfilter_process_command(osd_ctx_,
+                                       "config_region",
+                                       args,
+                                       res,
+                                       sizeof(res),
+                                       0);
         if (ret < 0) {
-            printf("%s>failed line %d, reconfig ret=%d\n", __func__, __LINE__, ret);
+            printf("%s>failed to config region %d, ret=%d\n", __func__, i, ret);
             return ret;
         }
+
+        osd_config_.x[i] = region->x;
+        osd_config_.y[i] = region->y;
+        osd_config_.width[i] = region->width;
+        osd_config_.height[i] = region->height;
+        osd_config_.valid[i] = 1;
     }
 
     ret = av_buffersrc_add_frame_flags(main_src_, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
@@ -317,7 +261,6 @@ int OsdManager::Apply(AVFrame *frame) {
         return ret;
     }
 
-    // buffersink will move refs into frame; clear existing refs first to avoid leaks.
     av_frame_unref(frame);
     ret = av_buffersink_get_frame(sink_, frame);
     if (ret < 0) {

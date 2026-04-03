@@ -21,7 +21,6 @@ LIBPATH += -L$(STAGING_DIR)/usr/lib -L./
 
 LIBS+= -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment -lrtsp_server
 LIBS+= -lavcodec -lavdevice -lavfilter -lavformat -lavutil -lswresample -lz -lswscale -lpthread
-LIBS += -lsmolrtsp_server
 
 LDFLAGS += -DSOCKLEN_T=socklen_t -DNO_SSTREAM=1 -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DNO_OPENSSL=1
 

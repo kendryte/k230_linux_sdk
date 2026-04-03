@@ -21,7 +21,6 @@ static void Usage() {
     std::cout << "-w: the video encoder width, default 1280" << std::endl;
     std::cout << "-h: the video encoder height, default 720" << std::endl;
     std::cout << "-b: the video encoder bitrate(kbps), default 2000" << std::endl;
-    std::cout << "-c: the RTSP server type: 0=live555, 1=smolrtsp, default 0" << std::endl;
     std::cout << "-l: enable log, default 0" << std::endl;
     std::cout << "-r: osd region count, default 0" << std::endl;
     exit(-1);
@@ -60,13 +59,6 @@ int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
             config.bitrate_kbps = n;
             break;
         }
-        case 'c': {
-            int n = atoi(optarg);
-            if (n < 0 || n > 1) Usage();
-            // 0=live555, 1=smolrtsp
-            config.rtsp_server_type = n;
-            break;
-        }
         case 'l': {
             int n = atoi(optarg);
             if (n < 0 || n > 1) Usage();
@@ -88,7 +80,6 @@ int parse_config(int argc, char *argv[], KdMediaInputConfig &config) {
     printf("Video encoder width: %d\n", config.venc_width);
     printf("Video encoder height: %d\n", config.venc_height);
     printf("Video encoder bitrate (kbps): %d\n", config.bitrate_kbps);
-    printf("RTSP server type: %s\n", (config.rtsp_server_type == 0) ? "live555" : "smolrtsp");
     printf("Enable log: %s\n", (config.enable_log == 1) ? "true" : "false");
     printf("OSD region count: %d\n", config.osd_region);
     printf("\n");

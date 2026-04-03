@@ -2,6 +2,11 @@
 #include <iostream>
 #include <unistd.h>
 #include <thread>
+#include <time.h>
+#include <stdio.h>
+#include <string.h>
+#include "osd.h"
+#include "OSD1_40x40_argb.c"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -11,11 +16,54 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-//#ifdef RTSP_SERVER_TYPE_SMOL
-extern "C" {
-#include "smolrtsp_server.h"
+static unsigned int g_fullscreen_osd_data[1280 * 720] __attribute__((aligned(0x1000)));
+static unsigned int g_small_osd_data[40 * 40] __attribute__((aligned(0x1000)));
+static int g_frame_count = 0;
+
+static void GenerateRainbowPixel(unsigned int *data, int x, int y, int time_offset, int width) {
+    int hue = (time_offset + x * 10 + y * 10) % 360;
+    int red, green, blue;
+    if (hue < 60) {
+        red = 255; green = hue * 255 / 60; blue = 0;
+    } else if (hue < 120) {
+        red = 255 - (hue - 60) * 255 / 60; green = 255; blue = 0;
+    } else if (hue < 180) {
+        red = 0; green = 255; blue = (hue - 120) * 255 / 60;
+    } else if (hue < 240) {
+        red = 0; green = 255 - (hue - 180) * 255 / 60; blue = 255;
+    } else if (hue < 300) {
+        red = (hue - 240) * 255 / 60; green = 0; blue = 255;
+    } else {
+        red = 255; green = 0; blue = 255 - (hue - 300) * 255 / 60;
+    }
+    int alpha = 200;
+    data[y * width + x] = (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
-//#endif
+
+static void GenerateFullscreenRainbow() {
+    if (g_frame_count > 0)
+    {
+        return;
+    }
+
+    g_frame_count++;
+    int time_offset = (g_frame_count / 2) % 360;
+    for (int y = 0; y < 720; y++) {
+        for (int x = 0; x < 1280; x++) {
+            GenerateRainbowPixel(g_fullscreen_osd_data, x, y, time_offset, 1280);
+        }
+    }
+}
+
+static void GenerateSmallRainbow() {
+    g_frame_count++;
+    int time_offset = (g_frame_count / 2) % 360;
+    for (int y = 0; y < 40; y++) {
+        for (int x = 0; x < 40; x++) {
+            GenerateRainbowPixel(g_small_osd_data, x, y, time_offset, 40);
+        }
+    }
+}
 
 MyCameraRtspDemo::MyCameraRtspDemo() {
 }
@@ -24,8 +72,6 @@ int MyCameraRtspDemo::Init(const KdMediaInputConfig &config,const std::string &s
     //init rtsp server
     input_config_ = config;
 
-//#ifndef RTSP_SERVER_TYPE_SMOL
-if (config.rtsp_server_type == 0) {
     if (rtsp_server_.Init(port, nullptr) < 0) {
         return -1;
     }
@@ -47,91 +93,51 @@ if (config.rtsp_server_type == 0) {
     if (rtsp_server_.CreateSession(stream_url, session_attr) < 0) {
         return -1;
     }
-//#endif
-}
+
     stream_url_ = stream_url;
 
-    //init media
     feature_config_.on_venc_data = this;
 
-    media_.configure_media_features(config, feature_config_);
+    if (input_config_.osd_region > 0) {
+        input_config_.osd_callback = OnUpdateOsdRegions;
+        input_config_.osd_user_data = this;
+    }
+
+    media_.configure_media_features(input_config_, feature_config_);
     return 0;
 }
 
 int MyCameraRtspDemo::DeInit() {
     Stop();
     media_.destroy_media_features();
-//#ifndef RTSP_SERVER_TYPE_SMOL
-    if (input_config_.rtsp_server_type == 0) {
-        rtsp_server_.DeInit();
-    }
 
-//#endif
+    rtsp_server_.DeInit();
+    
     return 0;
 }
 
 int MyCameraRtspDemo::Start() {
     if(started_) return 0;
     media_.enable_media_features();
-//#ifndef RTSP_SERVER_TYPE_SMOL
-    if (input_config_.rtsp_server_type == 0) {
-        rtsp_server_.Start();
 
-    } else {
-        if (smolrtsp_server_start() < 0) {
-            std::cerr << "Failed to start smolrtsp server" << std::endl;
-            return -1;
-        }
-    }
+    rtsp_server_.Start();
+
     started_ = true;
 
-//#ifndef RTSP_SERVER_TYPE_SMOL
-    if (input_config_.rtsp_server_type == 0)
-        printf("Play this stream using the URL:%s\n",rtsp_server_.GetRtspUrl(stream_url_));
-//#endif
+    printf("Play this stream using the URL:%s\n",rtsp_server_.GetRtspUrl(stream_url_));
+
     return 0;
 }
 
 int MyCameraRtspDemo::Stop() {
     if (!started_) return 0;
-//#ifndef RTSP_SERVER_TYPE_SMOL
-    if (input_config_.rtsp_server_type == 0)
-        rtsp_server_.Stop();
-    else
-        smolrtsp_server_stop();
+
+    rtsp_server_.Stop();
 
     started_ = false;
     media_.disable_media_features();
     return 0;
 }
-
-static int parse_nalu_type(const uint8_t* data, int size) {
-    const uint8_t* nalu_header = NULL;
-
-    // 检查输入有效性
-    if (!data || size < 4) return -1; // 至少需要4字节（起始码+NAL头部）
-
-    // 查找起始码 (0x00000001 或 0x000001)
-    for (int i = 0; i < size - 3; i++) {
-        if (data[i] == 0 && data[i+1] == 0) {
-            if (data[i+2] == 0 && data[i+3] == 1) {
-                nalu_header = data + i + 4; // 4字节起始码后
-                break;
-            } else if (data[i+2] == 1) {
-                nalu_header = data + i + 3; // 3字节起始码后
-                break;
-            }
-        }
-    }
-
-    if (!nalu_header || (nalu_header - data + 1 > size)) {
-        return -1; // 未找到起始码或数据不足
-    }
-
-    // 提取NALU类型（头部字节的低5位）
-    return nalu_header[0] & 0x1F;
-}
-
 
 #include <time.h>
 static uint64_t get_precise_timestamp_us() {
@@ -140,59 +146,75 @@ static uint64_t get_precise_timestamp_us() {
     return (uint64_t)ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000;  // 纳秒转微秒
 }
 
+void MyCameraRtspDemo::OnUpdateOsdRegions(OsdRegion* regions, int region_count, void* user_data) {
+    (void)user_data;
+    
+    if (!regions || region_count <= 0) {
+        return;
+    }
+
+#if 0
+    // Full-screen rainbow (1280x720), single region
+    GenerateFullscreenRainbow();
+    regions[0].x = 0;
+    regions[0].y = 0;
+    regions[0].width = 1280;
+    regions[0].height = 720;
+    regions[0].osd_image_data = g_fullscreen_osd_data;
+    regions[0].osd_image_size = sizeof(g_fullscreen_osd_data);
+    regions[0].enabled = 1;
+    for (int i = 1; i < region_count; i++) {
+        regions[i].enabled = 0;
+    }
+#elif 1
+    // Small rainbow (40x40), multiple regions, position changes dynamically (circular arrangement)
+    GenerateSmallRainbow();
+    int time_offset = (g_frame_count / 3) % 360;
+    int radius = 250;
+    
+    int center_x = 640;
+    int center_y = 360;
+    
+    for (int i = 0; i < region_count; i++) {
+        int angle = (i * 360 / region_count + time_offset) % 360;
+        float rad = angle * 3.14159f / 180.0f;
+        
+        int x = center_x + (int)(cos(rad) * radius) - 20;
+        int y = center_y + (int)(sin(rad) * radius) - 20;
+        
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+        if (x > 1240) x = 1240;
+        if (y > 680) y = 680;
+        
+        regions[i].x = x;
+        regions[i].y = y;
+        regions[i].width = 40;
+        regions[i].height = 40;
+        regions[i].osd_image_data = g_small_osd_data;
+        regions[i].osd_image_size = sizeof(g_small_osd_data);
+        regions[i].enabled = 1;
+    }
+    
+#else
+    // Use osd_data (40x40), multiple regions
+    for (int i = 0; i < region_count; i++) {
+        regions[i].x = 10 + i * 50;
+        regions[i].y = 10 + i * 30;
+        regions[i].width = 40;
+        regions[i].height = 40;
+        regions[i].osd_image_data = osd_data;
+        regions[i].osd_image_size = osd_data_size;
+        regions[i].enabled = 1;
+    }
+#endif
+}
+
 void MyCameraRtspDemo::OnVEncData(unsigned char *data, size_t size, bool bKeyFrame, uint64_t timestamp)
 {
     if (!started_) return ;
 
-    //printf("OnVEncData, size: %zu, bKeyFrame: %d, timestamp: %llu(%llu)\n", size, bKeyFrame, timestamp,get_precise_timestamp_us());
-
     // Process encoded packet here
-    //#ifndef RTSP_SERVER_TYPE_SMOL
-    if (input_config_.rtsp_server_type == 0)
-    {
-        rtsp_server_.SendVideoData(stream_url_, data, size, timestamp);
-    }
-    else
-    {
-
-        // printf("@@@@@@@@@0x%x_0x%x_0x%x_0x%x_0x%x_0x%x_0x%x_0x%x_0x%x_0x%x_0x%x_0x%x\n",
-        //        data[0], data[1], data[2], data[3],
-        //        data[4], data[5], data[6], data[7],
-        //        data[8], data[9], data[10], data[11]);
-        if (sps_pps_size_ == 0)
-        {
-            // Parse NALU type
-            int nalu_type = parse_nalu_type(data, size);
-            if (nalu_type == 0x7 || nalu_type == 0x8) {
-                // SPS or PPS NALU, store it
-                if (sps_pps_size_ + size < sizeof(sps_pps_)) {
-                    memcpy(sps_pps_ + sps_pps_size_, data, size);
-                    sps_pps_size_ += size;
-                } else {
-                    std::cerr << "SPS/PPS buffer overflow" << std::endl;
-                }
-            }
-        }
-
-        int nalu_type = parse_nalu_type(data, size);
-        bKeyFrame = (nalu_type == 0x5); // NALU type 5 is a keyframe (IDR frame)
-
-        //printf("NALU type: %d, size: %zu, timestamp: %llu\n", nalu_type, size, timestamp);
-
-        //timestamp = 0;
-        if (bKeyFrame) {
-            // If it's a keyframe, send SPS/PPS first
-            if (sps_pps_size_ > 0) {
-                if (smolrtsp_send_video_stream((const uint8_t*)sps_pps_, sps_pps_size_, timestamp) < 0) {
-                    std::cerr << "Failed to send SPS/PPS" << std::endl;
-                }
-                //sps_pps_size_ = 0; // Reset after sending
-            }
-        }
-
-        if (smolrtsp_send_video_stream(data, size,timestamp) < 0) {
-            std::cerr << "Failed to send video stream" << std::endl;
-        }
-    }
-
+    rtsp_server_.SendVideoData(stream_url_, data, size, timestamp);
+    
 }

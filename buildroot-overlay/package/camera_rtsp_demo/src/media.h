@@ -24,15 +24,18 @@ enum class KdMediaVideoType {
   kVideoTypeButt
 };
 
+typedef void (*OsdRegionCallback)(OsdRegion* regions, int region_count, void* user_data);
+
 struct KdMediaInputConfig {
-  KdMediaVideoType video_type = KdMediaVideoType::kVideoTypeH264; // Venc type
-  int venc_width = 1280; // Video encoder width
-  int venc_height = 720; // Video encoder height
-  int bitrate_kbps = 2000; // Bitrate in kbps
+  KdMediaVideoType video_type = KdMediaVideoType::kVideoTypeH264;
+  int venc_width = 1280;
+  int venc_height = 720;
+  int bitrate_kbps = 2000;
   std::string camera_device = "/dev/video1";
-  int rtsp_server_type = 0; // 0=live555, 1=smolrtsp
-  int enable_log = 0; // Enable log
-  int osd_region = 0; // OSD region count, 0 means no OSD, up to NONAI2D_OSD_REGION_NUM
+  int enable_log = 0;
+  int osd_region = 0;
+  OsdRegionCallback osd_callback = nullptr;
+  void* osd_user_data = nullptr;
 };
 
 class IOnVEncData {

@@ -15,6 +15,16 @@ extern "C" {
 #define NONAI2D_OSD_REGION_NUM 8
 
 typedef struct {
+    int x;
+    int y;
+    int width;
+    int height;
+    const unsigned int *osd_image_data;
+    int osd_image_size;
+    int enabled;
+} OsdRegion;
+
+typedef struct {
     std::string device;
     int region_num;
     int x[NONAI2D_OSD_REGION_NUM];
@@ -38,14 +48,11 @@ public:
     ~OsdManager();
 
     int Init(int width, int height, AVRational time_base, int regions, const char* in_mem_type, const char* out_mem_type);
-    int Apply(AVFrame *frame);
+    int Apply(AVFrame *frame, OsdRegion* regions, int region_count);
     void Deinit();
     bool IsReady() const;
 
 private:
-    int TriWave(int t, int max_v);
-    int ReconfigOsd(int base_x, int base_y);
-
     AVFilterGraph *graph_;
     AVFilterContext *main_src_;
     AVFilterContext *osd_ctx_;
