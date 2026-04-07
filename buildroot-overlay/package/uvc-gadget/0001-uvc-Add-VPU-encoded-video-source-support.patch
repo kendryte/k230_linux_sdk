@@ -1,0 +1,1244 @@
+From d29bae93129455a55a965afeefc2f6fbab1ce9c6 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 7 Apr 2026 16:59:52 +0800
+Subject: [PATCH] uvc: Add VPU-encoded video source support
+
+- Add new VIDEO_SOURCE_VPU_ENCODED type for VPU-encoded streams
+- Implement vpu-source.c with VPU encoder initialization and frame capture
+- Add vpu-source.h header for VPU source API
+- Update events.c loop timing for better responsiveness
+- Integrate VPU source into main.c with camera device support
+
+This adds hardware-accelerated video encoding support using the VPU,
+allowing UVC gadget to stream encoded video from camera devices.
+---
+ include/uvcgadget/video-source.h |   5 +
+ include/uvcgadget/vpu-source.h   |  26 +
+ lib/events.c                     |   2 +-
+ lib/meson.build                  |   3 +-
+ lib/stream.c                     | 120 ++++-
+ lib/video-source.c               |   3 +-
+ lib/vpu-source.c                 | 787 +++++++++++++++++++++++++++++++
+ meson.build                      |  11 +
+ src/main.c                       |  53 ++-
+ 9 files changed, 1003 insertions(+), 7 deletions(-)
+ create mode 100755 include/uvcgadget/vpu-source.h
+ create mode 100755 lib/vpu-source.c
+ mode change 100644 => 100755 src/main.c
+
+diff --git a/include/uvcgadget/video-source.h b/include/uvcgadget/video-source.h
+index 3497c49..232d9fa 100644
+--- a/include/uvcgadget/video-source.h
++++ b/include/uvcgadget/video-source.h
+@@ -40,11 +40,16 @@ typedef void(*video_source_buffer_handler_t)(void *, struct video_source *,
+  *				DMA file descriptor.
+  * @VIDEO_SOURCE_STATIC		A source that draws data from an unchanging
+  *				buffer such as a .jpg file
++ * @VIDEO_SOURCE_ENCODED		A source that produces encoded video data
++ *				(e.g., libcamera encoder).
++ * @VIDEO_SOURCE_VPU_ENCODED	A VPU-encoded source that uses packet queue
++ *				for encoded数据 (e.g., vpu-source).
+  */
+ enum video_source_type {
+ 	VIDEO_SOURCE_DMABUF,
+ 	VIDEO_SOURCE_STATIC,
+ 	VIDEO_SOURCE_ENCODED,
++	VIDEO_SOURCE_VPU_ENCODED,
+ };
+ 
+ struct video_source {
+diff --git a/include/uvcgadget/vpu-source.h b/include/uvcgadget/vpu-source.h
+new file mode 100755
+index 0000000..677c0d9
+--- /dev/null
++++ b/include/uvcgadget/vpu-source.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++/*
++ * VPU video source - captures from camera, encodes via VPU
++ *
++ * Copyright (C) 2024
++ */
++
++#ifndef __VPU_SOURCE_H__
++#define __VPU_SOURCE_H__
++
++#include "video-source.h"
++
++struct events;
++struct video_source;
++
++/*
++ * VPU encoder type
++ * @VPU_ENCODER_H264: H.264 encoder
++ * @VPU_ENCODER_H265: H.265 encoder
++ * @VPU_ENCODER_MJPEG: MJPEG encoder
++ */
++
++struct video_source *vpu_source_create(const char *camera_device);
++void vpu_source_init(struct video_source *src, struct events *events);
++
++#endif /* __VPU_SOURCE_H__ */
+diff --git a/lib/events.c b/lib/events.c
+index 2b95cd8..88765f3 100644
+--- a/lib/events.c
++++ b/lib/events.c
+@@ -141,7 +141,7 @@ bool events_loop(struct events *events)
+ 		 * events.
+ 		 */
+ 		tv.tv_sec = 0;
+-		tv.tv_usec = 100000;
++		tv.tv_usec = 10000;//1000000
+ 
+ 		ret = select(events->maxfd + 1, &rfds, &wfds, &efds, &tv);
+ 		if (ret < 0) {
+diff --git a/lib/meson.build b/lib/meson.build
+index 8f18ee6..506c6ea 100644
+--- a/lib/meson.build
++++ b/lib/meson.build
+@@ -11,6 +11,7 @@ libuvcgadget_sources = files([
+   'uvc.c',
+   'v4l2.c',
+   'v4l2-source.c',
++  'vpu-source.c',
+   'video-buffers.c',
+   'video-source.c',
+ ])
+@@ -25,7 +26,7 @@ endif
+ 
+ libuvcgadget = shared_library('uvcgadget',
+                               libuvcgadget_sources,
+-                              dependencies : [libcamera, libjpeg, threads],
++                              dependencies : [libcamera, libjpeg, threads, libavcodec, libavdevice, libavformat, libavutil],
+                               version : uvc_gadget_version,
+                               install : true,
+                               include_directories : [includes, config_includes])
+diff --git a/lib/stream.c b/lib/stream.c
+index 3bd3e60..d9b09c2 100644
+--- a/lib/stream.c
++++ b/lib/stream.c
+@@ -46,7 +46,13 @@ static void uvc_stream_source_process(void *d,
+ 
+ 	v4l2_queue_buffer(sink, buffer);
+ }
+-
++// static uint64_t get_time_ms(void)
++// {
++//     struct timeval tv;
++//     gettimeofday(&tv, NULL);
++//     return (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
++// }
++// extern int frame_count;
+ static void uvc_stream_uvc_process(void *d)
+ {
+ 	struct uvc_stream *stream = d;
+@@ -54,11 +60,19 @@ static void uvc_stream_uvc_process(void *d)
+ 	struct video_buffer buf;
+ 	int ret;
+ 
++	//printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++
++
+ 	ret = v4l2_dequeue_buffer(sink, &buf);
+ 	if (ret < 0)
+ 		return;
+ 
++	//printf("[uvc_stream] dequeue buffer %u, bytesused=%u\n", buf.index, buf.bytesused);
++	//printf("[uvc_stream] calling queue_buffer...\n");
+ 	video_source_queue_buffer(stream->src, &buf);
++	//printf("[uvc_stream] queue_buffer done\n");
++	//printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++
+ }
+ 
+ static void uvc_stream_uvc_process_no_buf(void *d)
+@@ -180,6 +194,7 @@ static int uvc_stream_start_no_alloc(struct uvc_stream *stream)
+ 	return 0;
+ }
+ 
++/* Original version for VIDEO_SOURCE_ENCODED (libcamera encoding) */
+ static int uvc_stream_start_encoded(struct uvc_stream *stream)
+ {
+ 	struct v4l2_device *sink = uvc_v4l2_device(stream->uvc);
+@@ -226,6 +241,105 @@ static int uvc_stream_start_encoded(struct uvc_stream *stream)
+ 
+ 	return 0;
+ 
++error_free_sink:
++	v4l2_free_buffers(sink);
++error_free_source:
++	video_source_free_buffers(stream->src);
++
++	return ret;
++}
++extern  int vpu_source_if_have_data(struct video_source *s);
++void uvc_stream_uvc_process_vpu(void *d)
++{
++	struct uvc_stream *stream = d;
++	struct v4l2_device *sink = uvc_v4l2_device(stream->uvc);
++	struct video_buffer buf;
++	int ret;
++
++	//printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++	if(vpu_source_if_have_data(stream->src) <=0 ) //no data
++		return;
++
++	ret = v4l2_dequeue_buffer(sink, &buf);
++	if (ret < 0)
++		return;
++
++	//printf("[uvc_stream] dequeue buffer %u, bytesused=%u\n", buf.index, buf.bytesused);
++	//printf("[uvc_stream] calling queue_buffer...\n");
++	video_source_queue_buffer(stream->src, &buf);
++	//printf("[uvc_stream] queue_buffer done\n");
++	//printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++
++}
++/* For VIDEO_SOURCE_VPU_ENCODED (vpu-source)
++ * Initial queue buffers then wait for first packet before dequeuing */
++static int uvc_stream_start_vpu_encoded(struct uvc_stream *stream)
++{
++	struct v4l2_device *sink = uvc_v4l2_device(stream->uvc);
++	int ret;
++	unsigned int i;
++
++	/* Allocate the buffers on the source. */
++	ret = video_source_alloc_buffers(stream->src, 2);
++	if (ret < 0) {
++		printf("Failed to allocate source buffers: %s (%d)\n",
++		       strerror(-ret), -ret);
++		return ret;
++	}
++
++	/* Allocate buffers on the sink. */
++	ret = v4l2_alloc_buffers(sink, V4L2_MEMORY_MMAP, 2);
++	if (ret < 0) {
++		printf("Failed to allocate sink buffers: %s (%d)\n",
++		       strerror(-ret), -ret);
++		goto error_free_source;
++	}
++
++	/* mmap buffers. */
++	ret = v4l2_mmap_buffers(sink);
++	if (ret < 0) {
++		printf("Failed to query sink buffers: %s (%d)\n",
++				strerror(-ret), -ret);
++		goto error_free_sink;
++	}
++
++	/* Import the sink's buffers to the source */
++	ret = video_source_import_buffers(stream->src, &sink->buffers);
++	if (ret) {
++		printf("Failed to import sink buffers: %s (%d)\n",
++		       strerror(ret), ret);
++		goto error_free_sink;
++	}
++
++	/* Queue all sink buffers to the source.
++	 * vpu-source will fill them with encoded data when available. */
++	for (i = 0; i < sink->buffers.nbufs; ++i) {
++		struct video_buffer buf = {
++			.index = i,
++			.size = sink->buffers.buffers[i].size,
++			.mem = sink->buffers.buffers[i].mem,
++			.bytesused = 0,
++			.timestamp = {0, 0},
++		};
++
++		ret = v4l2_queue_buffer(sink, &buf);
++		if (ret < 0) {
++			printf("Failed to queue buffer %u to sink: %s (%d)\n",
++				i, strerror(-ret), -ret);
++			goto error_free_sink;
++		}
++		//printf("Queued buffer %u to sink, bytesused=%u\n", i, buf.bytesused);
++	}
++
++	/* Start the source and sink. */
++	video_source_stream_on(stream->src);
++	v4l2_stream_on(sink);
++
++	events_watch_fd(stream->events, sink->fd, EVENT_WRITE,
++			uvc_stream_uvc_process_vpu, stream);
++
++	return 0;
++
+ error_free_sink:
+ 	v4l2_free_buffers(sink);
+ error_free_source:
+@@ -249,6 +363,10 @@ static int uvc_stream_start(struct uvc_stream *stream)
+ 		video_source_set_buffer_handler(stream->src, uvc_stream_source_process,
+ 						stream);
+ 		return uvc_stream_start_encoded(stream);
++	case VIDEO_SOURCE_VPU_ENCODED:
++		video_source_set_buffer_handler(stream->src, uvc_stream_source_process,
++						stream);
++		return uvc_stream_start_vpu_encoded(stream);
+ 	default:
+ 		fprintf(stderr, "invalid video source type\n");
+ 		break;
+diff --git a/lib/video-source.c b/lib/video-source.c
+index 78020f2..e25e2bc 100644
+--- a/lib/video-source.c
++++ b/lib/video-source.c
+@@ -75,5 +75,6 @@ int video_source_queue_buffer(struct video_source *src,
+ void video_source_fill_buffer(struct video_source *src,
+ 			      struct video_buffer *buf)
+ {
+-	src->ops->fill_buffer(src, buf);
++	if (src->ops->fill_buffer)
++		src->ops->fill_buffer(src, buf);
+ }
+diff --git a/lib/vpu-source.c b/lib/vpu-source.c
+new file mode 100755
+index 0000000..a9caaa4
+--- /dev/null
++++ b/lib/vpu-source.c
+@@ -0,0 +1,787 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++/*
++ * VPU video source - captures from camera, encodes via VPU
++ *
++ * Copyright (C) 2024
++ */
++
++#include "config.h"
++
++#include <errno.h>
++#include <fcntl.h>
++#include <pthread.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/mman.h>
++#include <unistd.h>
++#include <sys/syscall.h>
++#include <sys/time.h>
++#include <time.h>
++#include <stdatomic.h>
++
++#include <linux/videodev2.h>
++
++#include <libavformat/avformat.h>
++#include <libavcodec/avcodec.h>
++#include <libavdevice/avdevice.h>
++#include <libavutil/imgutils.h>
++#include <libavutil/opt.h>
++
++#include "events.h"
++#include "tools.h"
++#include "v4l2.h"
++#include "vpu-source.h"
++#include "video-buffers.h"
++#include "uvc.h"
++#include "stream.h"
++
++int frame_count = 0;
++
++
++/* Get current time in milliseconds */
++static uint64_t get_time_ms(void)
++{
++    struct timeval tv;
++    gettimeofday(&tv, NULL);
++    return (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
++}
++
++struct vpu_source {
++	struct video_source src;
++
++	/* Camera input */
++	AVFormatContext *fmt_ctx;
++	AVInputFormat *input_fmt;
++
++	/* Encoder */
++	AVCodecContext *codec_ctx;
++	AVFrame *frame;
++	AVPacket *pkt;
++
++	/* Stop flag */
++	int stop_flag;
++
++	/* Thread ID */
++	pthread_t vpu_tid;
++
++	/* Encoded packet queue (circular buffer) */
++	AVPacket **packet_queue;
++	atomic_int packet_queue_size;  /* Use atomic for lock-free reads */
++	int packet_queue_capacity;
++	atomic_int packet_queue_head;  /* Index to dequeue from */
++	atomic_int packet_queue_tail;  /* Index to enqueue to */
++	pthread_mutex_t packet_mutex;
++	pthread_cond_t packet_cond;
++
++	/* Buffer pool for encoded output */
++	struct video_buffer_set *output_buffers;
++
++	/* Encoder type */
++
++	char *camera_device;
++
++	/* Frame rate */
++	int frame_rate;
++
++	/* Sink device info (for direct buffer queueing) */
++	int sink_fd;
++	/* Width and height set via set_format */
++	int set_width;
++	int set_height;
++	/* Initialize flag */
++	int initialized;
++};
++
++#define to_vpu_source(s) container_of(s, struct vpu_source, src)
++
++static int init_camera(struct vpu_source *src, const char *camera_device, int width, int height)
++{
++	/* Register all device formats (needed for v4l2 input) */
++	avdevice_register_all();
++
++	src->input_fmt = av_find_input_format("v4l2");
++	if (!src->input_fmt) {
++		fprintf(stderr, "Cannot find v4l2 input format\n");
++		return -1;
++	}
++
++	AVDictionary *options = NULL;
++	char video_size[32];
++	snprintf(video_size, sizeof(video_size), "%dx%d", width, height);
++
++	/* Configure camera capture parameters for low latency */
++	char framerate_str[16];
++	snprintf(framerate_str, sizeof(framerate_str), "%d", src->frame_rate);
++	av_dict_set(&options, "framerate", framerate_str, 0);
++	av_dict_set(&options, "pixel_format", "nv12", 0);
++	av_dict_set(&options, "probesize", "32", 0);
++	av_dict_set(&options, "video_size", video_size, 0);
++	/* Minimal buffer for low latency - just 1 frame worth */
++	av_dict_set_int(&options, "buffer_size", 4096, 0);
++	av_dict_set_int(&options, "input_queue_size", 1, 0);
++	av_dict_set(&options, "analyzeduration", "0", 0);
++	av_dict_set(&options, "fflags", "nobuffer+igndts", 0);
++	av_dict_set(&options, "flags", "low_delay", 0);
++
++	if (avformat_open_input(&src->fmt_ctx, camera_device, src->input_fmt, &options) != 0) {
++		fprintf(stderr, "Cannot open camera device: %s\n", camera_device);
++		av_dict_free(&options);
++		return -1;
++	}
++	av_dict_free(&options);
++
++	if (avformat_find_stream_info(src->fmt_ctx, NULL) < 0) {
++		fprintf(stderr, "Cannot find stream info\n");
++		avformat_close_input(&src->fmt_ctx);
++		return -1;
++	}
++
++	/* Log camera stream parameters for debugging */
++	AVCodecParameters *cp = src->fmt_ctx->streams[0]->codecpar;
++	printf("Camera stream: width=%d, height=%d, pix_fmt=%d, bitrate=%ld\n",
++		cp->width, cp->height, cp->format, cp->bit_rate);
++	printf("Camera codecpar: codec_id=%d, profile=%d, level=%d\n",
++		cp->codec_id, cp->profile, cp->level);
++
++	return 0;
++}
++
++/* Queue encoded packet */
++static void queue_encoded_packet(struct vpu_source *src, AVPacket *pkt, int pkt_count)
++{
++	AVPacket *encoded_pkt = NULL;
++
++	if (src->stop_flag)
++		return;
++
++	encoded_pkt = av_packet_alloc();
++	if (!encoded_pkt) {
++		fprintf(stderr, "Failed to allocate encoded packet\n");
++		return;
++	}
++
++	av_packet_move_ref(encoded_pkt, pkt);
++
++	// fprintf(stderr, "[vpu-thread] about to lock mutex, queue_size=%d, capacity=%d\n",
++	// 	src->packet_queue_size, src->packet_queue_capacity);
++	pthread_mutex_lock(&src->packet_mutex);
++	//fprintf(stderr, "[vpu-thread] got mutex, queue_size=%d\n", src->packet_queue_size);
++
++	/* Wait until space is available in the queue */
++	while (src->packet_queue_size >= src->packet_queue_capacity && !src->stop_flag) {
++		fprintf(stderr, "[vpu-thread] queue full, waiting on cond (size=%d >= cap=%d)...\n",
++		 	src->packet_queue_size, src->packet_queue_capacity);
++		pthread_cond_wait(&src->packet_cond, &src->packet_mutex);
++		//fprintf(stderr, "[vpu-thread] cond wait done\n");
++	}
++
++	src->packet_queue[src->packet_queue_tail] = encoded_pkt;
++	src->packet_queue_tail = (src->packet_queue_tail + 1) % src->packet_queue_capacity;
++	src->packet_queue_size++;
++
++	/* Notify waiting queue_buffer threads */
++	//fprintf(stderr, "[vpu-thread] about to signal cond, queue_size=%d\n", src->packet_queue_size);
++	pthread_cond_signal(&src->packet_cond);
++
++	pthread_mutex_unlock(&src->packet_mutex);
++
++
++	if (pkt_count <= 5 || pkt_count % 90000 == 0) {
++		printf("vpu_thread: pkt %d queued, size=%d, queue_size=%d max=%d \n",
++			pkt_count, encoded_pkt->size, src->packet_queue_size, src->packet_queue_capacity);
++	}
++
++}
++
++
++// /* Frame rate control - sleep if needed */
++// static void frame_rate_control(uint64_t *last_frame_time, uint64_t frame_interval_us, int frame_count)
++// {
++// 	struct timespec now;
++// 	clock_gettime(CLOCK_MONOTONIC, &now);
++// 	uint64_t current_time = now.tv_sec * 1000000ULL + now.tv_nsec / 1000;
++// 	uint64_t elapsed = current_time - *last_frame_time;
++
++// 	if (frame_count > 1 && elapsed < frame_interval_us) {
++// 		uint64_t sleep_us = frame_interval_us - elapsed;
++// 		usleep(sleep_us);
++// 	}
++// 	*last_frame_time = current_time;
++// }
++
++static int init_encoder(struct vpu_source *src, int width, int height)
++{
++
++	const AVCodec *codec = avcodec_find_encoder_by_name("mjpeg_v4l2m2m");
++
++	if (!codec) {
++		fprintf(stderr, "Cannot find mjpeg encoder\n");
++		return -1;
++	}
++
++	src->codec_ctx = avcodec_alloc_context3(codec);
++	if (!src->codec_ctx) {
++		fprintf(stderr, "Cannot allocate codec context\n");
++		return -1;
++	}
++
++	/* Basic encoder parameters */
++	src->codec_ctx->codec_id = codec->id;
++	src->codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
++	src->codec_ctx->width = width;
++	src->codec_ctx->height = height;
++	src->codec_ctx->pix_fmt = AV_PIX_FMT_NV12;
++	src->codec_ctx->time_base = (AVRational){1, 30};
++	//src->codec_ctx->framerate = (AVRational){30, 1};
++	src->codec_ctx->bit_rate = 0;  // Auto bitrate for MJPEG
++	src->codec_ctx->gop_size = 1;  // I-frame only for minimum latency
++	src->codec_ctx->max_b_frames = 0;
++
++	/* CBR mode */
++
++	src->codec_ctx->qmin = 20;
++	src->codec_ctx->qmax = 40;
++	src->codec_ctx->qcompress = 0.9;
++	/* CBR mode settings for consistent quality */
++	src->codec_ctx->rc_min_rate = 0;
++	src->codec_ctx->rc_max_rate = 0;
++	src->codec_ctx->rc_buffer_size = 0;
++	src->codec_ctx->rc_initial_buffer_occupancy = 0;
++	/* Low delay settings */
++	src->codec_ctx->refs = 0;
++	src->codec_ctx->me_range = 8;
++	src->codec_ctx->max_qdiff = 6;
++
++	src->codec_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
++	src->codec_ctx->flags &= ~AV_CODEC_FLAG_LOOP_FILTER;
++	src->codec_ctx->mb_decision = 0;
++	src->codec_ctx->trellis = 0;
++
++	/* V4L2 m2m specific options */
++	AVDictionary *codec_options = NULL;
++	av_dict_set_int(&codec_options, "num_output_buffers", 1, 0);
++	av_dict_set_int(&codec_options, "num_capture_buffers", 4, 0);
++	av_dict_set(&codec_options, "tune", "zerolatency", 0);
++
++	if (avcodec_open2(src->codec_ctx, codec, &codec_options) < 0) {
++		fprintf(stderr, "Cannot open codec\n");
++		av_dict_free(&codec_options);
++		avcodec_free_context(&src->codec_ctx);
++		return -1;
++	}
++	av_dict_free(&codec_options);
++
++	src->frame = av_frame_alloc();
++	src->frame->format = src->codec_ctx->pix_fmt;
++	src->frame->width = src->codec_ctx->width;
++	src->frame->height = src->codec_ctx->height;
++
++	/* Allocate frame buffer with 32-byte alignment */
++	if (av_frame_get_buffer(src->frame, 32) < 0) {
++		fprintf(stderr, "Cannot allocate frame buffer\n");
++		av_frame_free(&src->frame);
++		avcodec_free_context(&src->codec_ctx);
++		return -1;
++	}
++
++	src->pkt = av_packet_alloc();
++	if (!src->pkt) {
++		fprintf(stderr, "Cannot allocate packet\n");
++		av_frame_free(&src->frame);
++		avcodec_free_context(&src->codec_ctx);
++		return -1;
++	}
++
++
++	return 0;
++}
++
++static void *vpu_thread(void *arg)
++{
++	struct vpu_source *src = (struct vpu_source *)arg;
++	int ret;
++
++	int pkt_count = 0;
++	//uint64_t last_frame_time = 0;
++
++	printf("vpu_thread start, TID: %d\n", (int)syscall(SYS_gettid));
++
++	/* Frame interval in microseconds (30fps = ~33333us) */
++	//uint64_t frame_interval_us = (src->frame_rate > 0) ? (1000000 / src->frame_rate) : 33333;
++
++	AVPacket *raw_pkt = av_packet_alloc();
++	if (!raw_pkt) {
++		fprintf(stderr, "Failed to allocate raw packet\n");
++		return NULL;
++	}
++
++	while (!src->stop_flag) {
++		// if( (frame_count %100 == 0)|| frame_count <5 )
++		// 	printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++
++		/* Read raw frame from camera */
++		ret = av_read_frame(src->fmt_ctx, raw_pkt);
++		if (ret < 0) {
++			fprintf(stderr, "Error reading frame: %d\n", ret);
++			break;
++		}
++
++		if (raw_pkt->stream_index != 0) {
++			av_packet_free(&raw_pkt);
++			raw_pkt = av_packet_alloc();
++			if (!raw_pkt) {
++				break;
++			}
++			continue;
++		}
++
++		frame_count++;
++		// if(frame_count%3==0){
++		// 	av_packet_free(&raw_pkt);
++		// 	raw_pkt = av_packet_alloc();
++		// 	if (!raw_pkt) {
++		// 		break;
++		// 	}
++		// 	continue;
++		// }
++
++
++		//printf("capture fram=%d\n", frame_count);
++
++		/* Reference camera RTSP demo - directly point frame to raw_pkt data (zero-copy) */
++		int cam_width = src->fmt_ctx->streams[0]->codecpar->width;
++		int cam_height = src->fmt_ctx->streams[0]->codecpar->height;
++
++		/* Direct pointer assignment - no memcpy */
++		src->frame->data[0] = raw_pkt->data;
++		src->frame->linesize[0] = cam_width;
++		src->frame->data[1] = raw_pkt->data + cam_width * cam_height;
++		src->frame->linesize[1] = cam_width;
++		src->frame->pts = raw_pkt->pts;
++
++		// if( (frame_count %101 == 0)|| frame_count <5 )
++		// 	printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++
++
++		/* Send frame to encoder */
++		ret = avcodec_send_frame(src->codec_ctx, src->frame);
++		if (ret < 0) {
++			fprintf(stderr, "Error sending frame to encoder: %d\n", ret);
++			av_packet_free(&raw_pkt);
++			break;
++		}
++		// if( (frame_count %101 == 0)|| frame_count <5 )
++		// 	printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++		/* Receive encoded packets - loop until EAGAIN */
++		for (;;) {
++			ret = avcodec_receive_packet(src->codec_ctx, src->pkt);
++			if (ret == AVERROR(EAGAIN)) { //EAGAIN = "Try again" - 编码器暂时没有可用的输出包,表示编码器内部缓冲区为空，需要先送入新的帧才能生成输出包
++				//usleep(1000); //1ms;
++				break;
++			} else if (ret == AVERROR_EOF) {
++				break;
++			} else if (ret < 0) {
++				fprintf(stderr, "Error receiving packet: %d\n", ret);
++				break;
++			}
++			pkt_count++;
++
++			// Skip every 4th frame to reduce UVC driver buffering delay
++			// if(pkt_count%28==0){
++			// 	av_packet_free(&src->pkt);
++			// 	src->pkt = av_packet_alloc();
++			// 	continue;
++			// }
++			// if(pkt_count < 10){
++			// 	av_packet_free(&src->pkt);
++			// 	src->pkt = av_packet_alloc();
++			// 	continue;
++			// }
++
++
++			// if( (frame_count %101 == 0)|| frame_count <5 )
++			// 	printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++			/* Queue encoded packet */
++			queue_encoded_packet(src, src->pkt, pkt_count);
++			// if( (frame_count %101 == 0)|| frame_count <5 )
++			// 	printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++		}
++
++		av_packet_free(&raw_pkt);
++		raw_pkt = av_packet_alloc();
++		if (!raw_pkt) {
++			break;
++		}
++		//usleep(1000);
++	}
++
++	printf("vpu_thread exit, frames: %d, pkts: %d\n", frame_count, pkt_count);
++
++	av_packet_free(&raw_pkt);
++
++	return NULL;
++}
++
++static void vpu_source_destroy(struct video_source *s)
++{
++	struct vpu_source *src = to_vpu_source(s);
++
++	src->stop_flag = 1;
++
++	/* Wake up any waiting threads before joining */
++	pthread_mutex_lock(&src->packet_mutex);
++	pthread_cond_broadcast(&src->packet_cond);
++	pthread_mutex_unlock(&src->packet_mutex);
++
++	if (src->vpu_tid) {
++		pthread_join(src->vpu_tid, NULL);
++	}
++
++	/* Cleanup packets in queue */
++	pthread_mutex_lock(&src->packet_mutex);
++	/* Free all packets in the queue (circular buffer) */
++	if (src->packet_queue_head <= src->packet_queue_tail) {
++		/* No wrap - contiguous data */
++		for (int i = src->packet_queue_head; i < src->packet_queue_tail; i++) {
++			if (src->packet_queue[i]) {
++				av_packet_free(&src->packet_queue[i]);
++			}
++		}
++	} else {
++		/* Wrapped - data in two segments */
++		for (int i = src->packet_queue_head; i < src->packet_queue_capacity; i++) {
++			if (src->packet_queue[i]) {
++				av_packet_free(&src->packet_queue[i]);
++			}
++		}
++		for (int i = 0; i < src->packet_queue_tail; i++) {
++			if (src->packet_queue[i]) {
++				av_packet_free(&src->packet_queue[i]);
++			}
++		}
++	}
++	/* Wake up any waiting queue_buffer threads */
++	pthread_cond_broadcast(&src->packet_cond);
++	pthread_mutex_unlock(&src->packet_mutex);
++
++	/* Cleanup FFmpeg resources */
++	av_packet_free(&src->pkt);
++	av_frame_free(&src->frame);
++	avcodec_free_context(&src->codec_ctx);
++	avformat_close_input(&src->fmt_ctx);
++
++	/* Cleanup video buffers */
++	if (src->output_buffers) {
++		for (unsigned int i = 0; i < src->output_buffers->nbufs; i++) {
++			if (src->output_buffers->buffers[i].mem) {
++				free(src->output_buffers->buffers[i].mem);
++				src->output_buffers->buffers[i].mem = NULL;
++			}
++		}
++		video_buffer_set_delete(src->output_buffers);
++	}
++
++	pthread_mutex_destroy(&src->packet_mutex);
++	pthread_cond_destroy(&src->packet_cond);
++
++	free(src->camera_device);
++	free(src);
++}
++
++static int vpu_source_set_format(struct video_source *s, struct v4l2_pix_format *fmt)
++{
++	struct vpu_source *src = to_vpu_source(s);
++	int ret;
++
++	/* Store width, height and frame rate from format/set_frame_rate */
++	src->set_width = fmt->width;
++	src->set_height = fmt->height;
++	fmt->pixelformat = V4L2_PIX_FMT_MJPEG;
++	fmt->field = V4L2_FIELD_ANY;
++
++	/* Reinitialize if width or height changed */
++	if (!src->initialized ||
++	    src->set_width != src->codec_ctx->width ||
++	    src->set_height != src->codec_ctx->height) {
++		/* Cleanup existing resources if already initialized */
++		if (src->initialized) {
++			avcodec_free_context(&src->codec_ctx);
++			av_frame_free(&src->frame);
++			av_packet_free(&src->pkt);
++			avformat_close_input(&src->fmt_ctx);
++		}
++		/* Initialize camera with new format (uses current frame_rate) */
++		ret = init_camera(src, src->camera_device, src->set_width, src->set_height);
++		if (ret < 0) {
++			return -1;
++		}
++		/* Initialize encoder with new format */
++		ret = init_encoder(src, src->set_width, src->set_height);
++		if (ret < 0) {
++			avformat_close_input(&src->fmt_ctx);
++			return -1;
++		}
++		src->initialized = 1;
++	}
++	fmt->sizeimage = (src->set_width * src->set_height * 2); /* MJPEG: ~2 bytes per pixel */
++
++	return 0;
++}
++
++static int vpu_source_set_frame_rate(struct video_source *s, unsigned int fps)
++{
++	struct vpu_source *src = to_vpu_source(s);
++	int ret;
++	src->frame_rate = fps;
++	/* Reinitialize camera with new frame rate immediately */
++	if (src->initialized && src->fmt_ctx) {
++		avformat_close_input(&src->fmt_ctx);
++		ret = init_camera(src, src->camera_device, src->set_width, src->set_height);
++		if (ret < 0) {
++			return -1;
++		}
++	}
++	return 0;
++}
++
++static int vpu_source_alloc_buffers(struct video_source *s, unsigned int nbufs)
++{
++	struct vpu_source *src = to_vpu_source(s);
++	if(nbufs < 2 )
++		nbufs = 2;
++
++	unsigned int queue_size = nbufs;
++
++	/* Allocate output buffer set */
++	src->output_buffers = video_buffer_set_new(nbufs);
++	if (!src->output_buffers) {
++		return -ENOMEM;
++	}
++
++
++	src->packet_queue_capacity = queue_size;
++	//printf("f=%s l=%d xxxcap=%d\n", __func__, __LINE__, src->packet_queue_capacity);
++	src->packet_queue = (AVPacket **)calloc(queue_size, sizeof(AVPacket *));
++	if (!src->packet_queue) {
++		video_buffer_set_delete(src->output_buffers);
++		return -ENOMEM;
++	}
++	src->packet_queue_size = 0;
++	src->packet_queue_head = 0;
++	src->packet_queue_tail = 0;
++
++	/* Buffer memory will be provided by sink via import_buffers */
++	for (unsigned int i = 0; i < nbufs; i++) {
++		src->output_buffers->buffers[i].size = 1024 * 1024;
++		src->output_buffers->buffers[i].mem = NULL;
++		src->output_buffers->buffers[i].dmabuf = -1;
++	}
++
++	return 0;
++}
++
++static int vpu_source_export_buffers(struct video_source *s,
++					      struct video_buffer_set **bufs)
++{
++	struct vpu_source *src = to_vpu_source(s);
++
++	*bufs = src->output_buffers;
++	return 0;
++}
++
++static int vpu_source_import_buffers(struct video_source *s,
++					      struct video_buffer_set *buffers)
++{
++	struct vpu_source *src = to_vpu_source(s);
++
++	/* Use sink's buffer memory for encoded output */
++	for (unsigned int i = 0; i < buffers->nbufs; i++) {
++		src->output_buffers->buffers[i].mem = buffers->buffers[i].mem;
++		src->output_buffers->buffers[i].size = buffers->buffers[i].size;
++		src->output_buffers->buffers[i].dmabuf = buffers->buffers[i].dmabuf;
++	}
++
++	return 0;
++}
++
++static int vpu_source_free_buffers(struct video_source *s)
++{
++	struct vpu_source *src = to_vpu_source(s);
++
++	/* Buffer memory is owned by sink, don't free it */
++	if (src->output_buffers) {
++		video_buffer_set_delete(src->output_buffers);
++		src->output_buffers = NULL;
++	}
++
++	if (src->packet_queue) {
++		/* Free all packets in the queue (circular buffer) */
++		if (src->packet_queue_head <= src->packet_queue_tail) {
++			/* No wrap - contiguous data */
++			for (int i = src->packet_queue_head; i < src->packet_queue_tail; i++) {
++				if (src->packet_queue[i]) {
++					av_packet_free(&src->packet_queue[i]);
++				}
++			}
++		} else {
++			/* Wrapped - data in two segments */
++			for (int i = src->packet_queue_head; i < src->packet_queue_capacity; i++) {
++				if (src->packet_queue[i]) {
++					av_packet_free(&src->packet_queue[i]);
++				}
++			}
++			for (int i = 0; i < src->packet_queue_tail; i++) {
++				if (src->packet_queue[i]) {
++					av_packet_free(&src->packet_queue[i]);
++				}
++			}
++		}
++		free(src->packet_queue);
++		src->packet_queue = NULL;
++	}
++
++	return 0;
++}
++
++static int vpu_source_stream_on(struct video_source *s)
++{
++	struct vpu_source *src = to_vpu_source(s);
++	int ret;
++
++	src->stop_flag = 0;
++
++	ret = pthread_create(&src->vpu_tid, NULL, vpu_thread, src);
++	if (ret) {
++		fprintf(stderr, "Failed to create vpu thread\n");
++		return -1;
++	}
++
++	/* Start encoding immediately without waiting for first packet */
++	/* queue_buffer will handle empty queue by checking vpu_source_if_have_data */
++
++	return 0;
++}
++
++static int vpu_source_stream_off(struct video_source *s)
++{
++	struct vpu_source *src = to_vpu_source(s);
++
++	src->stop_flag = 1;
++
++	/* Wake up any waiting queue_buffer threads */
++	pthread_mutex_lock(&src->packet_mutex);
++	pthread_cond_broadcast(&src->packet_cond);
++	pthread_mutex_unlock(&src->packet_mutex);
++
++	pthread_join(src->vpu_tid, NULL);
++
++	return 0;
++}
++int vpu_source_if_have_data(struct video_source *s)
++{
++	int ret = 0;
++	struct vpu_source *src = to_vpu_source(s);
++
++	pthread_mutex_lock(&src->packet_mutex);
++	ret = src->packet_queue_size;
++	pthread_mutex_unlock(&src->packet_mutex);
++	return ret;
++}
++
++static int vpu_source_queue_buffer(struct video_source *s, struct video_buffer *buf)
++{
++	struct vpu_source *src = to_vpu_source(s);
++	int ret = 0;
++	AVPacket *pkt = NULL;
++
++	//fprintf(stderr, "[main-thread] about to lock mutex, queue_size=%d\n", src->packet_queue_size);
++	pthread_mutex_lock(&src->packet_mutex);
++	if(src->packet_queue_size > 0){
++		pkt = src->packet_queue[src->packet_queue_head];
++		src->packet_queue_head = (src->packet_queue_head + 1) % src->packet_queue_capacity;
++		src->packet_queue_size--;
++		pthread_cond_signal(&src->packet_cond);
++	}
++	pthread_mutex_unlock(&src->packet_mutex);
++
++
++	if (pkt && pkt->data) {
++		if ((size_t)pkt->size <= buf->size) {
++			memcpy(buf->mem, pkt->data, pkt->size);
++			buf->bytesused = pkt->size;
++			buf->timestamp.tv_sec = pkt->pts / 1000000;
++			buf->timestamp.tv_usec = pkt->pts % 1000000;
++
++
++			// printf("[vpu-source] queue_buffer: size=%d, bytesused=%u, queue_left=%d\n",
++		} else {
++			fprintf(stderr, "vpu-source: buffer too small (pkt=%d, buf=%u)\n",
++				pkt->size, (unsigned int)buf->size);
++			buf->bytesused = 0;
++			ret = -ENOMEM;
++		}
++		av_packet_free(&pkt);
++	} else {
++		buf->bytesused = 0;
++	}
++
++	/* Always call handler to requeue buffer */
++	if (src->src.handler) {
++		//printf("[vpu-source] calling handler...\n");
++		src->src.handler(src->src.handler_data, s, buf);
++	}
++	// if( (frame_count %101 == 0)|| frame_count <5 )
++	// 		printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
++
++	return ret;
++}
++
++static const struct video_source_ops vpu_source_ops = {
++	.destroy = vpu_source_destroy,
++	.set_format = vpu_source_set_format,
++	.set_frame_rate = vpu_source_set_frame_rate,
++	.alloc_buffers = vpu_source_alloc_buffers,
++	.export_buffers = vpu_source_export_buffers,
++	.import_buffers = vpu_source_import_buffers,
++	.free_buffers = vpu_source_free_buffers,
++	.stream_on = vpu_source_stream_on,
++	.stream_off = vpu_source_stream_off,
++	.queue_buffer = vpu_source_queue_buffer,
++	.fill_buffer = NULL,
++};
++
++struct video_source *vpu_source_create(const char *camera_device)
++{
++	struct vpu_source *src;
++
++	src = (struct vpu_source *)calloc(1, sizeof(*src));
++	if (!src) {
++		return NULL;
++	}
++
++	src->src.ops = &vpu_source_ops;
++	src->src.type = VIDEO_SOURCE_VPU_ENCODED;
++
++	/* Save configuration for later initialization in set_format */
++	src->camera_device = strdup(camera_device);
++	if (!src->camera_device) {
++		free(src);
++		return NULL;
++	}
++
++	/* Default frame rate 30 */
++	src->frame_rate = 30;
++
++	pthread_mutex_init(&src->packet_mutex, NULL);
++	pthread_cond_init(&src->packet_cond, NULL);
++
++	return &src->src;
++}
++
++void vpu_source_init(struct video_source *s, struct events *events)
++{
++	struct vpu_source *src = to_vpu_source(s);
++
++	src->src.events = events;
++}
+diff --git a/meson.build b/meson.build
+index 6bb048e..2bfba61 100644
+--- a/meson.build
++++ b/meson.build
+@@ -57,6 +57,12 @@ libcamera = dependency('libcamera', required : false)
+ libjpeg = dependency('libjpeg', required : false)
+ threads = dependency('threads', required : false)
+ 
++# FFmpeg libraries for VPU encoding
++libavcodec = dependency('libavcodec', required : false)
++libavdevice = dependency('libavdevice', required : false)
++libavformat = dependency('libavformat', required : false)
++libavutil = dependency('libavutil', required : false)
++
+ conf = configuration_data()
+ 
+ if libcamera.found()
+@@ -67,6 +73,11 @@ if libjpeg.found() and threads.found()
+     conf.set('CONFIG_CAN_ENCODE', true)
+ endif
+ 
++# Check if we have FFmpeg for VPU encoding
++if libavcodec.found() and libavdevice.found() and libavformat.found() and libavutil.found()
++    conf.set('HAVE_FFMPEG', true)
++endif
++
+ configure_file(output : 'config.h', configuration : conf)
+ config_includes = include_directories('.')
+ 
+diff --git a/src/main.c b/src/main.c
+old mode 100644
+new mode 100755
+index cec622a..1857d7b
+--- a/src/main.c
++++ b/src/main.c
+@@ -9,6 +9,8 @@
+ 
+ #include <signal.h>
+ #include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
+ #include <unistd.h>
+ 
+ #include "config.h"
+@@ -20,6 +22,7 @@
+ #include "test-source.h"
+ #include "jpg-source.h"
+ #include "slideshow-source.h"
++#include "vpu-source.h"
+ 
+ static void usage(const char *argv0)
+ {
+@@ -31,6 +34,9 @@ static void usage(const char *argv0)
+ 	fprintf(stderr, " -d device	V4L2 source device\n");
+ 	fprintf(stderr, " -i image	MJPEG image\n");
+ 	fprintf(stderr, " -s directory	directory of slideshow images\n");
++#ifdef HAVE_FFMPEG
++	fprintf(stderr, " -v <device> VPU encoded source\n");
++#endif
+ 	fprintf(stderr, " -h		Print this help screen and exit\n");
+ 	fprintf(stderr, "\n");
+ 	fprintf(stderr, " <uvc device>	UVC device instance specifier\n");
+@@ -71,6 +77,9 @@ int main(int argc, char *argv[])
+ 	char *cap_device = NULL;
+ 	char *img_path = NULL;
+ 	char *slideshow_dir = NULL;
++#ifdef HAVE_FFMPEG
++	char *vpu_device = NULL;
++#endif
+ 
+ 	struct uvc_function_config *fc;
+ 	struct uvc_stream *stream = NULL;
+@@ -79,7 +88,7 @@ int main(int argc, char *argv[])
+ 	int ret = 0;
+ 	int opt;
+ 
+-	while ((opt = getopt(argc, argv, "c:d:i:s:k:h")) != -1) {
++	while ((opt = getopt(argc, argv, "c:d:i:s:v:h")) != -1) {
+ 		switch (opt) {
+ #ifdef HAVE_LIBCAMERA
+ 		case 'c':
+@@ -98,6 +107,14 @@ int main(int argc, char *argv[])
+ 			slideshow_dir = optarg;
+ 			break;
+ 
++#ifdef HAVE_FFMPEG
++		case 'v':
++			vpu_device = optarg;
++
++
++			break;
++#endif
++
+ 		case 'h':
+ 			usage(argv[0]);
+ 			return 0;
+@@ -118,8 +135,20 @@ int main(int argc, char *argv[])
+ 		return 1;
+ 	}
+ 
+-	if (cap_device != NULL && img_path != NULL) {
+-		printf("Both capture device and still image specified\n");
++	/* Check mutually exclusive options */
++	int source_count = 0;
++	if (cap_device) source_count++;
++	if (img_path) source_count++;
++	if (slideshow_dir) source_count++;
++#ifdef HAVE_LIBCAMERA
++	if (camera) source_count++;
++#endif
++#ifdef HAVE_FFMPEG
++	if (vpu_device) source_count++;
++#endif
++
++	if (source_count > 1) {
++		printf("Multiple video sources specified\n");
+ 		printf("Please specify only one\n");
+ 		return 1;
+ 	}
+@@ -145,12 +174,25 @@ int main(int argc, char *argv[])
+ 		src = jpg_video_source_create(img_path);
+ 	else if (slideshow_dir)
+ 		src = slideshow_video_source_create(slideshow_dir);
++#ifdef HAVE_FFMPEG
++	else if (vpu_device) {
++		src = vpu_source_create(vpu_device);
++		if (src)
++			printf("Created VPU source (type=%d)\n", src->type);
++	}
++#endif
+ 	else
+ 		src = test_video_source_create();
+ 	if (src == NULL) {
+ 		ret = 1;
+ 		goto done;
+ 	}
++	printf("Video source type: %d\n", src->type);
++
++	/* Print build timestamp */
++	char build_time[32] = {0};
++	snprintf(build_time, sizeof(build_time), "%s %s", __DATE__, __TIME__);
++	printf("xxBuild timestamp: %s\n", build_time);
+ 
+ 	if (cap_device)
+ 		v4l2_video_source_init(src, &events);
+@@ -160,6 +202,11 @@ int main(int argc, char *argv[])
+ 		libcamera_source_init(src, &events);
+ #endif
+ 
++#ifdef HAVE_FFMPEG
++	if (vpu_device)
++		vpu_source_init(src, &events);
++#endif
++
+ 	/* Create and initialise the stream. */
+ 	stream = uvc_stream_new(fc->video);
+ 	if (stream == NULL) {
+-- 
+2.25.1
+

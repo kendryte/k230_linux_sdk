@@ -11,7 +11,7 @@ UVC_GADGET_LICENSE = GPL-2.0+
 UVC_GADGET_LICENSE_FILES = LICENSE
 
 # 依赖 libv4l2 库
-UVC_GADGET_DEPENDENCIES = libv4l host-pkgconf  libcamera
+UVC_GADGET_DEPENDENCIES = libv4l host-pkgconf
 
 # v0.3.0 默认可能需要一些配置选项
 UVC_GADGET_CONF_OPTS = -Dwerror=false
@@ -20,5 +20,42 @@ UVC_GADGET_CONF_OPTS = -Dwerror=false
 define UVC_GADGET_LINUX_CONFIG_FIXUPS
 	$(call KCONFIG_SET_OPT,CONFIG_USB_CONFIGFS_F_UVC,y)
 endef
+
+
+#_POST_INSTALL_TARGET_HOOKS
+
+
+# define FACE_DETECT_BUILD_DEB
+# 	# 创建目录
+# 	mkdir -p $(@D)/deb/DEBIAN
+# 	mkdir -p $(@D)/deb/root/app/
+
+# 	# 拷贝应用
+# 	$(call COPYFILE,$(TARGET_DIR)/root/app/face_detect,$(@D)/deb/root/app/)
+# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libjpeg.so.9 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+
+# 	# 写 control 文件
+# 	echo "Package: k230-face-detect"        >  $(@D)/deb/DEBIAN/control
+# 	echo "Version: 1.0"              			>> $(@D)/deb/DEBIAN/control
+# 	echo "Section: base"             			>> $(@D)/deb/DEBIAN/control
+# 	echo "Priority: optional"        			>> $(@D)/deb/DEBIAN/control
+# 	echo "Architecture: riscv64"     			>> $(@D)/deb/DEBIAN/control
+# 	echo "Maintainer: K230 Dev <dev@example.com>" >> $(@D)/deb/DEBIAN/control
+# 	echo "Description: Face Detect application for K230" >> $(@D)/deb/DEBIAN/control
+
+# 	# 打包
+# 	mkdir -p $(BINARIES_DIR)/deb
+# 	dpkg -b $(@D)/deb $(BINARIES_DIR)/deb/$(call LOWERCASE,k230-$(PKG)).deb
+# endef
+
+# FACE_DETECT_POST_INSTALL_TARGET_HOOKS += FACE_DETECT_BUILD_DEB
+
+define _UVC_GADGET_POST_INSTALL
+	$(call COPYFILE,$(UVC_GADGET_PKGDIR)/uvc-gadget.sh, $(TARGET_DIR)/root/app/uvc-gadget)
+
+endef
+
+UVC_GADGET_POST_INSTALL_TARGET_HOOKS += _UVC_GADGET_POST_INSTALL
+
 
 $(eval $(meson-package))
