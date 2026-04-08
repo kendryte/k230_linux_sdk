@@ -1111,7 +1111,6 @@ load_image_smoke_test:
   after_script:
     - !reference [.test, test_teardown]
     - *show_vars
-    - *get_job_result
 
 daily_test:
   image: ai.b-bug.org:5000/k230_testscripts:latest
@@ -1144,7 +1143,7 @@ daily_test:
   after_script:
     - !reference [.test, test_teardown]
     - *show_vars
-    - *get_job_result
+
 
 # send feishu msg
 send_feishu_msg:
