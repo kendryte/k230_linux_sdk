@@ -30,7 +30,7 @@
  OBJS-$(CONFIG_NORMALIZE_FILTER)              += vf_normalize.o
 --- a/libavfilter/vf_nonai2d_osd.c
 +++ b/libavfilter/vf_nonai2d_osd.c
-@@ -0,0 +1,1153 @@
+@@ -0,0 +1,1162 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -185,6 +185,7 @@
 +    int height[NONAI2D_OSD_MAX_REGION];
 +    enum AVPixelFormat pixfmt[NONAI2D_OSD_MAX_REGION];
 +    int valid[NONAI2D_OSD_MAX_REGION];
++    uint8_t osd_valid;
 +
 +    int fd;
 +    int streaming;
@@ -635,6 +636,11 @@
 +
 +    for (i = 0; i < NONAI2D_OSD_MAX_REGION; i++) {
 +
++        if (s->valid[i])
++            s->osd_valid |= (1U << i);
++        else
++            s->osd_valid &= ~(1U << i);
++
 +        if (!s->valid[i]) {
 +            memset(&attr[i], 0, sizeof(attr[i]));
 +            continue;
@@ -810,34 +816,37 @@
 +        }
 +    }
 +
-+    if (xioctl(ctx, s->fd, VIDIOC_QBUF, &s->main_buf) < 0) {
-+        av_log(ctx, AV_LOG_ERROR, "qbuf capture failed: %d(%s)\n", errno, strerror(errno));
-+        return AVERROR(errno);
-+    }
++    if(s->osd_valid) {
 +
-+    if (!s->streaming) {
-+        if (xioctl(ctx, s->fd, VIDIOC_STREAMON, &dst_type) < 0) {
-+            av_log(ctx, AV_LOG_ERROR, "streamon capture failed: %d(%s)\n", errno, strerror(errno));
++        if (xioctl(ctx, s->fd, VIDIOC_QBUF, &s->main_buf) < 0) {
++            av_log(ctx, AV_LOG_ERROR, "qbuf capture failed: %d(%s)\n", errno, strerror(errno));
 +            return AVERROR(errno);
 +        }
-+        s->streaming = 1;
-+    }
 +
-+    {
-+        struct pollfd pfd;
-+        memset(&pfd, 0, sizeof(pfd));
-+        pfd.fd = s->fd;
-+        pfd.events = POLLIN;
-+        poll_ret = poll(&pfd, 1, 2000);
-+        if (poll_ret <= 0) {
-+            av_log(ctx, AV_LOG_ERROR, "poll timeout or error\n");
-+            return AVERROR(poll_ret == 0 ? ETIMEDOUT : errno);
++        if (!s->streaming) {
++            if (xioctl(ctx, s->fd, VIDIOC_STREAMON, &dst_type) < 0) {
++                av_log(ctx, AV_LOG_ERROR, "streamon capture failed: %d(%s)\n", errno, strerror(errno));
++                return AVERROR(errno);
++            }
++            s->streaming = 1;
 +        }
-+    }
 +
-+    if (xioctl(ctx, s->fd, VIDIOC_DQBUF, &s->main_buf) < 0) {
-+        av_log(ctx, AV_LOG_ERROR, "dqbuf capture failed: %d(%s)\n", errno, strerror(errno));
-+        return AVERROR(errno);
++        {
++            struct pollfd pfd;
++            memset(&pfd, 0, sizeof(pfd));
++            pfd.fd = s->fd;
++            pfd.events = POLLIN;
++            poll_ret = poll(&pfd, 1, 2000);
++            if (poll_ret <= 0) {
++                av_log(ctx, AV_LOG_ERROR, "poll timeout or error\n");
++                return AVERROR(poll_ret == 0 ? ETIMEDOUT : errno);
++            }
++        }
++
++        if (xioctl(ctx, s->fd, VIDIOC_DQBUF, &s->main_buf) < 0) {
++            av_log(ctx, AV_LOG_ERROR, "dqbuf capture failed: %d(%s)\n", errno, strerror(errno));
++            return AVERROR(errno);
++        }
 +    }
 +
 +    if (get_v4l2_memory_type(ctx, s->out_mem_type) == V4L2_MEMORY_MMAP) {
