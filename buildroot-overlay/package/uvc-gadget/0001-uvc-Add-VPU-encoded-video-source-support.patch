@@ -655,7 +655,7 @@ index 0000000..a9caaa4
 +		src->frame->linesize[0] = cam_width;
 +		src->frame->data[1] = raw_pkt->data + cam_width * cam_height;
 +		src->frame->linesize[1] = cam_width;
-+		src->frame->pts = raw_pkt->pts;
++		src->frame->pts = frame_count*(1000000ULL/src->frame_rate);//raw_pkt->pts;
 +
 +		// if( (frame_count %101 == 0)|| frame_count <5 )
 +		// 	printf("[DEBUG] %s: %d - Frame %d start processing at %lu ms\n", __func__, __LINE__, frame_count,get_time_ms());
@@ -685,11 +685,11 @@ index 0000000..a9caaa4
 +			pkt_count++;
 +
 +			// Skip every 4th frame to reduce UVC driver buffering delay
-+			// if(pkt_count%28==0){
-+			// 	av_packet_free(&src->pkt);
-+			// 	src->pkt = av_packet_alloc();
-+			// 	continue;
-+			// }
++			if(pkt_count%28==0){
++				av_packet_free(&src->pkt);
++				src->pkt = av_packet_alloc();
++				continue;
++			}
 +			// if(pkt_count < 10){
 +			// 	av_packet_free(&src->pkt);
 +			// 	src->pkt = av_packet_alloc();

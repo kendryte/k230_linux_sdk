@@ -15,7 +15,7 @@ define AIC8800_SDIO_INSTALL_TARGET_CMDS
 	mkdir -p $(TARGET_DIR)/lib/firmware/
 	mkdir -p $(TARGET_DIR)/etc/init.d/
 	cp -rf $(@D)/fw/* $(TARGET_DIR)/lib/firmware/
-	cp -rf $(@D)/S100aic8800 $(TARGET_DIR)/etc/init.d/
+	#cp -rf $(@D)/S100aic8800 $(TARGET_DIR)/etc/init.d/
 endef
 
 define AIC8800_SDIO_LINUX_CONFIG_FIXUPS

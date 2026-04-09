@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# Start mdev hotplug event handler
+
+case "$1" in
+  start)
+    printf "Starting mdev: "
+    # Create mdev.seq file for serializing hotplug events
+    [ -f /dev/mdev.seq ] || echo > /dev/mdev.seq
+    # Start mdev in daemon mode to handle hotplug events
+    /sbin/mdev -d
+    # Populate /dev with existing devices
+    #/sbin/mdev -s
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
+    ;;
+  stop)
+    printf "Stopping mdev: "
+    # Kill mdev daemon
+    kill $(pidof mdev) 2>/dev/null
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
+    ;;
+  restart|reload)
+    "$0" stop
+    sleep 1
+    "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?

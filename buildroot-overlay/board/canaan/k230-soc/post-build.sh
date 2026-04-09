@@ -58,7 +58,7 @@ auto_boot_proc()
 	#BR2_ROOTFS_OVERLAY=$(cat ${BASE_DIR}/.config | grep BR2_ROOTFS_OVERLAY | cut -d= -f2  |  tr -d '"' )
 	local config="${BASE_DIR}/.config"
 	local CONF=$(basename ${BASE_DIR})
-	local auto_boot_f="${rootfs_dir}/etc/init.d/S100${CONF}"
+	local auto_boot_f="${rootfs_dir}/etc/init.d/S40${CONF}"
 
 
 	cat >${auto_boot_f} <<EOF
@@ -87,6 +87,12 @@ EOF
 		echo " modprobe aic8800_fdrv " >> ${auto_boot_f}
 		echo " modprobe aic_btusb " >> ${auto_boot_f}
 	fi
+
+	if  $(cat ${config} |  grep  BR2_PACKAGE_AIC8800_SDIO=y >/dev/null 2>&1 ); then
+		echo 'modprobe  aic8800_bsp.ko  aic_fw_path="/lib/firmware/aic8800D80"' >> ${auto_boot_f}
+		echo "modprobe aic8800_fdrv.ko aicwf_dbg_level=1" >> ${auto_boot_f}
+	fi
+
 
 	if [ ! -z "$BR2_CANAAN_AUTO_RUN_CMD" ] ; then
 		echo  "$BR2_CANAAN_AUTO_RUN_CMD" >> ${auto_boot_f}

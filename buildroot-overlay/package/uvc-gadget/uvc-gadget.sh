@@ -160,7 +160,7 @@ start_uvc_gadget() {
     echo "UVC gadget started"
 
     # 8. 启动 uvc-gadget 应用
-    /usr/bin/uvc-gadget -v /dev/video1 &
+    #/usr/bin/uvc-gadget -v /dev/video1 &
 }
 
 stop_uvc_gadget() {
@@ -201,7 +201,8 @@ stop_uvc_gadget() {
 
 case "$1" in
     start)
-        /etc/init.d/S99adb_mtp stop
+        [ -f /etc/init.d/S39adb_mtp ] && /etc/init.d/S39adb_mtp stop
+        [ -f /etc/vvcam/S39adb_mtp ] && /etc/vvcam/S39adb_mtp stop
         start_uvc_gadget
         ;;
     stop)

@@ -22,40 +22,36 @@ define UVC_GADGET_LINUX_CONFIG_FIXUPS
 endef
 
 
-#_POST_INSTALL_TARGET_HOOKS
+define UVC_GADGET_BUILD_DEB
+	# 创建目录
+	mkdir -p $(@D)/deb/DEBIAN
+	mkdir -p $(@D)/deb/root/app/
+
+	# 拷贝应用
+	$(call COPYFILE,$(UVC_GADGET_PKGDIR)/uvc-gadget.sh, $(TARGET_DIR)/root/app/uvc-gadget/)
+	$(call COPYFILE,$(TARGET_DIR)/usr/bin/uvc-gadget, $(@D)/deb/usr/bin/)
 
 
-# define FACE_DETECT_BUILD_DEB
-# 	# 创建目录
-# 	mkdir -p $(@D)/deb/DEBIAN
-# 	mkdir -p $(@D)/deb/root/app/
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libuvcgadget.so.0 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavdevice.so.58 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavfilter.so.7 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 
-# 	# 拷贝应用
-# 	$(call COPYFILE,$(TARGET_DIR)/root/app/face_detect,$(@D)/deb/root/app/)
-# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libjpeg.so.9 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	# 写 control 文件
+	echo "Package: k230-uvc-gadtet"        >  $(@D)/deb/DEBIAN/control
+	echo "Version: 1.0"              			>> $(@D)/deb/DEBIAN/control
+	echo "Section: base"             			>> $(@D)/deb/DEBIAN/control
+	echo "Priority: optional"        			>> $(@D)/deb/DEBIAN/control
+	echo "Architecture: riscv64"     			>> $(@D)/deb/DEBIAN/control
+	echo "Maintainer: K230 Dev <dev@example.com>" >> $(@D)/deb/DEBIAN/control
+	echo "Description: uvc gadget application for K230" >> $(@D)/deb/DEBIAN/control
 
-# 	# 写 control 文件
-# 	echo "Package: k230-face-detect"        >  $(@D)/deb/DEBIAN/control
-# 	echo "Version: 1.0"              			>> $(@D)/deb/DEBIAN/control
-# 	echo "Section: base"             			>> $(@D)/deb/DEBIAN/control
-# 	echo "Priority: optional"        			>> $(@D)/deb/DEBIAN/control
-# 	echo "Architecture: riscv64"     			>> $(@D)/deb/DEBIAN/control
-# 	echo "Maintainer: K230 Dev <dev@example.com>" >> $(@D)/deb/DEBIAN/control
-# 	echo "Description: Face Detect application for K230" >> $(@D)/deb/DEBIAN/control
-
-# 	# 打包
-# 	mkdir -p $(BINARIES_DIR)/deb
-# 	dpkg -b $(@D)/deb $(BINARIES_DIR)/deb/$(call LOWERCASE,k230-$(PKG)).deb
-# endef
-
-# FACE_DETECT_POST_INSTALL_TARGET_HOOKS += FACE_DETECT_BUILD_DEB
-
-define _UVC_GADGET_POST_INSTALL
-	$(call COPYFILE,$(UVC_GADGET_PKGDIR)/uvc-gadget.sh, $(TARGET_DIR)/root/app/uvc-gadget)
-
+	# 打包
+	mkdir -p $(BINARIES_DIR)/deb
+	dpkg -b $(@D)/deb $(BINARIES_DIR)/deb/$(call LOWERCASE,k230-$(PKG)).deb
 endef
 
-UVC_GADGET_POST_INSTALL_TARGET_HOOKS += _UVC_GADGET_POST_INSTALL
+
+UVC_GADGET_POST_INSTALL_TARGET_HOOKS +=   UVC_GADGET_BUILD_DEB
 
 
 $(eval $(meson-package))
