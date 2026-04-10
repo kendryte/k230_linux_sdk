@@ -2,6 +2,7 @@
 distribution_type="$1"
 BRW_BUILD_DIR="$2"
 BINARIES_DIR="${BRW_BUILD_DIR}/images"
+K230_SDK_ROOT=$(dirname $(dirname ${BRW_BUILD_DIR}))
 
 set -e;
 COLOR_NONE="\033[0m"
@@ -21,8 +22,6 @@ print_blue()
 
 debian_gen_rootfs()
 {
-    local K230_SDK_ROOT=$(dirname $(dirname ${BRW_BUILD_DIR}))
-
     print_red "you need  manually execute the follow commands"
     echo -e ${BLUE}
     cat  ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/distribution/rootfs_debian_gen.sh
@@ -99,7 +98,7 @@ EOFF
 get_image_last_name()
 {
 	local distname="$1"
-    local K230_SDK_ROOT=$(dirname $(dirname ${BRW_BUILD_DIR}))
+
 
 
 
@@ -174,6 +173,7 @@ distribution_rootfs_replace()
 
     rm -rf ${distr_rootfs};tar -xf ${distr_rootfs}.tar.gz
     cp ${BINARIES_DIR}/../target/lib/modules ${distr_rootfs}/lib -r;
+    cp ${K230_SDK_ROOT}/buildroot-overlay/package/nonai2d/modprobe.d/nonai2d.conf   ${distr_rootfs}/lib/modprobe.d/ -r;
     cp ${BINARIES_DIR}/../target/bin/sta.sh ${distr_rootfs}/bin ;
     #cp ${BINARIES_DIR}/../target/bin/adb.sh ${distr_rootfs}/bin ;
     cat  ${BINARIES_DIR}/../target/etc/version/release_version   >> ${distr_rootfs}/etc/issue ;

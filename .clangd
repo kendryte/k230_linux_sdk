@@ -17,9 +17,9 @@ CompileFlags:
 #    - "-march=rv64gcv"
     - "-Wno-unknown-cpu"
     - "-Wno-unused-command-line-argument"
-#    - "-I/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2/riscv64-unknown-linux-gnu/include/c++/14.1.1"
-#    - "-I/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2/riscv64-unknown-linux-gnu/include/c++/14.1.1/riscv64-unknown-linux-gnu"
-#    - "--sysroot=/home/wangjianxin/k230/k230_linux_sdk/output/k230_canmv_01studio_defconfig/host/riscv64-buildroot-linux-gnu/sysroot"
+    - "-I/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2/riscv64-unknown-linux-gnu/include/c++/14.1.1"
+    - "-I/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2/riscv64-unknown-linux-gnu/include/c++/14.1.1/riscv64-unknown-linux-gnu"
+    - "--sysroot=/home/wangjianxin/k230/k230_linux_sdk/output/k230_canmv_01studio_defconfig/host/riscv64-buildroot-linux-gnu/sysroot"
 
 
 Index:
@@ -32,5 +32,5 @@ Diagnostics:
     - "unknown-cpu"
     - "unused-command-line-argument"
 
-#rm -rf camera_rtsp_demo/ vvcam/ ffmpeg-4.4.4  display/ face_detect libmmz/ librtsp_server/  mvx_player/  uvc-gadget-04c18aa6c4a7017957e2dfe88c3ff7ef34a1b3a0/
+#rm -rf camera_rtsp_demo/ vvcam/ ffmpeg-4.4.4  display/ face_detect libmmz/ librtsp_server/  mvx_player/  uvc-gadget*/
 #bear make;

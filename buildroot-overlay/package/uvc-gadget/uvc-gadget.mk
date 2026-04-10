@@ -29,6 +29,7 @@ define UVC_GADGET_BUILD_DEB
 
 	# 拷贝应用
 	$(call COPYFILE,$(UVC_GADGET_PKGDIR)/uvc-gadget.sh, $(TARGET_DIR)/root/app/uvc-gadget/)
+	$(call COPYFILE,$(UVC_GADGET_PKGDIR)/uvc-gadget.sh,  $(@D)/deb/root/app/uvc-gadget/)
 	$(call COPYFILE,$(TARGET_DIR)/usr/bin/uvc-gadget, $(@D)/deb/usr/bin/)
 
 
