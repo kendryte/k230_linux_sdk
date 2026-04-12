@@ -64,23 +64,7 @@ stages:
     SEND="FALSE";
     if [[ "$CI_PIPELINE_SOURCE" != "merge_request_event" ]];
     then
-      if [[ "$CI_JOB_STATUS" == "success" ]];
-      then
-        echo "job pass, check again";
-        if [[ "$CI_JOB_STAGE" == "send_msg" ]];
-        then
-          echo "match the last test, will send feishu pass msg";
-          SEND="TRUE";
-        else
-          echo "job pass but not the last one, continue the next job";
-        fi
-      elif [[ "$CI_JOB_STATUS" == "failed" ]];
-      then
-          echo "job failed, will send feishu msg now";
-          SEND="TRUE";
-      else
-        echo "unknown job status";
-      fi
+      SEND="TRUE";
     else
       echo "skip feishu msg for MR event";
     fi
@@ -1148,6 +1132,7 @@ daily_test:
 # send feishu msg
 send_feishu_msg:
   stage: send_msg
+  when: always
   rules:
     # release job
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
