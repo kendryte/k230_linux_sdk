@@ -385,7 +385,7 @@ int main(int argc, char *argv[])
         // 启动分类任务推理线程
         std::thread ai_thread(ocr_proc, argv, 2);
         // 启动显示线程（处理显示内容绘制）
-        std::thread display_thread(display_proc, 1);
+        std::thread display_thread(display_proc, kd_mpi_get_vvcam_video00());
 
         // 输入提示信息
         std::cout << "输入 'q'回车退出" << std::endl;

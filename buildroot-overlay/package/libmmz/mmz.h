@@ -11,7 +11,7 @@ int kd_mpi_sys_mmz_alloc(unsigned long *phy_addr, void **virt_addr, const char *
 int kd_mpi_sys_mmz_alloc_cached(unsigned long *phy_addr, void **virt_addr, const char *mmb, const char *zone, unsigned int len);
 int kd_mpi_sys_mmz_flush_cache(unsigned long phy_addr, void *virt_addr, unsigned int size);
 int kd_mpi_sys_mmz_free(unsigned long phy_addr, void *virt_addr);
-
+int kd_mpi_get_vvcam_video00(void);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

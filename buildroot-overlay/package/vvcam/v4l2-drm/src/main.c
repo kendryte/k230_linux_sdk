@@ -159,6 +159,12 @@ int main(int argc, char* argv[]) {
     struct v4l2_drm_context context[9] = {0};
     int flag_display = 0;
 
+    if(argc <= 1){
+        help(argv[0]);
+        return -1;
+    }
+
+
     int ret = parse_cmd(argc, argv, context);
     if (ret < 0) {
         return -1;

@@ -98,7 +98,7 @@ static void ai_proc(char *argv[], int video_device) {
         tensors.push_back({context.buffers[i].fd, context.buffers[i].mmap});
     }
     SensorBufManager sensor_buf = SensorBufManager({SENSOR_CHANNEL, SENSOR_HEIGHT, SENSOR_WIDTH},tensors);
-    
+
     while (!ai_stop) {
         int ret = v4l2_drm_dump(&context, 1000);
         if (ret) {
@@ -127,7 +127,7 @@ static void ai_proc(char *argv[], int video_device) {
  * @param displayed 表示该帧是否已经被实际显示
  * @return 返回 0 表示正常，返回 'q' 表示请求退出主循环（受控于 display_stop 标志）
  */
-int frame_handler(struct v4l2_drm_context *context, bool displayed) 
+int frame_handler(struct v4l2_drm_context *context, bool displayed)
 {
     static bool first_frame = true;
     if (first_frame) {
@@ -137,9 +137,9 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed)
 
     static unsigned response = 0, display_frame_count = 0;
     response += 1;
-    if (displayed) 
+    if (displayed)
     {
-        if (context[0].buffer_hold[context[0].wp] >= 0) 
+        if (context[0].buffer_hold[context[0].wp] >= 0)
         {
             static struct display_buffer* last_drawed_buffer = nullptr;
             auto buffer = context[0].display_buffers[context[0].buffer_hold[context[0].wp]];
@@ -164,7 +164,7 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed)
                     // 创建临时 BGRA 显示缓冲Mat（用于画图）
                     cv::Mat temp_img(draw_buffer->width, draw_buffer->height, CV_8UC4);
                     // 竖屏st7701：横图绘制，然后转回竖图给display显示
-                
+
                     temp_img.setTo(cv::Scalar(0, 0, 0, 0));
                     result_mutex.lock();
                     draw_frame.copyTo(temp_img);
@@ -218,7 +218,7 @@ int frame_handler(struct v4l2_drm_context *context, bool displayed)
  *
  * @param video_device 视频设备编号（如 /dev/video0 中的 1）
  */
-void display_proc(int video_device) 
+void display_proc(int video_device)
 {
     struct v4l2_drm_context context;
     v4l2_drm_default_context(&context);
@@ -233,7 +233,7 @@ void display_proc(int video_device)
         context.display_format = 0;
         context.drm_rotation = rotation_0;
     }
-    else 
+    else
     {
         // 竖屏
         context.width = display->height;
@@ -297,9 +297,9 @@ int main(int argc, char *argv[])
         result_mutex.lock();
 
         // 启动分类任务推理线程
-        std::thread ai_thread(ai_proc, argv, 2);
+        std::thread ai_thread(ai_proc, argv, kd_mpi_get_vvcam_video00()+1);
         // 启动显示线程（处理显示内容绘制）
-        std::thread display_thread(display_proc, 1);
+        std::thread display_thread(display_proc, kd_mpi_get_vvcam_video00());
         // 输入提示信息
         std::cout << "输入 'q'回车退出" << std::endl;
 
@@ -337,7 +337,7 @@ int main(int argc, char *argv[])
         vector<FaceDetectionInfo> results;
         fd.post_process({ori_w, ori_h}, results);
         fd.draw_result(ori_img,results);
-        
+
         cv::imwrite("face_detection_result.jpg", ori_img);
     }
     return 0;

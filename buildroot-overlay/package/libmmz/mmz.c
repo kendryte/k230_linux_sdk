@@ -5,11 +5,11 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <string.h>
-#include<stdlib.h>
-#include<assert.h>
-#include <stdint.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <pthread.h>
-#include"mmz.h"
+#include <linux/videodev2.h>
+#include "mmz.h"
 
 #define MMZ_ALLOC_MEM                         _IOWR('g', 1, unsigned long)
 #define MMZ_FREE_MEM                          _IOWR('g', 2, unsigned long)
@@ -257,4 +257,29 @@ int kd_mpi_mmz_deinit(void)
     plist = NULL;
     pthread_mutex_unlock(&mmz_mutex);
     return 0;
+}
+
+int kd_mpi_get_vvcam_video00(void)
+{
+    int i=0;
+    char dev_path[20];
+    int fd;
+    struct v4l2_capability cap;
+
+    for(i=0 ; i < 20; i++){
+        snprintf(dev_path, sizeof(dev_path), "/dev/video%d", i);
+        fd = open(dev_path, O_RDONLY);
+        if( fd < 0)
+            continue;
+        if (ioctl(fd, VIDIOC_QUERYCAP, &cap) != 0) {
+            close(fd);
+            continue;
+        }
+        close(fd);
+
+        //printf("i=%d card=%s driver=%s\n", i, cap.card, cap.driver);
+        if(strcmp("vvcam-video.0.0", (char*)cap.card) == 0)
+            break;
+    }
+    return (i >= 20) ? 1 : i;
 }
