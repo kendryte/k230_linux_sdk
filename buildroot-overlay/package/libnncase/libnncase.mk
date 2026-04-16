@@ -1,5 +1,5 @@
 LIBNNCASE_VERSION =
-NNCASE_VERSION = v2.10.0
+NNCASE_VERSION = v2.11.0
 LIBNNCASE_SOURCE = nncase_k230_$(NNCASE_VERSION)_runtime_linux.tgz
 LIBNNCASE_SITE = https://github.com/kendryte/nncase/releases/download/$(NNCASE_VERSION)
 

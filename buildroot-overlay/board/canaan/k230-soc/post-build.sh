@@ -20,6 +20,15 @@ gen_version()
 	local ver_file="etc/version/release_version"
 	local post_copy_rootfs_dir="${BR_OVERLAY_DIR}/${BR2_ROOTFS_OVERLAY}"
 	local sdk_ver="unkonwn"
+	local CONF=$(basename ${BASE_DIR})
+
+	local nncase_ver="0.0.0";
+	local nncase_ver_file="${K230_SDK_ROOT}/output/${CONF}/build/libnncase/nncase/include/nncase/version.h"
+	if [ -e "${nncase_ver_file}" ]; then
+		cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
+			nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
+	fi
+
 	# local nncase_ver="0.0.0";
 	# local nncase_ver_file="${K230_SDK_ROOT}/src/big/nncase/riscv64/nncase/include/nncase/version.h"
 
@@ -40,7 +49,7 @@ gen_version()
 
 	cd  "${TARGET_DIR}" ;
 	mkdir -p etc/version/
-	sdk_ver="${last_tag}-$(date "+%Y%m%d-%H%M%S")-$(whoami)-$(hostname)-${commitid}"
+	sdk_ver="${last_tag}-$(date "+%Y%m%d-%H%M%S")-$(whoami)-$(hostname)-${commitid}-nncase${nncase_ver}"
 	echo -e "#############SDK VERSION######################################" >${rootfs_dir}/${ver_file}
 	echo -e "sdk:${sdk_ver}" >> ${rootfs_dir}/${ver_file}
 	#echo -e "nncase:${nncase_ver}" >> ${ver_file}

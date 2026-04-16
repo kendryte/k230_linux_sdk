@@ -1,6 +1,7 @@
 #!/bin/bash
 set -xe
 #环境：本地vwmare里面安装ubuntu24.04,执行如下脚本
+#sudo mount -o remount,exec,dev rpool/USERDATA/home_hlhzl3  /home
 rm -rf debian13
 sudo apt install -y qemu-user-static binfmt-support debootstrap debian-ports-archive-keyring systemd-container rsync wget
 sudo debootstrap --arch=riscv64  trixie debian13 http://deb.debian.org/debian
@@ -111,3 +112,5 @@ umount  /proc/
 umount  /dev/pts
 exit
 EOFF
+sudo tar -czf debian13.tar.gz debian13;
+md5sum debian13.tar.gz

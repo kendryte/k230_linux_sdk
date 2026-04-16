@@ -30,7 +30,7 @@ make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both
 # make help # view help
 ```
 
->The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://kendryte-download.canaan-creative.com/k230/release/linux_sdk_images/daily_build/)
+>The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://kendryte-download.canaan-creative.com/k230/release/linux_sdk_images/daily_build/).
 >
 ## output
 

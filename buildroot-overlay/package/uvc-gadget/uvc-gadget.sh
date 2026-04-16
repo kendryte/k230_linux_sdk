@@ -201,8 +201,8 @@ stop_uvc_gadget() {
 
 case "$1" in
     start)
-        [ -f /etc/init.d/S39adb_mtp ] && /etc/init.d/S39adb_mtp stop
-        [ -f /etc/vvcam/S39adb_mtp ] && /etc/vvcam/S39adb_mtp stop
+        [ -f /etc/init.d/S41adb_mtp ] && /etc/init.d/S41adb_mtp stop
+        [ -f /etc/vvcam/S41adb_mtp ] && /etc/vvcam/S41adb_mtp stop
         start_uvc_gadget
         ;;
     stop)

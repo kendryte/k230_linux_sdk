@@ -16,8 +16,8 @@ static uint8_t get_gc2093_iic_dev_addr();
 #define GC2093_I2C_SLAVE_ADDRESS get_gc2093_iic_dev_addr()
 #define CHECK_ERROR(x) if(x){printf("error f=%s l=%d \n",__func__, __LINE__); return -1;}
 
-#define GC2093_REG_CHIP_ID_H                                0x300a
-#define GC2093_REG_CHIP_ID_L                                0x300b
+#define GC2093_REG_CHIP_ID_H                                0x03f0
+#define GC2093_REG_CHIP_ID_L                                0x03f1
 #define GC2093_REG_MIPI_CTRL00                              0x4800
 #define GC2093_REG_FRAME_OFF_NUMBER                         0x4202
 #define GC2093_REG_PAD_OUT                                  0x300d
