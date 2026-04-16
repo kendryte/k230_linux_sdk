@@ -59,6 +59,9 @@
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/pm_runtime.h>
+#include <linux/uaccess.h>
+#include <linux/namei.h>
+#include <linux/fs.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-event.h>
 #include <media/v4l2-fh.h>
@@ -81,6 +84,7 @@
 #include "vvcam_isp_platform.h"
 #endif
 
+#define MY_CID_BASE 0x00980900 
 #ifdef VVCAM_PLATFORM_REGISTER
 
 
@@ -340,40 +344,268 @@ static int vvcam_isp_s_ctrl(struct v4l2_subdev *sd,void *arg)
     return ret;
 }
 
-static int vvcam_isp_g_ext_ctrls(struct v4l2_subdev *sd,void *arg)
+static int vvcam_isp_g_ext_ctrls(struct v4l2_subdev *sd, void *arg)
 {
-    int ret;
     struct vvcam_isp_dev *isp_dev = v4l2_get_subdevdata(sd);
-    struct vvcam_pad_ext_controls *pad_ext_ctrls =
-                            (struct vvcam_pad_ext_controls *)arg;
+    struct vvcam_pad_ext_controls *pad_ext_ctrls = (struct vvcam_pad_ext_controls *)arg;
+    struct v4l2_ext_controls *ctrls = pad_ext_ctrls->ext_controls;
+    unsigned int i;
+    bool is_scene_config = false;
+    int port = 0;
+    
+    // 检查是否是 scene config 请求
+    for (i = 0; i < ctrls->count; i++) {
+        if (ctrls->controls[i].id >= MY_CID_BASE &&
+            ctrls->controls[i].id < MY_CID_BASE + 10) {
+            is_scene_config = true;
+            break;
+        }
+    }
+    
+    // 如果是 scene config，读取当前配置
+    if (is_scene_config) {
+        struct vvcam_isp_sensor_info *info = &isp_dev->sensor_info[port];
+        const char *last_slash;
 
+        for (i = 0; i < ctrls->count; i++) {
+            char kbuf[256];
+            const char *src;
+            size_t slen;
+            u32 room;
+
+            /*
+             * For MY_CID_BASE + 0..4, `string` is the userspace buffer
+             * passed by the app and MUST be written via copy_to_user();
+             * writing it directly (strncpy/strcpy) faults on RISC-V with
+             * "kernel access to user memory without uaccess routines".
+             */
+            switch (ctrls->controls[i].id) {
+                case MY_CID_BASE + 0:  // scene_path
+                    last_slash = strrchr(info->xml, '/');
+                    if (last_slash) {
+                        size_t path_len = last_slash - info->xml;
+                        if (path_len >= sizeof(kbuf))
+                            path_len = sizeof(kbuf) - 1;
+                        memcpy(kbuf, info->xml, path_len);
+                        kbuf[path_len] = '\0';
+                    } else {
+                        strscpy(kbuf, "/etc/vvcam", sizeof(kbuf));
+                    }
+                    src = kbuf;
+                    break;
+                case MY_CID_BASE + 1:  // sensor
+                    src = info->sensor;
+                    break;
+                case MY_CID_BASE + 2:  // xml_file
+                    last_slash = strrchr(info->xml, '/');
+                    src = last_slash ? last_slash + 1 : info->xml;
+                    break;
+                case MY_CID_BASE + 3:  // manu_json_file
+                    last_slash = strrchr(info->manu_json, '/');
+                    src = last_slash ? last_slash + 1 : info->manu_json;
+                    break;
+                case MY_CID_BASE + 4:  // auto_json_file
+                    last_slash = strrchr(info->auto_json, '/');
+                    src = last_slash ? last_slash + 1 : info->auto_json;
+                    break;
+                case MY_CID_BASE + 5:  // mode
+                    ctrls->controls[i].value = info->mode;
+                    continue;
+                default:
+                    continue;
+            }
+
+            if (!ctrls->controls[i].string)
+                continue;
+            room = ctrls->controls[i].size;
+            if (room == 0) {
+                /* Tell the caller how big a buffer it needs to provide. */
+                ctrls->controls[i].size = strlen(src) + 1;
+                ctrls->error_idx = i;
+                return -ENOSPC;
+            }
+            slen = strlen(src);
+            if (slen + 1 > room)
+                slen = room - 1;
+            if (copy_to_user(ctrls->controls[i].string, src, slen) ||
+                put_user('\0', ctrls->controls[i].string + slen)) {
+                ctrls->error_idx = i;
+                return -EFAULT;
+            }
+            ctrls->controls[i].size = slen + 1;
+        }
+
+        dev_info(isp_dev->dev, "vvcam_isp: scene get - sensor:%s, xml:%s\n",
+                 info->sensor, info->xml);
+
+        return 0;
+    }
+    
+    // 否则使用标准 control handler
     mutex_lock(&isp_dev->ctrl_lock);
     isp_dev->ctrl_pad = pad_ext_ctrls->pad;
-    ret = v4l2_g_ext_ctrls(&isp_dev->ctrl_handler, sd->devnode,
-                            sd->v4l2_dev->mdev,
-                            pad_ext_ctrls->ext_controls);
+    int ret = v4l2_g_ext_ctrls(&isp_dev->ctrl_handler, sd->devnode,
+                               sd->v4l2_dev->mdev, ctrls);
     mutex_unlock(&isp_dev->ctrl_lock);
-
+    
     return ret;
 }
 
-static int vvcam_isp_s_ext_ctrls(struct v4l2_subdev *sd,void *arg)
+static int vvcam_isp_s_ext_ctrls(struct v4l2_subdev *sd, void *arg)
 {
-    int ret;
     struct vvcam_isp_dev *isp_dev = v4l2_get_subdevdata(sd);
-    struct vvcam_pad_ext_controls *pad_ext_ctrls =
-                            (struct vvcam_pad_ext_controls *)arg;
+    struct vvcam_pad_ext_controls *pad_ext_ctrls = (struct vvcam_pad_ext_controls *)arg;
+    struct v4l2_ext_controls *ctrls = pad_ext_ctrls->ext_controls;
+    unsigned int i;
+    bool is_scene_config = false;
+    char scene_path[128] = {0};
+    char sensor[32] = {0};
+    char xml_file[64] = {0};
+    char manu_json_file[64] = {0};
+    char auto_json_file[32] = {0};
+    int port;
+    u32 mode = 0;
+    long ret_copy;
+    
+    
+    // 检查是否是 scene config 请求
+    for (i = 0; i < ctrls->count; i++) {
+        dev_info(isp_dev->dev, "  ctrl[%u]: id=0x%x\n", i, ctrls->controls[i].id);
+        if (ctrls->controls[i].id >= MY_CID_BASE &&
+            ctrls->controls[i].id < MY_CID_BASE + 10) {
+            is_scene_config = true;
+            break;
+        }
+    }
+    
+    // 如果是 scene config，解析并应用
+    if (is_scene_config) {
+        
+        // 解析控件数据 - 使用 strncpy_from_user 安全复制
+        for (i = 0; i < ctrls->count; i++) {
+            switch (ctrls->controls[i].id) {
+                case MY_CID_BASE + 0:  // scene_path
+                    if (ctrls->controls[i].string) {
+                        ret_copy = strncpy_from_user(scene_path, 
+                                    ctrls->controls[i].string, 
+                                    sizeof(scene_path) - 1);
+                        if (ret_copy > 0) {
+                            dev_info(isp_dev->dev, "  scene_path=%s\n", scene_path);
+                        }
+                    }
+                    break;
+                case MY_CID_BASE + 1:  // sensor
+                    if (ctrls->controls[i].string) {
+                        ret_copy = strncpy_from_user(sensor, 
+                                    ctrls->controls[i].string, 
+                                    sizeof(sensor) - 1);
+                        if (ret_copy > 0) {
+                            dev_info(isp_dev->dev, "  sensor=%s\n", sensor);
+                        }
+                    }
+                    break;
+                case MY_CID_BASE + 2:  // xml_file
+                    if (ctrls->controls[i].string) {
+                        ret_copy = strncpy_from_user(xml_file, 
+                                    ctrls->controls[i].string, 
+                                    sizeof(xml_file) - 1);
+                        if (ret_copy > 0) {
+                            dev_info(isp_dev->dev, "  xml_file=%s\n", xml_file);
+                        }
+                    }
+                    break;
+                case MY_CID_BASE + 3:  // manu_json_file
+                    if (ctrls->controls[i].string) {
+                        ret_copy = strncpy_from_user(manu_json_file, 
+                                    ctrls->controls[i].string, 
+                                    sizeof(manu_json_file) - 1);
+                        if (ret_copy > 0) {
+                            dev_info(isp_dev->dev, "  manu_json_file=%s\n", manu_json_file);
+                        }
+                    }
+                    break;
+                case MY_CID_BASE + 4:  // auto_json_file
+                    if (ctrls->controls[i].string) {
+                        ret_copy = strncpy_from_user(auto_json_file, 
+                                    ctrls->controls[i].string, 
+                                    sizeof(auto_json_file) - 1);
+                        if (ret_copy > 0) {
+                            dev_info(isp_dev->dev, "  auto_json_file=%s\n", auto_json_file);
+                        }
+                    }
+                    break;
+                case MY_CID_BASE + 5:  // mode
+                    mode = ctrls->controls[i].value;
+                    dev_info(isp_dev->dev, "  mode=%u\n", mode);
+                    break;
+            }
+        }
+        
+        /*
+         * Validate every path before touching sensor_info[]: the isp_media
+         * daemon will try to open all three files during STREAMON and fail
+         * the event with EINVAL if any is missing, and by that point we'd
+         * already have blown away the previous (good) config so every
+         * subsequent STREAMON would keep failing until userspace pushes a
+         * valid scene. Checking here keeps the old config intact on error
+         * and gives the app a precise errno at S_EXT_CTRLS time.
+         */
+        {
+            char xml_path[sizeof(isp_dev->sensor_info[0].xml)];
+            char manu_path[sizeof(isp_dev->sensor_info[0].manu_json)];
+            char auto_path[sizeof(isp_dev->sensor_info[0].auto_json)];
+            const char *missing = NULL;
+            struct path p;
+            int rc;
 
+            snprintf(xml_path,  sizeof(xml_path),  "%s/%s", scene_path, xml_file);
+            snprintf(manu_path, sizeof(manu_path), "%s/%s", scene_path, manu_json_file);
+            snprintf(auto_path, sizeof(auto_path), "%s/%s", scene_path, auto_json_file);
+
+            rc = kern_path(xml_path,  LOOKUP_FOLLOW, &p);
+            if (rc) { missing = xml_path; goto scene_enoent; }
+            path_put(&p);
+            rc = kern_path(manu_path, LOOKUP_FOLLOW, &p);
+            if (rc) { missing = manu_path; goto scene_enoent; }
+            path_put(&p);
+            rc = kern_path(auto_path, LOOKUP_FOLLOW, &p);
+            if (rc) { missing = auto_path; goto scene_enoent; }
+            path_put(&p);
+
+            for (port = 0; port < VVCAM_ISP_PORT_NR; port++) {
+                strscpy(isp_dev->sensor_info[port].sensor, sensor,
+                        sizeof(isp_dev->sensor_info[port].sensor));
+                strscpy(isp_dev->sensor_info[port].xml, xml_path,
+                        sizeof(isp_dev->sensor_info[port].xml));
+                strscpy(isp_dev->sensor_info[port].manu_json, manu_path,
+                        sizeof(isp_dev->sensor_info[port].manu_json));
+                strscpy(isp_dev->sensor_info[port].auto_json, auto_path,
+                        sizeof(isp_dev->sensor_info[port].auto_json));
+                isp_dev->sensor_info[port].mode = mode;
+            }
+            dev_info(isp_dev->dev,
+                "vvcam_isp: scene set OK - sensor=%s xml=%s manu=%s auto=%s mode=%u\n",
+                sensor, xml_path, manu_path, auto_path, mode);
+            return 0;
+
+        scene_enoent:
+            dev_err(isp_dev->dev,
+                "vvcam_isp: scene rejected, file not found: %s (err=%d). "
+                "Previous config kept; check scene_path/xml_file in your JSON.\n",
+                missing, rc);
+            return rc;
+        }
+    }
+    
+    // 否则使用标准 control handler 处理
     mutex_lock(&isp_dev->ctrl_lock);
     isp_dev->ctrl_pad = pad_ext_ctrls->pad;
-    ret = v4l2_s_ext_ctrls(NULL, &isp_dev->ctrl_handler, sd->devnode,
-                            sd->v4l2_dev->mdev,
-                            pad_ext_ctrls->ext_controls);
+    int ret = v4l2_s_ext_ctrls(NULL, &isp_dev->ctrl_handler, sd->devnode,
+                               sd->v4l2_dev->mdev, ctrls);
     mutex_unlock(&isp_dev->ctrl_lock);
-
+    
     return ret;
 }
-
 static int vvcam_isp_try_ext_ctrls(struct v4l2_subdev *sd,void *arg)
 {
     int ret;
@@ -391,6 +623,8 @@ static long vvcam_isp_priv_ioctl(struct v4l2_subdev *sd,
                                 unsigned int cmd, void *arg)
 {
     int ret = -EINVAL;
+    struct vvcam_isp_dev *isp_dev = v4l2_get_subdevdata(sd);
+    
     switch (cmd) {
         case VIDIOC_QUERYCAP:
             ret = vvcam_isp_querycap(sd, arg);
@@ -866,16 +1100,24 @@ static int vvcam_isp_parse_params(struct vvcam_isp_dev *isp_dev,
 #ifdef VVCAM_PLATFORM_REGISTER
     int port = 0;
     isp_dev->id  = pdev->id;
+    /*
+     * strncpy(dst, src, strlen(src)) deliberately drops the NUL terminator.
+     * It has worked so far only because sensor_info[] sits in a kzalloc'd
+     * parent and is therefore pre-zeroed on first use, but it leaves the
+     * trailing byte uninitialised on any subsequent re-parse - and any
+     * later strlen() / strscpy()-of-this read walks into the next field.
+     * strscpy is both safe and bounded by the actual destination size.
+     */
     for (port = 0; port < VVCAM_ISP_PORT_NR; port++) {
-        strncpy(isp_dev->sensor_info[port].sensor, VVCAM_ISP_DEFAULT_SENSOR,
-            strlen(VVCAM_ISP_DEFAULT_SENSOR));
-        strncpy(isp_dev->sensor_info[port].xml, VVCAM_ISP_DEFAULT_SENSOR_XML,
-            strlen(VVCAM_ISP_DEFAULT_SENSOR_XML));
+        strscpy(isp_dev->sensor_info[port].sensor, VVCAM_ISP_DEFAULT_SENSOR,
+                sizeof(isp_dev->sensor_info[port].sensor));
+        strscpy(isp_dev->sensor_info[port].xml, VVCAM_ISP_DEFAULT_SENSOR_XML,
+                sizeof(isp_dev->sensor_info[port].xml));
         isp_dev->sensor_info[port].mode = VVCAM_ISP_DEFAULT_SENSOR_MODE;
-        strncpy(isp_dev->sensor_info[port].manu_json, VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON,
-            strlen(VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON));
-        strncpy(isp_dev->sensor_info[port].auto_json, VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON,
-            strlen(VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON));
+        strscpy(isp_dev->sensor_info[port].manu_json, VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON,
+                sizeof(isp_dev->sensor_info[port].manu_json));
+        strscpy(isp_dev->sensor_info[port].auto_json, VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON,
+                sizeof(isp_dev->sensor_info[port].auto_json));
     }
 #else
     fwnode_property_read_u32(of_fwnode_handle(pdev->dev.of_node),
@@ -1102,3 +1344,4 @@ module_exit(vvcam_isp_exit_module);
 MODULE_DESCRIPTION("Verisilicon isp v4l2 driver");
 MODULE_AUTHOR("Verisilicon ISP SW Team");
 MODULE_LICENSE("GPL");
+

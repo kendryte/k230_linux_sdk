@@ -55,7 +55,7 @@
 #include <linux/io.h>
 #include <linux/spinlock.h>
 #include "vvcam_isp_driver.h"
-#include "vvcam_isp_hal.h"'
+#include "vvcam_isp_hal.h"
 #include <linux/jiffies.h>
 
 extern void vvcam_isp_proc_stat(unsigned long pde,
@@ -121,33 +121,38 @@ irqreturn_t vvcam_isp_irq_process(struct vvcam_isp_dev *isp_dev)
 
     vvcam_event_t event;
 
-    if (!isp_dev->refcnt)
-        return IRQ_NONE;
-
     isp_fe_ctrl = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_CTL);
     if ((isp_fe_ctrl & ISP_FE_CFG_SEL_MASK) == ISP_FE_SEL_CMDBUF) {
         return IRQ_HANDLED;
     }
 
+    /*
+     * Always read and ack the hardware's MIS bits, even when refcnt==0
+     * (e.g. isp_media_server_debian crashed). If we short-circuit with
+     * IRQ_NONE while the hardware is still asserting a level-triggered
+     * IRQ line, PLIC re-fires it immediately, note_interrupt() counts
+     * ~100k unhandled in a flash, and the kernel permanently disables
+     * the IRQ line ("irq N: nobody cared, Disabling IRQ #N") - which
+     * on this SoC cannot be recovered without a reboot. Clear-and-drop
+     * keeps the line quiet; events just aren't queued to a dead peer.
+     */
     isp_mis = vvcam_isp_hal_read_reg(isp_dev->base, ISP_MIS);
-    if (isp_mis) {
-        // printk("isp_mis mis 0x%08x\n", isp_mis);
-        vvcam_isp_hal_write_reg(isp_dev->base, ISP_ICR, isp_mis);
-    } else {
+    if (!isp_mis)
         return IRQ_NONE;
-    }
+    vvcam_isp_hal_write_reg(isp_dev->base, ISP_ICR, isp_mis);
+
+    if (!isp_dev->refcnt)
+        return IRQ_HANDLED;
 
     timestamp = ktime_get_ns();
 
-    if (isp_mis) {
-        event.type = VVCAM_EVENT_IRQ_TYPE;
-        event.id   = VVCAM_EID_ISP_MIS;
-        event.timestamp = timestamp;
-        event.irqevent.irq_value = isp_mis;
-        vvcam_event_queue(&isp_dev->event_dev, &event);
-        isp_dev->irq_mis[VVCAM_EID_ISP_MIS] = isp_mis;
-        tasklet_schedule(&isp_dev->stat_tasklet);
-    }
+    event.type = VVCAM_EVENT_IRQ_TYPE;
+    event.id   = VVCAM_EID_ISP_MIS;
+    event.timestamp = timestamp;
+    event.irqevent.irq_value = isp_mis;
+    vvcam_event_queue(&isp_dev->event_dev, &event);
+    isp_dev->irq_mis[VVCAM_EID_ISP_MIS] = isp_mis;
+    tasklet_schedule(&isp_dev->stat_tasklet);
 
     return IRQ_HANDLED;
 }
@@ -169,14 +174,17 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
     vvcam_event_t event;
     bool irq = false;
 
-    if (!isp_dev->refcnt)
-        return IRQ_NONE;
-
     isp_fe_ctrl = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_CTL);
     if ((isp_fe_ctrl & ISP_FE_CFG_SEL_MASK) == ISP_FE_SEL_CMDBUF) {
         return IRQ_HANDLED;
     }
 
+    /*
+     * Same "always ack, drop events if refcnt==0" discipline as
+     * vvcam_isp_irq_process(): see the comment there for the rationale.
+     * Here we read/clear every MI* source first, then decide whether
+     * to queue events.
+     */
     miv2_mis = vvcam_isp_hal_read_reg(isp_dev->base, MIV2_MIS);
     if (miv2_mis) {
         //printk("miv2 mis 0x%08x\n", miv2_mis);
@@ -213,6 +221,10 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
         vvcam_isp_hal_write_reg(isp_dev->base, RDCD_MI_ICR, rdcd_mi_mis);
         irq = true;
     }
+
+    /* If the daemon died, HW is already ack'd above; drop the event. */
+    if (!isp_dev->refcnt)
+        return irq ? IRQ_HANDLED : IRQ_NONE;
 
     timestamp = ktime_get_ns();
 
@@ -380,9 +392,11 @@ irqreturn_t vvcam_isp_fe_irq_process(struct vvcam_isp_dev *isp_dev)
     uint64_t timestamp;
     bool irq = false;
 
-    if (!isp_dev->refcnt)
-        return IRQ_NONE;
-
+    /*
+     * Same clear-and-drop discipline as vvcam_isp_irq_process(): even if
+     * refcnt==0 we must ack the hardware so the level-triggered PLIC line
+     * goes back down, otherwise the IRQ is declared spurious and disabled.
+     */
     isp_fe_mis = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_MIS);
     if (isp_fe_mis) {
         vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_ICR, isp_fe_mis);
@@ -403,6 +417,9 @@ irqreturn_t vvcam_isp_fe_irq_process(struct vvcam_isp_dev *isp_dev)
         vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_BATCH_MODE_ICR, isp_fe_batch_mode_mis);
         irq = true;
     }
+
+    if (!isp_dev->refcnt)
+        return irq ? IRQ_HANDLED : IRQ_NONE;
 
     timestamp = ktime_get_ns();
 

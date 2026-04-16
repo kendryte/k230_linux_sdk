@@ -140,12 +140,23 @@ static int32_t vvcam_isp_proc_process(struct seq_file *sfile,
         kv_cur = token;
         val = strsep(&kv_cur, kv_delim);
         if (val) {
+            /*
+             * The previous pattern was
+             *     memset(dst, 0, sizeof(dst));
+             *     strncpy(dst, val, strlen(val));
+             * which silently drops the NUL terminator and, more
+             * importantly, writes strlen(val) bytes regardless of
+             * sizeof(dst) - so any write from userspace that is longer
+             * than the destination corrupts the following field
+             * (sensor -> xml -> manu_json -> auto_json all adjacent in
+             * struct vvcam_isp_sensor_info). strscpy caps the copy at
+             * dst size and guarantees a trailing NUL.
+             */
             if (strcmp(val, "sensor") == 0) {
                 val = strsep(&kv_cur, kv_delim);
                 if (val) {
-                    memset(isp_dev->sensor_info[port].sensor, 0, \
-                                sizeof(isp_dev->sensor_info[port].sensor));
-                    strncpy(isp_dev->sensor_info[port].sensor, val, strlen(val));
+                    strscpy(isp_dev->sensor_info[port].sensor, val,
+                            sizeof(isp_dev->sensor_info[port].sensor));
                 }
             } else if (strcmp(val, "mode") == 0) {
                 val = strsep(&kv_cur, kv_delim);
@@ -155,23 +166,20 @@ static int32_t vvcam_isp_proc_process(struct seq_file *sfile,
             } else if (strcmp(val, "xml") == 0) {
                 val = strsep(&kv_cur, kv_delim);
                 if (val) {
-                    memset(isp_dev->sensor_info[port].xml, 0, \
-                                sizeof(isp_dev->sensor_info[port].xml));
-                    strncpy(isp_dev->sensor_info[port].xml, val, strlen(val));
+                    strscpy(isp_dev->sensor_info[port].xml, val,
+                            sizeof(isp_dev->sensor_info[port].xml));
                 }
             } else if (strcmp(val, "manu_json") == 0) {
                 val = strsep(&kv_cur, kv_delim);
                 if (val) {
-                    memset(isp_dev->sensor_info[port].manu_json, 0, \
-                                sizeof(isp_dev->sensor_info[port].manu_json));
-                    strncpy(isp_dev->sensor_info[port].manu_json, val, strlen(val));
+                    strscpy(isp_dev->sensor_info[port].manu_json, val,
+                            sizeof(isp_dev->sensor_info[port].manu_json));
                 }
             } else if (strcmp(val, "auto_json") == 0) {
                 val = strsep(&kv_cur, kv_delim);
                 if (val) {
-                    memset(isp_dev->sensor_info[port].auto_json, 0, \
-                                sizeof(isp_dev->sensor_info[port].auto_json));
-                    strncpy(isp_dev->sensor_info[port].auto_json, val, strlen(val));
+                    strscpy(isp_dev->sensor_info[port].auto_json, val,
+                            sizeof(isp_dev->sensor_info[port].auto_json));
                 }
             }
         }

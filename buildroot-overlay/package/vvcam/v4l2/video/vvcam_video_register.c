@@ -748,22 +748,26 @@ static int vvcam_vidioc_s_ext_ctrls(struct file *file, void *fh,
     int ret;
 
     subdev = vvcam_video_remote_subdev(vvcam_vdev);
-    if (subdev) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
-        pad = media_pad_remote_pad_first(&vvcam_vdev->pad);
-#else
-        pad = media_entity_remote_pad(&vvcam_vdev->pad);
-#endif
-        memset(&pad_ext_controls, 0, sizeof(pad_ext_controls));
-        pad_ext_controls.pad = pad->index;
-        pad_ext_controls.ext_controls = a;
-        ret = v4l2_subdev_call(subdev, core, ioctl,
-                        VVCAM_PAD_S_EXT_CTRLS, &pad_ext_controls);
-
-    } else {
+    if (!subdev) {
+        dev_info(vvcam_vdev->vvcam_mdev->dev, "vvcam_video: no subdev return\n");
         return -ENOTTY;
     }
-
+    
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+    pad = media_pad_remote_pad_first(&vvcam_vdev->pad);
+#else
+    pad = media_entity_remote_pad(&vvcam_vdev->pad);
+#endif
+    
+    // 包装控件数据，转发到 ISP subdev
+    memset(&pad_ext_controls, 0, sizeof(pad_ext_controls));
+    pad_ext_controls.pad = pad->index;
+    pad_ext_controls.ext_controls = a;
+    
+    // ISP subdev 会处理所有 ext_ctrls，包括 scene config
+    ret = v4l2_subdev_call(subdev, core, ioctl,
+                          VVCAM_PAD_S_EXT_CTRLS, &pad_ext_controls);
+    
     return ret;
 }
 
@@ -932,6 +936,11 @@ static int vvcam_videoc_s_selection(struct file *file, void *fh,struct v4l2_sele
 }
 
 
+
+MODULE_DESCRIPTION("Verisilicon video driver");
+MODULE_AUTHOR("Verisilicon ISP SW Team");
+MODULE_LICENSE("GPL");
+
 static const struct v4l2_ioctl_ops vvcam_video_ioctl_ops = {
     .vidioc_querycap            = vvcam_videoc_querycap,
     .vidioc_enum_fmt_vid_cap    = vvcam_videoc_enum_fmt_vid_cap,
@@ -1026,7 +1035,6 @@ static const struct v4l2_file_operations vvcam_video_fops = {
 	.unlocked_ioctl = video_ioctl2,
 	.mmap           = vvcam_video_mmap,
 };
-
 static int vvcam_video_vb2_queue_setup(struct vb2_queue *queue,
                                     unsigned int *num_buffers,
                                     unsigned int *num_planes,

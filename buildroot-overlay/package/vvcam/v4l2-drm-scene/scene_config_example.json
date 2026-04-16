@@ -1,0 +1,31 @@
+{
+    "scenes": [
+        {
+            "name": "day",
+            "scene_path": "/etc/vvcam",
+            "sensor": "ov5647",
+            "xml_file": "ov5647_day.xml",
+            "manu_json_file": "ov5647_day.manual.json",
+            "auto_json_file": "ov5647_day.auto.json",
+            "mode": 0
+        },
+        {
+            "name": "night",
+            "scene_path": "/etc/vvcam",
+            "sensor": "ov5647",
+            "xml_file": "ov5647_night.xml",
+            "manu_json_file": "ov5647_night.manual.json",
+            "auto_json_file": "ov5647_night.auto.json",
+            "mode": 1
+        },
+        {
+            "name": "indoor",
+            "scene_path": "/etc/vvcam",
+            "sensor": "ov5647",
+            "xml_file": "ov5647_indoor.xml",
+            "manu_json_file": "ov5647_indoor.manual.json",
+            "auto_json_file": "ov5647_indoor.auto.json",
+            "mode": 2
+        }
+    ]
+}
