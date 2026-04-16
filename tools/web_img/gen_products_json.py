@@ -105,6 +105,8 @@ def update_file_to_json(file_path, products):
         variant_key = "linux"
     elif "debian" in filename:
         variant_key = "debian"
+    elif "ubuntu" in filename:
+        variant_key = "ubuntu"
     elif "micropython" in filename:
         variant_key = "micropython"
     else:
@@ -170,79 +172,79 @@ json_str = u'''
             "name": "01studio",
             "description": "01studio canmv and xCAM EVT1",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=833",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_lckfb_defconfig": {
             "name": "嘉立创k230",
             "description": "k230_canmv_lckfb",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=832",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : { "latest": {}, "history": []},"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_v3_defconfig": {
             "name": "CanMV V3.0",
             "description": "CanMV K230 V3.0(创乐博)",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=834",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_dongshanpi_defconfig": {
             "name": "dongshanpai",
             "description": "百问网，东山派",
             "image_url": "https://eai.100ask.net/assets/images/image-20240729155648319-504e2c8f5bc5607d6e03148239c45087.png",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_defconfig": {
             "name": "CanMV 1.0/1.1",
             "description": "CanMV K230 1.0/1.1",
             "image_url": "https://www.kendryte.com/k230_canmv/main/_images/CanMV-K230_front.png",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_01studio_emmc_defconfig": {
             "name": "01studio emmc ",
             "description": "01studio canmv base emmc board",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=835",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "BPI-CanMV-K230D-Zero_defconfig": {
             "name": "BPI-CanMV-K230D",
             "description": "BPI-CanMV-K230D",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=482",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_rtt_evb_defconfig": {
             "name": "rtt evb",
             "description": "k230_canmv_rtt_evb_defconfig",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230d_canmv_atk_dnk230d_defconfig": {
             "name": "正点原子",
             "description": "k230d_canmv_atk_dnk230d_defconfig",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_hiwonder_defconfig": {
             "name": "hiwonder",
             "description": "k230_canmv_hiwonder_defconfig",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_yahboom_defconfig": {
             "name": "亚博",
             "description": "k230_canmv_yahboom_defconfig",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_gt6700_defconfig": {
             "name": "银杏",
             "description": "k230_canmv_gt6700_defconfig",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230d_canmv_labplus_ai_camera_defconfig": {
             "name": "labplus",
             "description": "k230d_canmv_labplus_ai_camera_defconfig",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
-            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         }
     }
 }

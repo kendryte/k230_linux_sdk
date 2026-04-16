@@ -31,63 +31,10 @@ debian_gen_rootfs()
 }
 ubuntu_gen_rootfs()
 {
-    echo "ubuntu_gen_rootfs"
-    cat << 'EOFF' >tmp.txt
-#docker run  --privileged  -u root -it  -v $(pwd):$(pwd)    -w $(pwd) ubuntu24:v1  /bin/bash
-
-rm -rf ubuntu24
-sudo debootstrap --arch=riscv64   noble ubuntu24 https://mirrors.aliyun.com/ubuntu-ports/
-chroot ubuntu24 /bin/bash
-
-cat >/etc/apt/sources.list <<EOF
-deb https://mirrors.aliyun.com/ubuntu-ports noble main restricted
-
-deb https://mirrors.aliyun.com/ubuntu-ports noble-updates main restricted
-
-deb https://mirrors.aliyun.com/ubuntu-ports noble universe
-deb https://mirrors.aliyun.com/ubuntu-ports noble-updates universe
-
-deb https://mirrors.aliyun.com/ubuntu-ports noble multiverse
-deb https://mirrors.aliyun.com/ubuntu-ports noble-updates multiverse
-
-deb https://mirrors.aliyun.com/ubuntu-ports noble-backports main restricted universe multiverse
-
-deb https://mirrors.aliyun.com/ubuntu-ports noble-security main restricted
-deb https://mirrors.aliyun.com/ubuntu-ports noble-security universe
-deb https://mirrors.aliyun.com/ubuntu-ports noble-security multiverse
-EOF
-echo "root:root" | chpasswd
-echo k230>/etc/hostname
-apt-get install ssh  parted
-echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
-echo "a" >/first_boot_flag
-cat << 'EOF' > /etc/profile.d/disk.sh
-bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
-if [ -f /first_boot_flag ]; then
-    echo "first boot flag"
-    sd_size=$(parted ${bootddev} print | grep ${bootddev} | cut -d: -f2)
-    parted ${bootddev} resizepart 2 ${sd_size}; resize2fs ${bootddev}p2
-    rm -rf /first_boot_flag
-else
-    echo "not exit flag"
-fi
-mount ${bootddev}p1 /boot
-dhcpcd
-EOF
-
-exit
-sudo tar -czf ubuntu24.tar.gz ubuntu24
-# debian13_size="$(( "$(sudo du -sm ubuntu24 | cut -f1 )" + 300 ))"
-# mkfs.ext4  -d ubuntu24  -r 1 -N 0 -m 1 -L "rootfs" -O ^64bit ubuntu24.ext4 ${debian13_size}m
-# tar -czvf ubuntu24.ext4.tar.gz ubuntu24.ext4
-
-EOFF
-
     print_red "you need  manually execute the follow commands"
     echo -e ${BLUE}
-    cat  tmp.txt
-    echo -e  ${COLOR_NONE}
-    rm -rf tmp.txt
+    cat  ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/distribution/rootfs_ubuntu_gen.sh
+
 
     print_red "You need to manually execute the above commands one by one on linux(not docker) "
     print_red "referenc doc is <<https://developer.canaan-creative.com/k230/zh/dev/03_other/K230_debian_ubuntu%E8%AF%B4%E6%98%8E.html>>"
@@ -252,7 +199,7 @@ fi
 if [ "${distribution_type}" =  "debian" ] ;then
     distribution_rootfs_replace  debian   debian13  ${DISTR_DOWN_URI}/debian13.tar.gz  "c958b36f56d5e2a88446b03bb7dc6557"
 elif [ "${distribution_type}" =  "ubuntu" ] ;then
-    distribution_rootfs_replace  ubuntu   ubuntu24  ${DISTR_DOWN_URI}/ubuntu24.tar.gz "32176750a7b7c283af60d5af8abbac63"
+    distribution_rootfs_replace  ubuntu   ubuntu24  ${DISTR_DOWN_URI}/ubuntu24.tar.gz "899cbac7fca3aaab6b6e7adad11152bf"
 elif [ "${distribution_type}" =  "debian_rootfs" ] ;then
     debian_gen_rootfs
 elif [ "${distribution_type}" =  "ubuntu_rootfs" ] ;then

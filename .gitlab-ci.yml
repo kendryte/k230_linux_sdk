@@ -370,6 +370,7 @@ before_script:
         if [[ "${CONF}" == "${CONFIG}" ]];then
           echo "need build debian";
           time sudo make debian || exit 1;
+          time sudo make ubuntu || exit 1;
           break;
         fi;
       done
