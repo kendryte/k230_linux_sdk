@@ -38,11 +38,6 @@ int main(int argc, char *argv[])
 
     int debug_mode=atoi(argv[2]);
 
-    // std::string kmodel_file = "test.kmodel";
-    // interpreter kmodel_interp_;
-    // std::ifstream ifs(kmodel_file, std::ios::binary);
-    // kmodel_interp_.load_model(ifs).expect("Invalid kmodel");
-
     // 读入图片，并将数据处理成CHW和RGB格式
     cv::Mat ori_img = cv::imread(argv[1]);
     int ori_w = ori_img.cols;

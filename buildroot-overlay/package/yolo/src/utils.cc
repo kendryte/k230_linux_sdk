@@ -35,6 +35,81 @@ std::vector<std::string> readLabelsFromTxt(std::string labels_txt_path) {
     return labels;
 }
 
+void transpose_block_rvv(const float* input0, float* output_det,
+                     int box_num, int box_feature_len)
+{
+    const int BLOCK = 32;
+    for(int i = 0; i < box_feature_len; i += BLOCK)
+    {
+        int i_max = std::min(i + BLOCK, box_feature_len);
+        for(int j = 0; j < box_num; j += BLOCK)
+        {
+            int j_max = std::min(j + BLOCK, box_num);
+            for(int ii = i; ii < i_max; ii++)
+            {
+                const float* src = input0 + ii * box_num + j;
+                float* dst = output_det + j * box_feature_len + ii;
+                int remain = j_max - j;
+                size_t stride = box_feature_len * sizeof(float); // stride in bytes
+
+                int jj = 0;
+                while (remain > 0)
+                {
+                    size_t vl = vsetvl_e32m8(remain);
+                    // 连续加载源数据
+                    vfloat32m8_t vsrc = vle32_v_f32m8(src + jj, vl);
+                    // 按固定步长写入目标（转置）
+                    vsse32_v_f32m8(dst + jj * box_feature_len, stride, vsrc, vl);
+
+                    jj += vl;
+                    remain -= vl;
+                }
+            }
+        }
+    }
+}
+
+void transpose_block_fast(const float* input0, float* output_det,
+                          int box_num, int box_feature_len)
+{
+    const int TILE = 8;
+    for (int i = 0; i < box_feature_len; i += TILE)
+    {
+        int i_max = std::min(i + TILE, box_feature_len);
+        for (int j = 0; j < box_num; j += TILE)
+        {
+            int j_max = std::min(j + TILE, box_num);
+            int h = i_max - i;
+            int w = j_max - j;
+
+            // small stack buffer to hold the tile in row-major: buf[row][col]
+            float buf[TILE][TILE] = {0};
+
+            // temporary vector register reused for each row load
+            for (int r = 0; r < h; ++r)
+            {
+                const float* src = input0 + (i + r) * box_num + j;
+                // set vector length for e32 (float32)
+                size_t vl = vsetvl_e32m1(w);
+                vfloat32m1_t vtmp = vle32_v_f32m1(src, vl);
+                // store vector into a small temp array (buf[r])
+                // use vse32 to write out 'vl' floats into buf[r]
+                vse32_v_f32m1(buf[r], vtmp, vl);
+            }
+
+            // write transposed tile from buf to output_det
+            // output position: output_det[(j + c) * box_feature_len + (i + r)]
+            for (int r = 0; r < h; ++r)
+            {
+                for (int c = 0; c < w; ++c)
+                {
+                    output_det[(j + c) * box_feature_len + (i + r)] = buf[r][c];
+                }
+            }
+        }
+    }
+}
+
 
 auto cache = cv::Mat::zeros(1, 1, CV_32FC1);
 void Utils::dump_binary_file(const char *file_name, char *data, const size_t size)

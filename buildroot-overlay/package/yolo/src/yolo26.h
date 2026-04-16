@@ -23,36 +23,35 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _YOLOV8_H
-#define _YOLOV8_H
+#ifndef _YOLO26_H
+#define _YOLO26_H
 
 #include "utils.h"
 #include "ai_base.h"
 
 
 /**
- * @brief Yolov8
+ * @brief Yolo26
  * 主要封装了对于每一帧图片，从预处理、运行到后处理给出结果的过程
  */
-class Yolov8 : public AIBase
+class Yolo26 : public AIBase
 {
     public:
 
     /**
-    * @brief Yolov8构造函数，加载kmodel,并初始化kmodel输入、输出
+    * @brief Yolo26构造函数，加载kmodel,并初始化kmodel输入、输出
     * @param kmodel_file kmodel文件路径
     * @param conf_thres 多目标检测conf_thres
-    * @param nms_thres   多目标检测nms阈值
     * @param debug_mode  0（不调试）、 1（只显示时间）、2（显示所有打印信息）
     * @return None
     */
-    Yolov8(char* task_type,char* task_mode,char *kmodel_file, float conf_thres, float nms_thres,float mask_thres,std::vector<std::string> labels,FrameSize image_wh,int kp_num = 17, int kp_dim = 3, int debug_mode = 0);
+    Yolo26(char* task_type,char* task_mode,char *kmodel_file, float conf_thres, float mask_thres,std::vector<std::string> labels,FrameSize image_wh,int kp_num = 17, int kp_dim = 3, int debug_mode = 0);
     
     /**
-    * @brief Yolov8析构函数
+    * @brief Yolo26析构函数
     * @return None
     */
-    ~Yolov8();
+    ~Yolo26();
 
     void pre_process(runtime_tensor &input_tensor);
 
@@ -68,13 +67,7 @@ class Yolov8 : public AIBase
 
     private:
 
-    void yolov8_nms(std::vector<YOLOBbox> &bboxes,  float confThreshold, float nmsThreshold, std::vector<int> &indices);
-
-    void yolov8_rotate_nms(std::vector<YOLOBbox> &bboxes, float confThreshold, float nmsThreshold,std::vector<int> &indices);
-    
-    float yolov8_iou_calculate(cv::Rect &rect1, cv::Rect &rect2);
-
-    std::vector<std::pair<int, int>> yolov8_calculate_obb_corners(float x_center, float y_center, float width, float height, float angle);
+    std::vector<std::pair<int, int>> yolo26_calculate_obb_corners(float x_center, float y_center, float width, float height, float angle);
 
     float fast_exp(float x);
 
@@ -93,8 +86,6 @@ class Yolov8 : public AIBase
     FrameSize input_wh_;
     // 置信度阈值
     float conf_thres_;
-    // nms阈值
-    float nms_thres_;
     // 分割任务使用的mask阈值
     float mask_thres_;
     // 检测框的总数

@@ -23,15 +23,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "yolo11.h"
+#include "yolo26.h"
 
-Yolo11::Yolo11(char* task_type, char* task_mode, char *kmodel_file, float conf_thres,float nms_thres,float mask_thres,std::vector<std::string> labels, FrameSize image_wh,int kp_num, int kp_dim, int debug_mode)
-:AIBase(kmodel_file,"Yolo11", debug_mode)
+Yolo26::Yolo26(char* task_type, char* task_mode, char *kmodel_file, float conf_thres,float mask_thres,std::vector<std::string> labels, FrameSize image_wh,int kp_num, int kp_dim, int debug_mode)
+:AIBase(kmodel_file,"Yolo26", debug_mode)
 {
     task_type_=task_type;
     task_mode_=task_mode;
     conf_thres_=conf_thres;
-    nms_thres_=nms_thres;
     mask_thres_=mask_thres;
     image_wh_=image_wh;
     input_wh_={input_shapes_[0][3], input_shapes_[0][2]};
@@ -43,26 +42,26 @@ Yolo11::Yolo11(char* task_type, char* task_mode, char *kmodel_file, float conf_t
     kps_size_=kp_num*kp_dim;
     kp_colors=getColorsForClasses(kp_num);
     max_box_num_=50;
-    box_num_=((input_wh_.width/8)*(input_wh_.height/8)+(input_wh_.width/16)*(input_wh_.height/16)+(input_wh_.width/32)*(input_wh_.height/32));
+    box_num_=300;
     debug_mode_=debug_mode;
     model_input_tensor_=get_input_tensor(0);
     if(strcmp(task_type_,"classify")==0){
         Utils::center_crop_resize_set(image_wh_,input_wh_,ai2d_builder_);
     }
     else if(strcmp(task_type_,"detect")==0){
-        box_feature_len_=label_num_+4;
+        box_feature_len_=6;
         Utils::padding_resize_one_side_set(image_wh_,input_wh_,ai2d_builder_, cv::Scalar(114, 114, 114));
     }
     else if(strcmp(task_type_,"segment")==0){
-        box_feature_len_=label_num_+4+32;
+        box_feature_len_=38;
         Utils::padding_resize_one_side_set(image_wh_,input_wh_,ai2d_builder_, cv::Scalar(114, 114, 114));
     }
     else if(strcmp(task_type_,"obb")==0){
-        box_feature_len_=label_num_+5;
+        box_feature_len_=7;
         Utils::padding_resize_one_side_set(image_wh_,input_wh_,ai2d_builder_, cv::Scalar(114, 114, 114));
     }
     else if(strcmp(task_type_,"pose")==0){
-        box_feature_len_=5+kp_num_*kp_dim_;
+        box_feature_len_=kps_size_+6;
         Utils::padding_resize_one_side_set(image_wh_,input_wh_,ai2d_builder_, cv::Scalar(114, 114, 114));
     }
     else{
@@ -72,25 +71,25 @@ Yolo11::Yolo11(char* task_type, char* task_mode, char *kmodel_file, float conf_t
 
 }
     
-Yolo11::~Yolo11()
+Yolo26::~Yolo26()
 {
 }
 
-void Yolo11::pre_process(runtime_tensor &input_tensor)
+void Yolo26::pre_process(runtime_tensor &input_tensor)
 {
-    ScopedTiming st("Yolo11::pre_process", debug_mode_);
+    ScopedTiming st("Yolo26::pre_process", debug_mode_);
     ai2d_builder_->invoke(input_tensor,model_input_tensor_).expect("error occurred in ai2d running");
 }
 
-void Yolo11::inference()
+void Yolo26::inference()
 {
     this->run();
     this->get_output();
 }
 
-void Yolo11::post_process(std::vector<YOLOBbox> &yolo_results)
+void Yolo26::post_process(std::vector<YOLOBbox> &yolo_results)
 {
-    ScopedTiming st("Yolo11::post_process", debug_mode_);
+    ScopedTiming st("Yolo26::post_process", debug_mode_);
     yolo_results.clear();
     if(strcmp(task_type_,"classify")==0){
         float* output0 = p_outputs_[0];
@@ -132,48 +131,28 @@ void Yolo11::post_process(std::vector<YOLOBbox> &yolo_results)
         float ratiow = (float)input_wh_.width / image_wh_.width;
         float ratioh = (float)input_wh_.height / image_wh_.height;
         float ratio = ratiow < ratioh ? ratiow : ratioh;
-        // std::vector<YOLOBbox> bboxes;
-        float *output_det = new float[box_num_ * box_feature_len_];
-        // 模型推理结束后，进行后处理
-        float* output0= p_outputs_[0];
-        // // 将输出数据排布从[label_num_+4,(w/8)*(h/8)+(w/16)*(h/16)+(w/32)*(h/32)]调整为[(w/8)*(h/8)+(w/16)*(h/16)+(w/32)*(h/32),label_num_+4],方便后续处理
-        // for(int r = 0; r < box_num_; r++)
-        // {
-        //     for(int c = 0; c < box_feature_len_; c++)
-        //     {
-        //         output_det[r*box_feature_len_ + c] = output0[c*box_num_ + r];
-        //     }
-        // }
-        transpose_block_fast(p_outputs_[0], output_det, box_num_, box_feature_len_);
         for(int i=0;i<box_num_;i++){
-            float* vec=output_det+i*box_feature_len_;
+            float* vec=p_outputs_[0]+i*box_feature_len_;
             float box[4]={vec[0],vec[1],vec[2],vec[3]};
-            float* class_scores=vec+4;
-            float* max_class_score_ptr=std::max_element(class_scores,class_scores+label_num_);
-            float score=*max_class_score_ptr;
-            int max_class_index = max_class_score_ptr - class_scores; // 计算索引
+            float score=vec[4];
+            float max_class_index=vec[5];
             if(score>conf_thres_){
                 YOLOBbox bbox;
-                float x_=box[0]/ratio*1.0;
-                float y_=box[1]/ratio*1.0;
-                float w_=box[2]/ratio*1.0;
-                float h_=box[3]/ratio*1.0;
-                int x=int(MAX(x_-0.5*w_,0));
-                int y=int(MAX(y_-0.5*h_,0));
-                int w=int(w_);
-                int h=int(h_);
+                float x_1=box[0]/ratio*1.0;
+                float y_1=box[1]/ratio*1.0;
+                float x_2=box[2]/ratio*1.0;
+                float y_2=box[3]/ratio*1.0;
+                int x=int(MAX(x_1,0));
+                int y=int(MAX(y_1,0));
+                int w=int(x_2-x_1);
+                int h=int(y_2-y_1);
                 if (w <= 0 || h <= 0) { continue; }
                 bbox.box=cv::Rect(x,y,w,h);
                 bbox.confidence=score;
                 bbox.index=max_class_index;
                 yolo_results.push_back(bbox);
             }
-
         }
-        //执行非最大抑制以消除具有较低置信度的冗余重叠框（NMS）
-        std::vector<int> nms_result;
-        yolo11_nms(yolo_results, conf_thres_, nms_thres_, nms_result);
-        delete[] output_det;
     }
     else if(strcmp(task_type_,"segment")==0){
         float ratiow = input_wh_.width / (image_wh_.width*1.0);
@@ -183,58 +162,42 @@ void Yolo11::post_process(std::vector<YOLOBbox> &yolo_results)
         int new_h=int(image_wh_.height*ratio);
         int pad_w=input_wh_.width-new_w>0?input_wh_.width-new_w:0;
         int pad_h=input_wh_.height-new_h>0?input_wh_.height-new_h:0;
-        // std::vector<YOLOBbox> bboxes;
-        float *output_det = new float[box_num_ * box_feature_len_];
-        // 模型推理结束后，进行后处理
-        float* output0= p_outputs_[0];
-        // // 将输出数据排布从[label_num_+4+32,(w/8)*(h/8)+(w/16)*(h/16)+(w/32)*(h/32)]调整为[(w/8)*(h/8)+(w/16)*(h/16)+(w/32)*(h/32),label_num_+4+32],方便后续处理
-        // for(int r = 0; r < box_num_; r++)
-        // {
-        //     for(int c = 0; c < box_feature_len_; c++)
-        //     {
-        //         output_det[r*box_feature_len_ + c] = output0[c*box_num_ + r];
-        //     }
-        // }
-        transpose_block_fast(p_outputs_[0], output_det, box_num_, box_feature_len_);
-        float* output1=p_outputs_[1];
+       
         int mask_w=input_wh_.width/4;
         int mask_h=input_wh_.height/4;
-        cv::Mat protos=cv::Mat(32,mask_w*mask_h,CV_32FC1,output1);
+        cv::Mat protos=cv::Mat(32,mask_w*mask_h,CV_32FC1,p_outputs_[1]);
+
         for(int i=0;i<box_num_;i++){
-            float* vec=output_det+i*box_feature_len_;
+            float* vec=p_outputs_[0]+i*box_feature_len_;
             float box[4]={vec[0],vec[1],vec[2],vec[3]};
-            float* class_scores=vec+4;
-            float* max_class_score_ptr=std::max_element(class_scores,class_scores+label_num_);
-            float score=*max_class_score_ptr;
-            int max_class_index = max_class_score_ptr - class_scores; // 计算索引
+            float score=vec[4];
+		    float class_id=vec[5];
             if(score>conf_thres_){
                 YOLOBbox bbox;
-                float x_=box[0]/ratio*1.0;
-                float y_=box[1]/ratio*1.0;
-                float w_=box[2]/ratio*1.0;
-                float h_=box[3]/ratio*1.0;
-                int x=int(MAX(x_-0.5*w_,0));
-                int y=int(MAX(y_-0.5*h_,0));
-                int w=int(w_);
-                int h=int(h_);
+                float x_1=box[0]/ratio*1.0;
+                float y_1=box[1]/ratio*1.0;
+                float x_2=box[2]/ratio*1.0;
+                float y_2=box[3]/ratio*1.0;
+                int x=int(MAX(x_1,0));
+                int y=int(MAX(y_1,0));
+                int w=int(x_2-x_1);
+                int h=int(y_2-y_1);
                 if (w <= 0 || h <= 0) { continue; }
                 bbox.box=cv::Rect(x,y,w,h);
                 bbox.confidence=score;
-                bbox.index=max_class_index;
-                bbox.mask=cv::Mat(1, 32, CV_32F, vec + label_num_ + 4);
+                bbox.index=class_id;
+                bbox.mask=cv::Mat(1, 32, CV_32F, vec + 6);
                 yolo_results.push_back(bbox);
             }
 
         }
-        //执行非最大抑制以消除具有较低置信度的冗余重叠框（NMS）
-        std::vector<int> nms_result;
-        yolo11_nms(yolo_results, conf_thres_, nms_thres_, nms_result);
+        
         for (int i = 0; i < yolo_results.size(); i++)
         {
             cv::Mat mask_box = yolo_results[i].mask * protos;
             cv::Mat mask_box_(mask_h, mask_w, CV_32FC1, mask_box.data);
             cv::Rect roi(0, 0, mask_w - int(pad_w * (mask_w / float(input_wh_.width))),
-                        mask_h - int(pad_h * (mask_h / float(input_wh_.height))));
+                         mask_h - int(pad_h * (mask_h / float(input_wh_.height))));
 
             cv::Mat dest;
             cv::exp(-mask_box_, dest);
@@ -242,32 +205,18 @@ void Yolo11::post_process(std::vector<YOLOBbox> &yolo_results)
             dest = dest(roi);
             yolo_results[i].mask = dest;
         }
-        delete[] output_det;
     }
     else if(strcmp(task_type_,"obb")==0){
         float ratiow = (float)input_wh_.width / image_wh_.width;
         float ratioh = (float)input_wh_.height / image_wh_.height;
         float ratio = ratiow < ratioh ? ratiow : ratioh;
-        float *output_det = new float[box_num_ * box_feature_len_];
-        // 模型推理结束后，进行后处理
-        float* output0= p_outputs_[0];
-        // // 将输出数据排布从[label_num_+5,(w/8)*(h/8)+(w/16)*(h/16)+(w/32)*(h/32)]调整为[(w/8)*(h/8)+(w/16)*(h/16)+(w/32)*(h/32),label_num_+5],方便后续处理
-        // for(int r = 0; r < box_num_; r++)
-        // {
-        //     for(int c = 0; c < box_feature_len_; c++)
-        //     {
-        //         output_det[r*box_feature_len_ + c] = output0[c*box_num_ + r];
-        //     }
-        // }
-        transpose_block_fast(p_outputs_[0], output_det, box_num_, box_feature_len_);
+        
         for(int i=0;i<box_num_;i++){
-            float* vec=output_det+i*box_feature_len_;
+            float* vec=p_outputs_[0]+i*box_feature_len_;
             float box[4]={vec[0],vec[1],vec[2],vec[3]};
-            float* class_scores=vec+4;
-            float* max_class_score_ptr=std::max_element(class_scores,class_scores+label_num_);
-            float score=*max_class_score_ptr;
-            int max_class_index = max_class_score_ptr - class_scores; // 计算索引
-            float angle=vec[4+label_num_];
+            float score=vec[4];
+            float class_id=vec[5];
+            float angle=vec[6];
             if(score>conf_thres_){
                 YOLOBbox bbox;
                 float x_=box[0]/ratio*1.0;
@@ -282,47 +231,32 @@ void Yolo11::post_process(std::vector<YOLOBbox> &yolo_results)
                 bbox.box=cv::Rect(x,y,w,h);
                 bbox.confidence=score;
                 bbox.angle=angle;
-                bbox.index=max_class_index;
+                bbox.index=class_id;
                 yolo_results.push_back(bbox);
             }
 
         }
-        //执行非最大抑制以消除具有较低置信度的冗余重叠框（NMS）
-        std::vector<int> nms_result;
-        yolo11_rotate_nms(yolo_results, conf_thres_, nms_thres_, nms_result);
-        delete[] output_det;
     }
     else if(strcmp(task_type_,"pose")==0){
         float ratiow = (float)input_wh_.width / image_wh_.width;
         float ratioh = (float)input_wh_.height / image_wh_.height;
         float ratio = ratiow < ratioh ? ratiow : ratioh;
-        float *output_det = new float[box_num_ * box_feature_len_];
-        // 模型推理结束后，进行后处理
-        float* output0= p_outputs_[0];
-        // // 将输出数据排布从[label_num_+4+kp_num_*kp_dim_,(w/8)*(h/8)+(w/16)*(h/16)+(w/32)*(h/32)]调整为[(w/8)*(h/8)+(w/16)*(h/16)+(w/32)*(h/32),label_num_+4+kp_num_*kp_dim_],方便后续处理
-        // for(int r = 0; r < box_num_; r++)
-        // {
-        //     for(int c = 0; c < box_feature_len_; c++)
-        //     {
-        //         output_det[r*box_feature_len_ + c] = output0[c*box_num_ + r];
-        //     }
-        // }
-        transpose_block_fast(p_outputs_[0], output_det, box_num_, box_feature_len_);
         for(int i=0;i<box_num_;i++){
-            float* vec=output_det+i*box_feature_len_;
+            float* vec=p_outputs_[0]+i*box_feature_len_;
             float box[4]={vec[0],vec[1],vec[2],vec[3]};
             float score=vec[4];
-            float* kps = vec+5;
+            float max_class_index=vec[5];
+            float* kps = vec+6;
             if(score>conf_thres_){
                 YOLOBbox bbox;
-                float x_=box[0]/ratio*1.0;
-                float y_=box[1]/ratio*1.0;
-                float w_=box[2]/ratio*1.0;
-                float h_=box[3]/ratio*1.0;
-                int x=int(MAX(x_-0.5*w_,0));
-                int y=int(MAX(y_-0.5*h_,0));
-                int w=int(w_);
-                int h=int(h_);
+                float x_1=box[0]/ratio*1.0;
+                float y_1=box[1]/ratio*1.0;
+                float x_2=box[2]/ratio*1.0;
+                float y_2=box[3]/ratio*1.0;
+                int x=int(MAX(x_1,0));
+                int y=int(MAX(y_1,0));
+                int w=int(x_2-x_1);
+                int h=int(y_2-y_1);
                 if (w <= 0 || h <= 0) { continue; }
                 bbox.box=cv::Rect(x,y,w,h);
                 bbox.confidence=score;
@@ -343,20 +277,18 @@ void Yolo11::post_process(std::vector<YOLOBbox> &yolo_results)
                     }
                     else{
                         memcpy(bbox.kps, kps, kps_size_ * sizeof(float));
+                        break;
                     }
                 }
                 yolo_results.push_back(bbox);
             }
         }
-        std::vector<int> nms_result;
-        yolo11_nms(yolo_results, conf_thres_, nms_thres_, nms_result);
-        delete[] output_det;
     }
 }
 
-void Yolo11::draw_results(cv::Mat &draw_frame,std::vector<YOLOBbox> &yolo_results)
+void Yolo26::draw_results(cv::Mat &draw_frame,std::vector<YOLOBbox> &yolo_results)
 {
-    ScopedTiming st("Yolo11::draw_results", debug_mode_);
+    ScopedTiming st("Yolo26::draw_results", debug_mode_);
     if(strcmp(task_type_,"classify")==0){
         if(yolo_results.size()>0){
             string text=labels_[yolo_results[0].index]+" score:"+std::to_string(yolo_results[0].confidence);
@@ -435,7 +367,7 @@ void Yolo11::draw_results(cv::Mat &draw_frame,std::vector<YOLOBbox> &yolo_result
             int idx=box_.index;
             float score=box_.confidence;
             float angle=box_.angle;
-            std::vector<std::pair<int, int>> corners=yolo11_calculate_obb_corners(box.x, box.y,box.width, box.height, angle);
+            std::vector<std::pair<int, int>> corners=yolo26_calculate_obb_corners(box.x, box.y,box.width, box.height, angle);
             int x_0=int(corners[0].first*float(w_)/image_wh_.width);
             int y_0=int(corners[0].second*float(h_)/image_wh_.height);
             int x_1=int(corners[1].first*float(w_)/image_wh_.width);
@@ -475,83 +407,33 @@ void Yolo11::draw_results(cv::Mat &draw_frame,std::vector<YOLOBbox> &yolo_result
                 h = h_ - y;
             }
             cv::Rect new_box(x,y,w,h);
-            cv::rectangle(draw_frame, new_box, colors[idx], 2, 8);
-            cv::putText(draw_frame, labels_[idx]+" "+std::to_string(score), cv::Point(MIN(new_box.x + 5,w_), MAX(new_box.y - 10,0)), cv::FONT_HERSHEY_DUPLEX, 1, colors[idx], 2, 0);
-            if(kp_dim_==3){
-                for (int j = 0; j < kps_size_; j++) {
-                    if(j%3==0)
-                    box_.kps[j] = box_.kps[j]*float(w_)/image_wh_.width;
-                    else if(j%3==1)
-                    box_.kps[j] = box_.kps[j]*float(h_)/image_wh_.height;
-                    else if(j%3==2)
-                    box_.kps[j] = box_.kps[j];
-                    
+            cv::rectangle(draw_frame, new_box, colors[0], 2, 8);
+            cv::putText(draw_frame, "person "+std::to_string(score), cv::Point(MIN(new_box.x + 5,w_), MAX(new_box.y - 10,0)), cv::FONT_HERSHEY_DUPLEX, 1, colors[0], 2, 0);
+            if(box_.kps != nullptr){
+                for(int j=0;j<kp_num_;j++){
+                    int kp_x, kp_y;
+                    if(kp_dim_==3){
+                        kp_x=int(box_.kps[j*3+0]*float(w_)/image_wh_.width);
+                        kp_y=int(box_.kps[j*3+1]*float(h_)/image_wh_.height);
+                        float kp_conf=box_.kps[j*3+2];
+                        if(kp_conf < 0.5f) continue;
+                    }
+                    else if(kp_dim_==2){
+                        kp_x=int(box_.kps[j*2+0]*float(w_)/image_wh_.width);
+                        kp_y=int(box_.kps[j*2+1]*float(h_)/image_wh_.height);
+                    }
+                    else{
+                        continue;
+                    }
+                    if(kp_x>=0 && kp_x<w_ && kp_y>=0 && kp_y<h_)
+                        cv::circle(draw_frame, cv::Point(kp_x, kp_y), 5, kp_colors[j], -1, 8);
                 }
-            }
-            else if(kp_dim_==2){
-                for (int j = 0; j < kps_size_; j++) {
-                    if(j%2==0)
-                    box_.kps[j] = box_.kps[j]*float(w_)/image_wh_.width;
-                    else if(j%2==1)
-                    box_.kps[j] = box_.kps[j]*float(h_)/image_wh_.height;
-                }
-            }
-            else{
-                std::cerr << "Invalid kp_dim" << std::endl;
-            }
-            for (int j = 0; j < kp_num_; j++) {
-                int x=int(box_.kps[3*j]);
-                int y=int(box_.kps[3*j+1]);
-                cv::circle(draw_frame, cv::Point(x, y), 5, kp_colors[j], -1, 8);
             }
         }
     }
 }
 
-void Yolo11::yolo11_nms(std::vector<YOLOBbox> &bboxes,  float confThreshold, float nmsThreshold, std::vector<int> &indices)
-{	
-    std::sort(bboxes.begin(), bboxes.end(), [](YOLOBbox &a, YOLOBbox &b) { return a.confidence > b.confidence; });
-    int updated_size = bboxes.size();
-    for (int i = 0; i < updated_size; i++) {
-        if (bboxes[i].confidence < confThreshold)
-            continue;
-        indices.push_back(i);
-        // 这里使用移除冗余框，而不是 erase 操作，减少内存移动的开销
-        for (int j = i + 1; j < updated_size;) {
-            float iou = yolo11_iou_calculate(bboxes[i].box, bboxes[j].box);
-            if (iou > nmsThreshold) {
-                bboxes[j].confidence = -1;  // 设置为负值，后续不会再计算其IOU
-            }
-            j++;
-        }
-    }
-
-    // 移除那些置信度小于0的框
-    bboxes.erase(std::remove_if(bboxes.begin(), bboxes.end(), [](YOLOBbox &b) { return b.confidence < 0; }), bboxes.end());
-}
-
-float Yolo11::yolo11_iou_calculate(cv::Rect &rect1, cv::Rect &rect2)
-{
-    int xx1, yy1, xx2, yy2;
- 
-	xx1 = std::max(rect1.x, rect2.x);
-	yy1 = std::max(rect1.y, rect2.y);
-	xx2 = std::min(rect1.x + rect1.width - 1, rect2.x + rect2.width - 1);
-	yy2 = std::min(rect1.y + rect1.height - 1, rect2.y + rect2.height - 1);
- 
-	int insection_width, insection_height;
-	insection_width = std::max(0, xx2 - xx1 + 1);
-	insection_height = std::max(0, yy2 - yy1 + 1);
- 
-	float insection_area, union_area, iou;
-	insection_area = float(insection_width) * insection_height;
-	union_area = float(rect1.width*rect1.height + rect2.width*rect2.height - insection_area);
-	iou = insection_area / union_area;
-
-	return iou;
-}
-
-float Yolo11::fast_exp(float x)
+float Yolo26::fast_exp(float x)
 {
     union {
         uint32_t i;
@@ -561,59 +443,18 @@ float Yolo11::fast_exp(float x)
     return v.f;
 }
 
-float Yolo11::sigmoid(float x)
+float Yolo26::sigmoid(float x)
 {
     return 1.0f / (1.0f + fast_exp(-x));
 }
 
 template<typename T>
-T def_clamp(T value, T low, T high) {
+T clamp(T value, T low, T high) {
     return (value < low) ? low : (value > high) ? high : value;
 }
 
 
-
-// obb = {x_center, y_center, width, height, angle}
-std::array<float, 3> yolo11_get_covariance_matrix(YOLOBbox& obb) {
-    float width = obb.box.width / 2.0f;
-    float height = obb.box.height / 2.0f;
-    float angle = obb.angle;
-
-    float cos_angle = std::cos(angle);
-    float sin_angle = std::sin(angle);
-
-    float a = std::pow(width * cos_angle, 2) + std::pow(height * sin_angle, 2);
-    float b = std::pow(width * sin_angle, 2) + std::pow(height * cos_angle, 2);
-    float c = width * cos_angle * height * sin_angle;
-
-    return {a, b, c};
-}
-
-float yolo11_cal_rotate_iou(YOLOBbox& obb1,YOLOBbox& obb2,float eps = 1e-7f) {
-    float x1 = obb1.box.x, y1 = obb1.box.y;
-    float x2 = obb2.box.x, y2 = obb2.box.y;
-
-    auto [a1, b1, c1] = yolo11_get_covariance_matrix(obb1);
-    auto [a2, b2, c2] = yolo11_get_covariance_matrix(obb2);
-
-    float denom = (a1 + a2) * (b1 + b2) - std::pow(c1 + c2, 2) + eps;
-
-    float t1 = ((a1 + a2) * std::pow(y1 - y2, 2) + (b1 + b2) * std::pow(x1 - x2, 2)) / denom * 0.25f;
-    float t2 = ((c1 + c2) * (x2 - x1) * (y1 - y2)) / denom * 0.5f;
-
-    float numer = (a1 + a2) * (b1 + b2) - std::pow(c1 + c2, 2);
-    float denom_log = 4.0f * std::sqrt((a1 * b1 - c1 * c1) * (a2 * b2 - c2 * c2)) + eps;
-
-    float t3 = 0.5f * std::log(numer / denom_log + eps);
-
-    float bd = clamp(t1 + t2 + t3, eps, 100.0f);
-    float hd = std::sqrt(1.0f - std::exp(-bd) + eps);
-
-    return 1.0f - hd;
-}
-
-
-std::vector<std::pair<int, int>> Yolo11::yolo11_calculate_obb_corners(float x_center, float y_center, float width, float height, float angle) {
+std::vector<std::pair<int, int>> Yolo26::yolo26_calculate_obb_corners(float x_center, float y_center, float width, float height, float angle) {
     float cos_angle = std::cos(angle);  // 计算余弦
     float sin_angle = std::sin(angle);  // 计算正弦
     float dx = width / 2.0f;
@@ -634,28 +475,4 @@ std::vector<std::pair<int, int>> Yolo11::yolo11_calculate_obb_corners(float x_ce
     };
 
     return corners;
-}
-
-// NMS 非极大值抑制
-void Yolo11::yolo11_rotate_nms(std::vector<YOLOBbox> &bboxes, float confThreshold, float nmsThreshold,std::vector<int> &indices)
-{
-    // 先排序，按照置信度降序排列
-    std::sort(bboxes.begin(), bboxes.end(), [](const YOLOBbox &a, const YOLOBbox &b) { return a.confidence > b.confidence; });
-
-    int updated_size = bboxes.size();
-    for (int i = 0; i < updated_size; i++) {
-        if (bboxes[i].confidence < confThreshold)
-            continue;
-        indices.push_back(i);
-        // 这里使用移除冗余框，而不是 erase 操作，减少内存移动的开销
-        for (int j = i + 1; j < updated_size;) {
-            float iou = yolo11_cal_rotate_iou(bboxes[i], bboxes[j]);
-            if (iou > nmsThreshold) {
-                bboxes[j].confidence = -1;  // 设置为负值，后续不会再计算其IOU
-            }
-            j++;
-        }
-    }
-    // 移除那些置信度小于0的框
-    bboxes.erase(std::remove_if(bboxes.begin(), bboxes.end(), [](const YOLOBbox &b) { return b.confidence < 0; }), bboxes.end());
 }

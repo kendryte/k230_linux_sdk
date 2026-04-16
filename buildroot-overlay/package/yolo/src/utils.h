@@ -35,6 +35,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <nncase/functional/ai2d/ai2d_builder.h>
+#include "riscv_vector.h"
 
 using namespace nncase;
 using namespace nncase::runtime;
@@ -160,6 +161,8 @@ typedef struct YoloConfig
     float conf_thres=0.35;
     float nms_thres=0.65;
     float mask_thres=0.5;
+    int kp_num=17;;
+    int kp_dim=3;
     std::string labels_txt_filepath="coco_labels.txt";
     int debug_mode=0;
 } YoloConfig;
@@ -174,12 +177,19 @@ typedef struct YOLOBbox{
 	int index;          // cls、det、seg、obb均会用到
     cv::Mat mask;       // 仅seg会用到
     float angle;        // 仅obb会用到
+    float* kps{nullptr};  // 仅pose会用到，关键点数量由kp_num决定
+    int kp_num;         // 仅pose会用到，关键点数量
+    int kp_dim;         // 仅pose会用到，关键点维度
 }YOLOBbox;
 
 // 根据类别数使用模运算循环获取颜色
 std::vector<cv::Scalar> getColorsForClasses(int num_classes);
 
 std::vector<std::string> readLabelsFromTxt(std::string labels_txt_path);
+
+void transpose_block_rvv(const float* input0, float* output_det,int box_num, int box_feature_len);
+
+void transpose_block_fast(const float* input0, float* output_det,int box_num, int box_feature_len);
 
 /**
  * @brief 工具类

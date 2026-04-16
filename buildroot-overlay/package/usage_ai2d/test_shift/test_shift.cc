@@ -40,11 +40,6 @@ int main(int argc, char *argv[])
 
     int debug_mode=atoi(argv[1]);
 
-    std::string kmodel_file = "test.kmodel";
-    interpreter kmodel_interp_; 
-    std::ifstream ifs(kmodel_file, std::ios::binary);
-    kmodel_interp_.load_model(ifs).expect("Invalid kmodel");
-
     // 创建一张位深为16的原始数据，初始化为240
     cv::Mat ori_img(320, 320, CV_16UC3, cv::Scalar(240, 240, 240));
     cv::imwrite("ori_img.jpg",ori_img);

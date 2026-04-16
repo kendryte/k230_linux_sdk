@@ -46,7 +46,7 @@ class Yolo11 : public AIBase
     * @param debug_mode  0（不调试）、 1（只显示时间）、2（显示所有打印信息）
     * @return None
     */
-    Yolo11(char* task_type,char* task_mode,char *kmodel_file, float conf_thres, float nms_thres,float mask_thres,std::vector<std::string> labels,FrameSize image_wh, int debug_mode = 0);
+    Yolo11(char* task_type,char* task_mode,char *kmodel_file, float conf_thres, float nms_thres,float mask_thres,std::vector<std::string> labels,FrameSize image_wh,int kp_num = 17, int kp_dim = 3, int debug_mode = 0);
     
     /**
     * @brief Yolo11析构函数
@@ -102,6 +102,12 @@ class Yolo11 : public AIBase
     int max_box_num_;
     // 每个检测框的特征维度
     int box_feature_len_;
+    // 关键点数量
+    int kp_num_;
+    // 关键点维度
+    int kp_dim_;
+    int kps_size_;
+    std::vector<cv::Scalar> kp_colors;
     // kmodel的输出处理结果
     float *output_det_;
     int debug_mode_;
