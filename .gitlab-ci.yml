@@ -62,12 +62,87 @@ stages:
     echo "CI_PIPELINE_TRIGGERED $CI_PIPELINE_TRIGGERED";
     echo "check send feishu msg to group";
     SEND="FALSE";
-    if [[ "$CI_PIPELINE_SOURCE" != "merge_request_event" ]];
-    then
-      SEND="TRUE";
-    else
+    PIPELINE_RESULT="$CI_JOB_STATUS";
+    PIPELINE_STAGE_SUMMARY="$CI_JOB_STAGE:$CI_JOB_STATUS";
+    PIPELINE_JOB_SUMMARY="$CI_JOB_NAME:$CI_JOB_STATUS";
+    if [[ "$CI_PIPELINE_SOURCE" == "merge_request_event" ]]; then
       echo "skip feishu msg for MR event";
+    elif [[ "$CI_JOB_STAGE" != "send_msg" ]]; then
+      echo "skip send feishu msg in non-final stage job";
+    else
+      echo "match the final send_msg stage, will send feishu msg";
+      SEND="TRUE";
+      STAGE_ORDER="build_setup build_src smoke_test test release update_html_web";
+      echo "start to query current pipeline jobs from GitLab API";
+      api_url="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/jobs?per_page=100";
+      job_json=$(wget -qO- --header="JOB-TOKEN: ${CI_JOB_TOKEN}" "$api_url") || job_json="";
+
+      if [[ -n "$job_json" ]]; then
+        stage_result_output=$(
+          printf '%s' "$job_json" | python3 -c '
+    import json
+    import sys
+
+    stage_order = sys.argv[1].split()
+
+    try:
+        jobs = json.load(sys.stdin)
+    except Exception:
+        jobs = []
+
+    stage_jobs = {stage: [] for stage in stage_order}
+
+    for job in jobs:
+        stage = job.get("stage")
+        name = job.get("name", "")
+        if stage not in stage_jobs or name == "send_feishu_msg":
+            continue
+        stage_jobs[stage].append({
+            "name": name,
+            "status": job.get("status", "unknown"),
+        })
+
+    def stage_status(items):
+        statuses = [item["status"] for item in items]
+        if any(status in ("failed", "canceled") for status in statuses):
+            return "fail"
+        if any(status == "success" for status in statuses):
+            return "pass"
+        if any(status in ("running", "pending") for status in statuses):
+            return "running"
+        return "skip"
+
+    summary = []
+    failed_jobs = []
+    has_fail = False
+
+    for stage in stage_order:
+        items = stage_jobs.get(stage, [])
+        result = stage_status(items)
+        summary.append(f"{stage}:{result}")
+        if result == "fail":
+            has_fail = True
+            for item in items:
+                if item["status"] in ("failed", "canceled"):
+                    failed_jobs.append("{}:{}".format(item["name"], item["status"]))
+
+    pipeline_result = "failed" if has_fail else "success"
+    pipeline_job_summary = ", ".join(failed_jobs) if failed_jobs else "all jobs passed or skipped"
+
+    print(pipeline_result)
+    print(" | ".join(summary))
+    print(pipeline_job_summary)
+    ' "$STAGE_ORDER"
+        )
+
+        PIPELINE_RESULT=$(printf '%s\n' "$stage_result_output" | sed -n "1p");
+        PIPELINE_STAGE_SUMMARY=$(printf '%s\n' "$stage_result_output" | sed -n "2p");
+        PIPELINE_JOB_SUMMARY=$(printf '%s\n' "$stage_result_output" | sed -n "3p");
+      else
+        echo "WARNING: failed to query pipeline jobs, use current job result as fallback";
+      fi
     fi
+
     echo "Pipeline created at $CI_PIPELINE_CREATED_AT";
     total_seconds=$(($(date +%s) - $(date -d $CI_PIPELINE_CREATED_AT +%s)));
     echo "Total pipeline duration ${total_seconds} seconds";
@@ -77,6 +152,9 @@ stages:
     echo "Total pipeline duration ${t_hours}小时${t_minutes}分${t_seconds}秒";
     if [[ "$SEND" == "TRUE" ]];
     then
+      echo "Pipeline result ${PIPELINE_RESULT}";
+      echo "Pipeline stage summary ${PIPELINE_STAGE_SUMMARY}";
+      echo "Pipeline job summary ${PIPELINE_JOB_SUMMARY}";
       test -d bin || mkdir ./bin;
       test -f ./bin/send_feishu.py && rm -rf ./bin/send_feishu.py;
       echo "start to download send_feishu.py";
@@ -84,40 +162,50 @@ stages:
       chmod +x ./bin/send_feishu.py;
 
       echo "---start to send feishu msg in for loop"
-        stime=$(date +'%Y-%m-%d %H:%M:%S')
-        echo "---run send feishu msg start time: $stime"
-        send_cmd="timeout 1m python3 ./bin/send_feishu.py --msg_type pipeline --gitlab_repo $CI_PROJECT_NAME --pipeline_source $CI_PIPELINE_SOURCE --pipeline_version ${SUB_BASE} --pipeline_seconds $total_seconds --pipeline_stage $CI_JOB_STAGE --pipeline_url $CI_PIPELINE_URL --pipeline_result $CI_JOB_STATUS --image_url '$image_url' --job_name='$CI_JOB_NAME' --pipeline_id='$CI_PIPELINE_ID'"
+      stime=$(date +'%Y-%m-%d %H:%M:%S')
+      echo "---run send feishu msg start time: $stime"
 
-        for i in {1..6}; do
-          if [ $i -eq 6 ]
-          then
-            echo "ERROR: Max retries reached with run send feishu msg"
-            exit 1
-          fi
-          starttime=$(date +'%Y-%m-%d %H:%M:%S')
-          echo "---loop $i start time: $starttime"
-          echo "---start to run send feishu msg in loop $i---"
-          if eval $send_cmd
-          then
-            echo "---loop $i run send feishu msg pass---"
-            break
-          else
-            echo "ERROR:loop $i run send feishu msg failed, ignore Error and try again..."
-            echo "---start to rerun in next loop..."
-            sleep 30
-          fi
-          endtime=$(date +'%Y-%m-%d %H:%M:%S')
-          start_seconds=$(date -d "$starttime" +%s)
-          end_seconds=$(date -d "$endtime" +%s)
-          echo "---loop $i end time: $endtime"
-          echo "---loop $i total cost time：$((end_seconds - start_seconds)) s"
-        done
-        etime=$(date +'%Y-%m-%d %H:%M:%S')
-        s_seconds=$(date -d "$stime" +%s)
-        e_seconds=$(date -d "$etime" +%s)
-        echo "---run send feishu msg end time: $etime"
-        echo "---run send feishu msg total cost time：$((e_seconds - s_seconds)) s"
-        echo "---finished run send feishu msg in loop $i"
+      for i in {1..6}; do
+        if [ $i -eq 6 ]
+        then
+          echo "ERROR: Max retries reached with run send feishu msg"
+          exit 1
+        fi
+        starttime=$(date +'%Y-%m-%d %H:%M:%S')
+        echo "---loop $i start time: $starttime"
+        echo "---start to run send feishu msg in loop $i---"
+        if timeout 1m python3 ./bin/send_feishu.py \
+          --msg_type pipeline \
+          --gitlab_repo "$CI_PROJECT_NAME" \
+          --pipeline_source "$CI_PIPELINE_SOURCE" \
+          --pipeline_version "${SUB_BASE}" \
+          --pipeline_seconds "$total_seconds" \
+          --pipeline_stage "$PIPELINE_STAGE_SUMMARY" \
+          --pipeline_url "$CI_PIPELINE_URL" \
+          --pipeline_result "$PIPELINE_RESULT" \
+          --image_url "$image_url" \
+          --job_name "$PIPELINE_JOB_SUMMARY" \
+          --pipeline_id "$CI_PIPELINE_ID"
+        then
+          echo "---loop $i run send feishu msg pass---"
+          break
+        else
+          echo "ERROR:loop $i run send feishu msg failed, ignore Error and try again..."
+          echo "---start to rerun in next loop..."
+          sleep 30
+        fi
+        endtime=$(date +'%Y-%m-%d %H:%M:%S')
+        start_seconds=$(date -d "$starttime" +%s)
+        end_seconds=$(date -d "$endtime" +%s)
+        echo "---loop $i end time: $endtime"
+        echo "---loop $i total cost time：$((end_seconds - start_seconds)) s"
+      done
+      etime=$(date +'%Y-%m-%d %H:%M:%S')
+      s_seconds=$(date -d "$stime" +%s)
+      e_seconds=$(date -d "$etime" +%s)
+      echo "---run send feishu msg end time: $etime"
+      echo "---run send feishu msg total cost time：$((e_seconds - s_seconds)) s"
+      echo "---finished run send feishu msg in loop $i"
       echo "send feishu done";
     else
       echo "skip send feishu msg";
@@ -1147,8 +1235,4 @@ send_feishu_msg:
   timeout: 5m
   script:
     - *show_vars
-    - *get_job_result
-
-# use after_script to get all stage result for send_feishu
-after_script:
     - *get_job_result
