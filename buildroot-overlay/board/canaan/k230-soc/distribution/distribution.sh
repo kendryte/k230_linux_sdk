@@ -1,209 +1,304 @@
 #!/bin/bash
+# Script to generate distribution images for K230 SDK
+# Usage: distribution.sh <distribution_type> <BRW_BUILD_DIR>
+
 distribution_type="$1"
 BRW_BUILD_DIR="$2"
 BINARIES_DIR="${BRW_BUILD_DIR}/images"
-K230_SDK_ROOT=$(dirname $(dirname ${BRW_BUILD_DIR}))
+K230_SDK_ROOT=$(cd "$(dirname "$(dirname "${BRW_BUILD_DIR}")")" && pwd)
 
-set -e;
+# Don't use set -e because it hides errors in pipe commands
+# set -e
+set -e  # Disable exit on error to see all errors
+
+# Color definitions
 COLOR_NONE="\033[0m"
 RED="\033[1;31;40m"
 BLUE="\033[1;34;40m"
 GREEN="\033[1;32;40m"
 YELLOW="\033[1;33;40m"
 
-print_red()
-{
-    echo -e ${RED}$*${COLOR_NONE}
-}
-print_blue()
-{
-    echo -e ${BLUE}$*${COLOR_NONE}
+# Print colored messages
+print_red() {
+    echo -e "${RED}$*${COLOR_NONE}"
 }
 
-debian_gen_rootfs()
-{
-    print_red "you need  manually execute the follow commands"
-    echo -e ${BLUE}
-    cat  ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/distribution/rootfs_debian_gen.sh
-
-    print_red "You need to manually execute the above commands one by one on linux(not docker) "
-    print_red "referenc doc is <<https://developer.canaan-creative.com/k230/zh/dev/03_other/K230_debian_ubuntu%E8%AF%B4%E6%98%8E.html>>"
-}
-ubuntu_gen_rootfs()
-{
-    print_red "you need  manually execute the follow commands"
-    echo -e ${BLUE}
-    cat  ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/distribution/rootfs_ubuntu_gen.sh
-
-
-    print_red "You need to manually execute the above commands one by one on linux(not docker) "
-    print_red "referenc doc is <<https://developer.canaan-creative.com/k230/zh/dev/03_other/K230_debian_ubuntu%E8%AF%B4%E6%98%8E.html>>"
-
+print_blue() {
+    echo -e "${BLUE}$*${COLOR_NONE}"
 }
 
-#放到post build
-get_image_last_name()
-{
-	local distname="$1"
-
-
-
-
-	local f="$1"
-	local CONF=$(basename ${BRW_BUILD_DIR})
-    # echo ${CONF}
-    # echo ${K230_SDK_ROOT}
-    # exit 1;
-
-
-	local sdk_ver="v0.0.0";
-	local nncase_ver="2.10.0";
-
-	local sdk_ver_file="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version"
-	local nncase_ver_file="${K230_SDK_ROOT}/output/${CONF}/build/libnncase/nncase/include/nncase/version.h"
-
-
-	#local storage="$(echo "$f" | sed -nE "s#[^-]*-([^\.]*).*#\1#p")"
-
-	if [ "${CONF}" = "k230_canmv_defconfig" ] ; then
-		canaan_site_name="CanMV-K230";
-	elif [ "${CONF}" = "k230_evb_defconfig" ] ; then
-		canaan_site_name="EVB-K230";
-    elif [ "${CONF}" = "k230_canmv_01studio_defconfig" ] ; then
-		canaan_site_name="CanMV-K230_01studio";
-	else
-		canaan_site_name="${CONF%%_defconfig}"	;
-	fi
-
-
-
-	sdk_ver=$(awk -F- '/^sdk:/ { print $1}' ${sdk_ver_file}  | cut -d: -f2 )
-
-	if [ -e "${nncase_ver_file}" ]; then
-		cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
-			nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
-	fi
-    echo   "${canaan_site_name}_${distname}_${sdk_ver}_nncase_v${nncase_ver}.img.gz"
+print_green() {
+    echo -e "${GREEN}$*${COLOR_NONE}"
 }
 
+print_yellow() {
+    echo -e "${YELLOW}$*${COLOR_NONE}"
+}
 
+# Generate rootfs helper function
+# $1: distribution name (debian/ubuntu)
+generate_rootfs_help() {
+    local dist="$1"
+    local script_name="rootfs_${dist}_gen.sh"
+    local script_path="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/distribution/${script_name}"
 
-#$1  dist name  #debian
-#$2  dist_rootfs_ext4 name
-#$3  dist_rootfs_ext4 http sit
-#$3  dist_rootfs_ext4.tar.gz md5
-distribution_rootfs_replace()
-{
+    print_red "You need to manually execute the follow commands from ${script_name}:"
+    echo -e "${BLUE}"
+    cat "${script_path}"
+    echo -e "${COLOR_NONE}"
+    print_red "Execute the above commands one by one on Linux (not in Docker)"
+    print_red "Reference doc: https://developer.canaan-creative.com/k230/zh/dev/03_other/K230_debian_ubuntu%E8%AF%B4%E6%98%8E.html"
+}
+
+debian_gen_rootfs() {
+    generate_rootfs_help "debian"
+}
+
+ubuntu_gen_rootfs() {
+    generate_rootfs_help "ubuntu"
+}
+
+# Generate output image filename with version info
+# $1: distribution name
+get_image_last_name() {
     local distname="$1"
-    local distr_rootfs="$2"  # debian13
-    local distr_rootfs_web_site="$3" #
+    local CONF=$(basename "${BRW_BUILD_DIR}")
+
+    local sdk_ver="v0.0.0"
+    local nncase_ver="v2.11.0"  # Default nncase version
+
+    local sdk_ver_file="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version"
+    local nncase_ver_file="${K230_SDK_ROOT}/output/${CONF}/build/libnncase/nncase/include/nncase/version.h"
+
+    # Determine board name based on config
+    local canaan_site_name
+    case "${CONF}" in
+        k230_canmv_defconfig)
+            canaan_site_name="CanMV-K230"
+            ;;
+        k230_evb_defconfig)
+            canaan_site_name="EVB-K230"
+            ;;
+        k230_canmv_01studio_defconfig)
+            canaan_site_name="CanMV-K230_01studio"
+            ;;
+        *)
+            canaan_site_name="${CONF%%_defconfig}"
+            ;;
+    esac
+
+    # Extract SDK version
+    if [ -f "${sdk_ver_file}" ]; then
+        sdk_ver=$(awk -F- '/^sdk:/ { print $1 }' "${sdk_ver_file}" | cut -d: -f2)
+    fi
+
+    # Extract nncase version from version.h if available
+    if [ -f "${nncase_ver_file}" ]; then
+        local nncase_version_raw
+        nncase_version_raw=$(grep -w "NNCASE_VERSION" "${nncase_ver_file}" | cut -d'"' -f2)
+        if [ -n "${nncase_version_raw}" ]; then
+            nncase_ver="${nncase_version_raw}"
+        fi
+    fi
+
+    echo "${canaan_site_name}_${distname}_${sdk_ver}_nncase_${nncase_ver}.img.gz"
+}
+
+
+
+# Generate distribution rootfs and finalize image
+# $1: dist name (debian/ubuntu)
+# $2: dist_rootfs tarball name (debian13/ubuntu24)
+# $3: dist_rootfs tarball URL
+# $4: dist_rootfs tarball MD5 checksum
+distribution_rootfs_replace() {
+    local distname="$1"
+    local distr_rootfs="$2"
+    local distr_rootfs_url="$3"
     local md5_v="$4"
-    local dist_img_name="${distname}.img"      #debian.img
+    local dist_img_name="${distname}.img"
 
+    # Check root privileges
     if [ "$(id -u)" -ne 0 ]; then
-        print_red "permission denied,you need root privileges,example: sudo make debian"
-        exit 1;
-    fi
-    if [ ! -f ${BINARIES_DIR}/sysimage-sdcard.img ]; then
-        print_red "you need first build buildroot: make buildroot"
-        exit 1;
+        print_red "Permission denied: you need root privileges. Example: sudo make ${distname}"
+        exit 1
     fi
 
+    # Check buildroot output exists
+    if [ ! -f "${BINARIES_DIR}/sysimage-sdcard.img" ]; then
+        print_red "Error: you need to build buildroot first: make buildroot"
+        exit 1
+    fi
 
-    #set -x;
-    cd ${BINARIES_DIR};
-    cp sysimage-sdcard.img ${dist_img_name};
+    print_blue "Processing ${distname} distribution..."
 
-    [ -f ${distr_rootfs}.tar.gz ] || wget  ${distr_rootfs_web_site}  -O  ${distr_rootfs}.tar.gz
+    cd "${BINARIES_DIR}"
 
-    [ "${md5_v}" = "$(md5sum ${distr_rootfs}.tar.gz | cut -d' ' -f1 )" ]  || (print_red " ${distr_rootfs}.tar.gz error !" ;exit 1)
+    # Copy base image
+    cp sysimage-sdcard.img "${dist_img_name}"
 
-    rm -rf ${distr_rootfs};tar -xf ${distr_rootfs}.tar.gz
-    cp ${BINARIES_DIR}/../target/lib/modules ${distr_rootfs}/lib -r;
-    cp ${K230_SDK_ROOT}/buildroot-overlay/package/nonai2d/modprobe.d/nonai2d.conf   ${distr_rootfs}/lib/modprobe.d/ -r;
-    cp ${BINARIES_DIR}/../target/bin/sta.sh ${distr_rootfs}/bin ;
-    #cp ${BINARIES_DIR}/../target/bin/adb.sh ${distr_rootfs}/bin ;
-    cat  ${BINARIES_DIR}/../target/etc/version/release_version   >> ${distr_rootfs}/etc/issue ;
-    {
-        wget -c -r -np -nc -k -nd  -A "*.deb" -P  ${BINARIES_DIR}/deb/  ${DISTR_DOWN_URI}/deb/
-        #install deb
-        for item in ${BINARIES_DIR}/deb/*; do
-            dpkg -x $item  ${distr_rootfs}/
+    # Download and verify rootfs tarball
+    if [ ! -f "${distr_rootfs}.tar.gz" ]; then
+        print_blue "Downloading ${distr_rootfs}.tar.gz..."
+        wget --progress=bar:force "${distr_rootfs_url}" -O "${distr_rootfs}.tar.gz"
+    fi
+
+    local actual_md5
+    actual_md5=$(md5sum "${distr_rootfs}.tar.gz" | cut -d' ' -f1)
+    if [ "${md5_v}" != "${actual_md5}" ]; then
+        print_red "Error: ${distr_rootfs}.tar.gz MD5 mismatch!"
+        print_red "Expected: ${md5_v}, Got: ${actual_md5}"
+        exit 1
+    fi
+    print_green "MD5 verified successfully"
+
+    # Extract rootfs
+    print_blue "Extracting rootfs (this may take a while)..."
+    rm -rf "${distr_rootfs}"
+    tar -xf "${distr_rootfs}.tar.gz"
+
+    # Copy buildroot artifacts to rootfs
+    local target_dir="${BINARIES_DIR}/../target"
+    cp "${target_dir}/lib/modules" "${distr_rootfs}/lib" -r
+    cp "${K230_SDK_ROOT}/buildroot-overlay/package/nonai2d/modprobe.d/nonai2d.conf" "${distr_rootfs}/lib/modprobe.d/" -r
+    cp "${target_dir}/bin/sta.sh" "${distr_rootfs}/bin/"
+    cat "${target_dir}/etc/version/release_version" >> "${distr_rootfs}/etc/issue"
+
+    # Install DEB packages for both debian and ubuntu
+    # For debian: download packages from server first
+    if [ "${distname}" = "debian" ]; then
+        print_blue "Installing DEB packages..."
+        local deb_dir="${BINARIES_DIR}/deb"
+        local opencv_backup="${BINARIES_DIR}/k230-opencv4.deb.bak"
+
+        # Download DEB packages from server
+        mkdir -p "${deb_dir}/remote_deb"
+        wget -c --progress=bar:force -r -np -nc -k -nd -A "*.deb" -P "${deb_dir}/remote_deb" "${DISTR_DOWN_URI}/deb/"
+
+        # Temporarily move opencv package (may have dependency issues)
+        [ -f "${deb_dir}/k230-opencv4.deb" ] && mv "${deb_dir}/k230-opencv4.deb" "${opencv_backup}"
+
+        # Install all DEB packages to rootfs
+        for deb_file in "${deb_dir}"/*.deb   "${deb_dir}"/remote_deb/*.deb; do
+            [ -f "${deb_file}" ] && dpkg -x "${deb_file}" "${distr_rootfs}/"
         done
-        mkdir -p ${distr_rootfs}/etc/systemd/system/basic.target.wants/;
-        cd  ${distr_rootfs}/etc/systemd/system/basic.target.wants/;   ln -s  /etc/systemd/system/vvcam.service   vvcam.service;   cd -;
-        #rsync -a --ignore-times  --chmod=u=rwX,go=rX --exclude .empty --exclude '*~' t/   ${distr_rootfs}/
-    }
 
-    cp ${BINARIES_DIR}/../target/usr/lib/libjpeg.so.9  -fL ${distr_rootfs}/usr/lib/riscv64-linux-gnu/ ;
-    cp ${BINARIES_DIR}/../target/usr/lib/libcrypt.so.2  -rfL ${distr_rootfs}/usr/lib/riscv64-linux-gnu/ ;
+        # Restore opencv package
+        [ -f "${opencv_backup}" ] && mv "${opencv_backup}" "${deb_dir}/k230-opencv4.deb"
+    else
+        # For ubuntu: install existing deb packages (if any) from BINARIES_DIR/deb
+        print_blue "Installing DEB packages..."
+        for deb_file in "${BINARIES_DIR}/deb/"*.deb; do
+            [ -f "${deb_file}" ] && dpkg -x "${deb_file}" "${distr_rootfs}/"
+        done
+    fi
 
-    cp ${BINARIES_DIR}/../target/etc/init.d/S41adb_mtp -rf ${distr_rootfs}/etc/vvcam/S41adb_mtp;
-    cp ${BINARIES_DIR}/../target/etc/umtprd  -rf ${distr_rootfs}/etc/;
-    cp ${BINARIES_DIR}/../target/usr/sbin/umtprd  -rf ${distr_rootfs}/usr/sbin/;
-    cp ${BINARIES_DIR}/../target/usr/bin/adbd  -rf ${distr_rootfs}/usr/bin/;
-    cd ${distr_rootfs}; rm -rf app ; ln -s root/app app; cd -;
+    # Enable vvcam service for both debian and ubuntu
+    mkdir -p "${distr_rootfs}/etc/systemd/system/basic.target.wants/"
+    ln -sf /etc/systemd/system/vvcam.service "${distr_rootfs}/etc/systemd/system/basic.target.wants/vvcam.service"
+
+    # Download nncase runtime
+    cp -rf ${target_dir}/root/*.whl ${distr_rootfs}/root/
+
+    # Copy additional libraries and binaries
+    cp -fL "${target_dir}/usr/lib/libjpeg.so.9" "${distr_rootfs}/usr/lib/riscv64-linux-gnu/"
+    cp -rfL "${target_dir}/usr/lib/libcrypt.so.2" "${distr_rootfs}/usr/lib/riscv64-linux-gnu/"
+
+    cp -rf "${target_dir}/etc/init.d/S41adb_mtp" "${distr_rootfs}/etc/vvcam/"
+    cp -rf "${target_dir}/etc/umtprd" "${distr_rootfs}/etc/"
+    cp -rf "${target_dir}/usr/sbin/umtprd" "${distr_rootfs}/usr/sbin/"
+    cp -rf "${target_dir}/usr/bin/adbd" "${distr_rootfs}/usr/bin/"
+
+    # Create /app symlink pointing to /root/app
+    cd "${distr_rootfs}"
+    rm -rf app
+    ln -s root/app app
+    cd - >/dev/null
+
+    # Generate ext4 image for rootfs
+    print_blue "Generating ext4 image..."
+    local rootfs_size
+    rootfs_size=$(( $(sudo du -sm "${distr_rootfs}" | cut -f1) + 300 ))
+    mkfs.ext4 -F -d "${distr_rootfs}" -r 1 -N 0 -m 1 -L "rootfs" "${distr_rootfs}.ext4" "${rootfs_size}m"
+
+    # Resize the main image and embed the ext4 rootfs
+    print_blue "Embedding rootfs into image..."
+    local ext4_size=$(( $(wc -c < "${distr_rootfs}.ext4") ))
+    local img_size=$(( $(wc -c < "${dist_img_name}") ))
+    local total_size=$(( (ext4_size + img_size) / 1024 / 1024 + 2 ))
+
+    truncate "${dist_img_name}" -s $((total_size + 1))M
+
+    # Check and fix partition table
+    echo -e "Fix\n" | parted  ---pretend-input-tty "${dist_img_name}" print
+
+    # Find rootfs partition and resize it
+    local rootfs_part_id="$(parted ${dist_img_name} print free | grep rootfs | cut -d' ' -f2)"
+    parted -s "${dist_img_name}" resizepart "${rootfs_part_id}" "${total_size}MiB"
 
 
-    { # generate ${distr_rootfs}.ext4
-        rm -rf ${distr_rootfs}.ext4;
-        local rootfs_size="$(( "$(sudo du -sm ${distr_rootfs} | cut -f1 )" + 300 ))"
-        mkfs.ext4  -d ${distr_rootfs}  -r 1 -N 0 -m 1 -L "rootfs"  ${distr_rootfs}.ext4 ${rootfs_size}m
-    }
 
-    {
-        #resize  img
-        local img_size=$(( $(wc -c  ${distr_rootfs}.ext4 | awk '{print $1 }')   +  $(wc -c  ${dist_img_name} | awk '{print $1}') ))
-        img_size="$((${img_size}/1024/1024+2))"
-        truncate ${dist_img_name}  -s $((${img_size}+1))M
-        echo -e "Fix\n" | parted ---pretend-input-tty ${dist_img_name} print
-        #parted ${dist_img_name}  print free
-
-        # parted ${dist_img_name}  rm 4
-        local rootfs_part_id="$(parted ${dist_img_name} print free | grep rootfs | cut -d' ' -f2)"
-        parted ${dist_img_name}  resizepart ${rootfs_part_id} ${img_size}MiB 2> /dev/null
-    }
-
+    # Embed ext4 image into the partition
     {  #add dist ext4 to image
         local rootfs_off_sect="$(echo -e "unit s\n print free\n" | parted ${dist_img_name}  | grep rootfs | awk '{print $2} ' | cut -ds -f1)"
         dd if=${distr_rootfs}.ext4  of=${dist_img_name} seek=${rootfs_off_sect} conv=notrunc
     }
 
-    #parted ${dist_img_name}  print free
-    cp  ${dist_img_name}  ${dist_img_name}.bak
-    gzip -f  ${dist_img_name}
+    # Compress and create symlink
+    cp "${dist_img_name}" "${dist_img_name}.bak"
+    echo "Fix\n" | parted ---pretend-input-tty  "${dist_img_name}" print
+    print_blue "Compressing image (this may take a while)..."
+    gzip -f "${dist_img_name}"
 
-    local last_name=$(get_image_last_name ${distname})
-    rm -rf ${last_name}; ln -s ${dist_img_name}.gz  ${last_name}
+    local final_name
+    final_name=$(get_image_last_name "${distname}")
+    rm -f "${final_name}"
+    ln -s "${dist_img_name}.gz" "${final_name}"
 
+    print_blue "Build successful: ${BINARIES_DIR}/${final_name}"
+    chmod a+w "${distr_rootfs}.tar.gz" "${dist_img_name}.gz" "${final_name}"
 
-    print_blue "build successfull : ${BINARIES_DIR}/${last_name}"
-    chmod a+w ${distr_rootfs}.tar.gz  ${dist_img_name}.gz  ${last_name}
-
-    rm -rf ${distr_rootfs} ${distr_rootfs}.ext4;
+    # Cleanup
+    rm -rf "${distr_rootfs}" "${distr_rootfs}.ext4"
 }
+# Main execution
 if [ "$(id -u)" -ne 0 ]; then
-    print_red "permission denied,you need root privileges,example: sudo make debian"
-    exit 1;
+    print_red "Permission denied: you need root privileges. Example: sudo make debian"
+    exit 1
 fi
-apt-get update ;
-apt-get install parted curl -y;
 
-if $(curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl/distribution ) ;then
-DISTR_DOWN_URI="https://ai.b-bug.org/k230/downloads/dl/distribution"
+print_blue "Updating package lists..."
+apt-get update
+apt-get install -y  parted curl
+
+# Determine download mirror
+print_blue "Checking download mirror..."
+DEFAULT_MIRROR="https://ai.b-bug.org/k230/downloads/dl/distribution"
+if curl --output /dev/null --silent --head --fail "${DEFAULT_MIRROR}" 2>/dev/null; then
+    DISTR_DOWN_URI="${DEFAULT_MIRROR}"
+    print_green "Using mirror: ${DISTR_DOWN_URI}"
 else
-DISTR_DOWN_URI="https://kendryte-download.canaan-creative.com/k230/downloads/dl/distribution"
+    DISTR_DOWN_URI="https://kendryte-download.canaan-creative.com/k230/downloads/dl/distribution"
+    print_yellow "Primary mirror unavailable, using fallback: ${DISTR_DOWN_URI}"
 fi
 
-
-if [ "${distribution_type}" =  "debian" ] ;then
-    distribution_rootfs_replace  debian   debian13  ${DISTR_DOWN_URI}/debian13.tar.gz  "c958b36f56d5e2a88446b03bb7dc6557"
-elif [ "${distribution_type}" =  "ubuntu" ] ;then
-    distribution_rootfs_replace  ubuntu   ubuntu24  ${DISTR_DOWN_URI}/ubuntu24.tar.gz "899cbac7fca3aaab6b6e7adad11152bf"
-elif [ "${distribution_type}" =  "debian_rootfs" ] ;then
-    debian_gen_rootfs
-elif [ "${distribution_type}" =  "ubuntu_rootfs" ] ;then
-    ubuntu_gen_rootfs
-else
-    echo "${distribution_type}"
-fi
+# Process distribution type
+case "${distribution_type}" in
+    debian)
+        distribution_rootfs_replace "debian" "debian13" "${DISTR_DOWN_URI}/debian13.tar.gz" "c958b36f56d5e2a88446b03bb7dc6557"
+        ;;
+    ubuntu)
+        distribution_rootfs_replace "ubuntu" "ubuntu24" "${DISTR_DOWN_URI}/ubuntu24.tar.gz" "899cbac7fca3aaab6b6e7adad11152bf"
+        ;;
+    debian_rootfs)
+        debian_gen_rootfs
+        ;;
+    ubuntu_rootfs)
+        ubuntu_gen_rootfs
+        ;;
+    *)
+        print_red "Unknown distribution type: ${distribution_type}"
+        print_yellow "Usage: $0 <debian|ubuntu|debian_rootfs|ubuntu_rootfs> <BRW_BUILD_DIR>"
+        exit 1
+        ;;
+esac

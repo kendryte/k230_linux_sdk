@@ -44,7 +44,7 @@ EOF
 
 #-------ssh
 apt install  -y     openssh-server
-echo "PermitRootLogin yes" >> etc/ssh/sshd_config
+echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 systemctl enable  ssh
 #-------ssh end
 

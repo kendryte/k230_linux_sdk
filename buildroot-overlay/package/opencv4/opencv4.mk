@@ -451,18 +451,18 @@ OPENCV4_POST_INSTALL_TARGET_HOOKS += OPENCV4_CLEAN_INSTALL_DATA
 endif
 
 
-# define OPENCV4_BUILD_DEB
-# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_highgui.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_video.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_videoio.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_imgcodecs.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_imgproc.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_core.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-# 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libjpeg.so.9 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-# 	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
-# endef
+define OPENCV4_BUILD_DEB
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_highgui.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_video.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_videoio.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_imgcodecs.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_imgproc.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libopencv_core.so.410,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libjpeg.so.9 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
+endef
 
-# OPENCV4_POST_INSTALL_TARGET_HOOKS += OPENCV4_BUILD_DEB
+OPENCV4_POST_INSTALL_TARGET_HOOKS += OPENCV4_BUILD_DEB
 
 
 $(eval $(cmake-package))
