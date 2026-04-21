@@ -221,7 +221,7 @@ void FaceDenseLandmark::draw_contour_video(cv::Mat& src_img , FaceDenseLandmarkI
         {
             for (const auto &kp : face_sub_part_point_set)
             {
-                cv::circle(src_img, kp, 2, color_list_for_kp[sub_part_index], 3);
+                cv::circle(src_img, kp, 2, color_list_for_osd_kp[sub_part_index], 3);
             }
         }
         else

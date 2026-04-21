@@ -14,14 +14,14 @@ else
     echo "kmodel directory does not exist."
     if curl --output /dev/null --silent --head --fail "https://ai.b-bug.org/k230/"; then
         echo "URL is accessible";
-        wget https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.10.0.tgz;
-        tar -xvf kmodel_v2.10.0.tgz;
-        rm -rf kmodel_v2.10.0.tgz;
+        wget https://ai.b-bug.org/k230/downloads/kmodel/kmodel_v2.11.0.tgz;
+        tar -xvf kmodel_v2.11.0.tgz;
+        rm -rf kmodel_v2.11.0.tgz;
     else
         echo "URL is not accessible";
-        wget https://kendryte-download.canaan-creative.com/k230/downloads/kmodel/kmodel_v2.10.0.tgz;
-        tar -xvf kmodel_v2.10.0.tgz;
-        rm -rf kmodel_v2.10.0.tgz;
+        wget https://kendryte-download.canaan-creative.com/k230/downloads/kmodel/kmodel_v2.11.0.tgz;
+        tar -xvf kmodel_v2.11.0.tgz;
+        rm -rf kmodel_v2.11.0.tgz;
     fi
 fi
 
@@ -278,7 +278,7 @@ for subdir in $(ls -d */); do
             cp out/bin/bytetrack.elf ${k230_bin}/$subdir_name
             cp -a ${kmodel_root_dir}/kmodel/bytetrack_yolov5n.kmodel ${k230_bin}/$subdir_name
             cp -ar ${kmodel_root_dir}/images/bytetrack_data ${k230_bin}/$subdir_name
-            cp -a shell/bytetrack_img.sh ${k230_bin}/$subdir_name
+            cp -a shell/bytetrack_*.sh ${k230_bin}/$subdir_name
             mkdir -p ${k230_bin}/$subdir_name/bytetrack_data/output
       fi
 

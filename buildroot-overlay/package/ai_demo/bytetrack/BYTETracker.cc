@@ -710,7 +710,7 @@ Scalar BYTETracker::get_color(int idx)
 {
 	idx += 3;
 	//return Scalar(37 * idx % 255, 17 * idx % 255, 29 * idx % 255);
-	return Scalar(10 * idx % 255, 100 * idx % 255, 50 * idx % 255);
+	return Scalar(10 * idx % 255, 100 * idx % 255, 50 * idx % 255,255);
 }
 
 Scalar BYTETracker::get_color_img(int idx)
