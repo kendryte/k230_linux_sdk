@@ -39,7 +39,7 @@ output/k230d_canmv_defconfig/images/sysimage-sdcard.img.gz
 ```
 
 >Note that k230d_canmv_defconfig is an example and needs to be replaced with the correct name
->uncompress file , [burn to tf card]("https://gitee.com/kendryte/k230_docs/blob/main/zh/01_software/board/K230_SDK_%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E.md#51-sd%E5%8D%A1%E9%95%9C%E5%83%8F%E7%83%A7%E5%BD%95"),insert  tf to device, poweron device.
+>uncompress file , [burn to tf card]("https://www.kendryte.com/k230_linux/zh/main/userguide/how_to_flash.html"),insert  tf to device, poweron device.
 
 ## uboot
 
@@ -77,7 +77,7 @@ make ubuntu #generate ubuntu distribution image
 
 >The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://kendryte-download.canaan-creative.com/k230/release/linux_sdk_images/daily_build/)
 >
->For more information about Debian, please refer to [<<K230 debian 系统指南>>](https://kvftsfijpo.feishu.cn/drive/folder/ENyifLFdJl3cQ7du5RDcc6SDnFc?from=from_copylink)
+>For more information about Debian, please refer to [<<K230 Debian/Ubuntu 系统使用>>](https://www.kendryte.com/k230_linux/zh/main/app_develop_guide/user_develop/debian_ubuntu.html)
 
 ## ai_demo
 
@@ -173,7 +173,7 @@ The AI-related demos currently integrated are as follows:
 >   [root@canaan ~/app/face_detection ]#./face_detect_isp.sh
 >   ```
 >
-> - For more information about ai demo, please refer to [K230 AI Demo使用指南](https://www.kendryte.com/k230_linux/dev/zh/01_software/K230_AI_Demo%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.html)
+> - For more information about ai demo, please refer to [K230 AI Demo使用指南](https://www.kendryte.com/k230_linux/zh/main/app_develop_guide/ai_develop/aidemo_doc.html)
 >
 ## FQA
 
@@ -235,4 +235,4 @@ for more ,please refer to:
 
 [k230文档](https://www.kendryte.com/zh/document)
 
-[K230 debian 系统指南](https://kvftsfijpo.feishu.cn/drive/folder/ENyifLFdJl3cQ7du5RDcc6SDnFc?from=from_copylink)
+[K230 debian/ubuntu 系统指南](https://www.kendryte.com/k230_linux/zh/main/app_develop_guide/user_develop/debian_ubuntu.html)
