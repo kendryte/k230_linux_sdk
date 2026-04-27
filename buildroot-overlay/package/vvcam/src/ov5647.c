@@ -34,6 +34,12 @@
 #define OV5647_REG_LONG_EXP_TIME_H                          0x3501
 #define OV5647_REG_LONG_EXP_TIME_L                          0x3502
 
+/* Image orientation (see OV5647 timing control registers) */
+#define OV5647_REG_TIMING_CTRL_VFLIP                        0x3820
+#define OV5647_REG_TIMING_CTRL_HMIRROR                    0x3821
+#define OV5647_TIMING_VFLIP_BIT                            0x04
+#define OV5647_TIMING_HMIRROR_BIT                         0x02
+
 #define OV5647_MIN_GAIN_STEP                                (1.0f/16.0f)
 #define OV5647_SW_RESET                                           0x0103
 #define MIPI_CTRL00_CLOCK_LANE_GATE                         (1 << 5)
@@ -66,6 +72,10 @@ struct ov5647_ctx {
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
+    bool hflip;
+    bool vflip;
+    uint8_t orient_base_3820;
+    uint8_t orient_base_3821;
 };
 
 static int read_reg(struct ov5647_ctx* ctx, uint16_t addr, uint8_t* value) {
@@ -128,6 +138,8 @@ static int open_i2c(struct ov5647_ctx* sensor) {
 static int init(void** ctx) {
     struct ov5647_ctx* sensor = calloc(1, sizeof(struct ov5647_ctx));
     sensor->i2c = -1;
+    sensor->hflip = false;
+    sensor->vflip = false;
     *ctx = sensor;
     return 0;
 }
@@ -295,6 +307,97 @@ static struct ov5647_mode modes[] = {
 };
 static unsigned modes_len = sizeof(modes) / sizeof(struct ov5647_mode);
 
+static enum vvcam_sensor_bayer ov5647_bayer_for_orient(enum vvcam_sensor_bayer base,
+    bool hflip, bool vflip)
+{
+    /*
+     * Bayer pattern transforms under mirroring / flipping.
+     * Base mode table is GBRG for this driver.
+     */
+    if (base == VVCAM_BAYER_PAT_GBRG) {
+        if (!hflip && !vflip) {
+            return VVCAM_BAYER_PAT_GBRG;
+        }
+        if (hflip && !vflip) {
+            return VVCAM_BAYER_PAT_BGGR;
+        }
+        if (!hflip && vflip) {
+            return VVCAM_BAYER_PAT_RGGB;
+        }
+        return VVCAM_BAYER_PAT_GRBG;
+    }
+
+    /* Fallback: treat unknown base as RGGB-style transforms */
+    if (!hflip && !vflip) {
+        return base;
+    }
+    if (hflip && !vflip) {
+        switch (base) {
+        case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_GRBG;
+        case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_RGGB;
+        case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_BGGR;
+        case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_GBRG;
+        default: return base;
+        }
+    }
+    if (!hflip && vflip) {
+        switch (base) {
+        case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_GBRG;
+        case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_BGGR;
+        case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_RGGB;
+        case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_GRBG;
+        default: return base;
+        }
+    }
+    switch (base) {
+    case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_BGGR;
+    case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_GBRG;
+    case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_GRBG;
+    case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_RGGB;
+    default: return base;
+    }
+}
+
+static void ov5647_update_mode_bayer(struct ov5647_ctx *sensor)
+{
+    enum vvcam_sensor_bayer base = modes[0].mode.bayer;
+
+    sensor->mode.bayer = ov5647_bayer_for_orient(base, sensor->hflip, sensor->vflip);
+}
+
+static int ov5647_apply_orient_regs(struct ov5647_ctx *sensor, bool hflip, bool vflip)
+{
+    uint8_t r3820 = sensor->orient_base_3820;
+    uint8_t r3821 = sensor->orient_base_3821;
+
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+
+    r3820 &= (uint8_t)~OV5647_TIMING_VFLIP_BIT;
+    r3821 &= (uint8_t)~OV5647_TIMING_HMIRROR_BIT;
+
+    if (vflip) {
+        r3820 |= OV5647_TIMING_VFLIP_BIT;
+    }
+
+    if (hflip) {
+        r3821 |= OV5647_TIMING_HMIRROR_BIT;
+    }
+
+    CHECK_ERROR(write_reg(sensor, OV5647_REG_TIMING_CTRL_VFLIP, r3820));
+    CHECK_ERROR(write_reg(sensor, OV5647_REG_TIMING_CTRL_HMIRROR, r3821));
+
+    return 0;
+}
+
+static int ov5647_apply_orient(struct ov5647_ctx *sensor)
+{
+    CHECK_ERROR(ov5647_apply_orient_regs(sensor, sensor->hflip, sensor->vflip));
+    ov5647_update_mode_bayer(sensor);
+    return 0;
+}
+
 static int enum_mode(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode) {
     if (index == 0) {
         memcpy(mode, &modes[0].mode, sizeof(struct vvcam_sensor_mode));
@@ -318,7 +421,10 @@ static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
 
 static int set_mode(void* ctx, uint32_t index) {
     struct ov5647_ctx* sensor = ctx;
-    if (index > modes_len) {
+    const bool want_hflip = sensor->hflip;
+    const bool want_vflip = sensor->vflip;
+
+    if (index >= modes_len) {
         // out of range
         return -1;
     }
@@ -332,9 +438,16 @@ static int set_mode(void* ctx, uint32_t index) {
     CHECK_ERROR(read_reg(ctx, OV5647_REG_MIPI_CTRL14, &channel_id));
     channel_id &= ~(3 << 6);
     CHECK_ERROR(write_reg(ctx, OV5647_REG_MIPI_CTRL14, channel_id));
+    sensor->orient_base_3820 = 0;
+    sensor->orient_base_3821 = 0;
     for(unsigned i = 0;; i++) {
         if ((modes[0].regs[i].addr == 0) && (modes[0].regs[i].value == 0)) {
             break;
+        }
+        if (modes[0].regs[i].addr == OV5647_REG_TIMING_CTRL_VFLIP) {
+            sensor->orient_base_3820 = modes[0].regs[i].value;
+        } else if (modes[0].regs[i].addr == OV5647_REG_TIMING_CTRL_HMIRROR) {
+            sensor->orient_base_3821 = modes[0].regs[i].value;
         }
         CHECK_ERROR(write_reg(sensor, modes[0].regs[i].addr, modes[0].regs[i].value));
     }
@@ -365,6 +478,68 @@ static int set_mode(void* ctx, uint32_t index) {
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
+    sensor->hflip = want_hflip;
+    sensor->vflip = want_vflip;
+    CHECK_ERROR(ov5647_apply_orient(sensor));
+
+    return 0;
+}
+
+static int set_hflip(void* ctx, bool on)
+{
+    struct ov5647_ctx* sensor = ctx;
+
+    sensor->hflip = on;
+    return ov5647_apply_orient(sensor);
+}
+
+static int get_hflip(void* ctx, bool *on)
+{
+    struct ov5647_ctx* sensor = ctx;
+    uint8_t r3821 = 0;
+
+    if (on == NULL) {
+        return -1;
+    }
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, OV5647_REG_TIMING_CTRL_HMIRROR, &r3821)) {
+        return -1;
+    }
+
+    *on = ((r3821 ^ sensor->orient_base_3821) & OV5647_TIMING_HMIRROR_BIT) != 0;
+    sensor->hflip = *on;
+    ov5647_update_mode_bayer(sensor);
+    return 0;
+}
+
+static int set_vflip(void* ctx, bool on)
+{
+    struct ov5647_ctx* sensor = ctx;
+
+    sensor->vflip = on;
+    return ov5647_apply_orient(sensor);
+}
+
+static int get_vflip(void* ctx, bool *on)
+{
+    struct ov5647_ctx* sensor = ctx;
+    uint8_t r3820 = 0;
+
+    if (on == NULL) {
+        return -1;
+    }
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, OV5647_REG_TIMING_CTRL_VFLIP, &r3820)) {
+        return -1;
+    }
+
+    *on = ((r3820 ^ sensor->orient_base_3820) & OV5647_TIMING_VFLIP_BIT) != 0;
+    sensor->vflip = *on;
+    ov5647_update_mode_bayer(sensor);
     return 0;
 }
 
@@ -450,6 +625,10 @@ struct vvcam_sensor vvcam_ov5647 = {
         .get_mode = get_mode,
         .set_mode = set_mode,
         .set_stream = set_stream,
+        .set_hflip = set_hflip,
+        .get_hflip = get_hflip,
+        .set_vflip = set_vflip,
+        .get_vflip = get_vflip,
         .set_analog_gain = set_analog_gain,
         .set_digital_gain = set_digital_gain,
         .set_int_time = set_int_time

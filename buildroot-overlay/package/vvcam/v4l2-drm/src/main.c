@@ -24,6 +24,8 @@ static void help(const char* argv0) {
         "\t-y | --crop-y Crop offset Y\n"
         "\t--crop-width  Crop width\n"
         "\t--crop-height Crop height\n"
+        "\t--hflip 0/1 Sensor horizontal mirror\n"
+        "\t--vflip 0/1 Sensor vertical flip\n"
     );
 }
 
@@ -61,10 +63,22 @@ static int parse_cmd(int argc, char* argv[], struct v4l2_drm_context* context) {
             NULL,
             'g'
         },
+        {
+            "hflip",
+            required_argument,
+            NULL,
+            'm'
+        },
+        {
+            "vflip",
+            required_argument,
+            NULL,
+            'v'
+        },
         {0, 0, 0, 0}
     };
 
-    while((ch = getopt_long_only(argc, argv, "w:h:d:n:f:sx:y:", longopt, &option_index)) != -1) {
+    while((ch = getopt_long_only(argc, argv, "w:h:d:n:f:sx:y:m:v:", longopt, &option_index)) != -1) {
         if ((context_idx < 0) && (ch != 'd')) {
             help(argv[0]);
             return -1;
@@ -105,6 +119,12 @@ static int parse_cmd(int argc, char* argv[], struct v4l2_drm_context* context) {
                 break;
             case 'c':
                 context[context_idx].crop_size.width = atoi(optarg);
+                break;
+            case 'm':
+                context[context_idx].hflip = (atoi(optarg) != 0) ? 1 : 0;
+                break;
+            case 'v':
+                context[context_idx].vflip = (atoi(optarg) != 0) ? 1 : 0;
                 break;
             default:
                 help(argv[0]);

@@ -56,6 +56,7 @@
 #include <media/v4l2-ioctl.h>
 #include "vvcam_isp_driver.h"
 #include "vvcam_isp_ctrl.h"
+#include "vvcam_isp_sensor.h"
 
 #if defined(ISP_AE_V3) || defined(ISP_AE_V4) || defined(ISP_AE_V4_1)
 #include "vvcam_isp_ae.h"
@@ -317,6 +318,8 @@ int vvcam_isp_ctrl_init(struct vvcam_isp_dev *isp_dev)
     ctrl_count += vvcam_isp_lut3d_ctrl_count();
 #endif
 
+    ctrl_count += vvcam_isp_sensor_ctrl_count();
+
     v4l2_ctrl_handler_init(&isp_dev->ctrl_handler,  ctrl_count);
 
 #if defined(ISP_AE_V3) || defined (ISP_AE_V4) || defined(ISP_AE_V4_1)
@@ -446,6 +449,8 @@ int vvcam_isp_ctrl_init(struct vvcam_isp_dev *isp_dev)
 #if defined(ISP_LUT3D_V1)
     vvcam_isp_lut3d_ctrl_create(isp_dev);
 #endif
+
+    vvcam_isp_sensor_ctrl_create(isp_dev);
 
     isp_dev->sd.ctrl_handler = &isp_dev->ctrl_handler;
 

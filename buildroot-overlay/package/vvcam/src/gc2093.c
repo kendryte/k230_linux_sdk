@@ -38,6 +38,9 @@ static uint8_t get_gc2093_iic_dev_addr();
 
 #define GC2093_REG_LONG_EXP_TIME_H                          0x0003
 #define GC2093_REG_LONG_EXP_TIME_L                          0x0004
+#define GC2093_REG_ORIENT                                   0x0017
+#define GC2093_ORIENT_MIRROR_BIT                            0x01
+#define GC2093_ORIENT_FLIP_BIT                              0x02
 
 #define GC2093_MIN_GAIN_STEP                                (1.0f/16.0f)
 #define GC2093_SW_RESET                                     0x0103
@@ -71,7 +74,75 @@ struct gc2093_ctx {
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
+    bool hflip;
+    bool vflip;
 };
+
+static int read_reg(struct gc2093_ctx* ctx, uint16_t addr, uint8_t* value);
+static int write_reg(struct gc2093_ctx* ctx, uint16_t addr, uint8_t value);
+static int open_i2c(struct gc2093_ctx* sensor);
+
+static enum vvcam_sensor_bayer gc2093_get_bayer_pattern(bool hflip, bool vflip)
+{
+    if (!hflip && !vflip) {
+        return VVCAM_BAYER_PAT_RGGB;
+    }
+    if (hflip && !vflip) {
+        return VVCAM_BAYER_PAT_GRBG;
+    }
+    if (!hflip && vflip) {
+        return VVCAM_BAYER_PAT_GBRG;
+    }
+    return VVCAM_BAYER_PAT_BGGR;
+}
+
+static uint8_t gc2093_get_orient_value(bool hflip, bool vflip)
+{
+    uint8_t orient = 0;
+
+    if (hflip) {
+        orient |= GC2093_ORIENT_MIRROR_BIT;
+    }
+    if (vflip) {
+        orient |= GC2093_ORIENT_FLIP_BIT;
+    }
+
+    return orient;
+}
+
+static void gc2093_update_mode_bayer(struct gc2093_ctx *sensor)
+{
+    enum vvcam_sensor_bayer bayer = gc2093_get_bayer_pattern(sensor->hflip, sensor->vflip);
+
+    sensor->mode.bayer = bayer;
+}
+
+static int gc2093_apply_orient(struct gc2093_ctx *sensor)
+{
+    uint8_t orient_old = 0;
+    uint8_t orient_new = 0;
+
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, GC2093_REG_ORIENT, &orient_old)) {
+        return -1;
+    }
+
+    orient_new = gc2093_get_orient_value(sensor->hflip, sensor->vflip);
+
+    if (write_reg(sensor, GC2093_REG_ORIENT, orient_new)) {
+        return -1;
+    }
+    if (read_reg(sensor, GC2093_REG_ORIENT, &orient_old)) {
+        return -1;
+    }
+
+    gc2093_update_mode_bayer(sensor);
+
+    return 0;
+}
+
 uint8_t get_gc2093_iic_dev_addr()
 {
     static uint8_t g_gc2093_iic_add = 0;
@@ -628,7 +699,6 @@ static int set_mode(void* ctx, uint32_t index) {
     }
     struct vvcam_sensor_mode* mode = &modes[index].mode;
 
-    printf("gc2093: %s %ux%u\n", __func__, mode->width, mode->height);
     if (open_i2c(sensor)) {
         return -1;
     }
@@ -650,8 +720,6 @@ static int set_mode(void* ctx, uint32_t index) {
     CHECK_ERROR(read_reg(ctx, GC2093_REG_DGAIN_L, &again_l));
     again = (float)(again_l)/64.0f + again_h;
 
-    printf("*****************************mode->ae_info.again is %f \n", again);
-
     sensor->sensor_again = (again * 64 + 0.5);
 
     again = 1.0;
@@ -666,17 +734,89 @@ static int set_mode(void* ctx, uint32_t index) {
 
     mode->ae_info.cur_integration_time = exp_time * mode->ae_info.one_line_exp_time;
 
-    printf("mode->ae_info.cur_integration_time is %f \n", mode->ae_info.cur_integration_time);
-
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
+    CHECK_ERROR(gc2093_apply_orient(sensor));
+
+    return 0;
+}
+
+static int gc2093_update_orient_bits(struct gc2093_ctx *sensor, uint8_t mask, bool on)
+{
+    if (mask == GC2093_ORIENT_MIRROR_BIT) {
+        sensor->hflip = on;
+    } else if (mask == GC2093_ORIENT_FLIP_BIT) {
+        sensor->vflip = on;
+    } else {
+        return -1;
+    }
+
+    return gc2093_apply_orient(sensor);
+}
+
+static int set_hflip(void* ctx, bool on)
+{
+    struct gc2093_ctx* sensor = ctx;
+    if (gc2093_update_orient_bits(sensor, GC2093_ORIENT_MIRROR_BIT, on)) {
+        return -1;
+    }
+    return 0;
+}
+
+static int get_hflip(void* ctx, bool *on)
+{
+    struct gc2093_ctx* sensor = ctx;
+    uint8_t orient = 0;
+
+    if (on == NULL) {
+        return -1;
+    }
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, GC2093_REG_ORIENT, &orient)) {
+        return -1;
+    }
+
+    *on = (orient & GC2093_ORIENT_MIRROR_BIT) != 0;
+    sensor->hflip = *on;
+    gc2093_update_mode_bayer(sensor);
+    return 0;
+}
+
+static int set_vflip(void* ctx, bool on)
+{
+    struct gc2093_ctx* sensor = ctx;
+    if (gc2093_update_orient_bits(sensor, GC2093_ORIENT_FLIP_BIT, on)) {
+        return -1;
+    }
+    return 0;
+}
+
+static int get_vflip(void* ctx, bool *on)
+{
+    struct gc2093_ctx* sensor = ctx;
+    uint8_t orient = 0;
+
+    if (on == NULL) {
+        return -1;
+    }
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, GC2093_REG_ORIENT, &orient)) {
+        return -1;
+    }
+
+    *on = (orient & GC2093_ORIENT_FLIP_BIT) != 0;
+    sensor->vflip = *on;
+    gc2093_update_mode_bayer(sensor);
     return 0;
 }
 
 static int set_stream(void* ctx, bool on) {
     struct gc2093_ctx* sensor = ctx;
-    printf("gc2093 %s %d\n", __func__, on);
     if (open_i2c(sensor)) {
         return -1;
     }
@@ -830,6 +970,10 @@ struct vvcam_sensor vvcam_gc2093 = {
         .get_mode = get_mode,
         .set_mode = set_mode,
         .set_stream = set_stream,
+        .set_hflip = set_hflip,
+        .get_hflip = get_hflip,
+        .set_vflip = set_vflip,
+        .get_vflip = get_vflip,
         .set_analog_gain = set_analog_gain,
         .set_digital_gain = set_digital_gain,
         .set_int_time = set_int_time

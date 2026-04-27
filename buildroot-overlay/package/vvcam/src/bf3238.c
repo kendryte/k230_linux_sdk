@@ -15,32 +15,37 @@
 
 #define CHECK_ERROR(x) if(x)return -1
 
-#define BY3238_REG_CHIP_ID_H                                0xf0
-#define BY3238_REG_CHIP_ID_L                                0xf1
+#define BF3238_REG_CHIP_ID_H                                0xf0
+#define BF3238_REG_CHIP_ID_L                                0xf1
 
-#define BY3238_REG_MIPI_CTRL00                              0x4800
-#define BY3238_REG_FRAME_OFF_NUMBER                         0x4202
-#define BY3238_REG_PAD_OUT                                  0x300d
+#define BF3238_REG_MIPI_CTRL00                              0x4800
+#define BF3238_REG_FRAME_OFF_NUMBER                         0x4202
+#define BF3238_REG_PAD_OUT                                  0x300d
 
-#define BY3238_REG_VTS_H                                    0x380e
-#define BY3238_REG_VTS_L                                    0x380f
+#define BF3238_REG_VTS_H                                    0x380e
+#define BF3238_REG_VTS_L                                    0x380f
 
-#define BY3238_REG_MIPI_CTRL14                              0x4814
+#define BF3238_REG_MIPI_CTRL14                              0x4814
 
-#define BY3238_SW_STANDBY                                   0x0100
+#define BF3238_SW_STANDBY                                   0x0100
 
+/* Reg 0x00: bit[3]=mirror, bit[2]=flip (align RTOS bf3238.c / vicap) */
+#define BF3238_REG_MODE                                     0x00
+#define BF3238_MIRROR_MASK                                  (1u << 3)
+#define BF3238_FLIP_MASK                                    (1u << 2)
+#define BF3238_MIRROR_FLIP_MASK                            (BF3238_MIRROR_MASK | BF3238_FLIP_MASK)
 
-#define BY3238_REG_LONG_AGAIN_H                             0x0001
-#define BY3238_REG_LONG_AGAIN_L                             0x0002
+#define BF3238_REG_LONG_AGAIN_H                             0x0001
+#define BF3238_REG_LONG_AGAIN_L                             0x0002
 
-#define BY3238_REG_DGAIN_H	                                0xb1	//0x00b8
-#define BY3238_REG_DGAIN_L	                                0xb2	//0x00b9
+#define BF3238_REG_DGAIN_H	                                0xb1	//0x00b8
+#define BF3238_REG_DGAIN_L	                                0xb2	//0x00b9
 
-#define BY3238_REG_LONG_EXP_TIME_H                          0x03
-#define BY3238_REG_LONG_EXP_TIME_L                          0x04
+#define BF3238_REG_LONG_EXP_TIME_H                          0x03
+#define BF3238_REG_LONG_EXP_TIME_L                          0x04
 
-#define BY3238_MIN_GAIN_STEP                                (1.0f/16.0f)
-#define BY3238_SW_RESET                                     0x0103
+#define BF3238_MIN_GAIN_STEP                                (1.0f/16.0f)
+#define BF3238_SW_RESET                                     0x0103
 #define MIPI_CTRL00_CLOCK_LANE_GATE                         (1 << 5)
 #define MIPI_CTRL00_LINE_SYNC_ENABLE                        (1 << 4)
 #define MIPI_CTRL00_BUS_IDLE                                (1 << 1)
@@ -71,6 +76,9 @@ struct bf3238_ctx {
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
+    bool hflip;
+    bool vflip;
+    uint8_t orient_base_r00;
 };
 
 static int read_reg(struct bf3238_ctx* ctx, uint16_t addr, uint8_t* value) {
@@ -138,6 +146,8 @@ static int open_i2c(struct bf3238_ctx* sensor) {
 static int init(void** ctx) {
     struct bf3238_ctx* sensor = calloc(1, sizeof(struct bf3238_ctx));
     sensor->i2c = -1;
+    sensor->hflip = false;
+    sensor->vflip = false;
     *ctx = sensor;
     return 0;
 }
@@ -267,6 +277,83 @@ static struct bf3238_mode modes[] = {
 
 static unsigned modes_len = sizeof(modes) / sizeof(struct bf3238_mode);
 
+static enum vvcam_sensor_bayer bf3238_bayer_for_orient(enum vvcam_sensor_bayer base,
+    bool hflip, bool vflip)
+{
+    /* Match RTOS bf3238.c vicap mirror table; default mode is BGGR */
+    if (base == VVCAM_BAYER_PAT_BGGR) {
+        if (!hflip && !vflip) {
+            return VVCAM_BAYER_PAT_BGGR;
+        }
+        if (hflip && !vflip) {
+            return VVCAM_BAYER_PAT_GRBG;
+        }
+        if (!hflip && vflip) {
+            return VVCAM_BAYER_PAT_GBRG;
+        }
+        return VVCAM_BAYER_PAT_RGGB;
+    }
+
+    if (!hflip && !vflip) {
+        return base;
+    }
+    if (hflip && !vflip) {
+        switch (base) {
+        case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_GRBG;
+        case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_RGGB;
+        case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_BGGR;
+        case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_GBRG;
+        default: return base;
+        }
+    }
+    if (!hflip && vflip) {
+        switch (base) {
+        case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_GBRG;
+        case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_BGGR;
+        case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_RGGB;
+        case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_GRBG;
+        default: return base;
+        }
+    }
+    switch (base) {
+    case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_BGGR;
+    case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_GBRG;
+    case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_GRBG;
+    case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_RGGB;
+    default: return base;
+    }
+}
+
+static void bf3238_update_mode_bayer(struct bf3238_ctx *sensor)
+{
+    enum vvcam_sensor_bayer base = modes[0].mode.bayer;
+
+    sensor->mode.bayer = bf3238_bayer_for_orient(base, sensor->hflip, sensor->vflip);
+}
+
+static int bf3238_apply_orient_regs(struct bf3238_ctx *sensor, bool hflip, bool vflip)
+{
+    uint8_t r00 = sensor->orient_base_r00;
+
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+
+    r00 = (uint8_t)((r00 & (uint8_t)~BF3238_MIRROR_FLIP_MASK) |
+        (hflip ? BF3238_MIRROR_MASK : 0) |
+        (vflip ? BF3238_FLIP_MASK : 0));
+
+    CHECK_ERROR(write_reg(sensor, BF3238_REG_MODE, r00));
+    return 0;
+}
+
+static int bf3238_apply_orient(struct bf3238_ctx *sensor)
+{
+    CHECK_ERROR(bf3238_apply_orient_regs(sensor, sensor->hflip, sensor->vflip));
+    bf3238_update_mode_bayer(sensor);
+    return 0;
+}
+
 static int enum_mode(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode) {
     if (index == 0) {
         memcpy(mode, &modes[0].mode, sizeof(struct vvcam_sensor_mode));
@@ -288,7 +375,10 @@ static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
 
 static int set_mode(void* ctx, uint32_t index) {
     struct bf3238_ctx* sensor = ctx;
-    if (index > modes_len) {
+    const bool want_hflip = sensor->hflip;
+    const bool want_vflip = sensor->vflip;
+
+    if (index >= modes_len) {
         // out of range
         return -1;
     }
@@ -299,11 +389,15 @@ static int set_mode(void* ctx, uint32_t index) {
         return -1;
     }
 
+    sensor->orient_base_r00 = 0x41;
     for(unsigned i = 0;; i++) {
-        if ((modes[0].regs[i].addr == 0) && (modes[0].regs[i].value == 0)) {
+        if ((modes[index].regs[i].addr == 0) && (modes[index].regs[i].value == 0)) {
             break;
         }
-        CHECK_ERROR(write_reg(sensor, modes[0].regs[i].addr, modes[0].regs[i].value));
+        if (modes[index].regs[i].addr == BF3238_REG_MODE) {
+            sensor->orient_base_r00 = modes[index].regs[i].value;
+        }
+        CHECK_ERROR(write_reg(sensor, modes[index].regs[i].addr, modes[index].regs[i].value));
     }
 
     uint8_t again_h, again_l;
@@ -341,9 +435,70 @@ static int set_mode(void* ctx, uint32_t index) {
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
+    sensor->hflip = want_hflip;
+    sensor->vflip = want_vflip;
+    CHECK_ERROR(bf3238_apply_orient(sensor));
+
     return 0;
 }
 
+static int set_hflip(void* ctx, bool on)
+{
+    struct bf3238_ctx* sensor = ctx;
+
+    sensor->hflip = on;
+    return bf3238_apply_orient(sensor);
+}
+
+static int get_hflip(void* ctx, bool *on)
+{
+    struct bf3238_ctx* sensor = ctx;
+    uint8_t r00 = 0;
+
+    if (on == NULL) {
+        return -1;
+    }
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, BF3238_REG_MODE, &r00)) {
+        return -1;
+    }
+
+    *on = ((r00 ^ sensor->orient_base_r00) & BF3238_MIRROR_MASK) != 0;
+    sensor->hflip = *on;
+    bf3238_update_mode_bayer(sensor);
+    return 0;
+}
+
+static int set_vflip(void* ctx, bool on)
+{
+    struct bf3238_ctx* sensor = ctx;
+
+    sensor->vflip = on;
+    return bf3238_apply_orient(sensor);
+}
+
+static int get_vflip(void* ctx, bool *on)
+{
+    struct bf3238_ctx* sensor = ctx;
+    uint8_t r00 = 0;
+
+    if (on == NULL) {
+        return -1;
+    }
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, BF3238_REG_MODE, &r00)) {
+        return -1;
+    }
+
+    *on = ((r00 ^ sensor->orient_base_r00) & BF3238_FLIP_MASK) != 0;
+    sensor->vflip = *on;
+    bf3238_update_mode_bayer(sensor);
+    return 0;
+}
 
 static int set_stream(void* ctx, bool on) {
     struct bf3238_ctx* sensor = ctx;
@@ -429,6 +584,10 @@ struct vvcam_sensor vvcam_bf3238 = {
         .get_mode = get_mode,
         .set_mode = set_mode,
         .set_stream = set_stream,
+        .set_hflip = set_hflip,
+        .get_hflip = get_hflip,
+        .set_vflip = set_vflip,
+        .get_vflip = get_vflip,
         .set_analog_gain = set_analog_gain,
         .set_digital_gain = set_digital_gain,
         .set_int_time = set_int_time

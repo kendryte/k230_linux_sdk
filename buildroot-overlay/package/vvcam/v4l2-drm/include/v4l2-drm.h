@@ -49,6 +49,8 @@ struct v4l2_drm_context {
     int buffer_hold[DRM_BUFFERING];
     bool flag_dump;
     enum drm_rotation drm_rotation;
+    int8_t hflip;
+    int8_t vflip;
 };
 
 

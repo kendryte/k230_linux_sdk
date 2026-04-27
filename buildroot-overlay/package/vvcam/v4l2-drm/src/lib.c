@@ -37,6 +37,18 @@ void v4l2_drm_default_context(struct v4l2_drm_context* ctx) {
     }
     ctx->wp = 0;
     ctx->flag_dump = false;
+    ctx->hflip = -1;
+    ctx->vflip = -1;
+}
+
+static int v4l2_drm_set_control(int fd, uint32_t id, int value)
+{
+    struct v4l2_control ctrl;
+
+    memset(&ctrl, 0, sizeof(ctrl));
+    ctrl.id = id;
+    ctrl.value = value;
+    return ioctl(fd, VIDIOC_S_CTRL, &ctrl);
 }
 
 static uint32_t v4l2_to_drm(uint32_t fourcc) {
@@ -135,6 +147,13 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
         format.fmt.pix.width = context[i].width;
         format.fmt.pix.height = context[i].height;
         CKE(ioctl(context[i].video_fd, VIDIOC_S_FMT, &format), close);
+
+        if (context[i].hflip >= 0) {
+            CKE(v4l2_drm_set_control(context[i].video_fd, V4L2_CID_HFLIP, context[i].hflip), close);
+        }
+        if (context[i].vflip >= 0) {
+            CKE(v4l2_drm_set_control(context[i].video_fd, V4L2_CID_VFLIP, context[i].vflip), close);
+        }
 
         if((context[i].crop_size.height != 0) && (context[i].crop_size.width != 0) &&
                 (context[i].crop_size.height > context[i].height ) && (context[i].crop_size.width > context[i].width))

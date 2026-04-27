@@ -153,6 +153,10 @@ struct vvcam_sensor_ctrl {
     int (*get_mode)(void* ctx, struct vvcam_sensor_mode* mode);
     int (*set_mode)(void* ctx, uint32_t index);
     int (*set_stream)(void* ctx, bool on);
+    int (*set_hflip)(void* ctx, bool on);
+    int (*get_hflip)(void* ctx, bool *on);
+    int (*set_vflip)(void* ctx, bool on);
+    int (*get_vflip)(void* ctx, bool *on);
     int (*set_analog_gain)(void* ctx, float gain);
     int (*set_digital_gain)(void* ctx, float gain);
     int (*set_int_time)(void* ctx, float time);

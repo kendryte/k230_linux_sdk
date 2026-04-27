@@ -94,6 +94,11 @@
 /* Group hold register */
 #define IMX335_REG_HOLD 0x3001
 
+/* Horizontal / vertical readout direction (mirror / flip), 0=normal 1=reverse */
+#define IMX335_REG_HREVERSE 0x304e
+#define IMX335_REG_VREVERSE 0x304f
+#define IMX335_REVERSE_BIT 0x01
+
 /* Input clock rate */
 #define IMX335_INCLK_RATE 24000000
 
@@ -129,6 +134,10 @@ struct imx335_ctx {
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
+    bool hflip;
+    bool vflip;
+    uint8_t orient_base_304e;
+    uint8_t orient_base_304f;
 };
 
 
@@ -547,6 +556,8 @@ static int open_i2c(struct imx335_ctx* sensor) {
 static int init(void** ctx) {
     struct imx335_ctx* sensor = calloc(1, sizeof(struct imx335_ctx));
     sensor->i2c = -1;
+    sensor->hflip = false;
+    sensor->vflip = false;
     *ctx = sensor;
 
     return 0;
@@ -576,8 +587,100 @@ static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
     return 0;
 }
 
+static enum vvcam_sensor_bayer imx335_bayer_for_orient(enum vvcam_sensor_bayer base,
+    bool hflip, bool vflip)
+{
+    /* Modes in this file use RGGB as default; match vicap mirror table */
+    if (base == VVCAM_BAYER_PAT_RGGB) {
+        if (!hflip && !vflip) {
+            return VVCAM_BAYER_PAT_RGGB;
+        }
+        if (hflip && !vflip) {
+            return VVCAM_BAYER_PAT_GRBG;
+        }
+        if (!hflip && vflip) {
+            return VVCAM_BAYER_PAT_GBRG;
+        }
+        return VVCAM_BAYER_PAT_BGGR;
+    }
+
+    if (!hflip && !vflip) {
+        return base;
+    }
+    if (hflip && !vflip) {
+        switch (base) {
+        case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_GRBG;
+        case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_RGGB;
+        case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_BGGR;
+        case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_GBRG;
+        default: return base;
+        }
+    }
+    if (!hflip && vflip) {
+        switch (base) {
+        case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_GBRG;
+        case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_BGGR;
+        case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_RGGB;
+        case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_GRBG;
+        default: return base;
+        }
+    }
+    switch (base) {
+    case VVCAM_BAYER_PAT_RGGB: return VVCAM_BAYER_PAT_BGGR;
+    case VVCAM_BAYER_PAT_GRBG: return VVCAM_BAYER_PAT_GBRG;
+    case VVCAM_BAYER_PAT_GBRG: return VVCAM_BAYER_PAT_GRBG;
+    case VVCAM_BAYER_PAT_BGGR: return VVCAM_BAYER_PAT_RGGB;
+    default: return base;
+    }
+}
+
+static void imx335_update_mode_bayer(struct imx335_ctx *sensor)
+{
+    enum vvcam_sensor_bayer base = modes[0].mode.bayer;
+
+    for (unsigned i = 0; i < ARRAY_SIZE(modes); i++) {
+        if (sensor->mode.width == modes[i].mode.width &&
+            sensor->mode.height == modes[i].mode.height &&
+            sensor->mode.clk == modes[i].mode.clk) {
+            base = modes[i].mode.bayer;
+            break;
+        }
+    }
+
+    sensor->mode.bayer = imx335_bayer_for_orient(base, sensor->hflip, sensor->vflip);
+}
+
+static int imx335_apply_orient_regs(struct imx335_ctx *sensor, bool hflip, bool vflip)
+{
+    uint8_t r304e = sensor->orient_base_304e;
+    uint8_t r304f = sensor->orient_base_304f;
+
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+
+    r304e = (uint8_t)((r304e & (uint8_t)~IMX335_REVERSE_BIT) |
+        (hflip ? IMX335_REVERSE_BIT : 0));
+    r304f = (uint8_t)((r304f & (uint8_t)~IMX335_REVERSE_BIT) |
+        (vflip ? IMX335_REVERSE_BIT : 0));
+
+    CHECK_ERROR(write_reg(sensor, IMX335_REG_HREVERSE, r304e));
+    CHECK_ERROR(write_reg(sensor, IMX335_REG_VREVERSE, r304f));
+
+    return 0;
+}
+
+static int imx335_apply_orient(struct imx335_ctx *sensor)
+{
+    CHECK_ERROR(imx335_apply_orient_regs(sensor, sensor->hflip, sensor->vflip));
+    imx335_update_mode_bayer(sensor);
+    return 0;
+}
+
 static int set_mode(void* ctx, uint32_t index) {
     struct imx335_ctx* sensor = ctx;
+    const bool want_hflip = sensor->hflip;
+    const bool want_vflip = sensor->vflip;
     //printf("f=%s l=%d index =%d\n", __func__, __LINE__,index);
 
     if (index >= ARRAY_SIZE(modes)) {
@@ -591,10 +694,16 @@ static int set_mode(void* ctx, uint32_t index) {
         return -1;
     }
 
-
+    sensor->orient_base_304e = 0;
+    sensor->orient_base_304f = 0;
     for(unsigned i = 0;; i++) {
         if ((modes[index].regs[i].addr == 0) && (modes[index].regs[i].value == 0)) {
             break;
+        }
+        if (modes[index].regs[i].addr == IMX335_REG_HREVERSE) {
+            sensor->orient_base_304e = modes[index].regs[i].value;
+        } else if (modes[index].regs[i].addr == IMX335_REG_VREVERSE) {
+            sensor->orient_base_304f = modes[index].regs[i].value;
         }
         CHECK_ERROR(write_reg(sensor, modes[index].regs[i].addr, modes[index].regs[i].value));
     }
@@ -633,6 +742,68 @@ static int set_mode(void* ctx, uint32_t index) {
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
+    sensor->hflip = want_hflip;
+    sensor->vflip = want_vflip;
+    CHECK_ERROR(imx335_apply_orient(sensor));
+
+    return 0;
+}
+
+static int set_hflip(void* ctx, bool on)
+{
+    struct imx335_ctx* sensor = ctx;
+
+    sensor->hflip = on;
+    return imx335_apply_orient(sensor);
+}
+
+static int get_hflip(void* ctx, bool *on)
+{
+    struct imx335_ctx* sensor = ctx;
+    uint8_t r304e = 0;
+
+    if (on == NULL) {
+        return -1;
+    }
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, IMX335_REG_HREVERSE, &r304e)) {
+        return -1;
+    }
+
+    *on = ((r304e ^ sensor->orient_base_304e) & IMX335_REVERSE_BIT) != 0;
+    sensor->hflip = *on;
+    imx335_update_mode_bayer(sensor);
+    return 0;
+}
+
+static int set_vflip(void* ctx, bool on)
+{
+    struct imx335_ctx* sensor = ctx;
+
+    sensor->vflip = on;
+    return imx335_apply_orient(sensor);
+}
+
+static int get_vflip(void* ctx, bool *on)
+{
+    struct imx335_ctx* sensor = ctx;
+    uint8_t r304f = 0;
+
+    if (on == NULL) {
+        return -1;
+    }
+    if (open_i2c(sensor)) {
+        return -1;
+    }
+    if (read_reg(sensor, IMX335_REG_VREVERSE, &r304f)) {
+        return -1;
+    }
+
+    *on = ((r304f ^ sensor->orient_base_304f) & IMX335_REVERSE_BIT) != 0;
+    sensor->vflip = *on;
+    imx335_update_mode_bayer(sensor);
     return 0;
 }
 
@@ -727,6 +898,10 @@ struct vvcam_sensor vvcam_imx335 = {
         .get_mode = get_mode,
         .set_mode = set_mode,
         .set_stream = set_stream,
+        .set_hflip = set_hflip,
+        .get_hflip = get_hflip,
+        .set_vflip = set_vflip,
+        .get_vflip = get_vflip,
         .set_analog_gain = set_analog_gain,
         .set_digital_gain = set_digital_gain,
         .set_int_time = set_int_time
