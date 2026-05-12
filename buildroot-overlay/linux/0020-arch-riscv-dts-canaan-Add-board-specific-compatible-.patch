@@ -77,7 +77,7 @@ index 2147ebf19..dee99d181 100755
 +	status = "okay";
 +	pinctrl-names = "default";
 +    pinctrl-0 = <&i2c2_pins>;
-+}
++};
 diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
 index 8cc77993f..e8e373669 100644
 --- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
@@ -134,7 +134,7 @@ index 8cc77993f..e8e373669 100644
 +	status = "okay";
 +	pinctrl-names = "default";
 +    pinctrl-0 = <&i2c2_pins>;
-+}
++};
 diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
 index ec8bce44e..91cd127ef 100644
 --- a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
