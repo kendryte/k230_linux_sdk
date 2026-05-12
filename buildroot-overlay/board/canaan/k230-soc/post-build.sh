@@ -52,7 +52,7 @@ gen_version()
 	sdk_ver="${last_tag}-$(date "+%Y%m%d-%H%M%S")-$(whoami)-$(hostname)-${commitid}-nncase${nncase_ver}"
 	echo -e "#############SDK VERSION######################################" >${rootfs_dir}/${ver_file}
 	echo -e "sdk:${sdk_ver}" >> ${rootfs_dir}/${ver_file}
-	#echo -e "nncase:${nncase_ver}" >> ${ver_file}
+	echo -e "CONF:${CONF%_defconfig}" >> ${ver_file}
 	echo -e "##############################################################" >>${rootfs_dir}/${ver_file}
 	echo "build version: ${sdk_ver}"
 

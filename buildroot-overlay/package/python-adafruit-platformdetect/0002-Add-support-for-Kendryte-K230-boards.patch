@@ -1,0 +1,132 @@
+From 2df2001257a3a266a9a99ea67e41c04bd14db75a Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Sat, 9 May 2026 10:33:16 +0800
+Subject: [PATCH] Add support for Kendryte K230 boards
+
+Add board detection support for K230-based boards including:
+- k230_canmv_01studio
+- k230_canmv_lckfb
+---
+ adafruit_platformdetect/board.py            | 16 ++++++++++++++++
+ adafruit_platformdetect/chip.py             |  3 +++
+ adafruit_platformdetect/constants/boards.py |  5 +++++
+ adafruit_platformdetect/constants/chips.py  |  3 +++
+ pyproject.toml                              | 11 ++++++-----
+ 5 files changed, 33 insertions(+), 5 deletions(-)
+
+diff --git a/adafruit_platformdetect/board.py b/adafruit_platformdetect/board.py
+index bf85c55..f5d9d4b 100644
+--- a/adafruit_platformdetect/board.py
++++ b/adafruit_platformdetect/board.py
+@@ -183,6 +183,8 @@ class Board:
+             board_id = self._armbian_id() or self._renesas_variants_id()
+         elif chip_id == chips.RZV2H:
+             board_id = self._armbian_id() or self._renesas_variants_id()
++        elif chip_id == chips.K230:
++            board_id = self._k230_id()
+         elif chip_id == chips.RK3308:
+             board_id = self._rock_pi_id() or self._banana_pi_id()
+         elif chip_id == chips.RK3399:
+@@ -1011,6 +1013,14 @@ class Board:
+             board = boards.LUCKFOX_PICO
+         return board
+ 
++    def _k230_id(self) -> Optional[str]:
++        """Check what type of K230 board."""
++        if self.detector.check_dt_compatible_value("k230_canmv_01studio"):
++            return boards.k230_canmv_01studio
++        if self.detector.check_dt_compatible_value("k230_canmv_lckfb"):
++            return boards.k230_canmv_lckfb
++        return None
++
+     def _rv1106_id(self) -> Optional[str]:
+         """Check what type of rv1106 board."""
+         board_value = self.detector.get_device_model()
+@@ -1246,6 +1256,11 @@ class Board:
+         """Check whether the current board is any Particle device."""
+         return self.id in boards._PARTICLE_IDS
+ 
++    @property
++    def any_k230_board(self):
++        """Check whether the current board is any Kendryte K230 device."""
++        return self.id in boards._K230_BOARD_IDS
++
+     @property
+     def any_raspberry_pi_pico_id(self):
+         """Check whether the current board is any Raspberry Pi Pico."""
+@@ -1326,6 +1341,7 @@ class Board:
+             yield self.any_starfive_id
+             yield self.any_horizon_board
+             yield self.any_particle_board
++            yield self.any_k230_board
+ 
+         return any(condition for condition in lazily_generate_conditions())
+ 
+diff --git a/adafruit_platformdetect/chip.py b/adafruit_platformdetect/chip.py
+index db74a8d..709a9c1 100644
+--- a/adafruit_platformdetect/chip.py
++++ b/adafruit_platformdetect/chip.py
+@@ -361,6 +361,9 @@ class Chip:
+         if self.detector.check_dt_compatible_value("particle,tachyon"):
+             return chips.QCM6490
+ 
++        if self.detector.check_dt_compatible_value("canaan,kendryte-k230"):
++            return chips.K230
++
+         linux_id = None
+         hardware = self.detector.get_cpuinfo_field("Hardware")
+ 
+diff --git a/adafruit_platformdetect/constants/boards.py b/adafruit_platformdetect/constants/boards.py
+index c1b6403..4216457 100644
+--- a/adafruit_platformdetect/constants/boards.py
++++ b/adafruit_platformdetect/constants/boards.py
+@@ -732,5 +732,10 @@ _AMERIDROID_IDS = (INDIEDROID_NOVA,)
+ # Particle
+ _PARTICLE_IDS = (PARTICLE_TACHYON,)
+ 
++# K230
++k230_canmv_01studio = "k230_canmv_01studio"
++k230_canmv_lckfb = "k230_canmv_lckfb"
++_K230_BOARD_IDS = (k230_canmv_01studio, k230_canmv_lckfb)
++
+ # Agnostic board
+ OS_AGNOSTIC_BOARD = "OS_AGNOSTIC_BOARD"
+diff --git a/adafruit_platformdetect/constants/chips.py b/adafruit_platformdetect/constants/chips.py
+index c0f9ee4..8f017eb 100644
+--- a/adafruit_platformdetect/constants/chips.py
++++ b/adafruit_platformdetect/constants/chips.py
+@@ -97,4 +97,7 @@ ZYNQMP = "ZYNQMP"
+ 
+ BCM_RANGE = {"BCM2708", "BCM2709", "BCM2711", "BCM2712", "BCM2835", "BCM2837"}
+ 
++# Kendryte K230
++K230 = "K230"
++
+ CV1800B = "CV1800B"
+diff --git a/pyproject.toml b/pyproject.toml
+index 5196176..57e1e0c 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -19,13 +19,14 @@ authors = [
+ urls = {Homepage = "https://github.com/adafruit/Adafruit_Python_PlatformDetect"}
+ license = {text = "MIT"}
+ classifiers=[
+-    "Development Status :: 5 :: Production/Stable",
+-    "Intended Audience :: Developers",
+-    "Topic :: Software Development :: Libraries",
+-    "Topic :: System :: Hardware",
+     "License :: OSI Approved :: MIT License",
+     "Programming Language :: Python :: 3",
+-    "Programming Language :: Python :: 3.7",
++    "Programming Language :: Python :: 3.8",
++    "Programming Language :: Python :: 3.9",
++    "Programming Language :: Python :: 3.10",
++    "Programming Language :: Python :: 3.11",
++    "Programming Language :: Python :: 3.12",
++    "Programming Language :: Python :: 3.13",
+ ]
+ dependencies = []
+ 
+-- 
+2.25.1
+

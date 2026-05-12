@@ -1,0 +1,169 @@
+From c49e7ba42ec7b71086370cdddb9747db6a00b9c6 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 12 May 2026 10:50:05 +0800
+Subject: [PATCH] Define PWM1-PWM4 constants for k230
+
+Fixes missing PWM channel definitions.
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+---
+ .../board/k230/k230_canmv_01studio.py         |  2 +
+ .../board/k230/k230_canmv_lckfb.py            |  1 +
+ .../board/k230/k230_canmv_v3.py               | 12 +++
+ .../microcontroller/k230/pin.py               | 76 ++++++++-----------
+ src/board_imports.json                        |  3 +-
+ src/pwmio.py                                  |  4 +-
+ 6 files changed, 52 insertions(+), 46 deletions(-)
+ create mode 100644 src/adafruit_blinka/board/k230/k230_canmv_v3.py
+
+diff --git a/src/adafruit_blinka/board/k230/k230_canmv_01studio.py b/src/adafruit_blinka/board/k230/k230_canmv_01studio.py
+index 3cd6ed3..f71970e 100644
+--- a/src/adafruit_blinka/board/k230/k230_canmv_01studio.py
++++ b/src/adafruit_blinka/board/k230/k230_canmv_01studio.py
+@@ -8,3 +8,5 @@ from adafruit_blinka.microcontroller.k230 import pin
+ 
+ LED=pin.IO52
+ KEY=pin.IO21
++
++SCL=SDA=pin.I2C0_SCL
+diff --git a/src/adafruit_blinka/board/k230/k230_canmv_lckfb.py b/src/adafruit_blinka/board/k230/k230_canmv_lckfb.py
+index 85ba08e..ddb7791 100644
+--- a/src/adafruit_blinka/board/k230/k230_canmv_lckfb.py
++++ b/src/adafruit_blinka/board/k230/k230_canmv_lckfb.py
+@@ -7,3 +7,4 @@
+ from adafruit_blinka.microcontroller.k230 import pin
+ 
+ LED=pin.IO52
++SCL=SDA=pin.I2C0_SCL
+diff --git a/src/adafruit_blinka/board/k230/k230_canmv_v3.py b/src/adafruit_blinka/board/k230/k230_canmv_v3.py
+new file mode 100644
+index 0000000..f71970e
+--- /dev/null
++++ b/src/adafruit_blinka/board/k230/k230_canmv_v3.py
+@@ -0,0 +1,12 @@
++
++# SPDX-FileCopyrightText: 2022 Aleksandr Saiapin for Adafruit Industries
++#
++# SPDX-License-Identifier: MIT
++"""Pin definitions for the k230 board."""
++
++from adafruit_blinka.microcontroller.k230 import pin
++
++LED=pin.IO52
++KEY=pin.IO21
++
++SCL=SDA=pin.I2C0_SCL
+diff --git a/src/adafruit_blinka/microcontroller/k230/pin.py b/src/adafruit_blinka/microcontroller/k230/pin.py
+index e207df2..c50fa30 100644
+--- a/src/adafruit_blinka/microcontroller/k230/pin.py
++++ b/src/adafruit_blinka/microcontroller/k230/pin.py
+@@ -72,47 +72,35 @@ IO61 = Pin((1, 29))  #
+ IO62 = Pin((1, 30))  #
+ IO63 = Pin((1, 31))
+ 
+-
+-
+-
+-
+-# I2C2_SCL = Pin(144)  #
+-# I2C2_SDA = Pin(145)  #
+-
+-# I2C3_SCL = Pin(146)  #
+-# I2C3_SDA = Pin(147)  #
+-
+-
+-# PWM1 = Pin((0, 1))  #
+-# PWM2 = Pin((0, 13))  #
+-# PWM3 = Pin((0, 14))  #
+-
+-# GPIO6 = Pin((0, 6))  #
+-# GPIO7 = Pin((0, 7))  #
+-# GPIO8 = Pin((0, 8))  #
+-# GPIO73 = Pin((2, 9))  #
+-# GPIO77 = Pin((2, 13))  #
+-# GPIO138 = Pin((4, 10))  #
+-# GPIO141 = Pin((4, 13))  #
+-
+-# ECSPI1_MISO = Pin(136)  #
+-# ECSPI1_MOSI = Pin(135)  #
+-# ECSPI1_SCLK = Pin(134)  #
+-# ECSPI1_SS0 = Pin(133)  #
+-
+-
+-# i2cPorts = (
+-#     (1, I2C2_SCL, I2C2_SDA),
+-#     (2, I2C3_SCL, I2C3_SDA),
+-# )
+-# # ordered as spiId, sckId, mosiId, misoId
+-# spiPorts = ((0, ECSPI1_SCLK, ECSPI1_MOSI, ECSPI1_MISO),)
+-# # SysFS pwm outputs, pwm channel and pin in first tuple
+-# pwmOuts = (
+-#     ((0, 0), PWM1),
+-#     ((1, 0), PWM2),
+-#     ((2, 0), PWM3),
+-# )
+-
+-# UART1_TXD/RXD on /dev/ttymxc0
+-# UART3_TXD/RXD not available (?)
++I2C0_SCL=I2C0_SDA=0
++I2C1_SCL=I2C1_SDA=1
++I2C2_SCL=I2C2_SDA=2
++I2C3_SCL=I2C3_SDA=3
++I2C4_SCL=I2C4_SDA=4
++
++i2cPorts = (
++    (0, I2C0_SCL, I2C0_SDA),
++    (1, I2C1_SCL, I2C1_SDA),
++    (2, I2C2_SCL, I2C2_SDA),
++    (3, I2C3_SCL, I2C3_SDA),
++    (4, I2C4_SCL, I2C4_SDA)
++)
++
++spiPorts = ((0, 0, 0, 0),
++            (1, 1, 1, 2),
++            (2, 2, 2, 2)
++            )
++PWM0=0
++PWM1=1
++PWM2=2
++PWM3=3
++PWM4=4
++PWM5=5
++pwmOuts = (
++    ((0, 0), PWM0),
++    ((0, 1), PWM1),
++    ((0, 2), PWM2),
++    ((3, 0), PWM3),
++    ((3, 1), PWM4),
++    ((3, 2), PWM5)
++)
+diff --git a/src/board_imports.json b/src/board_imports.json
+index 633164e..f8ab2bb 100644
+--- a/src/board_imports.json
++++ b/src/board_imports.json
+@@ -157,5 +157,6 @@
+     "RDK_X3": "adafruit_blinka.board.horizon.rdkx3",
+     "PARTICLE_TACHYON": "adafruit_blinka.board.particle.tachyon",
+     "k230_canmv_01studio": "adafruit_blinka.board.k230.k230_canmv_01studio",
+-    "k230_canmv_lckfb": "adafruit_blinka.board.k230.k230_canmv_lckfb"
++    "k230_canmv_lckfb": "adafruit_blinka.board.k230.k230_canmv_lckfb",
++    "k230_canmv_v3": "adafruit_blinka.board.k230.k230_canmv_v3"
+ }
+diff --git a/src/pwmio.py b/src/pwmio.py
+index 4b3f4c8..1be592a 100644
+--- a/src/pwmio.py
++++ b/src/pwmio.py
+@@ -16,7 +16,9 @@ from adafruit_blinka.agnostic import detector
+ 
+ # pylint: disable=unused-import
+ 
+-if detector.board.any_raspberry_pi_5_board:
++if detector.board.any_k230_board:
++    from adafruit_blinka.microcontroller.generic_linux.sysfs_pwmout import PWMOut
++elif detector.board.any_raspberry_pi_5_board:
+     from adafruit_blinka.microcontroller.generic_linux.lgpio_pwmout import PWMOut
+ elif detector.board.any_raspberry_pi:
+     # Pi 4 or lower
+-- 
+2.25.1
+

@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_ADAFRUIT_PLATFORMDETECT
+	bool "python-adafruit-platformdetect"
+	select BR2_PACKAGE_PYTHON3
+	help
+	  Adafruit Python library for detecting what platform a
+	  Python script is running on.
+
+	  https://github.com/adafruit/Adafruit_Python_PlatformDetect

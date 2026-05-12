@@ -1,0 +1,52 @@
+From 262d6cbc466309eeeeddbed3fc142567c528a553 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Sun, 3 May 2026 17:11:02 +0800
+Subject: [PATCH] rmeov scm depend
+
+---
+ pyproject.toml | 10 +++-------
+ 1 file changed, 3 insertions(+), 7 deletions(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index a840d87..5196176 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -6,13 +6,12 @@
+ requires = [
+     "setuptools",
+     "wheel",
+-    "setuptools-scm",
+ ]
+ 
+ [project]
+ name = "Adafruit-PlatformDetect"
+ description = "Platform detection for use by libraries like Adafruit-Blinka."
+-version = "0.0.0+auto.0"
++version = "3.88.0"
+ readme = "README.rst"
+ authors = [
+     {name = "Adafruit Industries", email = "circuitpython@adafruit.com"}
+@@ -20,7 +19,7 @@ authors = [
+ urls = {Homepage = "https://github.com/adafruit/Adafruit_Python_PlatformDetect"}
+ license = {text = "MIT"}
+ classifiers=[
+-    "Development Status :: 5 - Production/Stable",
++    "Development Status :: 5 :: Production/Stable",
+     "Intended Audience :: Developers",
+     "Topic :: Software Development :: Libraries",
+     "Topic :: System :: Hardware",
+@@ -28,10 +27,7 @@ classifiers=[
+     "Programming Language :: Python :: 3",
+     "Programming Language :: Python :: 3.7",
+ ]
+-dynamic = ["dependencies"]
++dependencies = []
+ 
+ [tool.setuptools]
+ packages = ["adafruit_platformdetect", "adafruit_platformdetect.constants"]
+-
+-[tool.setuptools.dynamic]
+-dependencies = {file = ["requirements.txt"]}
+-- 
+2.25.1
+

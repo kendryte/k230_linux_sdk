@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_K230
+    tristate "python-k230"
+    select BR2_PACKAGE_PYTHON3
+    help
+        Python test for k230

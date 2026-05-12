@@ -1,0 +1,44 @@
+From 4c3f6dacbca237fdcaee5613c2d497332230197d Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Sun, 3 May 2026 17:20:59 +0800
+Subject: [PATCH] rm scm depend
+
+---
+ pyproject.toml | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 7ab9f83..0fb2d4b 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -6,13 +6,12 @@
+ requires = [
+     "setuptools",
+     "wheel",
+-    "setuptools-scm",
+ ]
+ 
+ [project]
+ name = "Adafruit_PureIO"
+ description = "Pure python (i.e. no native extensions) access to Linux IO    including I2C and SPI. Drop in replacement for smbus and spidev modules."
+-version = "0.0.0+auto.0"
++version = "1.1.11"
+ readme = "README.rst"
+ authors = [
+     {name = "Adafruit Industries", email = "circuitpython@adafruit.com"}
+@@ -42,11 +41,7 @@ classifiers = [
+     "Programming Language :: Python :: Implementation :: CPython",
+ ]
+ requires-python = ">=3.5.0"
+-dynamic = ["dependencies", "optional-dependencies"]
++dependencies = []
+ 
+ [tool.setuptools]
+ packages = ["Adafruit_PureIO"]
+-
+-[tool.setuptools.dynamic]
+-dependencies = {file = ["requirements.txt"]}
+-optional-dependencies = {optional = {file = ["optional_requirements.txt"]}}
+-- 
+2.25.1
+

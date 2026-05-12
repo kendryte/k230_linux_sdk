@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_ADAFRUIT_PUREIO
+	bool "python-adafruit-pureio"
+	select BR2_PACKAGE_PYTHON3
+	help
+	  Adafruit PureIO provides pure Python file I/O operations
+	  with no external dependencies.
+
+	  https://github.com/adafruit/Adafruit_Python_PureIO

@@ -1,0 +1,12 @@
+config BR2_PACKAGE_PYTHON_ADAFRUIT_BLINKA
+	bool "python-adafruit-blinka"
+	select BR2_PACKAGE_PYTHON3
+	select BR2_PACKAGE_PYTHON_ADAFRUIT_PLATFORMDETECT
+	select BR2_PACKAGE_PYTHON_ADAFRUIT_PUREIO
+	select BR2_PACKAGE_PYTHON_SERIAL
+
+	help
+	  Adafruit Blinka provides CircuitPython APIs for non-CircuitPython
+	  single-board computers running Linux.
+
+	  https://github.com/adafruit/Adafruit_Blinka

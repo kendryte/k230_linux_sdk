@@ -1,0 +1,233 @@
+From 11f4b663dc75aa40dd02b090621fc95cc71e15ce Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 12 May 2026 11:57:48 +0800
+Subject: [PATCH] arch: riscv: dts: canaan: Add board-specific compatible
+ strings and configs
+
+- Add per-board compatible strings (k230_canmv_01studio, k230_canmv_lckfb, k230_canmv_v3)
+- Add PWM2, OSPI, and I2C2 pin configurations for 01studio board
+- Enable SPI0, I2C2 controllers and add spidev device on 01studio
+- Add comments to SPI controller definitions in k230.dtsi
+---
+ .../dts/canaan/k230-canmv-01studio-lcd.dts    | 35 ++++++++++++++--
+ .../boot/dts/canaan/k230-canmv-01studio.dts   | 42 ++++++++++++++++++-
+ arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts |  2 +-
+ .../canaan/k230-canmv-lckfb-lcd-ili9881.dts   |  2 +-
+ .../boot/dts/canaan/k230-canmv-lckfb-lcd.dts  |  2 +-
+ .../boot/dts/canaan/k230-canmv-v3-lcd.dts     |  2 +-
+ arch/riscv/boot/dts/canaan/k230-canmv-v3.dts  |  2 +-
+ arch/riscv/boot/dts/canaan/k230.dtsi          |  3 ++
+ 8 files changed, 81 insertions(+), 9 deletions(-)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+index 2147ebf19..dee99d181 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -9,7 +9,7 @@
+ /
+ {
+ 	model = "Canaan CanMV-K230";
+-	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230","k230_canmv_01studio";
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+@@ -114,10 +114,19 @@ &lcd
+ 	// dsi_reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_HIGH>;
+ 	// backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
+ };
++
+ &iomux {
+ 	pwm2_pins: pwm2_pins {
+-        pins = K230_IO46;
+-        function = K230_IO46_PWM2;  // alt1 = FUNC2 = UART0_TXD/UART0_RXD
++        pins = K230_IO46; //io46
++        function = K230_IO46_PWM2;  // alt2
++    };
++	ospi_pins: ospi_pins {
++        pins = K230_IO15,K230_IO16,K230_IO17;
++        function = "alt1";
++    };
++	i2c2_pins: i2c2_pins {
++        pins = K230_IO11,K230_IO12;
++        function = "alt3";
+     };
+ };
+ &pwm0_2{
+@@ -125,3 +134,23 @@ &pwm0_2{
+ 	pinctrl-names = "default";
+     pinctrl-0 = <&pwm2_pins>;
+ };
++
++&spi0
++{
++	status = "okay";
++	pinctrl-names = "default";
++    pinctrl-0 = <&ospi_pins>;
++
++	spidev0: spidev@0 {
++		compatible = "rohm,dh2228fv";
++		reg = <0>;
++		spi-max-frequency = <4000000>;
++		status = "okay";
++    };
++};
++
++&i2c2{
++	status = "okay";
++	pinctrl-names = "default";
++    pinctrl-0 = <&i2c2_pins>;
++}
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+index 8cc77993f..e8e373669 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+@@ -7,7 +7,7 @@
+ 
+ / {
+ 	model = "Canaan CanMV-K230";
+-	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230","k230_canmv_01studio";
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+@@ -137,3 +137,43 @@ K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
+ 	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
+ };
++&iomux {
++	pwm2_pins: pwm2_pins {
++        pins = K230_IO46; //io46
++        function = K230_IO46_PWM2;  // alt2
++    };
++	ospi_pins: ospi_pins {
++        pins = K230_IO15,K230_IO16,K230_IO17;
++        function = "alt1";
++    };
++	i2c2_pins: i2c2_pins {
++        pins = K230_IO11,K230_IO12;
++        function = "alt3";
++    };
++};
++&pwm0_2{
++	status = "okay";
++	pinctrl-names = "default";
++    pinctrl-0 = <&pwm2_pins>;
++};
++
++&spi0
++{
++	status = "okay";
++	pinctrl-names = "default";
++    pinctrl-0 = <&ospi_pins>;
++
++	spidev0: spidev@0 {
++		compatible = "rohm,dh2228fv";
++		reg = <0>;
++		spi-max-frequency = <4000000>;
++		status = "okay";
++    };
++
++};
++
++&i2c2{
++	status = "okay";
++	pinctrl-names = "default";
++    pinctrl-0 = <&i2c2_pins>;
++}
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+index ec8bce44e..91cd127ef 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+@@ -8,7 +8,7 @@
+ 
+ / {
+ 	model = "Canaan CanMV-K230";
+-	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230","k230_canmv_lckfb";
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+index 48c254620..9a966b699 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+@@ -9,7 +9,7 @@
+ 
+ / {
+ 	model = "Canaan CanMV-K230";
+-	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230","k230_canmv_lckfb";
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+index 80caca334..a5af60d92 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+@@ -8,7 +8,7 @@
+ 
+ / {
+ 	model = "Canaan CanMV-K230";
+-	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230","k230_canmv_lckfb";
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+index 9418c70d0..359b1cd57 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+@@ -8,7 +8,7 @@
+ 
+ / {
+ 	model = "Canaan CanMV-K230";
+-	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230","k230_canmv_v3";
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
+index 1e0303d59..f23dfae95 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
+@@ -8,7 +8,7 @@
+ 
+ / {
+ 	model = "Canaan CanMV-K230";
+-	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230","k230_canmv_v3";
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+diff --git a/arch/riscv/boot/dts/canaan/k230.dtsi b/arch/riscv/boot/dts/canaan/k230.dtsi
+index af5daea54..bfee9a2eb 100755
+--- a/arch/riscv/boot/dts/canaan/k230.dtsi
++++ b/arch/riscv/boot/dts/canaan/k230.dtsi
+@@ -557,6 +557,7 @@ rtc: rtc@0x91000c00 {
+ 		};
+ 
+ 		spi0: spi@91584000 {
++			/*ospi*/
+ 			compatible = "canaan,k230-spi";
+ 			reg = <0x0 0x91584000 0x0 0x1000>;
+ 			#address-cells = <1>;
+@@ -578,6 +579,7 @@ spi0: spi@91584000 {
+ 		};
+ 
+ 		spi1: spi@91582000 {
++			/*Qspi 0*/
+ 			compatible = "canaan,k230-spi";
+ 			reg = <0x0 0x91582000 0x0 0x1000>;
+ 			#address-cells = <1>;
+@@ -598,6 +600,7 @@ spi1: spi@91582000 {
+ 		};
+ 
+ 		spi2: spi@91583000 {
++			/*Qspi 1*/
+ 			compatible = "canaan,k230-spi";
+ 			reg = <0x0 0x91583000 0x0 0x1000>;
+ 			#address-cells = <1>;
+-- 
+2.25.1
+

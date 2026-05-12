@@ -1,0 +1,44 @@
+From 68fd0cdd58cc85d516cb7808d09310bc1b393559 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 12 May 2026 11:04:49 +0800
+Subject: [PATCH] board: Add support for K230 CanMV v3
+
+- Add k230_canmv_v3 board ID to constants
+- Add device tree compatible check for k230_canmv_v3
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+---
+ adafruit_platformdetect/board.py            | 2 ++
+ adafruit_platformdetect/constants/boards.py | 3 ++-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/adafruit_platformdetect/board.py b/adafruit_platformdetect/board.py
+index f5d9d4b..ab13d65 100644
+--- a/adafruit_platformdetect/board.py
++++ b/adafruit_platformdetect/board.py
+@@ -1019,6 +1019,8 @@ class Board:
+             return boards.k230_canmv_01studio
+         if self.detector.check_dt_compatible_value("k230_canmv_lckfb"):
+             return boards.k230_canmv_lckfb
++        if self.detector.check_dt_compatible_value("k230_canmv_v3"):
++            return boards.k230_canmv_v3
+         return None
+ 
+     def _rv1106_id(self) -> Optional[str]:
+diff --git a/adafruit_platformdetect/constants/boards.py b/adafruit_platformdetect/constants/boards.py
+index 4216457..ea53d40 100644
+--- a/adafruit_platformdetect/constants/boards.py
++++ b/adafruit_platformdetect/constants/boards.py
+@@ -735,7 +735,8 @@ _PARTICLE_IDS = (PARTICLE_TACHYON,)
+ # K230
+ k230_canmv_01studio = "k230_canmv_01studio"
+ k230_canmv_lckfb = "k230_canmv_lckfb"
+-_K230_BOARD_IDS = (k230_canmv_01studio, k230_canmv_lckfb)
++k230_canmv_v3 = "k230_canmv_v3"
++_K230_BOARD_IDS = (k230_canmv_01studio, k230_canmv_lckfb, k230_canmv_v3)
+ 
+ # Agnostic board
+ OS_AGNOSTIC_BOARD = "OS_AGNOSTIC_BOARD"
+-- 
+2.25.1
+
