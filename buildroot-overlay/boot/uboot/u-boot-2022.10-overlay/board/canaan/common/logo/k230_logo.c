@@ -214,8 +214,10 @@ int _k230_display_logo_load_pic()
 }
 int k230_display_logo(void)
 {
-    #ifdef CONFIG_K230_BARE_DISP_LOGO_DF
-     k_connector_info info = {
+    k_connector_info info;
+
+#ifdef CONFIG_K230_BARE_DISP_LOGO_DF
+    info = (k_connector_info){
         0,
         BACKGROUND_PINK_COLOR,
         10,
@@ -224,13 +226,28 @@ int k230_display_logo(void)
         K_DSI_2LAN,
         K_BURST_MODE,
         K_VO_LP_MODE,
-        { 3, 97, 0x27, 0xa5 }, // 0x96
+        { 3, 97, 0x27, 0xa5 },
         { 24750, 297000, 550, 480,
-                    10, 10, 50, 1500,
-                     640, 10, 250, 600 },
+                  10, 10, 50, 1500,
+                   640, 10, 250, 600 },
     };
-    #else
-    k_connector_info info = {
+#elif defined(CONFIG_K230_BARE_DISP_LOGO_ILI9881)
+    info = (k_connector_info){
+        0,
+        BACKGROUND_PINK_COLOR,
+        10,
+        7,
+        1,
+        K_DSI_4LAN,
+        K_BURST_MODE,
+        K_VO_LP_MODE,
+        { 15, 295, 0x17, 0x96 },
+        { 74250, 445500, 908, 800,
+                  8, 48, 52, 1402,
+                   1280, 6, 16, 100 },
+    };
+#else
+    info = (k_connector_info){
         0,
         BACKGROUND_PINK_COLOR,
         10,
@@ -239,10 +256,10 @@ int k230_display_logo(void)
         K_DSI_2LAN,
         K_BURST_MODE,
         K_VO_LP_MODE,
-        { 9, 196, 0x17, 0xa3 }, // 0x96
+        { 9, 196, 0x17, 0xa3 },
         { 39600, 475200, 600, 480, 20, 20, 80, 1100, 800, 10, 70, 220 },
     };
-    #endif
+#endif
 
     _k230_display_logo_load_pic();
 

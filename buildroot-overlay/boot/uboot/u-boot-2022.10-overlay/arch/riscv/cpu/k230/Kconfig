@@ -50,6 +50,10 @@ config K230_BARE_DISP_LOGO_DF
 	depends on K230_BARE_DISP_LOGO
 	help
 	  df screen
-
+config K230_BARE_DISP_LOGO_ILI9881
+	bool "ili9881 screen"
+	depends on K230_BARE_DISP_LOGO
+	help
+	  df screen
 
 endif

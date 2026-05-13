@@ -37,6 +37,7 @@ void v4l2_drm_default_context(struct v4l2_drm_context* ctx) {
     }
     ctx->wp = 0;
     ctx->flag_dump = false;
+    ctx->drm_rotation = rotation_0;
     ctx->hflip = -1;
     ctx->vflip = -1;
 }

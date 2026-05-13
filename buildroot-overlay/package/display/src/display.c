@@ -93,7 +93,7 @@ struct display* display_init(unsigned device) {
     display->mmHeight = conn->mmHeight;
 
     for (i = 0; i < conn->count_modes; i++) {
-        if (conn->modes[i].hdisplay <= 1920 && conn->modes[i].vdisplay <= 1080 && conn->modes[i].vrefresh <= 60)
+        if (conn->modes[i].hdisplay <= 1920 && conn->modes[i].vdisplay <= 1280 && conn->modes[i].vrefresh <= 65)
             break;
     }
     if (i == conn->count_modes) {
@@ -312,7 +312,7 @@ struct display_plane* display_get_plane(struct display* display, unsigned int fo
                     else {
                         goto found_plane;
                     }
-                    
+
                 }
                 else {
                     goto found_plane;
@@ -617,9 +617,9 @@ int display_commit(struct display* display) {
         drmModeAtomicFree(display->req);
         display->req = NULL;
         return -1;
-        
+
     }
-    
+
     return 0;
 }
 

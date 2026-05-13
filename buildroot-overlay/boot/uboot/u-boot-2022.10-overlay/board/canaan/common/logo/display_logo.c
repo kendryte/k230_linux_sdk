@@ -657,6 +657,9 @@ void vo_layer1_test(k_connector_info *info)
     #ifdef CONFIG_K230_BARE_DISP_LOGO_DF
     uint32_t act_w = 480;
     uint32_t act_h = 640;
+    #elif defined(CONFIG_K230_BARE_DISP_LOGO_ILI9881)
+    uint32_t act_w = 800;
+    uint32_t act_h = 1280;
     #else
     uint32_t act_w = 480;
     uint32_t act_h = 800;

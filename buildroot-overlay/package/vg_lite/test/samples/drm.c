@@ -389,16 +389,17 @@ static int drm_find_connector(void)
 	}
 
 	drm_dev.conn_id = conn->connector_id;
-	dbg("conn_id: %d", drm_dev.conn_id);
+	info("conn_id: %d", drm_dev.conn_id);
 	drm_dev.mmWidth = conn->mmWidth;
 	drm_dev.mmHeight = conn->mmHeight;
 
 	for (i = 0; i < conn->count_modes; i++) {
-		if (conn->modes[i].hdisplay <= 1920 && conn->modes[i].vdisplay <= 1080 && conn->modes[i].vrefresh <= 60)
+		info("xmode[%d]: %dx%d@%dHz", i, conn->modes[i].hdisplay, conn->modes[i].vdisplay, conn->modes[i].vrefresh);
+		if (conn->modes[i].hdisplay <= 1920 && conn->modes[i].vdisplay <= 1280 && conn->modes[i].vrefresh <= 65)
 			break;
 	}
 	if (i == conn->count_modes) {
-		err("1080P not support");
+		err("1080P not support conn->count_modes=%d ",conn->count_modes);
 		goto free_res;
 	}
 	memcpy(&drm_dev.mode, &conn->modes[i], sizeof(drmModeModeInfo));
