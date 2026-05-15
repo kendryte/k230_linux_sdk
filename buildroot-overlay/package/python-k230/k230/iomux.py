@@ -1200,22 +1200,23 @@ def get_current_function(pin: int, iomux_idx: int = 0) -> str:
     return get_io_sel_name(io_sel, pin_funcs)
 
 
-def get_all_pins_info(iomux_idx: int = 0) -> Dict[str, str]:
+def get_all_pins_info(iomux_idx: int = 0) -> Dict[str, tuple]:
     """Get information for all pins.
 
     Args:
         iomux_idx: IOMUX controller index (0=main, 1=pmuiomux)
 
     Returns:
-        Dictionary mapping pin names to current functions
+        Dictionary mapping pin names to (current_function, all_functions) tuples
     """
     controller = IOMUX_CONTROLLERS[iomux_idx]
     result = {}
 
     for pin in range(controller["pins"]):
         pin_name = get_pin_name(pin, iomux_idx)
-        func = get_current_function(pin, iomux_idx)
-        result[pin_name] = func
+        current_func = get_current_function(pin, iomux_idx)
+        all_funcs = get_pin_functions(pin, iomux_idx)
+        result[pin_name] = (current_func, all_funcs)
 
     return result
 
@@ -1350,8 +1351,10 @@ def main():
             if args.info.lower() == 'all':
                 print("All pins information:")
                 info = get_all_pins_info(args.controller)
-                for pin_name, func in info.items():
-                    print(f"  {pin_name}: {func}")
+                for pin_name, (current_func, all_funcs) in info.items():
+                    func_list = ", ".join(f"alt{io_sel}:{func_name}" for io_sel, func_name in sorted(all_funcs.items()))
+                    print(f"  {pin_name}: {current_func}")
+                    print(f"      [{func_list}]")
             else:
                 # First check if it's a function name (case-insensitive)
                 func_lower = args.info.lower()
