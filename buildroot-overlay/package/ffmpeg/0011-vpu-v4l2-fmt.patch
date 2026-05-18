@@ -1,0 +1,35 @@
+--- a/libavcodec/v4l2_fmt.c	2026-05-18 12:08:41.986537685 +0800
++++ b/libavcodec/v4l2_fmt.c	2026-05-18 12:07:35.847986684 +0800
+@@ -42,6 +42,24 @@
+     { AV_FMT(RGB24),       AV_CODEC(RAWVIDEO),    V4L2_FMT(RGB24) },
+     { AV_FMT(BGR0),        AV_CODEC(RAWVIDEO),    V4L2_FMT(BGR32) },
+     { AV_FMT(0RGB),        AV_CODEC(RAWVIDEO),    V4L2_FMT(RGB32) },
++#ifdef V4L2_PIX_FMT_ARGB32
++    { AV_FMT(ARGB),        AV_CODEC(RAWVIDEO),    V4L2_FMT(ARGB32) },
++#endif
++#ifdef V4L2_PIX_FMT_BGRA32
++    { AV_FMT(BGRA),        AV_CODEC(RAWVIDEO),    V4L2_FMT(BGRA32) },
++#endif
++#ifdef V4L2_PIX_FMT_RGBA32
++    { AV_FMT(RGBA),        AV_CODEC(RAWVIDEO),    V4L2_FMT(RGBA32) },
++#endif
++#ifdef V4L2_PIX_FMT_ABGR32
++    { AV_FMT(ABGR),        AV_CODEC(RAWVIDEO),    V4L2_FMT(ABGR32) },
++#endif
++#ifdef V4L2_PIX_FMT_XRGB32
++    { AV_FMT(0RGB),        AV_CODEC(RAWVIDEO),    V4L2_FMT(XRGB32) },
++#endif
++#ifdef V4L2_PIX_FMT_BGRX32
++    { AV_FMT(BGR0),        AV_CODEC(RAWVIDEO),    V4L2_FMT(BGRX32) },
++#endif
+     { AV_FMT(GRAY8),       AV_CODEC(RAWVIDEO),    V4L2_FMT(GREY) },
+     { AV_FMT(YUV420P),     AV_CODEC(RAWVIDEO),    V4L2_FMT(YUV420) },
+     { AV_FMT(YUYV422),     AV_CODEC(RAWVIDEO),    V4L2_FMT(YUYV) },
+@@ -51,6 +69,7 @@
+     { AV_FMT(YUV410P),     AV_CODEC(RAWVIDEO),    V4L2_FMT(YUV410) },
+     { AV_FMT(YUV410P),     AV_CODEC(RAWVIDEO),    V4L2_FMT(YVU410) },
+     { AV_FMT(NV12),        AV_CODEC(RAWVIDEO),    V4L2_FMT(NV12) },
++    { AV_FMT(NV21),        AV_CODEC(RAWVIDEO),    V4L2_FMT(NV21) },
+     { AV_FMT(NONE),        AV_CODEC(MJPEG),       V4L2_FMT(MJPEG) },
+     { AV_FMT(NONE),        AV_CODEC(MJPEG),       V4L2_FMT(JPEG) },
+ #ifdef V4L2_PIX_FMT_SRGGB8
