@@ -18,6 +18,10 @@ Example Usage:
     func = iomux.get_current_function(38)
     print(func)  # 'alt0 (GPIO38)'
 
+    # Get full status of a pin (function + input/output/pull-up/down/etc.)
+    status = iomux.get_pin_status(38)
+    print(status)  # 'alt0 (GPIO38), input, pull-up, ds=8'
+
     # Set a pin to a specific function
     iomux.set_pin_function(38, 'alt1')  # Set to UART0_TXD
     iomux.set_pin_function(38, iomux.ALT1)
@@ -1021,6 +1025,7 @@ def write_pin(pin: int, value: int, iomux_idx: int = 0, confirm: bool = True) ->
         print(f"Physical address: 0x{info['phys_addr']:08x}")
         print(f"Value to write:   0x{value:08x}")
         print(f"Current value:    0x{current_value:08x}")
+        print(f"Current status:   {get_pin_status(pin, iomux_idx)}")
         print(f"Register offset:  0x{info['reg_offset']:04x}")
 
         while True:
@@ -1040,6 +1045,7 @@ def write_pin(pin: int, value: int, iomux_idx: int = 0, confirm: bool = True) ->
     result = subprocess.run(['devmem', hex(info['phys_addr']), '32'], capture_output=True, text=True)
     verified = int(result.stdout.strip(), 0)
     print(f"After write read: 0x{verified:08x}")
+    print(f"After status:     {get_pin_status(pin, iomux_idx)}")
 
     # Only verify writable bits (bits 13:0)
     if (verified & RW_BITS_MASK) != (value & RW_BITS_MASK):
@@ -1084,6 +1090,7 @@ def set_pin_function(pin: int, func: Union[str, int], iomux_idx: int = 0) -> boo
     print(f"Setting {pin_name_str}:")
     print(f"  Current:  {current_func}")
     print(f"  New:      {new_func}")
+    print(f"  Status:   {get_pin_status(pin, iomux_idx)}")
     print(f"  Register: 0x{reg_value:08x} -> 0x{new_value:08x}")
 
     return write_pin(pin, new_value, iomux_idx, confirm=True)
@@ -1179,9 +1186,63 @@ def set_pin_config(
 
     pin_name_str = get_pin_name(pin, iomux_idx)
     print(f"Configuring {pin_name_str}:")
+    print(f"  Status:   {get_pin_status(pin, iomux_idx)}")
     print(f"  Register: 0x{reg_value:08x} -> 0x{new_value:08x}")
 
     return write_pin(pin, new_value, iomux_idx, confirm=True)
+
+
+def get_pin_status(pin: int, iomux_idx: int = 0) -> str:
+    """Get the current function and status of a pin.
+
+    Args:
+        pin: Pin number
+        iomux_idx: IOMUX controller index (0=main, 1=pmuiomux)
+
+    Returns:
+        String with function and status info (e.g., 'alt0 (GPIO38), input, pull-up')
+    """
+    reg_value = read_pin(pin, iomux_idx)
+    pin_funcs = get_pin_functions(pin, iomux_idx)
+    io_sel = (reg_value >> IO_SEL_SHIFT) & IO_SEL_MASK
+    func_name = get_io_sel_name(io_sel, pin_funcs)
+
+    # Extract status bits
+    is_ie = (reg_value >> IE_SHIFT) & IE_MASK  # Input enable
+    is_oe = (reg_value >> OE_SHIFT) & OE_MASK  # Output enable
+    is_pu = (reg_value >> PU_SHIFT) & PU_MASK  # Pull up
+    is_pd = (reg_value >> PD_SHIFT) & PD_MASK  # Pull down
+    ds = (reg_value >> DS_SHIFT) & DS_MASK     # Drive strength
+    is_sl = (reg_value >> SL_SHIFT) & SL_MASK  # Slew rate
+    is_st = (reg_value >> ST_SHIFT) & ST_MASK  # Schmitt trigger
+
+    # Build status string
+    status_parts = []
+
+    # Input/Output
+    if is_ie and not is_oe:
+        status_parts.append("ie")
+    elif is_oe and not is_ie:
+        status_parts.append("oe")
+    elif is_ie and is_oe:
+        status_parts.append("ie oe")
+
+    # Pull up/down
+    if is_pu:
+        status_parts.append("pu")
+    elif is_pd:
+        status_parts.append("pd")
+
+    # Drive strength
+    status_parts.append(f"ds={ds}")
+
+    # Slew rate and Schmitt trigger
+    if is_sl:
+        status_parts.append("sl")
+    if is_st:
+        status_parts.append("st")
+
+    return f"{func_name}, {', '.join(status_parts)}"
 
 
 def get_current_function(pin: int, iomux_idx: int = 0) -> str:
@@ -1219,6 +1280,61 @@ def get_all_pins_info(iomux_idx: int = 0) -> Dict[str, tuple]:
         result[pin_name] = (current_func, all_funcs)
 
     return result
+
+
+def get_pin_status(pin: int, iomux_idx: int = 0) -> str:
+    """Get the current function and status of a pin.
+
+    Args:
+        pin: Pin number
+        iomux_idx: IOMUX controller index (0=main, 1=pmuiomux)
+
+    Returns:
+        String with function and status info (e.g., 'alt0 (GPIO38), input, pull-up')
+    """
+    reg_value = read_pin(pin, iomux_idx)
+    pin_funcs = get_pin_functions(pin, iomux_idx)
+    io_sel = (reg_value >> IO_SEL_SHIFT) & IO_SEL_MASK
+    func_name = get_io_sel_name(io_sel, pin_funcs)
+
+    # Extract status bits
+    is_ie = (reg_value >> IE_SHIFT) & IE_MASK  # Input enable
+    is_oe = (reg_value >> OE_SHIFT) & OE_MASK  # Output enable
+    is_pu = (reg_value >> PU_SHIFT) & PU_MASK  # Pull up
+    is_pd = (reg_value >> PD_SHIFT) & PD_MASK  # Pull down
+    ds = (reg_value >> DS_SHIFT) & DS_MASK     # Drive strength
+    is_sl = (reg_value >> SL_SHIFT) & SL_MASK  # Slew rate
+    is_st = (reg_value >> ST_SHIFT) & ST_MASK  # Schmitt trigger
+
+    # Build status string
+    status_parts = []
+
+    # Input/Output
+    if is_ie and not is_oe:
+        status_parts.append("input")
+    elif is_oe and not is_ie:
+        status_parts.append("output")
+    elif is_ie and is_oe:
+        status_parts.append("bidirectional")
+    else:
+        status_parts.append("no input/output")
+
+    # Pull up/down
+    if is_pu:
+        status_parts.append("pull-up")
+    elif is_pd:
+        status_parts.append("pull-down")
+
+    # Drive strength
+    status_parts.append(f"ds={ds}")
+
+    # Slew rate and Schmitt trigger
+    if is_sl:
+        status_parts.append("slew")
+    if is_st:
+        status_parts.append("schmitt")
+
+    return f"{func_name}, {', '.join(status_parts)}"
 
 
 def print_help():
@@ -1352,8 +1468,9 @@ def main():
                 print("All pins information:")
                 info = get_all_pins_info(args.controller)
                 for pin_name, (current_func, all_funcs) in info.items():
+                    status = get_pin_status(pin, args.controller)
                     func_list = ", ".join(f"alt{io_sel}:{func_name}" for io_sel, func_name in sorted(all_funcs.items()))
-                    print(f"  {pin_name}: {current_func}")
+                    print(f"  {pin_name}: {status}")
                     print(f"      [{func_list}]")
             else:
                 # First check if it's a function name (case-insensitive)
@@ -1364,14 +1481,16 @@ def main():
                     for pin, io_sel in FUNC_TO_PINS_MAP[func_lower]:
                         # Check if this pin is in the specified controller
                         if pin < IOMUX_CONTROLLERS[args.controller]["pins"]:
-                            print(f"  {get_pin_name(pin, args.controller)} (alt{io_sel})-----Cur {get_current_function(pin, args.controller)}")
+                            status = get_pin_status(pin, args.controller)
+                            print(f"  {get_pin_name(pin, args.controller)}: {status}")
                     return
 
                 # Not a function name, try as pin
                 try:
                     pin = parse_pin_arg(args.info, args.controller)
+                    status = get_pin_status(pin, args.controller)
                     print(f"Pin {get_pin_name(pin, args.controller)}:")
-                    print(f"  Current function: {get_current_function(pin, args.controller)}")
+                    print(f"  {status}")
                     funcs = get_pin_functions(pin, args.controller)
                     if funcs:
                         print("  Available functions:")
@@ -1472,6 +1591,7 @@ def main():
             print(f"Setting {pin_name_str}:")
             print(f"  Current:  {current_func}")
             print(f"  New:      {new_func}")
+            print(f"  Status:   {get_pin_status(pin, args.controller)}")
             print(f"  Register: 0x{reg_value:08x} -> 0x{new_value:08x}")
 
             write_pin(pin, new_value, args.controller, confirm=True)

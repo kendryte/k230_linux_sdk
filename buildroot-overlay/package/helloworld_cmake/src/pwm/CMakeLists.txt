@@ -6,13 +6,13 @@
 
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
-add_executable(uart  uart.c)
-target_link_libraries(uart PRIVATE m)
-install(TARGETS uart  DESTINATION /root/app/helloworld/uart/)
+add_executable(pwm  pwm.c)
+target_link_libraries(pwm PRIVATE m)
+install(TARGETS pwm  DESTINATION /root/app/helloworld/pwm/)
 
 
 
 
-add_executable(uart1  uart1.c)
-target_link_libraries(uart1 PRIVATE m pthread)
-install(TARGETS uart1  DESTINATION /root/app/helloworld/uart/)
+# add_executable(pwm1  pwm1.c)
+# target_link_libraries(pwm1 PRIVATE m pthread)
+# install(TARGETS pwm1  DESTINATION /root/app/helloworld/pwm/)

@@ -1,0 +1,175 @@
+From 4e90a6c4efca834d4a22be510e54c7e5dd74aee7 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 22 May 2026 11:51:49 +0800
+Subject: [PATCH] fix pwm bug
+
+---
+ .../dts/canaan/k230-canmv-01studio-lcd.dts    | 23 ++++++++++--
+ .../boot/dts/canaan/k230-canmv-01studio.dts   | 36 +++++++++++++------
+ drivers/pwm/pwm-k230.c                        | 13 +++++--
+ 3 files changed, 57 insertions(+), 15 deletions(-)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+index c128d7da4..287ecd5c2 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -17,6 +17,7 @@ aliases {
+ 		i2c1 = &i2c3;
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
++		spi0 = &spi0;
+ 	};
+ 
+ 	chosen {
+@@ -120,13 +121,25 @@ pwm2_pins: pwm2_pins {
+         pins = K230_IO46; //io46
+         function = K230_IO46_PWM2;  // alt2
+     };
++	pwm3_pins: pwm3_pins {
++		pins = K230_IO47; //io47
++		function = K230_IO47_PWM3;
++	};
+ 	ospi_pins: ospi_pins {
+-        pins = K230_IO15,K230_IO16,K230_IO17;
+-        function = "alt1";
++		pin_clk_mo_mi{
++			pins = K230_IO15,K230_IO16,K230_IO17;
++        	function = "alt1";
++		};
++		pin_cs{
++			pins = K230_IO14;
++        	function = "alt1";
++			bias-pull-up;
++		};
+     };
+ 	i2c2_pins: i2c2_pins {
+         pins = K230_IO11,K230_IO12;
+         function = "alt3";
++		bias-pull-up;
+     };
+ };
+ &pwm0_2{
+@@ -134,7 +147,11 @@ &pwm0_2{
+ 	pinctrl-names = "default";
+     pinctrl-0 = <&pwm2_pins>;
+ };
+-
++&pwm3_5{
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&pwm3_pins>;
++};
+ &spi0
+ {
+ 	status = "okay";
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+index 0b1822266..adbc4f4cb 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+@@ -15,6 +15,7 @@ aliases {
+ 		i2c1 = &i2c3;
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
++		spi0 = &spi0;
+ 	};
+ 
+ 	chosen {
+@@ -139,24 +140,39 @@ K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+ };
+ &iomux {
+ 	pwm2_pins: pwm2_pins {
+-        pins = K230_IO46; //io46
+-        function = K230_IO46_PWM2;  // alt2
+-    };
++		pins = K230_IO46; //io46
++		function = K230_IO46_PWM2;  // alt2
++	};
++	pwm3_pins: pwm3_pins {
++		pins = K230_IO47; //io47
++		function = K230_IO47_PWM3;
++	};
+ 	ospi_pins: ospi_pins {
+-        pins = K230_IO15,K230_IO16,K230_IO17;
+-        function = "alt1";
+-    };
++		pin_clk_mo_mi{
++			pins = K230_IO15,K230_IO16,K230_IO17;
++        	function = "alt1";
++		};
++		pin_cs{
++			pins = K230_IO14;
++        	function = "alt1";
++			bias-pull-up;
++		};
++	};
+ 	i2c2_pins: i2c2_pins {
+-        pins = K230_IO11,K230_IO12;
+-        function = "alt3";
+-    };
++		pins = K230_IO11,K230_IO12;
++		function = "alt3";
++	};
+ };
+ &pwm0_2{
+ 	status = "okay";
+ 	pinctrl-names = "default";
+     pinctrl-0 = <&pwm2_pins>;
+ };
+-
++&pwm3_5{
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&pwm3_pins>;
++};
+ &spi0
+ {
+ 	status = "okay";
+diff --git a/drivers/pwm/pwm-k230.c b/drivers/pwm/pwm-k230.c
+index 3dee24980..31473b4f8 100644
+--- a/drivers/pwm/pwm-k230.c
++++ b/drivers/pwm/pwm-k230.c
+@@ -74,6 +74,9 @@ static int k230_pwm_request(struct pwm_chip *chip, struct pwm_device *pwm)
+ 	mutex_lock(&priv->lock);
+ 	priv->user_count++;
+ 	mutex_unlock(&priv->lock);
++	//memset(&pwm->state, 0, sizeof(pwm->state));
++	pwm->state.enabled = 1;
++	writel(0, priv->regs + PWM_PWMCMP(pwm->hwpwm + 1));
+ 
+ 	return 0;
+ }
+@@ -84,8 +87,13 @@ static void k230_pwm_free(struct pwm_chip *chip, struct pwm_device *pwm)
+ 
+ 	mutex_lock(&priv->lock);
+ 	priv->user_count--;
+-	if (priv->user_count == 0)
++	if (priv->user_count == 0){
+ 		writel(0, priv->regs + PWM_PWMCFG);
++		writel(0xffffffff, priv->regs + PWM_PWMCMP(0));
++		priv->scale = 0;
++		priv->period = 0;
++	}
++
+ 	mutex_unlock(&priv->lock);
+ }
+ 
+@@ -111,7 +119,7 @@ static void k230_pwm_update_period(struct k230_pwm_chip *priv)
+ 
+ 	freq = priv->clk_freq;
+ 	val = div64_ul(priv->period * freq, NSEC_PER_SEC) - 1;
+-	scale = clamp(ilog2(val) - PWM_CMPWIDTH, 0, 0xf);
++	scale = clamp(ilog2(roundup_pow_of_two(val)) - PWM_CMPWIDTH, 0, 0xf);
+ 	val = val >> scale;
+ 	if (val == 0)
+ 		val = 1;
+@@ -161,6 +169,7 @@ static int k230_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+ 	mutex_lock(&priv->lock);
+ 	if (period != priv->period) {
+ 		if (priv->user_count != 1 && priv->period) {
++			printk("can not change period, other channels are using PWM\n");
+ 			mutex_unlock(&priv->lock);
+ 			return -EBUSY;
+ 		}
+-- 
+2.25.1
+

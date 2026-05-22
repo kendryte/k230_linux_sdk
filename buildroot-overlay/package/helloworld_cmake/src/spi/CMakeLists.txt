@@ -6,13 +6,13 @@
 
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
-add_executable(uart  uart.c)
-target_link_libraries(uart PRIVATE m)
-install(TARGETS uart  DESTINATION /root/app/helloworld/uart/)
+add_executable(spi  spi.c)
+target_link_libraries(spi PRIVATE m)
+install(TARGETS spi  DESTINATION /root/app/helloworld/spi/)
 
 
 
 
-add_executable(uart1  uart1.c)
-target_link_libraries(uart1 PRIVATE m pthread)
-install(TARGETS uart1  DESTINATION /root/app/helloworld/uart/)
+# add_executable(spi1  spi1.c)
+# target_link_libraries(spi1 PRIVATE m pthread)
+# install(TARGETS spi1  DESTINATION /root/app/helloworld/spi/)
