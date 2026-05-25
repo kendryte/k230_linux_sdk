@@ -1,0 +1,135 @@
+From 389e1ca941e9a6ce0595d7f4d0b9a251316cdff3 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Mon, 25 May 2026 09:24:17 +0800
+Subject: [PATCH] 01studio add led button
+
+---
+ .../dts/canaan/k230-canmv-01studio-lcd.dts    | 34 +++++++++++++++++++
+ .../boot/dts/canaan/k230-canmv-01studio.dts   | 34 +++++++++++++++++++
+ 2 files changed, 68 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+index 287ecd5c2..b86f4a44c 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -5,6 +5,7 @@
+ 
+ #include "k230.dtsi"
+ #include "display-st7701-480x800.dtsi"
++#include <dt-bindings/input/input.h>
+ 
+ /
+ {
+@@ -36,6 +37,33 @@ sound {
+ 		canaan,k230-i2s-controller  = <&i2s>;
+ 		canaan,k230-audio-codec     = <&inno_codec>;
+ 	};
++
++	// User button (GPIO21)
++	btn {
++		compatible = "gpio-keys";
++		pinctrl-names = "default";
++		pinctrl-0 = <&gpio21_pins>;
++		status = "disabled";
++
++		btn0: btn0 {
++			label = "btn";
++			linux,code = <KEY_VOLUMEUP>;
++			gpios = <&gpio0_ports 21 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	// User LED (GPIO52)
++	led {
++		compatible = "gpio-leds";
++		pinctrl-names = "default";
++		pinctrl-0 = <&gpio52_pins>;
++		status = "disabled";
++
++		led0: led0 {
++			label = "led";
++			gpios = <&gpio1_ports 20 GPIO_ACTIVE_HIGH>;
++		};
++	};
+ };
+ 
+ &uart0 {
+@@ -125,6 +151,14 @@ pwm3_pins: pwm3_pins {
+ 		pins = K230_IO47; //io47
+ 		function = K230_IO47_PWM3;
+ 	};
++	gpio21_pins: gpio21_pins {
++		pins = K230_IO21;
++		function = "alt0";
++	};
++	gpio52_pins: gpio52_pins {
++		pins = K230_IO52;
++		function = "alt0";
++	};
+ 	ospi_pins: ospi_pins {
+ 		pin_clk_mo_mi{
+ 			pins = K230_IO15,K230_IO16,K230_IO17;
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+index adbc4f4cb..087638c05 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include "k230.dtsi"
++#include <dt-bindings/input/input.h>
+ 
+ / {
+ 	model = "Canaan CanMV-K230";
+@@ -34,6 +35,33 @@ sound {
+ 		canaan,k230-i2s-controller  = <&i2s>;
+ 		canaan,k230-audio-codec     = <&inno_codec>;
+ 	};
++
++		// User button (GPIO21)
++	btn {
++		compatible = "gpio-keys";
++		pinctrl-names = "default";
++		pinctrl-0 = <&gpio21_pins>;
++		status = "disabled";
++
++		btn0: btn0 {
++			label = "btn";
++			linux,code = <KEY_VOLUMEUP>;
++			gpios = <&gpio0_ports 21 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	// User LED (GPIO52)
++	led {
++		compatible = "gpio-leds";
++		pinctrl-names = "default";
++		pinctrl-0 = <&gpio52_pins>;
++		status = "disabled";
++
++		led0:led0 {
++			label = "led";
++			gpios = <&gpio1_ports 20 GPIO_ACTIVE_HIGH>;
++		};
++	};
+ };
+ 
+ &uart0 {
+@@ -147,6 +173,14 @@ pwm3_pins: pwm3_pins {
+ 		pins = K230_IO47; //io47
+ 		function = K230_IO47_PWM3;
+ 	};
++	gpio21_pins: gpio21_pins {
++		pins = K230_IO21;
++		function = "alt0";
++	};
++	gpio52_pins: gpio52_pins {
++		pins = K230_IO52;
++		function = "alt0";
++	};
+ 	ospi_pins: ospi_pins {
+ 		pin_clk_mo_mi{
+ 			pins = K230_IO15,K230_IO16,K230_IO17;
+-- 
+2.25.1
+
