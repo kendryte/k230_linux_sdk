@@ -227,6 +227,12 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
         request_buffer.count = context[i].buffer_num;
         CKE(ioctl(context[i].video_fd, VIDIOC_REQBUFS, &request_buffer), close);
         context[i].buffers = malloc(sizeof(struct v4l2_drm_video_buffer) * context[i].buffer_num);
+        CKE(context[i].buffers == NULL, close);
+        memset(context[i].buffers, 0,
+               sizeof(struct v4l2_drm_video_buffer) * context[i].buffer_num);
+        for (unsigned bi = 0; bi < context[i].buffer_num; bi++) {
+            context[i].buffers[bi].fd = -1;
+        }
         if (context[i].display) {
             struct display_buffer* db = context[i].plane->buffers;
             context[i].display_buffers = malloc(sizeof(struct display_buffer) * context[i].buffer_num);
@@ -487,20 +493,62 @@ int v4l2_drm_start(const struct v4l2_drm_context* context) {
     return ioctl(context->video_fd, VIDIOC_STREAMON, &type);
 }
 
+/* Release MMAP+EXPBUF buffers (scene_switch / non-display path). */
+static void v4l2_drm_release_mmap_buffers(struct v4l2_drm_context *ctx)
+{
+    unsigned j;
+
+    if (!ctx->buffers || ctx->video_fd < 0) {
+        return;
+    }
+
+    for (j = 0; j < ctx->buffer_num; j++) {
+        struct v4l2_buffer vb;
+        size_t len = 0;
+
+        memset(&vb, 0, sizeof(vb));
+        vb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        vb.memory = V4L2_MEMORY_MMAP;
+        vb.index = j;
+        if (ioctl(ctx->video_fd, VIDIOC_QUERYBUF, &vb) == 0) {
+            len = vb.length;
+        } else if (ctx->vbuffer.length) {
+            len = ctx->vbuffer.length;
+        }
+
+        if (ctx->buffers[j].mmap && ctx->buffers[j].mmap != MAP_FAILED && len) {
+            munmap(ctx->buffers[j].mmap, len);
+        }
+        ctx->buffers[j].mmap = NULL;
+
+        if (ctx->buffers[j].fd >= 0) {
+            close(ctx->buffers[j].fd);
+            ctx->buffers[j].fd = -1;
+        }
+    }
+}
+
 int v4l2_drm_stop(const struct v4l2_drm_context *context)
 {
-    for (unsigned j = 0; j < context->buffer_num; j++){
+    struct v4l2_drm_context *ctx = (struct v4l2_drm_context *)context;
+    int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    int ret = 0;
 
-        if (context->buffers[j].mmap){
-            munmap(context->buffers[j].mmap, context->vbuffer.length);
-            context->buffers[j].mmap = NULL;
+    if (!ctx || ctx->video_fd < 0) {
+        return -1;
+    }
+
+    if (!ctx->display && ctx->buffers) {
+        v4l2_drm_release_mmap_buffers(ctx);
+    } else if (ctx->display && ctx->buffers) {
+        /* Display path: mmap/fd owned by display_buffer; do not munmap/close here. */
+        for (unsigned j = 0; j < ctx->buffer_num; j++) {
+            ctx->buffers[j].mmap = NULL;
         }
     }
 
-    int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    int ret = ioctl(context->video_fd, VIDIOC_STREAMOFF, &type);
-    if (ret == 0 )
-        close(context->video_fd);
+    ret = ioctl(ctx->video_fd, VIDIOC_STREAMOFF, &type);
+    close(ctx->video_fd);
 
     return ret;
 }
