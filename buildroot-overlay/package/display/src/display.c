@@ -399,6 +399,7 @@ struct display_buffer* display_allocate_buffer(struct display_plane* plane, uint
 
     // get dmabuf fd
     memset(&prime, 0, sizeof prime);
+    prime.fd = -1;
     prime.handle = creq.handle;
     CKE(ioctl(display->fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &prime), free_dumb);
 
@@ -437,13 +438,16 @@ struct display_buffer* display_allocate_buffer(struct display_plane* plane, uint
     buffer->next = plane->buffers;
     plane->buffers = buffer;
     buffer->drm_rotation = plane->drm_rotation;
-
     return buffer;
 
 munmap:
     free(buffer);
     munmap(map, creq.size);
 free_dumb:
+    if (prime.fd >= 0) {
+        close(prime.fd);
+        prime.fd = -1;
+    }
     memset(&destroy, 0, sizeof(destroy));
     destroy.handle = creq.handle;
     drmIoctl(display->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
@@ -459,7 +463,16 @@ void display_free_buffer(struct display_buffer* buffer) {
     struct display* d = p->display;
     struct drm_mode_destroy_dumb destroy;
 
-    munmap(buffer->map, buffer->size);
+    if (buffer->map != NULL) {
+        munmap(buffer->map, buffer->size);
+    }
+    if (buffer->id != 0) {
+        drmModeRmFB(d->fd, buffer->id);
+    }
+    if (buffer->dmabuf_fd >= 0) {
+        close(buffer->dmabuf_fd);
+        buffer->dmabuf_fd = -1;
+    }
     memset(&destroy, 0, sizeof(destroy));
     destroy.handle = buffer->handle;
     drmIoctl(d->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
