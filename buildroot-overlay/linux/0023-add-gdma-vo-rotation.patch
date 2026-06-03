@@ -1,0 +1,1415 @@
+diff --git a/drivers/gpu/drm/canaan/Kconfig b/drivers/gpu/drm/canaan/Kconfig
+index 60f4899cc..7336b3153 100644
+--- a/drivers/gpu/drm/canaan/Kconfig
++++ b/drivers/gpu/drm/canaan/Kconfig
+@@ -3,6 +3,7 @@ config DRM_CANAAN
+ 	bool "DRM Support for Canaan K230 Display Controller"
+ 	depends on OF
+ 	depends on COMMON_CLK
++	select SOC_K230_GDMA
+ 	select DRM
+ 	select DRM_KMS_HELPER
+ 	select DRM_KMS_DMA_HELPER
+diff --git a/drivers/gpu/drm/canaan/canaan_plane.c b/drivers/gpu/drm/canaan/canaan_plane.c
+index 35b8a38e9..3549e86ef 100644
+--- a/drivers/gpu/drm/canaan/canaan_plane.c
++++ b/drivers/gpu/drm/canaan/canaan_plane.c
+@@ -23,7 +23,10 @@
+ #include <drm/drm_fourcc.h>
+ #include <drm/drm_print.h>
+ #include <drm/drm_gem.h>
++#include <drm/drm_gem_atomic_helper.h>
++#include <drm/drm_gem_dma_helper.h>
+ #include <drm/drm_gem_framebuffer_helper.h>
++#include <drm/drm_fb_dma_helper.h>
+ #include <drm/drm_fb_helper.h>
+ #include <drm/drm_drv.h>
+ #include <drm/drm_crtc.h>
+@@ -32,11 +35,443 @@
+ #include <drm/drm_plane_helper.h>
+ #include <drm/drm_probe_helper.h>
+ #include <drm/drm_blend.h>
++#include <drm/drm_framebuffer.h>
++
++#include <linux/dma-fence.h>
++#include <linux/kref.h>
++
++#include <linux/soc/canaan/k230-gdma.h>
+ 
+ #include "canaan_vo.h"
+ #include "canaan_crtc.h"
+ #include "canaan_plane.h"
+ 
++#define CANAAN_ROTATE_PITCH_ALIGN	8
++
++static void canaan_plane_clear_scanout(struct canaan_plane_state *canaan_state)
++{
++	memset(canaan_state->addr, 0, sizeof(canaan_state->addr));
++	memset(canaan_state->pitch, 0, sizeof(canaan_state->pitch));
++	canaan_state->width = 0;
++	canaan_state->height = 0;
++}
++
++static u32 canaan_plane_min_pitch(const struct drm_format_info *info,
++				  int plane, u32 width)
++{
++	u32 plane_w = drm_format_info_plane_width(info, width, plane);
++
++	return drm_format_info_min_pitch(info, plane, plane_w);
++}
++
++static u32 canaan_plane_rotate_pitch(const struct drm_format_info *info,
++				     int plane, u32 width)
++{
++	return ALIGN(canaan_plane_min_pitch(info, plane, width),
++		     CANAAN_ROTATE_PITCH_ALIGN);
++}
++
++static void
++canaan_plane_rotate_pool_release_locked(struct canaan_plane *canaan_plane)
++{
++	int i;
++
++	for (i = 0; i < CANAAN_ROTATE_BUFFER_COUNT; i++) {
++		if (canaan_plane->rotate_pool[i]) {
++			drm_gem_object_put(&canaan_plane->rotate_pool[i]->base);
++			canaan_plane->rotate_pool[i] = NULL;
++		}
++	}
++
++	canaan_plane->rotate_pool_size = 0;
++	canaan_plane->rotate_pool_width = 0;
++	canaan_plane->rotate_pool_height = 0;
++	canaan_plane->rotate_pool_fourcc = 0;
++}
++
++static void canaan_plane_rotate_pool_release(struct canaan_plane *canaan_plane)
++{
++	mutex_lock(&canaan_plane->rotate_lock);
++	canaan_plane_rotate_pool_release_locked(canaan_plane);
++	mutex_unlock(&canaan_plane->rotate_lock);
++}
++
++static bool
++canaan_plane_rotate_pool_matches(struct canaan_plane *canaan_plane,
++				 const struct drm_format_info *info,
++				 u32 width, u32 height, size_t size)
++{
++	return canaan_plane->rotate_pool[0] &&
++	       canaan_plane->rotate_pool_size == size &&
++	       canaan_plane->rotate_pool_width == width &&
++	       canaan_plane->rotate_pool_height == height &&
++	       canaan_plane->rotate_pool_fourcc == info->format;
++}
++
++static int
++canaan_plane_rotate_pool_create_locked(struct canaan_plane *canaan_plane,
++				       const struct drm_format_info *info,
++				       u32 width, u32 height, size_t size)
++{
++	int i;
++
++	for (i = 0; i < CANAAN_ROTATE_BUFFER_COUNT; i++) {
++		struct drm_gem_dma_object *obj;
++
++		obj = drm_gem_dma_create(canaan_plane->base.dev, size);
++		if (IS_ERR(obj)) {
++			canaan_plane_rotate_pool_release_locked(canaan_plane);
++			return PTR_ERR(obj);
++		}
++
++		canaan_plane->rotate_pool[i] = obj;
++	}
++
++	canaan_plane->rotate_pool_size = size;
++	canaan_plane->rotate_pool_width = width;
++	canaan_plane->rotate_pool_height = height;
++	canaan_plane->rotate_pool_fourcc = info->format;
++
++	return 0;
++}
++
++static struct drm_gem_dma_object *
++canaan_plane_rotate_pool_get(struct canaan_plane *canaan_plane,
++			     const struct drm_format_info *info,
++			     u32 width, u32 height, size_t size)
++{
++	struct drm_gem_dma_object *obj;
++	int ret;
++	int i;
++
++	mutex_lock(&canaan_plane->rotate_lock);
++
++	if (!canaan_plane_rotate_pool_matches(canaan_plane, info,
++					      width, height, size)) {
++		canaan_plane_rotate_pool_release_locked(canaan_plane);
++
++		ret = canaan_plane_rotate_pool_create_locked(canaan_plane,
++							     info, width,
++							     height, size);
++		if (ret) {
++			mutex_unlock(&canaan_plane->rotate_lock);
++			return ERR_PTR(ret);
++		}
++	}
++
++	for (i = 0; i < CANAAN_ROTATE_BUFFER_COUNT; i++) {
++		obj = canaan_plane->rotate_pool[i];
++		if (kref_read(&obj->base.refcount) != 1)
++			continue;
++
++		drm_gem_object_get(&obj->base);
++		mutex_unlock(&canaan_plane->rotate_lock);
++		return obj;
++	}
++
++	mutex_unlock(&canaan_plane->rotate_lock);
++
++	return ERR_PTR(-EBUSY);
++}
++
++static int canaan_plane_fill_scanout_from_fb(struct drm_plane_state *plane_state,
++					     struct canaan_plane_state *canaan_state)
++{
++	struct drm_framebuffer *fb = plane_state->fb;
++	const struct drm_format_info *info = fb->format;
++	int i;
++
++	canaan_plane_clear_scanout(canaan_state);
++
++	for (i = 0; i < info->num_planes; i++) {
++		struct drm_gem_dma_object *obj = drm_fb_dma_get_gem_obj(fb, i);
++
++		if (!obj)
++			return -EINVAL;
++
++		canaan_state->addr[i] = obj->dma_addr + fb->offsets[i];
++		canaan_state->pitch[i] = fb->pitches[i];
++	}
++
++	canaan_state->width = plane_state->src_w >> 16;
++	canaan_state->height = plane_state->src_h >> 16;
++	canaan_state->rotated_obj = NULL;
++
++	return 0;
++}
++
++static size_t canaan_plane_rotated_size(const struct drm_format_info *info,
++					u32 width, u32 height)
++{
++	size_t size = 0;
++	int i;
++
++	for (i = 0; i < info->num_planes; i++) {
++		u32 plane_h = drm_format_info_plane_height(info, height, i);
++
++		size += canaan_plane_rotate_pitch(info, i, width) * plane_h;
++	}
++
++	return PAGE_ALIGN(size);
++}
++
++static bool canaan_plane_is_semiplanar_yuv(u32 fourcc)
++{
++	switch (fourcc) {
++	case DRM_FORMAT_NV12:
++#if 0
++	case DRM_FORMAT_NV21:
++	case DRM_FORMAT_NV16:
++	case DRM_FORMAT_NV61:
++#endif
++		return true;
++	default:
++		return false;
++	}
++}
++
++static bool canaan_plane_uses_v4l2_yuv_layout(struct drm_plane_state *plane_state,
++					      u32 width, u32 height)
++{
++	struct drm_framebuffer *fb = plane_state->fb;
++
++	/* V4L2 userspace may allocate the DRM FB as the rotated size. */
++	return canaan_plane_is_semiplanar_yuv(fb->format->format) &&
++	       drm_rotation_90_or_270(plane_state->rotation) &&
++	       plane_state->crtc_w == width &&
++	       plane_state->crtc_h == height;
++}
++
++static bool canaan_plane_rotation_valid(unsigned int rotation)
++{
++	unsigned int rotate = rotation & DRM_MODE_ROTATE_MASK;
++
++	if (!rotate || (rotate & (rotate - 1)))
++		return false;
++
++	return !(rotation & ~(DRM_MODE_ROTATE_MASK | DRM_MODE_REFLECT_MASK));
++}
++
++static int canaan_plane_fill_gdma_src(struct drm_plane_state *plane_state,
++				      struct canaan_gdma_frame *src,
++				      u32 width, u32 height,
++				      bool use_min_pitch)
++{
++	struct drm_framebuffer *fb = plane_state->fb;
++	const struct drm_format_info *info = fb->format;
++	int i;
++
++	src->width = width;
++	src->height = height;
++	src->fourcc = info->format;
++
++	for (i = 0; i < info->num_planes; i++) {
++		struct drm_gem_dma_object *obj = drm_fb_dma_get_gem_obj(fb, i);
++
++		if (!obj)
++			return -EINVAL;
++
++		src->addr[i] = obj->dma_addr + fb->offsets[i];
++		src->pitch[i] = use_min_pitch ?
++				canaan_plane_min_pitch(info, i, width) :
++				fb->pitches[i];
++	}
++
++	return 0;
++}
++
++static void canaan_plane_fill_gdma_dst(struct drm_plane_state *plane_state,
++				       struct canaan_plane_state *canaan_state,
++				       struct canaan_gdma_frame *dst,
++				       struct drm_gem_dma_object *obj,
++				       u32 width, u32 height)
++{
++	struct drm_framebuffer *fb = plane_state->fb;
++	const struct drm_format_info *info = fb->format;
++	dma_addr_t base = obj->dma_addr;
++	int i;
++
++	canaan_plane_clear_scanout(canaan_state);
++
++	dst->width = width;
++	dst->height = height;
++	dst->fourcc = info->format;
++
++	for (i = 0; i < info->num_planes; i++) {
++		u32 plane_h = drm_format_info_plane_height(info, height, i);
++		u32 pitch = canaan_plane_rotate_pitch(info, i, width);
++
++		canaan_state->addr[i] = base;
++		canaan_state->pitch[i] = pitch;
++		dst->addr[i] = base;
++		dst->pitch[i] = pitch;
++		base += pitch * plane_h;
++	}
++
++	canaan_state->width = width;
++	canaan_state->height = height;
++	canaan_state->rotated_obj = obj;
++}
++
++static int canaan_plane_prepare_fb(struct drm_plane *plane,
++				   struct drm_plane_state *new_state)
++{
++	struct canaan_plane *canaan_plane = to_canaan_plane(plane);
++	struct canaan_plane_state *canaan_state = to_canaan_plane_state(new_state);
++	struct drm_framebuffer *fb = new_state->fb;
++	struct drm_gem_dma_object *rotated_obj;
++	struct canaan_gdma_frame src = { 0 };
++	struct canaan_gdma_frame dst = { 0 };
++	unsigned int src_width, src_height;
++	unsigned int dst_width, dst_height;
++	unsigned int fb_width, fb_height;
++	size_t rotated_size;
++	bool use_v4l2_layout;
++	bool rotate_90_270;
++	int ret;
++
++	if (!fb) {
++		canaan_plane_clear_scanout(canaan_state);
++		canaan_plane_rotate_pool_release(canaan_plane);
++		return 0;
++	}
++
++	ret = drm_gem_plane_helper_prepare_fb(plane, new_state);
++	if (ret)
++		return ret;
++
++	if (new_state->rotation == DRM_MODE_ROTATE_0) {
++		canaan_plane_rotate_pool_release(canaan_plane);
++		return canaan_plane_fill_scanout_from_fb(new_state, canaan_state);
++	}
++
++	if (!canaan_plane_rotation_valid(new_state->rotation))
++		return -EINVAL;
++
++	if (new_state->fence) {
++		ret = dma_fence_wait(new_state->fence, true);
++		if (ret < 0)
++			return ret;
++
++		dma_fence_put(new_state->fence);
++		new_state->fence = NULL;
++	}
++
++	fb_width = new_state->src_w >> 16;
++	fb_height = new_state->src_h >> 16;
++	rotate_90_270 = drm_rotation_90_or_270(new_state->rotation);
++	use_v4l2_layout = canaan_plane_uses_v4l2_yuv_layout(new_state,
++							     fb_width,
++							     fb_height);
++
++	src_width = use_v4l2_layout ? fb_height : fb_width;
++	src_height = use_v4l2_layout ? fb_width : fb_height;
++	dst_width = rotate_90_270 && !use_v4l2_layout ? fb_height : fb_width;
++	dst_height = rotate_90_270 && !use_v4l2_layout ? fb_width : fb_height;
++
++	rotated_size = canaan_plane_rotated_size(fb->format, dst_width,
++						 dst_height);
++	rotated_obj = canaan_plane_rotate_pool_get(canaan_plane, fb->format,
++						   dst_width, dst_height,
++						   rotated_size);
++	if (IS_ERR(rotated_obj))
++		return PTR_ERR(rotated_obj);
++
++	ret = canaan_plane_fill_gdma_src(new_state, &src, src_width,
++					 src_height, use_v4l2_layout);
++	if (ret)
++		goto err_put_obj;
++
++	canaan_plane_fill_gdma_dst(new_state, canaan_state, &dst, rotated_obj,
++				   dst_width, dst_height);
++
++	ret = canaan_gdma_rotate_sync(&src, &dst, new_state->rotation, 100);
++	if (ret)
++		goto err_cleanup_state;
++
++	return 0;
++
++err_cleanup_state:
++	canaan_state->rotated_obj = NULL;
++	canaan_plane_clear_scanout(canaan_state);
++err_put_obj:
++	drm_gem_object_put(&rotated_obj->base);
++	return ret;
++}
++
++static void canaan_plane_cleanup_fb(struct drm_plane *plane,
++				    struct drm_plane_state *old_state)
++{
++	struct canaan_plane_state *canaan_state = to_canaan_plane_state(old_state);
++
++	if (canaan_state->rotated_obj) {
++		drm_gem_object_put(&canaan_state->rotated_obj->base);
++		canaan_state->rotated_obj = NULL;
++	}
++
++	canaan_plane_clear_scanout(canaan_state);
++}
++
++static void canaan_plane_reset(struct drm_plane *plane)
++{
++	struct canaan_plane_state *state;
++
++	if (plane->state) {
++		state = to_canaan_plane_state(plane->state);
++		if (state->rotated_obj)
++			drm_gem_object_put(&state->rotated_obj->base);
++
++		__drm_atomic_helper_plane_destroy_state(plane->state);
++		memset(state, 0, sizeof(*state));
++	} else {
++		state = kzalloc(sizeof(*state), GFP_KERNEL);
++		if (!state)
++			return;
++	}
++
++	__drm_atomic_helper_plane_reset(plane, &state->base);
++}
++
++static struct drm_plane_state *
++canaan_plane_duplicate_state(struct drm_plane *plane)
++{
++	struct canaan_plane_state *old_state = to_canaan_plane_state(plane->state);
++	struct canaan_plane_state *state;
++
++	state = kmalloc(sizeof(*state), GFP_KERNEL);
++	if (!state)
++		return NULL;
++
++	__drm_atomic_helper_plane_duplicate_state(plane, &state->base);
++	memcpy(state->addr, old_state->addr, sizeof(state->addr));
++	memcpy(state->pitch, old_state->pitch, sizeof(state->pitch));
++	state->width = old_state->width;
++	state->height = old_state->height;
++	state->rotated_obj = NULL;
++
++	return &state->base;
++}
++
++static void canaan_plane_destroy_state(struct drm_plane *plane,
++				       struct drm_plane_state *state)
++{
++	struct canaan_plane_state *canaan_state = to_canaan_plane_state(state);
++
++	if (canaan_state->rotated_obj)
++		drm_gem_object_put(&canaan_state->rotated_obj->base);
++
++	__drm_atomic_helper_plane_destroy_state(state);
++	kfree(canaan_state);
++}
++
++static void canaan_plane_destroy(struct drm_plane *plane)
++{
++	struct canaan_plane *canaan_plane = to_canaan_plane(plane);
++
++	canaan_plane_rotate_pool_release(canaan_plane);
++	drm_plane_cleanup(plane);
++}
++
+ static int canaan_plane_atomic_check(struct drm_plane *plane,
+ 				     struct drm_atomic_state *state)
+ {
+@@ -57,6 +492,9 @@ static int canaan_plane_atomic_check(struct drm_plane *plane,
+ 			 plane_state->crtc_w, plane_state->crtc_h,
+ 			 plane_state->crtc_x, plane_state->crtc_y);
+ 
++	if (!canaan_plane_rotation_valid(plane_state->rotation))
++		return -EINVAL;
++
+ 	return canaan_vo_check_plane(vo, canaan_plane, plane_state);
+ }
+ 
+@@ -87,18 +525,20 @@ static void canaan_plane_atomic_disable(struct drm_plane *plane,
+ }
+ 
+ static const struct drm_plane_funcs canaan_plane_funcs = {
+-	.reset = drm_atomic_helper_plane_reset,
+-	.destroy = drm_plane_cleanup,
++	.reset = canaan_plane_reset,
++	.destroy = canaan_plane_destroy,
+ 	.update_plane = drm_atomic_helper_update_plane,
+ 	.disable_plane = drm_atomic_helper_disable_plane,
+-	.atomic_duplicate_state = drm_atomic_helper_plane_duplicate_state,
+-	.atomic_destroy_state = drm_atomic_helper_plane_destroy_state,
++	.atomic_duplicate_state = canaan_plane_duplicate_state,
++	.atomic_destroy_state = canaan_plane_destroy_state,
+ };
+ 
+ static const struct drm_plane_helper_funcs canaan_plane_helper_funcs = {
+ 	.atomic_check = canaan_plane_atomic_check,
+ 	.atomic_update = canaan_plane_atomic_update,
+ 	.atomic_disable = canaan_plane_atomic_disable,
++	.prepare_fb = canaan_plane_prepare_fb,
++	.cleanup_fb = canaan_plane_cleanup_fb,
+ };
+ 
+ struct canaan_plane *canaan_plane_create(struct drm_device *drm_dev,
+@@ -113,6 +553,7 @@ struct canaan_plane *canaan_plane_create(struct drm_device *drm_dev,
+ 	canaan_plane = devm_kzalloc(dev, sizeof(*canaan_plane), GFP_KERNEL);
+ 	if (!canaan_plane)
+ 		return ERR_PTR(-ENOMEM);
++	mutex_init(&canaan_plane->rotate_lock);
+ 	plane = &canaan_plane->base;
+ 
+ 	ret = drm_universal_plane_init(drm_dev, plane, config->possible_crtcs,
+diff --git a/drivers/gpu/drm/canaan/canaan_plane.h b/drivers/gpu/drm/canaan/canaan_plane.h
+index f0cddb93b..69ed854e4 100644
+--- a/drivers/gpu/drm/canaan/canaan_plane.h
++++ b/drivers/gpu/drm/canaan/canaan_plane.h
+@@ -9,6 +9,17 @@
+ #ifndef __CANAAN_PLANE_H__
+ #define __CANAAN_PLANE_H__
+ 
++#include <linux/dma-mapping.h>
++#include <linux/mutex.h>
++
++#include <drm/drm_fourcc.h>
++
++#define CANAAN_ROTATE_BUFFER_COUNT 3
++
++struct drm_plane;
++struct drm_plane_state;
++struct drm_gem_dma_object;
++
+ struct canaan_plane_config {
+ 	char *name;
+ 	uint32_t id;
+@@ -29,6 +40,22 @@ struct canaan_plane {
+ 	struct canaan_vo *vo;
+ 	struct canaan_plane_config *config;
+ 	uint32_t id;
++
++	struct mutex rotate_lock;
++	struct drm_gem_dma_object *rotate_pool[CANAAN_ROTATE_BUFFER_COUNT];
++	size_t rotate_pool_size;
++	u32 rotate_pool_width;
++	u32 rotate_pool_height;
++	u32 rotate_pool_fourcc;
++};
++
++struct canaan_plane_state {
++	struct drm_plane_state base;
++	struct drm_gem_dma_object *rotated_obj;
++	dma_addr_t addr[DRM_FORMAT_MAX_PLANES];
++	u32 pitch[DRM_FORMAT_MAX_PLANES];
++	u32 width;
++	u32 height;
+ };
+ 
+ static inline struct canaan_plane *to_canaan_plane(struct drm_plane *plane)
+@@ -36,6 +63,12 @@ static inline struct canaan_plane *to_canaan_plane(struct drm_plane *plane)
+ 	return container_of(plane, struct canaan_plane, base);
+ }
+ 
++static inline struct canaan_plane_state *
++to_canaan_plane_state(struct drm_plane_state *state)
++{
++	return container_of(state, struct canaan_plane_state, base);
++}
++
+ struct canaan_plane *canaan_plane_create(struct drm_device *drm_dev,
+ 					 struct canaan_plane_config *config,
+ 					 struct canaan_vo *vo);
+diff --git a/drivers/gpu/drm/canaan/canaan_vo.c b/drivers/gpu/drm/canaan/canaan_vo.c
+index b20a196ff..fd24c34b5 100755
+--- a/drivers/gpu/drm/canaan/canaan_vo.c
++++ b/drivers/gpu/drm/canaan/canaan_vo.c
+@@ -42,6 +42,47 @@
+ #include "canaan_crtc.h"
+ #include "canaan_plane.h"
+ 
++#define CANAAN_PLANE_ROTATIONS	(DRM_MODE_ROTATE_90 | \
++				 DRM_MODE_ROTATE_180 | \
++				 DRM_MODE_ROTATE_270 | \
++				 DRM_MODE_REFLECT_X | \
++				 DRM_MODE_REFLECT_Y)
++
++static void canaan_vo_get_scanout(struct drm_plane_state *plane_state,
++				  dma_addr_t addr[DRM_FORMAT_MAX_PLANES],
++				  u32 pitch[DRM_FORMAT_MAX_PLANES],
++				  u32 *width, u32 *height)
++{
++	struct canaan_plane_state *canaan_state =
++		to_canaan_plane_state(plane_state);
++	struct drm_framebuffer *fb = plane_state->fb;
++	int i;
++
++	if (canaan_state->width && canaan_state->height) {
++		for (i = 0; i < DRM_FORMAT_MAX_PLANES; i++) {
++			addr[i] = canaan_state->addr[i];
++			pitch[i] = canaan_state->pitch[i];
++		}
++
++		*width = canaan_state->width;
++		*height = canaan_state->height;
++		return;
++	}
++
++	memset(addr, 0, sizeof(dma_addr_t) * DRM_FORMAT_MAX_PLANES);
++	memset(pitch, 0, sizeof(u32) * DRM_FORMAT_MAX_PLANES);
++
++	for (i = 0; i < fb->format->num_planes; i++) {
++		struct drm_gem_dma_object *obj = drm_fb_dma_get_gem_obj(fb, i);
++
++		addr[i] = obj->dma_addr + fb->offsets[i];
++		pitch[i] = fb->pitches[i];
++	}
++
++	*width = plane_state->src_w >> 16;
++	*height = plane_state->src_h >> 16;
++}
++
+ static inline void canaan_vo_write(struct canaan_vo *vo, u32 reg, u32 val)
+ {
+ 	writel(val, vo->reg_base + reg);
+@@ -59,7 +100,6 @@ static void canaan_vo_update_video(struct canaan_vo *vo,
+ 	uint32_t reg_val = 0x00;
+ 	struct drm_plane_state *plane_state = canaan_plane->base.state;
+ 	struct drm_framebuffer *fb = plane_state->fb;
+-	struct drm_gem_dma_object *cma_obj = drm_fb_dma_get_gem_obj(fb, 0);
+ 	struct canaan_plane_config *config = canaan_plane->config;
+ 	uint32_t plane_offset = config->plane_offset;
+ 	uint32_t plane_enable_bit = config->plane_enable_bit;
+@@ -70,6 +110,8 @@ static void canaan_vo_update_video(struct canaan_vo *vo,
+ 	uint32_t y_addr, uv_addr;
+ 	uint32_t stride = 0x00;
+ 	uint32_t disp_en = 0x00;
++	dma_addr_t scanout_addr[DRM_FORMAT_MAX_PLANES];
++	u32 scanout_pitch[DRM_FORMAT_MAX_PLANES];
+ 
+ 	switch (fb->format->format) {
+ 	case DRM_FORMAT_NV12:
+@@ -92,8 +134,8 @@ static void canaan_vo_update_video(struct canaan_vo *vo,
+ 	writel(reg_val,
+ 	       vo->reg_base + plane_offset + VO_LAYER2_3_CTL_REG_OFFSET);
+ 
+-	actual_w = plane_state->src_w >> 16;
+-	actual_h = plane_state->src_h >> 16;
++	canaan_vo_get_scanout(plane_state, scanout_addr, scanout_pitch,
++			      &actual_w, &actual_h);
+ 	reg_val = (actual_w - 1) | (actual_h << 16);
+ 	writel(reg_val,
+ 	       vo->reg_base + plane_offset + VO_LAYER2_3_ACT_SIZE_REG_OFFSET);
+@@ -110,19 +152,19 @@ static void canaan_vo_update_video(struct canaan_vo *vo,
+ 		  (start_h + offset_h);
+ 	writel(reg_val, vo->reg_base + yctl_reg_offset);
+ 
+-	y_addr = cma_obj->dma_addr;
++	y_addr = scanout_addr[0];
+ 	writel(y_addr,
+ 	       vo->reg_base + plane_offset + VO_LAYER2_3_Y_ADDR0_REG_OFFSET);
+ 	writel(y_addr,
+ 	       vo->reg_base + plane_offset + VO_LAYER2_3_Y_ADDR1_REG_OFFSET);
+ 
+-	uv_addr = cma_obj->dma_addr + fb->offsets[1];
++	uv_addr = scanout_addr[1];
+ 	writel(uv_addr,
+ 	       vo->reg_base + plane_offset + VO_LAYER2_3_UV_ADDR0_REG_OFFSET);
+ 	writel(uv_addr,
+ 	       vo->reg_base + plane_offset + VO_LAYER2_3_UV_ADDR1_REG_OFFSET);
+ 
+-	stride = (actual_w / 8 - 1) | (actual_h << 16);
++	stride = (scanout_pitch[0] / 8 - 1) | (actual_h << 16);
+ 	writel(stride,
+ 	       vo->reg_base + plane_offset + VO_LAYER2_3_STRIDE_REG_OFFSET);
+ 
+@@ -161,7 +203,6 @@ static void canaan_vo_update_osd(struct canaan_vo *vo,
+ 	uint32_t reg_val = 0x00;
+ 	struct drm_plane_state *plane_state = canaan_plane->base.state;
+ 	struct drm_framebuffer *fb = plane_state->fb;
+-	struct drm_gem_dma_object *cma_obj = drm_fb_dma_get_gem_obj(fb, 0);
+ 	struct canaan_plane_config *config = canaan_plane->config;
+ 	uint32_t plane_offset = config->plane_offset;
+ 	uint32_t plane_enable_bit = config->plane_enable_bit;
+@@ -173,6 +214,8 @@ static void canaan_vo_update_osd(struct canaan_vo *vo,
+ 	uint32_t stride = 0x00;
+ 	uint32_t disp_en = 0x00;
+ 	uint32_t rb_swap;
++	dma_addr_t scanout_addr[DRM_FORMAT_MAX_PLANES];
++	u32 scanout_pitch[DRM_FORMAT_MAX_PLANES];
+ 
+ 	switch (fb->format->format) {
+ 	case DRM_FORMAT_ARGB8888:
+@@ -207,8 +250,8 @@ static void canaan_vo_update_osd(struct canaan_vo *vo,
+ 	writel(reg_val,
+ 	       vo->reg_base + plane_offset + VO_OSD0_7_INFO_REG_OFFSET);
+ 
+-	actual_w = plane_state->src_w >> 16;
+-	actual_h = plane_state->src_h >> 16;
++	canaan_vo_get_scanout(plane_state, scanout_addr, scanout_pitch,
++			      &actual_w, &actual_h);
+ 	reg_val = actual_w | actual_h << 16;
+ 	writel(reg_val,
+ 	       vo->reg_base + plane_offset + VO_OSD0_7_SIZE_REG_OFFSET);
+@@ -225,7 +268,7 @@ static void canaan_vo_update_osd(struct canaan_vo *vo,
+ 		  (start_h + offset_h);
+ 	writel(reg_val, vo->reg_base + yctl_reg_offset);
+ 
+-	paddr = cma_obj->dma_addr;
++	paddr = scanout_addr[0];
+ 	writel(paddr,
+ 	       vo->reg_base + plane_offset + VO_OSD0_7_VLU_ADDR0_REG_OFFSET);
+ 	writel(paddr,
+@@ -235,7 +278,7 @@ static void canaan_vo_update_osd(struct canaan_vo *vo,
+ 	writel(paddr,
+ 	       vo->reg_base + plane_offset + VO_OSD0_7_ALP_ADDR1_REG_OFFSET);
+ 
+-	stride = fb->pitches[0] / 8;
++	stride = scanout_pitch[0] / 8;
+ 	writel(stride,
+ 	       vo->reg_base + plane_offset + VO_OSD0_7_STRIDE_REG_OFFSET);
+ 
+@@ -273,7 +316,6 @@ static void canaan_vo_update_layer1(struct canaan_vo *vo,
+ 	uint32_t reg_val = 0x00;
+ 	struct drm_plane_state *plane_state = canaan_plane->base.state;
+ 	struct drm_framebuffer *fb = plane_state->fb;
+-	struct drm_gem_dma_object *cma_obj = drm_fb_dma_get_gem_obj(fb, 0);
+ 	struct canaan_plane_config *config = canaan_plane->config;
+ 	uint32_t plane_offset = config->plane_offset;
+ 	uint32_t plane_enable_bit = config->plane_enable_bit;
+@@ -284,6 +326,8 @@ static void canaan_vo_update_layer1(struct canaan_vo *vo,
+ 	uint32_t y_addr, uv_addr;
+ 	uint32_t stride = 0x00;
+ 	uint32_t disp_en = 0x00;
++	dma_addr_t scanout_addr[DRM_FORMAT_MAX_PLANES];
++	u32 scanout_pitch[DRM_FORMAT_MAX_PLANES];
+ 
+ 	reg_val = readl(vo->reg_base + plane_offset + VO_LAYER1_CTL);
+ 	reg_val = (reg_val & ~(GENMASK(3, 0))) | (7 + (0 << 3));
+@@ -306,60 +350,9 @@ static void canaan_vo_update_layer1(struct canaan_vo *vo,
+ 			      fb->format->format);
+ 		return;
+ 	}
+-
+-	switch (plane_state->rotation &
+-		(DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y |
+-		 DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270)) {
+-
+-		case DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y:
+-			reg_val = (reg_val & ~(GENMASK(7, 4))) | ((0x3 << 6) + (0x0 << 4));
+-
+-			actual_w = plane_state->src_w >> 16;
+-			actual_h = plane_state->src_h >> 16;
+-			break;
+-		case DRM_MODE_REFLECT_X | DRM_MODE_ROTATE_90:
+-			reg_val = (reg_val & ~(GENMASK(7, 4))) | ((0x1 << 6) + (0x1 << 4));
+-
+-			actual_w = plane_state->src_h >> 16;
+-			actual_h = plane_state->src_w >> 16;
+-			break;
+-		case DRM_MODE_REFLECT_X | DRM_MODE_ROTATE_270:
+-			reg_val = (reg_val & ~(GENMASK(7, 4))) | ((0x1 << 6) + (0x2 << 4));
+-
+-			actual_w = plane_state->src_h >> 16;
+-			actual_h = plane_state->src_w >> 16;
+-			break;
+-		case DRM_MODE_REFLECT_X:
+-			reg_val = (reg_val & ~(GENMASK(7, 4))) | ((0x1 << 6) + (0x0 << 4));
+-
+-			actual_w = plane_state->src_w >> 16;
+-			actual_h = plane_state->src_h >> 16;
+-			break;
+-		case DRM_MODE_REFLECT_Y:
+-			reg_val = (reg_val & ~(GENMASK(7, 4))) | ((0x2 << 6) + (0x0 << 4));
+-
+-			actual_w = plane_state->src_w >> 16;
+-			actual_h = plane_state->src_h >> 16;
+-			break;
+-		case DRM_MODE_ROTATE_90:
+-			reg_val = (reg_val & ~(GENMASK(7, 4))) | ((0x0 << 6) + (0x1 << 4));
+-
+-			actual_w = plane_state->src_h >> 16;
+-			actual_h = plane_state->src_w >> 16;
+-			break;
+-		case DRM_MODE_ROTATE_270:
+-			reg_val = (reg_val & ~(GENMASK(7, 4))) | ((0x0 << 6) + (0x3 << 4));
+-
+-			actual_w = plane_state->src_h >> 16;
+-			actual_h = plane_state->src_w >> 16;
+-			break;
+-		case 0:
+-			reg_val = (reg_val & ~(GENMASK(7, 4))) | (0x0 << 4);
+-
+-			actual_w = plane_state->src_w >> 16;
+-			actual_h = plane_state->src_h >> 16;
+-			break;
+-	}
++	reg_val &= ~(GENMASK(7, 4));
++	canaan_vo_get_scanout(plane_state, scanout_addr, scanout_pitch,
++			      &actual_w, &actual_h);
+ 
+ 	writel(reg_val, vo->reg_base + plane_offset + VO_LAYER1_CTL);
+ 
+@@ -368,27 +361,27 @@ static void canaan_vo_update_layer1(struct canaan_vo *vo,
+ 
+ 	offset_w = plane_state->crtc_x;
+ 	start_w = readl(vo->reg_base + VO_DISP_XZONE_CTL) & 0x1fff;
+-	reg_val = ((start_w + offset_w + (plane_state->src_w >> 16) - 1) << 16)
+-			 + (start_w + offset_w);
++	reg_val = ((start_w + offset_w + actual_w - 1) << 16) +
++		  (start_w + offset_w);
+ 	writel(reg_val, vo->reg_base + xctl_reg_offset);
+ 
+ 	offset_h = plane_state->crtc_y;
+ 	start_h = readl(vo->reg_base + VO_DISP_YZONE_CTL) & 0x1fff;
+-	reg_val = ((start_h + offset_h + (plane_state->src_h >> 16) - 1) << 16) +
++	reg_val = ((start_h + offset_h + actual_h - 1) << 16) +
+ 		  (start_h + offset_h);
+ 	writel(reg_val, vo->reg_base + yctl_reg_offset);
+ 
+-	y_addr = cma_obj->dma_addr;
++	y_addr = scanout_addr[0];
+ 	writel(y_addr, vo->reg_base + plane_offset + VO_LAYER1_Y_ADDR0);
+ 	writel(y_addr, vo->reg_base + plane_offset + VO_LAYER1_Y_ADDR1);
+ 
+-	uv_addr = cma_obj->dma_addr + fb->offsets[1];
++	uv_addr = scanout_addr[1];
+ 	writel(uv_addr,
+ 	       vo->reg_base + plane_offset + VO_LAYER1_UV_ADDR0);
+ 	writel(uv_addr,
+ 	       vo->reg_base + plane_offset + VO_LAYER1_UV_ADDR1);
+ 
+-	stride = (actual_w) | (actual_w << 16);
++	stride = scanout_pitch[0] | (scanout_pitch[1] << 16);
+ 	writel(stride, vo->reg_base + plane_offset + VO_LAYER1_STRIDE);
+ 
+ 	disp_en = readl(vo->reg_base + VO_DISP_ENABLE);
+@@ -730,7 +723,7 @@ static struct canaan_plane_config
+ 		{
+ 			.id = 0,
+ 			.name = "video_3",
+-			.supported_rotations = 0,
++			.supported_rotations = CANAAN_PLANE_ROTATIONS,
+ 			.formats = video_plane_formats,
+ 			.num_formats = ARRAY_SIZE(video_plane_formats),
+ 			.plane_type = DRM_PLANE_TYPE_OVERLAY,
+@@ -742,7 +735,7 @@ static struct canaan_plane_config
+ 		{
+ 			.id = 1,
+ 			.name = "OSD4",
+-			.supported_rotations = 0,
++			.supported_rotations = CANAAN_PLANE_ROTATIONS,
+ 			.formats = osd_plane_formats,
+ 			.num_formats = ARRAY_SIZE(osd_plane_formats),
+ 			.plane_type = DRM_PLANE_TYPE_PRIMARY,
+@@ -754,7 +747,7 @@ static struct canaan_plane_config
+ 		{
+ 			.id = 2,
+ 			.name = "OSD5",
+-			.supported_rotations = 0,
++			.supported_rotations = CANAAN_PLANE_ROTATIONS,
+ 			.formats = osd_plane_formats,
+ 			.num_formats = ARRAY_SIZE(osd_plane_formats),
+ 			.plane_type = DRM_PLANE_TYPE_CURSOR,
+@@ -766,7 +759,7 @@ static struct canaan_plane_config
+ 		{
+ 			.id = 3,
+ 			.name = "OSD6",
+-			.supported_rotations = 0,
++			.supported_rotations = CANAAN_PLANE_ROTATIONS,
+ 			.formats = osd_plane_formats,
+ 			.num_formats = ARRAY_SIZE(osd_plane_formats),
+ 			.plane_type = DRM_PLANE_TYPE_OVERLAY,
+@@ -778,7 +771,7 @@ static struct canaan_plane_config
+ 		{
+ 			.id = 4,
+ 			.name = "OSD7",
+-			.supported_rotations = 0,
++			.supported_rotations = CANAAN_PLANE_ROTATIONS,
+ 			.formats = osd_plane_formats,
+ 			.num_formats = ARRAY_SIZE(osd_plane_formats),
+ 			.plane_type = DRM_PLANE_TYPE_OVERLAY,
+@@ -790,7 +783,7 @@ static struct canaan_plane_config
+ 		{
+ 			.id = 5,
+ 			.name = "video_2",
+-			.supported_rotations = 0,
++			.supported_rotations = CANAAN_PLANE_ROTATIONS,
+ 			.formats = video_plane_formats,
+ 			.num_formats = ARRAY_SIZE(video_plane_formats),
+ 			.plane_type = DRM_PLANE_TYPE_OVERLAY,
+@@ -801,9 +794,8 @@ static struct canaan_plane_config
+ 		},
+ 		{
+ 			.id = 6,
+-			.name = "video_3",
+-			.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+-					DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
++			.name = "video_1",
++			.supported_rotations = CANAAN_PLANE_ROTATIONS,
+ 			.formats = video_plane_formats,
+ 			.num_formats = ARRAY_SIZE(video_plane_formats),
+ 			.plane_type = DRM_PLANE_TYPE_OVERLAY,
+diff --git a/drivers/soc/canaan/Kconfig b/drivers/soc/canaan/Kconfig
+index 0565c3617..54c99fc05 100644
+--- a/drivers/soc/canaan/Kconfig
++++ b/drivers/soc/canaan/Kconfig
+@@ -21,3 +21,11 @@ config SOC_K230_PM_DOMAINS
+ 	  power domains controller that is used for disabling and
+ 	  enabling SoC devices including CPU1, KPU, display, VPU
+ 	  and DPU.
++
++config SOC_K230_GDMA
++	bool "Canaan Kendryte K230 GDMA controller"
++	depends on RISCV && OF && ARCH_CANAAN
++	depends on DRM
++	help
++	  This enables support for the Canaan Kendryte K230 GDMA
++	  rotation engine.
+diff --git a/drivers/soc/canaan/Makefile b/drivers/soc/canaan/Makefile
+index 1cd74cc84..2041ddf43 100644
+--- a/drivers/soc/canaan/Makefile
++++ b/drivers/soc/canaan/Makefile
+@@ -2,3 +2,4 @@
+ 
+ obj-$(CONFIG_SOC_K210_SYSCTL)	+= k210-sysctl.o
+ obj-$(CONFIG_SOC_K230_PM_DOMAINS)	+= k230-power-domains.o
++obj-$(CONFIG_SOC_K230_GDMA)	+= k230-gdma.o
+diff --git a/drivers/soc/canaan/k230-gdma.c b/drivers/soc/canaan/k230-gdma.c
+new file mode 100644
+index 000000000..8cec4dc6a
+--- /dev/null
++++ b/drivers/soc/canaan/k230-gdma.c
+@@ -0,0 +1,450 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2026, Canaan Bright Sight Co., Ltd
++ */
++
++#include <linux/completion.h>
++#include <linux/dma-mapping.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/kernel.h>
++#include <linux/limits.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/of_device.h>
++#include <linux/platform_device.h>
++
++#include <drm/drm_blend.h>
++#include <drm/drm_fourcc.h>
++
++#include <linux/soc/canaan/k230-gdma.h>
++
++#define K230_GDMA_DONE_INT			BIT(18)
++#define K230_GDMA_INT_MASK			GENMASK(18, 16)
++#define K230_GDMA_CH_EN				BIT(4)
++#define K230_GDMA_LLT_ENTRY_SIZE		24
++#define K230_GDMA_MAX_LLT_SIZE			(3 * K230_GDMA_LLT_ENTRY_SIZE)
++#define K230_GDMA_DEFAULT_TIMEOUT_MS		100
++#define K230_GDMA_DMA_CFG			((7 << 8) | 0xff)
++#define K230_GDMA_DMA_WEIGHT			0x444210
++
++enum k230_gdma_pixel_bits {
++	K230_GDMA_BIT_8 = 0,
++	K230_GDMA_BIT_16,
++	K230_GDMA_BIT_24,
++	K230_GDMA_BIT_32,
++};
++
++struct k230_gdma_plane_info {
++	u8 pixel_bits;
++	u16 width;
++	u16 height;
++};
++
++struct k230_gdma_format_desc {
++	u8 plane_count;
++	struct k230_gdma_plane_info plane[3];
++};
++
++struct k230_gdma_llt {
++	u32 rotation_mode:2;
++	u32 x_mirror:1;
++	u32 y_mirror:1;
++	u32 reserved0:4;
++	u32 pixel_width:2;
++	u32 reserved1:6;
++	u32 channel:3;
++	u32 reserved2:10;
++	u32 pause:1;
++	u32 node_intr:1;
++	u32 reserved3:1;
++	u32 src_addr;
++	u32 width:16;
++	u32 height:16;
++	u32 src_stride:16;
++	u32 dst_stride:16;
++	u32 dst_addr;
++	u32 next_llt_addr;
++} __packed;
++static_assert(sizeof(struct k230_gdma_llt) == K230_GDMA_LLT_ENTRY_SIZE);
++
++struct k230_gdma_regs {
++	u32 dma_ch_en;
++	u32 dma_int_mask;
++	u32 dma_int_stat;
++	u32 dma_cfg;
++	u32 gdma_ctrl;
++	u32 dma_gdmalli_base;
++	u32 gdma_ch_cnt[8];
++	u32 gdma_current_llt;
++	u32 gdma_current_size;
++	u32 gdma_current_saddr;
++	u32 gdma_current_daddr;
++	u32 dma_weight;
++	u32 reserved0;
++};
++
++struct k230_gdma_dev {
++	struct device *dev;
++	void __iomem *base;
++	int irq;
++	struct mutex lock;
++	struct completion done;
++	void *llt_cpu;
++	dma_addr_t llt_dma;
++};
++
++static struct k230_gdma_dev *k230_gdma_global;
++
++static void k230_gdma_clear_irqs(struct k230_gdma_dev *gdma)
++{
++	writel(0xffffffff, gdma->base + offsetof(struct k230_gdma_regs, dma_int_stat));
++}
++
++static void k230_gdma_enable(struct k230_gdma_dev *gdma, bool enable)
++{
++	u32 val;
++
++	val = readl(gdma->base + offsetof(struct k230_gdma_regs, dma_ch_en));
++	if (enable)
++		val |= K230_GDMA_CH_EN;
++	else
++		val &= ~K230_GDMA_CH_EN;
++
++	writel(val, gdma->base + offsetof(struct k230_gdma_regs, dma_ch_en));
++}
++
++static void k230_gdma_abort(struct k230_gdma_dev *gdma)
++{
++	k230_gdma_enable(gdma, false);
++	k230_gdma_clear_irqs(gdma);
++	k230_gdma_enable(gdma, true);
++}
++
++static int k230_gdma_rotation_to_hw(unsigned int rotation)
++{
++	switch (rotation & DRM_MODE_ROTATE_MASK) {
++	case DRM_MODE_ROTATE_0:
++		return 0;
++	case DRM_MODE_ROTATE_90:
++		return 1;
++	case DRM_MODE_ROTATE_180:
++		return 2;
++	case DRM_MODE_ROTATE_270:
++		return 3;
++	default:
++		return -EINVAL;
++	}
++}
++
++static bool k230_gdma_rotation_valid(unsigned int rotation)
++{
++	unsigned int rotate = rotation & DRM_MODE_ROTATE_MASK;
++
++	if (!rotate || (rotate & (rotate - 1)))
++		return false;
++
++	return !(rotation & ~(DRM_MODE_ROTATE_MASK | DRM_MODE_REFLECT_MASK));
++}
++
++static bool k230_gdma_addr_valid(dma_addr_t addr)
++{
++	return !upper_32_bits(addr);
++}
++
++static int k230_gdma_validate_frame(const struct canaan_gdma_frame *frame,
++				    const struct k230_gdma_format_desc *desc)
++{
++	int i;
++
++	if (!frame->width || !frame->height ||
++	    frame->width > U16_MAX || frame->height > U16_MAX)
++		return -EINVAL;
++
++	for (i = 0; i < desc->plane_count; i++) {
++		if (!frame->pitch[i] || frame->pitch[i] > U16_MAX)
++			return -EINVAL;
++
++		if (!k230_gdma_addr_valid(frame->addr[i]))
++			return -ERANGE;
++	}
++
++	return 0;
++}
++
++static int k230_gdma_validate_dst_size(const struct canaan_gdma_frame *src,
++				       const struct canaan_gdma_frame *dst,
++				       unsigned int rotation)
++{
++	bool rotate_90_270 = drm_rotation_90_or_270(rotation);
++	u32 expected_width = rotate_90_270 ? src->height : src->width;
++	u32 expected_height = rotate_90_270 ? src->width : src->height;
++
++	if (dst->width != expected_width || dst->height != expected_height)
++		return -EINVAL;
++
++	return 0;
++}
++
++static int k230_gdma_build_format_desc(const struct canaan_gdma_frame *frame,
++				       struct k230_gdma_format_desc *desc)
++{
++	const struct drm_format_info *info;
++	int i;
++
++	info = drm_format_info(frame->fourcc);
++	if (!info)
++		return -EINVAL;
++
++	memset(desc, 0, sizeof(*desc));
++
++	switch (frame->fourcc) {
++	case DRM_FORMAT_ARGB1555:
++	case DRM_FORMAT_ARGB4444:
++	case DRM_FORMAT_RGB565:
++		desc->plane_count = 1;
++		desc->plane[0].pixel_bits = K230_GDMA_BIT_16;
++		break;
++	case DRM_FORMAT_RGB888:
++	case DRM_FORMAT_BGR888:
++		desc->plane_count = 1;
++		desc->plane[0].pixel_bits = K230_GDMA_BIT_24;
++		break;
++	case DRM_FORMAT_ARGB8888:
++		desc->plane_count = 1;
++		desc->plane[0].pixel_bits = K230_GDMA_BIT_32;
++		break;
++	case DRM_FORMAT_NV12:
++	case DRM_FORMAT_NV21:
++	case DRM_FORMAT_NV16:
++	case DRM_FORMAT_NV61:
++		desc->plane_count = 2;
++		desc->plane[0].pixel_bits = K230_GDMA_BIT_8;
++		desc->plane[1].pixel_bits = K230_GDMA_BIT_16;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	for (i = 0; i < desc->plane_count; i++) {
++		desc->plane[i].width = drm_format_info_plane_width(info,
++								   frame->width,
++								   i);
++		desc->plane[i].height = drm_format_info_plane_height(info,
++								     frame->height,
++								     i);
++	}
++
++	return 0;
++}
++
++static int k230_gdma_build_llt(struct k230_gdma_dev *gdma,
++			       const struct canaan_gdma_frame *src,
++			       const struct canaan_gdma_frame *dst,
++			       unsigned int rotation)
++{
++	struct k230_gdma_format_desc desc;
++	struct k230_gdma_llt *llt = gdma->llt_cpu;
++	int rotate_hw;
++	int ret;
++	int i;
++
++	if (!k230_gdma_rotation_valid(rotation))
++		return -EINVAL;
++
++	rotate_hw = k230_gdma_rotation_to_hw(rotation);
++
++	ret = k230_gdma_build_format_desc(src, &desc);
++	if (ret)
++		return ret;
++
++	ret = k230_gdma_validate_frame(src, &desc);
++	if (ret)
++		return ret;
++
++	ret = k230_gdma_validate_frame(dst, &desc);
++	if (ret)
++		return ret;
++
++	ret = k230_gdma_validate_dst_size(src, dst, rotation);
++	if (ret)
++		return ret;
++
++	memset(llt, 0, K230_GDMA_MAX_LLT_SIZE);
++
++	for (i = 0; i < desc.plane_count; i++) {
++		llt[i].rotation_mode = rotate_hw;
++		llt[i].x_mirror = !!(rotation & DRM_MODE_REFLECT_X);
++		llt[i].y_mirror = !!(rotation & DRM_MODE_REFLECT_Y);
++		llt[i].pixel_width = desc.plane[i].pixel_bits;
++		llt[i].channel = 0;
++		llt[i].node_intr = (i == desc.plane_count - 1);
++		llt[i].src_addr = lower_32_bits(src->addr[i]);
++		llt[i].width = desc.plane[i].width;
++		llt[i].height = desc.plane[i].height;
++		llt[i].src_stride = src->pitch[i];
++		llt[i].dst_stride = dst->pitch[i];
++		llt[i].dst_addr = lower_32_bits(dst->addr[i]);
++		if (i != desc.plane_count - 1)
++			llt[i].next_llt_addr = lower_32_bits(gdma->llt_dma +
++							       (i + 1) * K230_GDMA_LLT_ENTRY_SIZE);
++	}
++
++	return 0;
++}
++
++static irqreturn_t k230_gdma_irq(int irq, void *data)
++{
++	struct k230_gdma_dev *gdma = data;
++	u32 stat;
++
++	stat = readl(gdma->base + offsetof(struct k230_gdma_regs, dma_int_stat));
++	if (!(stat & K230_GDMA_DONE_INT))
++		return IRQ_NONE;
++
++	writel(stat, gdma->base + offsetof(struct k230_gdma_regs, dma_int_stat));
++	complete(&gdma->done);
++
++	return IRQ_HANDLED;
++}
++
++int canaan_gdma_rotate_sync(struct canaan_gdma_frame *src,
++			    struct canaan_gdma_frame *dst,
++			    unsigned int rotation,
++			    unsigned int timeout_ms)
++{
++	struct k230_gdma_dev *gdma = k230_gdma_global;
++	unsigned long timeout;
++	int ret;
++	u32 val;
++
++	if (!gdma || !src || !dst)
++		return -ENODEV;
++
++	if (src->fourcc != dst->fourcc)
++		return -EINVAL;
++
++	if (!timeout_ms)
++		timeout_ms = K230_GDMA_DEFAULT_TIMEOUT_MS;
++
++	mutex_lock(&gdma->lock);
++
++	reinit_completion(&gdma->done);
++
++	ret = k230_gdma_build_llt(gdma, src, dst, rotation);
++	if (ret)
++		goto out_unlock;
++
++	k230_gdma_clear_irqs(gdma);
++	writel(lower_32_bits(gdma->llt_dma),
++	       gdma->base + offsetof(struct k230_gdma_regs, dma_gdmalli_base));
++	writel(0x1, gdma->base + offsetof(struct k230_gdma_regs, gdma_ctrl));
++
++	timeout = wait_for_completion_timeout(&gdma->done,
++					      msecs_to_jiffies(timeout_ms));
++	if (!timeout) {
++		k230_gdma_abort(gdma);
++		dev_err_ratelimited(gdma->dev, "rotation timed out\n");
++		ret = -ETIMEDOUT;
++		goto out_unlock;
++	}
++
++	val = readl(gdma->base + offsetof(struct k230_gdma_regs, dma_int_stat));
++	writel(val, gdma->base + offsetof(struct k230_gdma_regs, dma_int_stat));
++	ret = 0;
++
++out_unlock:
++	mutex_unlock(&gdma->lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(canaan_gdma_rotate_sync);
++
++static int k230_gdma_probe(struct platform_device *pdev)
++{
++	struct k230_gdma_dev *gdma;
++	struct resource *res;
++	u32 val;
++	int ret;
++
++	gdma = devm_kzalloc(&pdev->dev, sizeof(*gdma), GFP_KERNEL);
++	if (!gdma)
++		return -ENOMEM;
++
++	gdma->dev = &pdev->dev;
++	mutex_init(&gdma->lock);
++	init_completion(&gdma->done);
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	gdma->base = devm_ioremap_resource(&pdev->dev, res);
++	if (IS_ERR(gdma->base))
++		return PTR_ERR(gdma->base);
++
++	gdma->irq = platform_get_irq(pdev, 0);
++	if (gdma->irq < 0)
++		return gdma->irq;
++
++	ret = devm_request_irq(&pdev->dev, gdma->irq, k230_gdma_irq, 0,
++			       dev_name(&pdev->dev), gdma);
++	if (ret)
++		return ret;
++
++	gdma->llt_cpu = dmam_alloc_coherent(&pdev->dev, K230_GDMA_MAX_LLT_SIZE,
++					    &gdma->llt_dma, GFP_KERNEL);
++	if (!gdma->llt_cpu)
++		return -ENOMEM;
++
++	k230_gdma_clear_irqs(gdma);
++	writel(0xffffffff, gdma->base + offsetof(struct k230_gdma_regs, dma_int_mask));
++
++	k230_gdma_enable(gdma, true);
++
++	val = readl(gdma->base + offsetof(struct k230_gdma_regs, dma_int_mask));
++	writel(val & ~K230_GDMA_INT_MASK,
++	       gdma->base + offsetof(struct k230_gdma_regs, dma_int_mask));
++
++	writel(K230_GDMA_DMA_CFG, gdma->base + offsetof(struct k230_gdma_regs, dma_cfg));
++	writel(K230_GDMA_DMA_WEIGHT,
++	       gdma->base + offsetof(struct k230_gdma_regs, dma_weight));
++
++	platform_set_drvdata(pdev, gdma);
++	k230_gdma_global = gdma;
++
++	return 0;
++}
++
++static int k230_gdma_remove(struct platform_device *pdev)
++{
++	struct k230_gdma_dev *gdma = platform_get_drvdata(pdev);
++	u32 val;
++
++	val = readl(gdma->base + offsetof(struct k230_gdma_regs, dma_int_mask));
++	writel(val | K230_GDMA_INT_MASK,
++	       gdma->base + offsetof(struct k230_gdma_regs, dma_int_mask));
++
++	k230_gdma_enable(gdma, false);
++
++	if (k230_gdma_global == gdma)
++		k230_gdma_global = NULL;
++
++	return 0;
++}
++
++static const struct of_device_id k230_gdma_of_match[] = {
++	{ .compatible = "canaan,gdma" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, k230_gdma_of_match);
++
++static struct platform_driver canaan_gdma_driver = {
++	.probe = k230_gdma_probe,
++	.remove = k230_gdma_remove,
++	.driver = {
++		.name = "k230-gdma",
++		.of_match_table = k230_gdma_of_match,
++	},
++};
++module_platform_driver(canaan_gdma_driver);
++
++MODULE_DESCRIPTION("Canaan K230 GDMA driver");
++MODULE_LICENSE("GPL");
+diff --git a/include/linux/soc/canaan/k230-gdma.h b/include/linux/soc/canaan/k230-gdma.h
+new file mode 100644
+index 000000000..8b39ad034
+--- /dev/null
++++ b/include/linux/soc/canaan/k230-gdma.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2026, Canaan Bright Sight Co., Ltd
++ */
++
++#ifndef __LINUX_SOC_CANAAN_K230_GDMA_H__
++#define __LINUX_SOC_CANAAN_K230_GDMA_H__
++
++#include <linux/dma-mapping.h>
++
++#define CANAAN_GDMA_MAX_PLANES 3
++
++struct canaan_gdma_frame {
++	dma_addr_t addr[CANAAN_GDMA_MAX_PLANES];
++	u32 pitch[CANAAN_GDMA_MAX_PLANES];
++	u32 width;
++	u32 height;
++	u32 fourcc;
++};
++
++int canaan_gdma_rotate_sync(struct canaan_gdma_frame *src,
++			    struct canaan_gdma_frame *dst,
++			    unsigned int rotation,
++			    unsigned int timeout_ms);
++
++#endif /* __LINUX_SOC_CANAAN_K230_GDMA_H__ */

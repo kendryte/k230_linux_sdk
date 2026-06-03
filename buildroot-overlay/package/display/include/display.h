@@ -15,11 +15,13 @@ extern "C" {
 #define DISPLAY_QUEUE_DEPTH 3
 
 
-enum drm_rotation{
+enum drm_rotation {
     rotation_0 = 0,
     rotation_90 = 1,
     rotation_180 = 2,
     rotation_270 = 3,
+    rotation_reflect_x = 4,
+    rotation_reflect_y = 5,
 };
 struct display {
     int fd;

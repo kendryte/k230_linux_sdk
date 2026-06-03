@@ -46,6 +46,7 @@ struct display* display_init(unsigned device) {
     display->planes = NULL;
     display->commitFlags = 0;
     display->req = NULL;
+    display->drm_rotation = rotation_0;
 
     snprintf(filename, sizeof(filename), "/dev/dri/card%u", device);
     display->fd = open(filename, O_RDWR | O_CLOEXEC);
@@ -506,6 +507,16 @@ static uint32_t get_plane_property_id(const struct display_plane* plane, const c
     return 0xDEADDEAD;
 }
 
+static bool plane_has_property(const struct display_plane* plane, const char* name) {
+    for (unsigned i = 0; i < plane->props_count; i++) {
+        if (plane->props[i] && strcmp(name, plane->props[i]->name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static uint32_t get_crtc_property_id(const struct display* display, const char* name) {
     for (unsigned i = 0; i < display->crtc_props_count; i++) {
         if (strcmp(name, display->crtc_props[i]->name) == 0) {
@@ -542,6 +553,25 @@ static int drm_add_plane_property(const struct display_plane* plane, drmModeAtom
     }
 
     return 0;
+}
+
+static uint64_t drm_rotation_property_value(enum drm_rotation rotation) {
+    switch (rotation) {
+        case rotation_0:
+            return DRM_MODE_ROTATE_0;
+        case rotation_90:
+            return DRM_MODE_ROTATE_90;
+        case rotation_180:
+            return DRM_MODE_ROTATE_180;
+        case rotation_270:
+            return DRM_MODE_ROTATE_270;
+        case rotation_reflect_x:
+            return DRM_MODE_ROTATE_0 | DRM_MODE_REFLECT_X;
+        case rotation_reflect_y:
+            return DRM_MODE_ROTATE_0 | DRM_MODE_REFLECT_Y;
+        default:
+            return DRM_MODE_ROTATE_0;
+    }
 }
 
 static int drm_add_crtc_property(const struct display* display, drmModeAtomicReqPtr req, const char *name, uint64_t value)
@@ -608,15 +638,11 @@ int display_update_buffer(struct display_buffer* buffer, uint32_t x, uint32_t y)
     drm_add_plane_property(plane, display->req, "CRTC_W", buffer->width);
     drm_add_plane_property(plane, display->req, "CRTC_H", buffer->height);
 
-    if(buffer->plane->fourcc == DRM_FORMAT_NV12)
-    {
-        if(buffer->drm_rotation == rotation_90)
-            drm_add_plane_property(plane, display->req, "rotation", 0x2);
-
-        if(buffer->drm_rotation == rotation_270)
-            drm_add_plane_property(plane, display->req, "rotation", 0x8);
-
+    if (plane_has_property(plane, "rotation")) {
+        drm_add_plane_property(plane, display->req, "rotation",
+                drm_rotation_property_value(buffer->drm_rotation));
     }
+
     return 0;
 }
 
@@ -673,6 +699,11 @@ int display_commit_buffer(const struct display_buffer* buffer, uint32_t x, uint3
     drm_add_plane_property(plane, req, "CRTC_Y", y);
     drm_add_plane_property(plane, req, "CRTC_W", buffer->width);
     drm_add_plane_property(plane, req, "CRTC_H", buffer->height);
+
+    if (plane_has_property(plane, "rotation")) {
+        drm_add_plane_property(plane, req, "rotation",
+                drm_rotation_property_value(buffer->drm_rotation));
+    }
 
     CKE(drmModeAtomicCommit(display->fd, req, flags, NULL), error);
 
