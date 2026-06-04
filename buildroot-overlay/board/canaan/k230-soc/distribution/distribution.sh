@@ -198,7 +198,8 @@ distribution_rootfs_replace() {
     ln -sf /etc/systemd/system/vvcam.service "${distr_rootfs}/etc/systemd/system/basic.target.wants/vvcam.service"
 
     # Download nncase runtime
-    cp -rf ${target_dir}/root/*.whl ${distr_rootfs}/root/
+    unzip -o  ${K230_SDK_ROOT}/dl/libnncase/nncaseruntime_k230-2.11.0-py3-none-linux_riscv64.whl -d  ${distr_rootfs}/usr/local/lib/python3.1*/dist-packages
+    unzip -o  ${BINARIES_DIR}/../build/python-k230-1.0.0/dist/k230_python-1.0.0-cp313-cp313-linux_riscv64.whl -d  ${distr_rootfs}/usr/local/lib/python3.1*/dist-packages
 
     # Copy additional libraries and binaries
     cp -fL "${target_dir}/usr/lib/libjpeg.so.9" "${distr_rootfs}/usr/lib/riscv64-linux-gnu/"
