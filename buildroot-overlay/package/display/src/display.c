@@ -1,4 +1,5 @@
 #include "display.h"
+#include <assert.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -41,6 +42,7 @@ struct display* display_init(unsigned device) {
     drmModeEncoder *enc = NULL;
 
     display = malloc(sizeof(*display));
+    memset(display, 0 ,sizeof(*display));
     display->planes = NULL;
     display->commitFlags = 0;
     display->req = NULL;
@@ -640,8 +642,17 @@ int display_commit_buffer(const struct display_buffer* buffer, uint32_t x, uint3
     uint32_t flags = DRM_MODE_PAGE_FLIP_EVENT;
     struct display_plane* plane = buffer->plane;
     struct display* display = plane->display;
-    drmModeAtomicReqPtr req = drmModeAtomicAlloc();
-    display->req = req;
+    drmModeAtomicReqPtr req = NULL;
+
+
+    if(display->req == NULL)
+        display->req = drmModeAtomicAlloc();
+    if (!display->req) {
+        printf("malloc error\n");
+        return -ENOMEM;
+    }
+
+    req = display->req;
 
     if (plane->first) {
         drm_add_conn_property(display, req, "CRTC_ID", display->crtc_id);
@@ -669,6 +680,7 @@ int display_commit_buffer(const struct display_buffer* buffer, uint32_t x, uint3
 
 error:
     drmModeAtomicFree(req);
+    display->req = NULL;
     return -1;
 }
 
