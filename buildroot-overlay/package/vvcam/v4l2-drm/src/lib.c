@@ -353,8 +353,6 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
         return -1;
     }
     uint32_t display_frame_count = 0;
-    uint32_t frame_count_fps[num];
-    memset(frame_count_fps, 0, sizeof(uint32_t) * num);
     struct pollfd fds[num + flag_enable_display];
     struct timeval tv, tv2;
     gettimeofday(&tv, NULL);

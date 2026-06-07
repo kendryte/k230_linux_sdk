@@ -195,7 +195,7 @@ json_str = u'''
         "k230_canmv_defconfig": {
             "name": "CanMV 1.0/1.1",
             "description": "CanMV K230 1.0/1.1",
-            "image_url": "https://www.kendryte.com/k230_canmv/zh/main/_images/CanMV-K230_front.png",
+            "image_url": "https://www.kendryte.com/api/imagecdn/zh/sdk/canmv_k230_sdk/images/CanMV-K230_front.png",
             "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230_canmv_01studio_emmc_defconfig": {

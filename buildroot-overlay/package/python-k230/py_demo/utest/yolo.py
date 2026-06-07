@@ -119,10 +119,12 @@ def detect():
 
     while True:
         # 获取当前时间
-        time1 = time.time()
+        t_start = time.time()
 
         # 从摄像头捕获一帧图像
+        t0 = time.time()
         ret, frame = cap.read()
+        t1 = time.time()
         if not ret:
             print("视频流结束或发生错误")
             break
@@ -143,21 +145,25 @@ def detect():
         img_rgb = frame  #cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         #img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img_nchw = np.array([img_rgb.transpose((2, 0, 1))])  # 转换为 NCHW
+        t2 = time.time()   #预处理
 
         # -------------------------------
         # 执行 AI2D 预处理（resize + pad）
         # -------------------------------
         ai2d_input_tensor = nn.RuntimeTensor.from_numpy(img_nchw)
         ai2d.run(ai2d_input_tensor, kpu_input_tensor)
+        t3 = time.time()   #AI2D
 
         # -------------------------------
         # 模型推理
         # -------------------------------
         kpu.run()
+        t4 = time.time() #推理
 
         # 获取模型输出
         model_output = kpu.get_output_tensor(0).to_numpy()
         predictions = model_output[0].transpose()  # (8400, 84)
+        t5 = time.time()  #取输出
 
         # -------------------------------
         # 后处理：YOLOv8 输出解析
@@ -189,6 +195,7 @@ def detect():
         # 执行 NMS（非极大值抑制）
         # -------------------------------
         indices = cv2.dnn.NMSBoxes(boxes.tolist(), scores.tolist(), confidence_thres, iou_thres)
+        t6 = time.time()   #后处理
 
         # -------------------------------
         # 绘制检测结果
@@ -232,7 +239,21 @@ def detect():
         # -------------------------------
         resized_img = cv2.resize(img_rgb, (img_size[0], img_size[1]), interpolation=cv2.INTER_LINEAR)
         k230_display.show(resized_img)
+        t7 = time.time()  #显示
 
+        # -------------------------------
+        # 打印耗时统计（每帧）
+        # -------------------------------
+        # print(f"耗时: 摄像头={(t1-t0)*1000:.1f}ms, 预处理={(t2-t1)*1000:.1f}ms, "
+        #       f"AI2D={(t3-t2)*1000:.1f}ms, 推理={(t4-t3)*1000:.1f}ms, "
+        #       f"取输出={(t5-t4)*1000:.1f}ms, 后处理={(t6-t5)*1000:.1f}ms, "
+        #       f"绘制={(t7-t6)*1000:.1f}ms, 总计={(t7-t_start)*1000:.1f}ms")
+# 耗时: 摄像头=0.9ms, 预处理=2.2ms, AI2D=1.3ms, 推理=16.9ms, 取输出=0.2ms, 后处理=3.2ms, 绘制=5.5ms, 总计=30.3ms
+# 耗时: 摄像头=3.6ms, 预处理=4.0ms, AI2D=1.5ms, 推理=17.1ms, 取输出=0.2ms, 后处理=3.2ms, 绘制=7.6ms, 总计=37.2ms
+
+
+# 耗时: 摄像头=3.9ms, 预处理=12.5ms, AI2D=5.5ms, 推理=17.5ms, 取输出=0.2ms, 后处理=3.2ms, 绘制=5.6ms, 总计=48.4ms
+# 耗时: 摄像头=3.6ms, 预处理=14.0ms, AI2D=5.6ms, 推理=19.4ms, 取输出=0.2ms, 后处理=3.1ms, 绘制=5.5ms, 总计=51.4ms
         # -------------------------------
         # 键盘输入检测（非阻塞）
         # -------------------------------
