@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,19 +9,24 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        [v-cloak] { display: none; }
+        [v-cloak] {
+            display: none;
+        }
+
         .tab-button.active {
             @apply border-b-2 border-blue-600 text-blue-600 font-semibold;
         }
     </style>
 </head>
+
 <body class="bg-gray-50 font-sans antialiased text-gray-800">
     <div id="app" v-cloak class="min-h-screen flex flex-col">
         <nav class="bg-white shadow-sm border-b border-gray-100 py-4 px-6">
             <div class="max-w-7xl mx-auto flex items-center justify-between">
                 <div class="flex items-center space-x-3">
 
-                    <img src="https://www.kendryte.com/api/post/attachment?id=831" class="w-16 h-16 object-contain " alt="Company Logo">
+                    <img src="https://www.kendryte.com/api/post/attachment?id=831" class="w-16 h-16 object-contain "
+                        alt="Company Logo">
 
                     <span class="text-2xl font-bold tracking-tight">K230 linux sdk 镜像下载</span>
                 </div>
@@ -31,16 +37,14 @@
         </nav>
 
         <main class="flex-grow max-w-7xl mx-auto w-full flex flex-col md:flex-row p-6 gap-6">
-			 <aside class="w-full md:w-64 flex-shrink-0 space-y-6">
+            <aside class="w-full md:w-64 flex-shrink-0 space-y-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-2">
                     <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">产品系列</h3>
-                    <button
-                        v-for="(product, id) in products"
-                        :key="id"
-                        @click="activeProductId = id"
+                    <button v-for="(product, id) in products" :key="id" @click="activeProductId = id"
                         :class="['w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
                                  activeProductId === id ? 'bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200' : 'text-gray-700 hover:bg-gray-100']">
-                        <img v-if="product.image_url" :src="product.image_url" class="w-7 h-7 object-cover rounded-md border border-gray-200" :alt="product.name">
+                        <img v-if="product.image_url" :src="product.image_url"
+                            class="w-7 h-7 object-cover rounded-md border border-gray-200" :alt="product.name">
                         <span>{{ product.name }}</span>
                     </button>
                 </div>
@@ -51,7 +55,8 @@
                         <a href="https://www.kendryte.com/answer/" target="_blank" class="quick-link">
                             <i class="fas fa-comments w-4"></i> 嘉楠问答社区
                         </a>
-                         <a href="https://www.kendryte.com/zh/resource/chip_manual,k230" target="_blank" class="quick-link">
+                        <a href="https://www.kendryte.com/zh/resource/chip_manual,k230" target="_blank"
+                            class="quick-link">
                             <i class="fas fa-file-pdf w-4"></i> 芯片手册
                         </a>
                         <a href="https://www.kendryte.com/zh/document" target="_blank" class="quick-link">
@@ -63,7 +68,8 @@
                         <a href="https://github.com/kendryte/k230_linux_sdk/" target="_blank" class="quick-link">
                             <i class="fab fa-github w-4"></i> linux sdk源码
                         </a>
-                        <a href="https://ai.b-bug.org/k230/release/linux_sdk_images/daily_build/" target="_blank" class="quick-link">
+                        <a href="https://ai.b-bug.org/k230/release/linux_sdk_images/daily_build/" target="_blank"
+                            class="quick-link">
                             <i class="fas fa-external-link-alt w-4"></i> linux内网镜像
                         </a>
                     </div>
@@ -74,54 +80,105 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="flex flex-col lg:flex-row p-6 lg:p-8 items-start lg:items-center gap-6">
                         <img v-if="activeProduct.image_url" :src="activeProduct.image_url"
-                             class="w-45 h-32 object-cover rounded-lg shadow-md border border-gray-200 flex-shrink-0" :alt="activeProduct.name">
+                            class="w-45 h-32 object-cover rounded-lg shadow-md border border-gray-200 flex-shrink-0"
+                            :alt="activeProduct.name">
 
                         <div>
                             <h2 class="text-3xl font-extrabold text-gray-900 mb-2">{{ activeProduct.name }}</h2>
                             <p class="text-gray-500 text-lg max-w-2xl">{{ activeProduct.description }}</p>
                         </div>
                     </div>
+                    <div class="bg-orange-50 rounded-xl shadow-sm border border-orange-100 p-6">
+                        <h3 class="text-lg font-bold text-orange-800 mb-4 flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-2"></i> 特别说明
+                        </h3>
+                        <ul class="space-y-3 text-sm text-orange-700">
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                镜像烧录与串口连接请参考<a
+                                    href="https://www.kendryte.com/k230_linux/zh/main/userguide/how_to_flash.html"
+                                    target="_blank" class="text-blue-600 hover:underline">《烧录与连接操作指南》</a>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                CanMV IDE（基于 MicroPython）不适用于 Linux SDK，请使用标准串口终端工具（如 PuTTY）来操作 Linux 系统。
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                首次启动需要几分钟进行文件系统扩容，请耐心等待, 部分烧录软件存在 Bug（例如<a
+                                    href="https://www.kendryte.com/answer/questions/10010000000002910" target="_blank"
+                                    class="text-blue-600 hover:underline"> 此处提到的问题</a> ）
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                Linux SDK 仍在开发中。如遇问题，欢迎前往 <a href="https://www.kendryte.com/answer/" target="_blank"
+                                    class="text-blue-600 hover:underline">嘉楠问答社区</a> 寻求帮助。提问前请先搜索历史帖子，避免重复提问
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-check-circle text-orange-400"></i>
+                                镜像仅可烧录到对应的开发板，请务必选择与当前板型完全匹配的镜像，不能混烧其他板型的镜像。否则可能导致硬件损坏！！！
+                            </li>
+                        </ul>
+                    </div>
+
 
                     <div class="border-t border-gray-100 px-6 lg:px-8 pt-4">
                         <div class="flex space-x-4 border-b border-gray-200">
-                           <button v-for="(variant, key) in activeProduct.variants" :key="key"
+                            <button v-for="(variant, key) in activeProduct.variants" :key="key"
                                 @click="activeVariantKey = key"
                                 :class="['tab-button py-3 px-4 text-sm transition-all', activeVariantKey === key ? 'bg-blue-600 text-white font-bold shadow-md' : 'text-gray-700 bg-gray-50 hover:bg-gray-200 hover:text-gray-900 transition-colors']">
-                                {{ key }} <span v-if="variant.arch" class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 font-normal">{{ variant.arch }}</span>
+                                {{ key }} <span v-if="variant.arch"
+                                    class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 font-normal">{{
+                                    variant.arch }}</span>
                             </button>
                         </div>
                     </div>
 
                     <div v-if="activeVariant" class="p-6 lg:p-8 space-y-8">
-                        <div v-if="activeVariant.latest" class="bg-blue-50 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 ring-1 ring-blue-100">
+                        <div v-if="activeVariant.latest"
+                            class="bg-blue-50 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 ring-1 ring-blue-100">
                             <div>
                                 <span class="block text-sm font-bold text-blue-700 mb-1">最新每日构建版本</span>
-                                <div class="text-3xl font-bold font-mono text-blue-900">{{ activeVariant.latest.url ? activeVariant.latest.url.split('/').pop() : '-' }}</div>
+                                <div class="text-3xl font-bold font-mono text-blue-900">{{ activeVariant.latest.url ?
+                                    activeVariant.latest.url.split('/').pop() : '-' }}</div>
                                 <p class="text-sm text-blue-700 mt-2">发布于: {{ activeVariant.latest.date || '-' }}</p>
                             </div>
                             <div class="text-right flex flex-col items-end gap-3 w-full sm:w-auto">
-                                <span class="text-xs text-gray-500 break-all font-mono">md5: {{ activeVariant.latest.md5 || '-' }}</span>
-                                <a v-if="activeVariant.latest.url" :href="activeVariant.latest.url" target="_blank" rel="noopener noreferrer"
-                                   class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-200 transition-all transform hover:-translate-y-0.5 inline-flex items-center gap-2">
+                                <span class="text-xs text-gray-500 break-all font-mono">md5: {{ activeVariant.latest.md5
+                                    || '-' }}</span>
+                                <a v-if="activeVariant.latest.url" :href="activeVariant.latest.url" target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-200 transition-all transform hover:-translate-y-0.5 inline-flex items-center gap-2">
                                     <i class="fas fa-download"></i> 下载
                                 </a>
                             </div>
                         </div>
 
-                        <div v-if="activeVariant.history.length > 0" class="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                            <h3 class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700 border-b border-gray-100">历史版本</h3>
+                        <div v-if="activeVariant.history.length > 0"
+                            class="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                            <h3 class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700 border-b border-gray-100">
+                                历史版本</h3>
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-100">
                                     <thead class="bg-gray-50 hidden md:table-header-group">
                                         <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">版本号</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">发布日期</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MD5</th>
-                                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                版本号</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                发布日期</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                MD5</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                操作</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-100">
-                                        <tr v-for="h in paginatedHistory" :key="h.version" class="hover:bg-gray-50 transition-colors">
+                                        <tr v-for="h in paginatedHistory" :key="h.version"
+                                            class="hover:bg-gray-50 transition-colors">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">
                                                 {{ h.version }}
                                             </td>
@@ -132,8 +189,11 @@
                                                 {{ h.md5 || '-' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <a :href="h.url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 flex justify-end items-center group">
-                                                    <span class="hidden group-hover:block mr-1 text-xs opacity-75">下载</span> <i class="fas fa-file-download"></i>
+                                                <a :href="h.url" target="_blank" rel="noopener noreferrer"
+                                                    class="text-blue-600 hover:text-blue-800 flex justify-end items-center group">
+                                                    <span
+                                                        class="hidden group-hover:block mr-1 text-xs opacity-75">下载</span>
+                                                    <i class="fas fa-file-download"></i>
                                                 </a>
                                             </td>
                                         </tr>
@@ -141,7 +201,8 @@
                                 </table>
                             </div>
                             <!-- 分页控件 -->
-                            <div v-if="totalPages > 1" class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                            <div v-if="totalPages > 1"
+                                class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
                                 <div class="text-sm text-gray-500">
                                     共 {{ activeVariant.history.length }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
                                 </div>
@@ -157,8 +218,7 @@
                                         <i class="fas fa-angle-left"></i>
                                     </button>
                                     <div class="flex items-center gap-1">
-                                        <button v-for="page in visiblePages" :key="page"
-                                            @click="goToPage(page)"
+                                        <button v-for="page in visiblePages" :key="page" @click="goToPage(page)"
                                             :class="['w-8 h-8 rounded text-sm font-medium transition-colors',
                                                      page === currentPage ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200']">
                                             {{ page }}
@@ -179,33 +239,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="bg-orange-50 rounded-xl shadow-sm border border-orange-100 p-6">
-                    <h3 class="text-lg font-bold text-orange-800 mb-4 flex items-center">
-                        <i class="fas fa-exclamation-triangle mr-2"></i> 特别说明
-                    </h3>
-                    <ul class="space-y-3 text-sm text-orange-700">
-                        <li class="flex items-center gap-2">
-                            <i class="fas fa-check-circle text-orange-400"></i>
-                            镜像烧录与串口连接请参考<a href="https://www.kendryte.com/k230_linux/zh/main/userguide/how_to_flash.html" target="_blank" class="text-blue-600 hover:underline">《烧录与连接操作指南》</a>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i class="fas fa-check-circle text-orange-400"></i>
-                            CanMV IDE（基于 MicroPython）不适用于 Linux SDK，请使用标准串口终端工具（如 PuTTY）来操作 Linux 系统。
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i class="fas fa-check-circle text-orange-400"></i>
-                            首次启动需要几分钟进行文件系统扩容，请耐心等待, 部分烧录软件存在 Bug（例如<a href="https://www.kendryte.com/answer/questions/10010000000002910" target="_blank" class="text-blue-600 hover:underline"> 此处提到的问题</a> ）
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i class="fas fa-check-circle text-orange-400"></i>
-                            Linux SDK 仍在开发中。如遇问题，欢迎前往  <a href="https://www.kendryte.com/answer/" target="_blank" class="text-blue-600 hover:underline">嘉楠问答社区</a> 寻求帮助。提问前请先搜索历史帖子，避免重复提问
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i class="fas fa-check-circle text-orange-400"></i>
-                            镜像仅可烧录到对应的开发板，请务必选择与当前板型完全匹配的镜像，不能混烧其他板型的镜像。否则可能导致硬件损坏！！！
-                        </li>
-                    </ul>
-                </div>
 
 
             </section>
@@ -213,7 +246,8 @@
 
         <footer class="bg-white border-t border-gray-100 py-4 mt-8">
             <div class="max-w-7xl mx-auto px-6 text-center text-gray-400 text-sm">
-               <p class="text-center mb-0 small text-secondary">版权所有 © 2025 嘉楠 | 京ICP备2025124317号 | 京公网安备11010802045870号</p>
+                <p class="text-center mb-0 small text-secondary">版权所有 © 2025 嘉楠 | 京ICP备2025124317号 |
+                    京公网安备11010802045870号</p>
             </div>
         </footer>
     </div>
@@ -299,10 +333,13 @@
 
                 onMounted(fetchProducts);
 
-                return { products, activeProductId, activeVariantKey, activeProduct, activeVariant, updatetime,
-                         currentPage, totalPages, paginatedHistory, visiblePages, goToPage };
+                return {
+                    products, activeProductId, activeVariantKey, activeProduct, activeVariant, updatetime,
+                    currentPage, totalPages, paginatedHistory, visiblePages, goToPage
+                };
             }
         }).mount('#app');
     </script>
 </body>
+
 </html>

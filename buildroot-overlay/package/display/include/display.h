@@ -83,7 +83,7 @@ int display_update_buffer(struct display_buffer* buffer, uint32_t x, uint32_t y)
 int display_commit(struct display* display);
 void display_wait_vsync(struct display* display);
 void display_handle_vsync(struct display* display);
-
+int display_commit_buffer_noblock(const struct display_buffer* buffer, uint32_t x, uint32_t y);
 #ifdef __cplusplus
 }
 #endif

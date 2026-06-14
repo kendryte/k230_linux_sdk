@@ -749,3 +749,51 @@ void display_handle_vsync(struct display* display) {
     drmModeAtomicFree(display->req);
     display->req = NULL;
 }
+
+// 等待下一帧 vsync
+static int wait_for_next_vblank(int fd) {
+    drmVBlank vblank = {};
+    vblank.request.type = DRM_VBLANK_RELATIVE;
+    vblank.request.sequence = 1;  // 等待下一个 vblank
+    vblank.request.signal = 0;
+    return drmWaitVBlank(fd, &vblank);
+}
+
+int display_commit_buffer_noblock(const struct display_buffer* buffer, uint32_t x, uint32_t y) {
+    int ret = 0;
+    uint32_t flags = DRM_MODE_ATOMIC_NONBLOCK;
+    struct display_plane* plane = buffer->plane;
+    struct display* display = plane->display;
+    drmModeAtomicReqPtr req = drmModeAtomicAlloc();
+    assert(req);
+
+    if (plane->first) {
+        drm_add_conn_property(display, req, "CRTC_ID", display->crtc_id);
+        drm_add_crtc_property(display, req, "MODE_ID", display->blob_id);
+        drm_add_crtc_property(display, req, "ACTIVE", 1);
+        flags = DRM_MODE_ATOMIC_ALLOW_MODESET;
+        plane->first = false;
+    }
+    drm_add_plane_property(plane, req, "FB_ID", buffer->id);
+    drm_add_plane_property(plane, req, "CRTC_ID", display->crtc_id);
+    drm_add_plane_property(plane, req, "SRC_X", 0);
+    drm_add_plane_property(plane, req, "SRC_Y", 0);
+    drm_add_plane_property(plane, req, "SRC_W", buffer->width << 16);
+    drm_add_plane_property(plane, req, "SRC_H", buffer->height << 16);
+    drm_add_plane_property(plane, req, "CRTC_X", x);
+    drm_add_plane_property(plane, req, "CRTC_Y", y);
+    drm_add_plane_property(plane, req, "CRTC_W", buffer->width);
+    drm_add_plane_property(plane, req, "CRTC_H", buffer->height);
+
+    if(-EBUSY == drmModeAtomicCommit(display->fd, req, flags, NULL)){
+        wait_for_next_vblank(display->fd);
+        CKE(drmModeAtomicCommit(display->fd, req, flags, NULL), error);
+    }
+
+    drmModeAtomicFree(req);
+    return 0;
+
+error:
+    drmModeAtomicFree(req);
+    return -1;
+}

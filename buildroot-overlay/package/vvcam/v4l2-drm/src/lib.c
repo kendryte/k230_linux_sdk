@@ -18,6 +18,7 @@
 #include <v4l2-drm.h>
 
 void v4l2_drm_default_context(struct v4l2_drm_context* ctx) {
+    memset(ctx, 0 , sizeof(*ctx));
     ctx->width = 640;
     ctx->height = 480;
     ctx->device = 0;
@@ -25,7 +26,7 @@ void v4l2_drm_default_context(struct v4l2_drm_context* ctx) {
     ctx->video_format = V4L2_PIX_FMT_NV12;
     ctx->display_format = DRM_FORMAT_NV12;
     ctx->display = true;
-    ctx->buffer_num = DRM_BUFFERING + 3;
+    ctx->buffer_num = DRM_BUFFERING+2;
     ctx->plane = NULL;
     ctx->flag_dqbuf = true;
     ctx->offset_x = 0;
@@ -479,13 +480,170 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
     }
     streamoff:
     for (unsigned i = 0; i < num; i++) {
-        int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        ioctl(context[i].video_fd, VIDIOC_STREAMOFF, &type);
-        close(context[i].video_fd);
+        v4l2_drm_stop(&context[i]);
     }
     return 0;
 }
 
+bool v4l2_drm_run_v4l2_2_drm_need_run = 1;
+int v4l2_drm_run_v4l2_2_drm(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handler handler) {
+    int flag_enable_display = 0;
+    int display_fd;
+    struct display* d = NULL;
+    for (unsigned i = 0; i < num; i++) {
+        int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (context[i].display) {
+            CKE(ioctl(context[i].video_fd, VIDIOC_STREAMON, &type), streamerr);
+            if (flag_enable_display == 0) {
+                // trig vsync
+                display_commit_buffer(context[i].display_buffers[0], context[i].offset_x, context[i].offset_y);
+                flag_enable_display = 1;
+                d = context[i].plane->display;
+                display_fd = d->fd;
+            }
+
+        }
+        continue;
+        streamerr:
+        for (unsigned j = 0; j < i; j++) {
+            ioctl(context[i].video_fd, VIDIOC_STREAMOFF, &type);
+        }
+        return -1;
+    }
+    uint32_t display_frame_count = 0;
+    struct pollfd fds[num + flag_enable_display];
+    struct timeval tv, tv2;
+    gettimeofday(&tv, NULL);
+    while (v4l2_drm_run_v4l2_2_drm_need_run) {
+        for (unsigned i = 0; i < num; i++) {
+            fds[i].fd = context[i].video_fd;
+            if(context[i].display)
+                fds[i].events = POLLIN | POLLPRI;
+            else
+                fds[i].events = 0;
+            fds[i].revents = 0;
+        }
+        if (flag_enable_display) {
+            fds[num].fd = display_fd;
+            fds[num].events = POLLIN | POLLPRI;
+            fds[num].revents = 0;
+        }
+        int ret = poll(fds, num + flag_enable_display, 1000);
+        if (((ret < 0) && (errno == EINTR)) || (ret == 0)) {
+            continue;
+        } else if (ret < 0) {
+            pr("poll error %d(%s)", errno, strerror(errno));
+            break;
+        }
+
+        for (unsigned i = 0; i < num; i++) {
+            context[i].vbuffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            if (context[i].display) {
+                context[i].vbuffer.memory = V4L2_MEMORY_DMABUF;
+            } else {
+                context[i].vbuffer.memory = V4L2_MEMORY_MMAP;
+            }
+            if (fds[i].revents) {
+                if (context[i].flag_dqbuf) {
+                    // drop frame
+                    if (ioctl(context[i].video_fd, VIDIOC_DQBUF, &context[i].vbuffer)) {
+                        continue;
+                    }
+                    #if DEBUG_SEQ
+                    pr("DEBUG: DQBUF index %u dmabuf %d --", context[i].vbuffer.index, context[i].vbuffer.m.fd);
+                    #endif
+                    context[i].frame_count += 1;
+                    if (context[i].flag_dump) {
+                        dump_file(&context[i], i);
+                        context[i].flag_dump = false;
+                    }
+                    #if DEBUG_SEQ
+                    pr("DEBUG: QBUF  index %u dmabuf %d --", context[i].vbuffer.index, context[i].vbuffer.m.fd);
+                    #endif
+                    ioctl(context[i].video_fd, VIDIOC_QBUF, &context[i].vbuffer);
+                    continue;
+                }
+                context[i].wp = (context[i].wp + 1) % DRM_BUFFERING;
+                if (context[i].buffer_hold[context[i].wp] >= 0) {
+                    // QBUF displayed frame
+                    context[i].vbuffer.index = context[i].buffer_hold[context[i].wp];
+                    if (context[i].vbuffer.memory == V4L2_MEMORY_DMABUF) {
+                        context[i].vbuffer.m.fd = context[i].buffers[context[i].vbuffer.index].fd;
+                    }
+                    #if DEBUG_SEQ
+                    pr("DEBUG: QBUF  index %u dmabuf %d", context[i].vbuffer.index, context[i].vbuffer.m.fd);
+                    #endif
+                    ioctl(context[i].video_fd, VIDIOC_QBUF, &context[i].vbuffer);
+                }
+                // DQBUF
+                if (ioctl(context[i].video_fd, VIDIOC_DQBUF, &context[i].vbuffer) < 0) {
+                    // error, skip this frame
+                    continue;
+                }
+                #if DEBUG_SEQ
+                pr("DEBUG: DQBUF index %u dmabuf %d", context[i].vbuffer.index, context[i].vbuffer.m.fd);
+                #endif
+                if (context[i].flag_dump) {
+                    dump_file(&context[i], i);
+                    context[i].flag_dump = false;
+                }
+                context[i].frame_count += 1;
+                context[i].buffer_hold[context[i].wp] = context[i].vbuffer.index;
+                context[i].flag_dqbuf = true;
+            }
+        }
+
+        int ch = 0;
+        if (handler) {
+            ch = handler(context, flag_enable_display && fds[num].revents);
+            switch (ch) {
+                case -1:
+                case 'q': goto streamoff;
+                case 'd':
+                    dump_count += 1;
+                    for (unsigned i = 0; i < num; i++) {
+                        context[i].flag_dump = true;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if (flag_enable_display && fds[num].revents) {
+            // display
+            bool flag_check_source = false;
+            for (unsigned i = 0; i < num; i++) {
+                if ((context[i].buffer_hold[context[i].wp] >= 0) && (context[i].display)) {
+                    flag_check_source = true;
+                    break;
+                }
+            }
+            if (!flag_check_source) {
+                // skip
+                continue;
+            }
+            display_handle_vsync(d);
+            for (unsigned i = 0; i < num; i++) {
+                if ((!context[i].display) || (context[i].buffer_hold[context[i].wp] < 0)) {
+                    continue;
+                }
+                CKE(display_update_buffer(
+                    context[i].display_buffers[context[i].buffer_hold[context[i].wp]],
+                    context[i].offset_x, context[i].offset_y
+                ), streamoff);
+                context[i].flag_dqbuf = false;
+            }
+            CKE(display_commit(d), streamoff);
+            display_frame_count += 1;
+        }
+    }
+    streamoff:
+    for (unsigned i = 0; i < num; i++) {
+        v4l2_drm_stop(&context[i]);
+    }
+    return 0;
+}
 int v4l2_drm_start(const struct v4l2_drm_context* context) {
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     return ioctl(context->video_fd, VIDIOC_STREAMON, &type);
@@ -547,6 +705,7 @@ int v4l2_drm_stop(const struct v4l2_drm_context *context)
 
     ret = ioctl(ctx->video_fd, VIDIOC_STREAMOFF, &type);
     close(ctx->video_fd);
+    ctx->video_fd = -1;
 
     return ret;
 }
