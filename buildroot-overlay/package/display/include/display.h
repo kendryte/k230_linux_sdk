@@ -40,7 +40,7 @@ struct display {
     uint32_t commitFlags;
     drmEventContext drm_event_ctx;
     enum drm_rotation drm_rotation;
-    struct display_plane* planes;
+    struct display_plane* planes; //plane链表头
 };
 
 

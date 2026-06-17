@@ -124,6 +124,8 @@ PYBIND11_MODULE(k230_v4l2_drm, m) {
              &V4l2Drm::set_display_frame_count,
              "Current display frame counter")
         // OSD methods
+        .def("set_osd_format", &V4l2Drm::set_osd_format, py::arg("fourcc"),
+             "Set OSD format (fourcc) DRM_FORMAT_ARGB8888/DRM_FORMAT_RGB888")
         .def("osd_update", &V4l2Drm::osd_update, py::arg("img"));
 
     m.attr("__version__") = "1.0.0";

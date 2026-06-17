@@ -936,7 +936,7 @@ def main():
         format="NV12", display=True
     )
 
-    # Context 1: AI 推理输入 (BG3P 格式, RGB)
+    # Context 1: AI 推理输入 (BG3P 格式, hwc)
     v4l2.set_context(
         index=1, device=2,
         width=SENSOR_WIDTH, height=SENSOR_HEIGHT,

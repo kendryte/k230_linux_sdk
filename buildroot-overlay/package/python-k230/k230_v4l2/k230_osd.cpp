@@ -1,18 +1,19 @@
 #include "k230_osd.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 
 #include "thead.h"
 #include <display.h>
 #include <drm_fourcc.h>
-
+#include <v4l2-drm.h>
 //=============================================================================
 // k230_osd implementation
 //=============================================================================
 
 k230_osd::k230_osd()
-    : plane_(nullptr), buffer_{nullptr, nullptr}, cur_buf_(nullptr) {}
+    : plane_(nullptr), buffer_{nullptr, nullptr}, cur_buf_(nullptr), fourcc_(DRM_FORMAT_ARGB8888) {}
 
 k230_osd::~k230_osd() {
     display_free_buffer(buffer_[0]);
@@ -26,21 +27,25 @@ int k230_osd::init(struct display* pdisplay) {
     if (pdisplay == nullptr)
         return 0;
 
-    plane_ = display_get_plane(pdisplay, DRM_FORMAT_ARGB8888);
+    plane_ = display_get_plane(pdisplay, fourcc_);
     if (!plane_) {
         return 1;
     }
+    plane_->drm_rotation = pdisplay->drm_rotation;
 
-    buffer_[0] =
-        display_allocate_buffer(plane_, pdisplay->width, pdisplay->height);
+    // OSD 缓冲区尺寸 (确保 width >= height)
+    int osd_width = std::max(pdisplay->width, pdisplay->height);
+    int osd_height = std::min(pdisplay->width, pdisplay->height);
+    //printf("osd_width=%d %d ro=%d\n", osd_width, osd_height, plane_->drm_rotation);
+
+    buffer_[0] = display_allocate_buffer(plane_, osd_width, osd_height);
     if (!buffer_[0]) {
         display_free_plane(plane_);
         plane_ = nullptr;
         return 2;
     }
 
-    buffer_[1] =
-        display_allocate_buffer(plane_, pdisplay->width, pdisplay->height);
+    buffer_[1] = display_allocate_buffer(plane_, osd_width, osd_height);
     if (!buffer_[1]) {
         display_free_buffer(buffer_[0]);
         buffer_[0] = nullptr;
@@ -81,7 +86,8 @@ int k230_osd::update(py::array img_array) {
                                          cur_buf_->size);
 
     // Commit the buffer (non-blocking)
-    int ret = display_commit_buffer_noblock(cur_buf_, 0, 0);
+    g_p_osd_disp_buffer = cur_buf_;
 
-    return ret;
+
+    return 0;
 }

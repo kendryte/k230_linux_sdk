@@ -86,6 +86,14 @@ py::tuple V4l2Drm::drm_init(int drm_id) {
                           static_cast<int>(display_->height));
 }
 
+void V4l2Drm::set_osd_format(unsigned int fourcc) {
+    if(posd_)
+        delete posd_;
+    posd_ = new k230_osd;
+    assert(posd_);
+    posd_->fourcc_ = fourcc;
+}
+
 void V4l2Drm::check_index(size_t index) const {
     if (index >= context_num_) {
         throw std::out_of_range("Context index out of range");

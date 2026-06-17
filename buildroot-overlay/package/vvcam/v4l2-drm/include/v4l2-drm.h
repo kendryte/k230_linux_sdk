@@ -32,12 +32,12 @@ struct v4l2_drm_context {
     unsigned height;
     unsigned device;
     int video_fd;
-    unsigned frame_count;
+    unsigned frame_count; //sensor 帧数
     uint32_t video_format;
     uint32_t display_format;
     bool display;
-    unsigned buffer_num;
-    struct display_plane* plane;
+    unsigned buffer_num; //显示或者v4l2 需要的buffer数量；
+    struct display_plane* plane; //所有display_plane的list头；
     struct display_buffer** display_buffers;
     struct v4l2_drm_video_buffer* buffers;
     struct v4l2_crop_size crop_size;
@@ -45,9 +45,9 @@ struct v4l2_drm_context {
     unsigned offset_y;
     bool flag_dqbuf;
     uint8_t wp;
-    struct v4l2_buffer vbuffer;
+    struct v4l2_buffer vbuffer; //当前使用的v4l2_buffer
     int buffer_hold[DRM_BUFFERING];
-    bool flag_dump;
+    bool flag_dump; //dump 标记
     enum drm_rotation drm_rotation;
     int8_t hflip;
     int8_t vflip;
@@ -72,6 +72,7 @@ int v4l2_drm_stop(const struct v4l2_drm_context* context);
 int v4l2_drm_dump(struct v4l2_drm_context* context, int timeout);
 int v4l2_drm_dump_release(struct v4l2_drm_context* context);
 extern bool v4l2_drm_run_v4l2_2_drm_need_run;
+extern struct display_buffer *g_p_osd_disp_buffer;
 #ifdef __cplusplus
 }
 #endif

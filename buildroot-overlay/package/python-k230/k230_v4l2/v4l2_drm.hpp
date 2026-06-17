@@ -81,6 +81,7 @@ public:
     void set_display_frame_count(unsigned int count) { display_frame_count_ = count; }
 
     // OSD methods
+    void set_osd_format(unsigned int fourcc);
     int osd_update(py::array img);
 
 private:

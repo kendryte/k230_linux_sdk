@@ -22,6 +22,7 @@ public:
     // 公有方法
     int init(struct display* pdisplay);
     int update(py::array img);
+    unsigned int fourcc_;
 
 private:
     // 成员变量

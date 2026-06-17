@@ -486,6 +486,7 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
 }
 
 bool v4l2_drm_run_v4l2_2_drm_need_run = 1;
+struct display_buffer *g_p_osd_disp_buffer = NULL;
 int v4l2_drm_run_v4l2_2_drm(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handler handler) {
     int flag_enable_display = 0;
     int display_fd;
@@ -634,6 +635,11 @@ int v4l2_drm_run_v4l2_2_drm(struct v4l2_drm_context context[], unsigned num, v4l
                 ), streamoff);
                 context[i].flag_dqbuf = false;
             }
+            if(g_p_osd_disp_buffer){
+                display_update_buffer(g_p_osd_disp_buffer,0,0 );
+                g_p_osd_disp_buffer = NULL;
+            }
+
             CKE(display_commit(d), streamoff);
             display_frame_count += 1;
         }
