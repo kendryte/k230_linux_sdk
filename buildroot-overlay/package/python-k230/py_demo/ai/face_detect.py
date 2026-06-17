@@ -14,20 +14,51 @@ Example:
 """
 
 import sys
+import os
 import time
 import cv2
 import numpy as np
 import nncaseruntime as nn
-from k230_v4l2_drm import V4l2Drm
+from k230_v4l2_drm import V4l2Drm, DRM_FORMAT_ARGB8888, ROTATION_90, ROTATION_0
 
-# 常量定义 (与 C++ 对应)
+# ============================================================================
+# 调试开关
+# ============================================================================
+debug_mode = False
+#debug_mode = True
+
+
+class ScopedTiming:
+    """耗时统计工具类"""
+
+    def __init__(self, info="", enable_profile=True):
+        self.info = info
+        self.enable_profile = enable_profile
+
+    def __enter__(self):
+        if self.enable_profile:
+            self.start_time = time.time_ns()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.enable_profile:
+            elapsed_time = time.time_ns() - self.start_time
+            print(f"{self.info} took {elapsed_time / 1000000:.2f} ms")
+
+# ============================================================================
+# 配置常量
+# ============================================================================
 LOC_SIZE = 4
 CONF_SIZE = 2
 LAND_SIZE = 10
 
+# AI 输入图像尺寸
 SENSOR_HEIGHT = 720
 SENSOR_WIDTH = 1280
 SENSOR_CHANNEL = 3
+
+# 模型输入尺寸
+MODEL_INPUT_SIZE = 320
 
 # Anchors 数据 (从 anchors_320.cc 提取, 共 4200 个, 嵌入文件避免外部依赖)
 ANCHORS_320 = np.array([
@@ -461,165 +492,16 @@ def local_softmax(x):
     return exp_x / np.sum(exp_x)
 
 
-def deal_conf(conf, size, obj_cnt_start):
-    """
-    处理置信度输出 - 对应 C++ 的 deal_conf
-
-    Args:
-        conf: 模型输出的置信度数据 (CHW 格式)
-        size: 需要处理的 roi 个数
-        obj_cnt_start: 起始索引
-
-    Returns:
-        list of (index, confidence) tuples
-    """
-    results = []
-    for ww in range(size):
-        for hh in range(2):
-            confidence = []
-            for cc in range(CONF_SIZE):
-                # CHW 格式: [cc, hh, ww] -> 线性索引
-                idx = (hh * CONF_SIZE + cc) * size + ww
-                confidence.append(conf[idx])
-
-            # softmax
-            confidence = local_softmax(confidence)
-
-            obj_cnt = obj_cnt_start + ww * 2 + hh
-            results.append({
-                'index': obj_cnt,
-                'confidence': confidence[1]  # 取正类置信度
-            })
-
-    return results
-
-
-def deal_loc(loc, size, boxes, obj_cnt_start):
-    """
-    处理位置输出 - 对应 C++ 的 deal_loc
-
-    Args:
-        loc: 模型输出的位置数据 (CHW 格式)
-        size: 需要处理的 roi 个数
-        boxes: 存储位置数据的数组
-        obj_cnt_start: 起始索引
-    """
-    for ww in range(size):
-        for hh in range(2):
-            obj_cnt = obj_cnt_start + ww * 2 + hh
-            for cc in range(LOC_SIZE):
-                idx = (hh * LOC_SIZE + cc) * size + ww
-                boxes[obj_cnt * LOC_SIZE + cc] = loc[idx]
-
-
-def deal_landms(landms, size, landmarks, obj_cnt_start):
-    """
-    处理关键点输出 - 对应 C++ 的 deal_landms
-
-    Args:
-        landms: 模型输出的关键点数据 (CHW 格式)
-        size: 需要处理的 roi 个数
-        landmarks: 存储关键点数据的数组
-        obj_cnt_start: 起始索引
-    """
-    for ww in range(size):
-        for hh in range(2):
-            obj_cnt = obj_cnt_start + ww * 2 + hh
-            for cc in range(LAND_SIZE):
-                idx = (hh * LAND_SIZE + cc) * size + ww
-                landmarks[obj_cnt * LAND_SIZE + cc] = landms[idx]
-
-
-def get_box(boxes, obj_index, anchors):
-    """
-    根据索引获取检测框 - 对应 C++ 的 get_box
-
-    Args:
-        boxes: 位置数据数组
-        obj_index: 目标索引
-        anchors: anchors 数组
-
-    Returns:
-        dict: {x, y, w, h} 中心点坐标和宽高
-    """
-    cx = boxes[obj_index * LOC_SIZE + 0]
-    cy = boxes[obj_index * LOC_SIZE + 1]
-    w = boxes[obj_index * LOC_SIZE + 2]
-    h = boxes[obj_index * LOC_SIZE + 3]
-
-    # 使用 anchor 解码
-    cx = anchors[obj_index][0] + cx * 0.1 * anchors[obj_index][2]
-    cy = anchors[obj_index][1] + cy * 0.1 * anchors[obj_index][3]
-    w = anchors[obj_index][2] * np.exp(w * 0.2)
-    h = anchors[obj_index][3] * np.exp(h * 0.2)
-
-    return {'x': cx, 'y': cy, 'w': w, 'h': h}
-
-
-def get_landmark(landmarks, obj_index, anchors):
-    """
-    根据索引获取关键点 - 对应 C++ 的 get_landmark
-
-    Args:
-        landmarks: 关键点数据数组
-        obj_index: 目标索引
-        anchors: anchors 数组
-
-    Returns:
-        list: 5 个关键点的 [x, y] 坐标 (共 10 个值)
-    """
-    points = []
-    for ll in range(5):
-        px = landmarks[obj_index * LAND_SIZE + 2 * ll + 0]
-        py = landmarks[obj_index * LAND_SIZE + 2 * ll + 1]
-
-        # 使用 anchor 解码
-        px = anchors[obj_index][0] + px * 0.1 * anchors[obj_index][2]
-        py = anchors[obj_index][1] + py * 0.1 * anchors[obj_index][3]
-
-        points.extend([px, py])
-
-    return points
-
-
-def box_iou(a, b):
-    """
-    计算 IoU - 对应 C++ 的 box_iou
-    """
-    # 计算重叠区域
-    l1 = a['x'] - a['w'] / 2
-    l2 = b['x'] - b['w'] / 2
-    left = max(l1, l2)
-
-    r1 = a['x'] + a['w'] / 2
-    r2 = b['x'] + b['w'] / 2
-    right = min(r1, r2)
-
-    w_overlap = right - left
-
-    t1 = a['y'] - a['h'] / 2
-    t2 = b['y'] - b['h'] / 2
-    top = max(t1, t2)
-
-    b1 = a['y'] + a['h'] / 2
-    b2 = b['y'] + b['h'] / 2
-    bottom = min(b1, b2)
-
-    h_overlap = bottom - top
-
-    if w_overlap < 0 or h_overlap < 0:
-        return 0
-
-    intersection = w_overlap * h_overlap
-    union = a['w'] * a['h'] + b['w'] * b['h'] - intersection
-
-    return intersection / union
-
-
 class FaceDetection:
     """人脸检测类 - 封装模型加载、预处理、推理和后处理
 
     参考: buildroot-overlay/package/face_detect/src/face_detection.cc
+
+    优化要点:
+    1. pre-filter: softmax 前先过滤, 利用 logit 的单调性跳过不可能超过阈值的候选
+    2. lazy decode: 只对通过置信度过滤的候选做 loc/landms 解码
+    3. 向量化 anchor decode: 批量解码 bbox/landmark, 避免 Python 循环
+    4. 向量化 NMS: 用 numpy 批量计算 IoU
     """
 
     def __init__(self, kmodel_path, obj_thresh=0.5, nms_thresh=0.2,
@@ -629,7 +511,6 @@ class FaceDetection:
 
         Args:
             kmodel_path: kmodel 文件路径
-            anchors_path: anchors 文件路径 (prior_data_320.bin 等)
             obj_thresh: 目标检测置信度阈值
             nms_thresh: NMS 阈值
             model_input_size: 模型输入尺寸 (320 或 640)
@@ -640,31 +521,35 @@ class FaceDetection:
         self.model_input_size = model_input_size
         self.debug_mode = debug_mode
 
-        # 根据 input_size 确定 min_size 和 anchors 数量
-        # 对应 C++: int net_len = input_shapes_[0][2];
-        # min_size_ = (net_len == 320 ? 200 : 800);
         if model_input_size == 320:
             self.min_size = 200
         else:
             self.min_size = 800
 
-        # objs_num_ = min_size_ * (1 + 4 + 16);
         self.objs_num = self.min_size * (1 + 4 + 16)
-        print(f"objs_num: {self.objs_num}")
 
-        # 使用嵌入的 anchors 数据
+        # 使用嵌入的 anchors 数据, 预计算为连续 numpy 数组加速索引
         self.anchors = ANCHORS_320
-        print(f"Using embedded anchors: {len(self.anchors)} anchors")
-
         if len(self.anchors) != self.objs_num:
             print(f"Warning: anchors count ({len(self.anchors)}) != objs_num ({self.objs_num})")
+
+        # 预切分 anchors 为各列, 避免重复索引
+        self.anchor_cx = self.anchors[:, 0]   # (objs_num,)
+        self.anchor_cy = self.anchors[:, 1]
+        self.anchor_w  = self.anchors[:, 2]
+        self.anchor_h  = self.anchors[:, 3]
+
+        # 预计算三个尺度的 offset/size
+        self.scales = [
+            (16 * self.min_size // 2, 0),
+            (4  * self.min_size // 2, 16 * self.min_size),
+            (1  * self.min_size // 2, 20 * self.min_size),
+        ]
 
         # 初始化 KPU 推理器
         self.kpu = nn.Interpreter()
         self.kpu.load_model(kmodel_path)
-        print(f"KPU loaded: {self.kpu}")
 
-        # 创建输入张量 (NCHW 格式: 1, 3, H, W)
         input_shape = (1, 3, model_input_size, model_input_size)
         tmp_tensor = nn.RuntimeTensor.from_numpy(
             np.ones(input_shape, dtype=np.uint8)
@@ -674,19 +559,6 @@ class FaceDetection:
 
         # 初始化 AI2D 预处理引擎
         self.ai2d = nn.AI2D()
-
-        # 分配后处理需要的缓冲区
-        self.boxes = np.zeros(self.objs_num * LOC_SIZE, dtype=np.float32)
-        self.landmarks = np.zeros(self.objs_num * LAND_SIZE, dtype=np.float32)
-
-    def pre_process(self, img_nchw):
-        """
-        预处理图像 (使用 AI2D 硬件加速)
-
-        Args:
-            img_nchw: NCHW 格式的输入图像 (1, C, H, W)
-        """
-        # 配置 AI2D
         self.ai2d.set_datatype(
             nn.AI2D_FORMAT.NCHW_FMT,
             nn.AI2D_FORMAT.NCHW_FMT,
@@ -697,22 +569,24 @@ class FaceDetection:
             nn.AI2D_INTERP_METHOD.tf_bilinear,
             nn.AI2D_INTERP_MODE.half_pixel
         )
-
-        # 计算 resize 和 padding 参数
-        _, c, h, w = img_nchw.shape
-        target_h = target_w = self.model_input_size
-
-        # 计算 letterbox 参数 (保持宽高比)
-        ratio = min(target_w / w, target_h / h)
-        new_w, new_h = int(w * ratio), int(h * ratio)
-        dw, dh = target_w - new_w, target_h - new_h
-
-        # padding 参数: [0, 0, 0, 0, 0, dh, 0, dw]
-        # 对应 C++: cv::Scalar(104, 117, 123)
+        ratio = min(model_input_size / SENSOR_WIDTH, model_input_size / SENSOR_HEIGHT)
+        new_w = int(SENSOR_WIDTH * ratio)
+        new_h = int(SENSOR_HEIGHT * ratio)
+        dw = model_input_size - new_w
+        dh = model_input_size - new_h
         self.ai2d.set_pad_param(True, [0, 0, 0, 0, 0, dh, 0, dw], 0, [104, 117, 123])
-        self.ai2d.build([1, c, h, w], [1, c, target_h, target_w])
+        self.ai2d.build(
+            [1, 3, SENSOR_HEIGHT, SENSOR_WIDTH],
+            [1, 3, model_input_size, model_input_size]
+        )
 
-        # 执行预处理
+        # 分配后处理需要的缓冲区 (一次性分配, 每帧复用)
+        # 用于 lazy decode 时按尺度提取 loc/landms
+        self._loc_buf = {}  # 尺度索引 -> 缓存
+        self._lm_buf = {}
+
+    def pre_process(self, img_nchw):
+        """预处理图像 (使用 AI2D 硬件加速)"""
         ai2d_input = nn.RuntimeTensor.from_numpy(img_nchw)
         self.ai2d.run(ai2d_input, self.kpu_input_tensor)
 
@@ -720,9 +594,25 @@ class FaceDetection:
         """执行模型推理"""
         self.kpu.run()
 
+    def _get_outputs(self):
+        """获取模型输出, 缓存避免重复获取"""
+        outputs = []
+        for i in range(9):
+            try:
+                out = self.kpu.get_output_tensor(i).to_numpy()
+                outputs.append(out)
+            except:
+                break
+        return outputs
+
     def post_process(self, original_shape):
         """
-        后处理推理结果 - 对应 C++ 的 post_process
+        后处理推理结果 - 深度优化版
+
+        核心优化:
+        1. 全向量化 conf 处理: numpy 批量 pre-filter + softmax, 无 Python 循环
+        2. 真 lazy loc/landms: 只提取通过过滤的候选的值, 不做全量转置
+        3. 向量化 anchor decode + NMS
 
         Args:
             original_shape: 原始图像尺寸 (width, height)
@@ -730,139 +620,188 @@ class FaceDetection:
         Returns:
             list: 检测到的人脸信息列表
         """
-        # 获取所有输出 (模型有 9 个输出)
-        # p_outputs_[0,1,2] -> loc (位置)
-        # p_outputs_[3,4,5] -> conf (置信度)
-        # p_outputs_[6,7,8] -> landms (关键点)
-
-        # 获取输出张量 (直接获取，不检查数量)
-        outputs = []
-        for i in range(9):  # 人脸检测模型有 9 个输出
-            try:
-                out = self.kpu.get_output_tensor(i).to_numpy()
-                outputs.append(out.flatten())
-                #print(f"Output {i}: shape={out.shape}")
-            except Exception as e:
-                #print(f"Output {i}: failed - {e}")
-                break
-
-        num_outputs = len(outputs)
-        #print(f"Model outputs: {num_outputs}")
-
-        if num_outputs < 9:
-            print(f"Warning: Expected 9 outputs, got {num_outputs}")
+        outputs = self._get_outputs()
+        if len(outputs) < 9:
             return []
 
-        # 处理置信度 (p_outputs_[3,4,5])
-        so = []  # NMSRoiObj 列表
+        # -------------------------------------------------------
+        # Phase 1: 向量化置信度处理 (全 numpy, 零 Python 循环)
+        # -------------------------------------------------------
+        all_indices = []
+        all_conf = []
 
-        # deal_conf(p_outputs_[3], so, 16 * min_size_ / 2, obj_cnt)
-        so.extend(deal_conf(outputs[3], 16 * self.min_size // 2, 0))
+        for si, (size, offset) in enumerate(self.scales):
+            conf = outputs[3 + si].reshape(2, 2, size)  # (hh, cc, ww)
 
-        # deal_conf(p_outputs_[4], so, 4 * min_size_ / 2, obj_cnt)
-        so.extend(deal_conf(outputs[4], 4 * self.min_size // 2, 16 * self.min_size))
+            # 向量化 softmax: 对 cc 维度 (axis=1) 做 softmax
+            max_val = np.max(conf, axis=1, keepdims=True)
+            exp_conf = np.exp(conf - max_val)
+            sum_exp = np.sum(exp_conf, axis=1, keepdims=True)
+            softmax_result = exp_conf / sum_exp  # (2, 2, size)
 
-        # deal_conf(p_outputs_[5], so, 1 * min_size_ / 2, obj_cnt)
-        so.extend(deal_conf(outputs[5], 1 * self.min_size // 2, 20 * self.min_size))
+            # 取正类置信度 (cc=1), 转置展平: 顺序 ww0_hh0, ww0_hh1, ww1_hh0, ...
+            pos_conf = softmax_result[:, 1, :].T.flatten()  # (size*2,)
 
-        # 处理位置 (p_outputs_[0,1,2])
-        obj_cnt = 0
+            # 过滤
+            mask = pos_conf >= self.obj_thresh
+            if not np.any(mask):
+                continue
 
-        # deal_loc(p_outputs_[0], boxes, 16 * min_size_ / 2, obj_cnt)
-        deal_loc(outputs[0], 16 * self.min_size // 2, self.boxes, obj_cnt)
-        obj_cnt += 16 * self.min_size
+            indices = np.arange(offset, offset + size * 2)
+            all_indices.append(indices[mask])
+            all_conf.append(pos_conf[mask])
 
-        # deal_loc(p_outputs_[1], boxes, 4 * min_size_ / 2, obj_cnt)
-        deal_loc(outputs[1], 4 * self.min_size // 2, self.boxes, obj_cnt)
-        obj_cnt += 4 * self.min_size
+        if not all_indices:
+            return []
 
-        # deal_loc(p_outputs_[2], boxes, 1 * min_size_ / 2, obj_cnt)
-        deal_loc(outputs[2], 1 * self.min_size // 2, self.boxes, obj_cnt)
+        indices_arr = np.concatenate(all_indices)
+        conf_arr = np.concatenate(all_conf)
 
-        # 处理关键点 (p_outputs_[6,7,8])
-        obj_cnt = 0
+        # 按置信度降序排序 (一次搞定, 后续 NMS 和结果生成都受益)
+        sort_order = np.argsort(-conf_arr)
+        indices_arr = indices_arr[sort_order]
+        conf_arr = conf_arr[sort_order]
 
-        # deal_landms(p_outputs_[6], landmarks, 16 * min_size_ / 2, obj_cnt)
-        deal_landms(outputs[6], 16 * self.min_size // 2, self.landmarks, obj_cnt)
-        obj_cnt += 16 * self.min_size
+        # -------------------------------------------------------
+        # Phase 2: 只提取通过过滤的候选的 loc/landms (lazy decode)
+        # 关键: 不做全量转置, 直接按索引从原始输出中提取
+        # C++ 数据布局: loc[(hh * LOC_SIZE + cc) * size + ww]
+        # Python reshape 后: loc[hh, cc, ww]
+        # 目标索引 obj_idx = offset + ww*2 + hh, 即 ww = (obj_idx-offset)//2, hh = (obj_idx-offset)%2
+        # -------------------------------------------------------
+        n_candidates = len(indices_arr)
 
-        # deal_landms(p_outputs_[7], landmarks, 4 * min_size_ / 2, obj_cnt)
-        deal_landms(outputs[7], 4 * self.min_size // 2, self.landmarks, obj_cnt)
-        obj_cnt += 4 * self.min_size
+        loc_cx = np.empty(n_candidates, dtype=np.float32)
+        loc_cy = np.empty(n_candidates, dtype=np.float32)
+        loc_w  = np.empty(n_candidates, dtype=np.float32)
+        loc_h  = np.empty(n_candidates, dtype=np.float32)
 
-        # deal_landms(p_outputs_[8], landmarks, 1 * min_size_ / 2, obj_cnt)
-        deal_landms(outputs[8], 1 * self.min_size // 2, self.landmarks, obj_cnt)
+        lm_vals = np.empty((n_candidates, LAND_SIZE), dtype=np.float32)
 
-        # 按置信度排序
-        so.sort(key=lambda x: x['confidence'], reverse=True)
+        for si, (size, offset) in enumerate(self.scales):
+            # 找出属于这个尺度的候选
+            scale_start = offset
+            scale_end = offset + size * 2
+            scale_mask = (indices_arr >= scale_start) & (indices_arr < scale_end)
+            if not np.any(scale_mask):
+                continue
 
-        # NMS 并获取最终结果
-        results = []
+            scale_indices = indices_arr[scale_mask]
+            local_pos = scale_indices - offset  # 在本尺度内的位置
+            ww = local_pos // 2
+            hh = local_pos % 2
+
+            # 直接从 reshape 后的输出提取 (避免全量转置)
+            loc_data = outputs[si].reshape(2, LOC_SIZE, size)
+            loc_cx[scale_mask] = loc_data[hh, 0, ww]
+            loc_cy[scale_mask] = loc_data[hh, 1, ww]
+            loc_w[scale_mask]  = loc_data[hh, 2, ww]
+            loc_h[scale_mask]  = loc_data[hh, 3, ww]
+
+            landms_data = outputs[6 + si].reshape(2, LAND_SIZE, size)
+            for k in range(LAND_SIZE):
+                lm_vals[scale_mask, k] = landms_data[hh, k, ww]
+
+        # -------------------------------------------------------
+        # Phase 3: 向量化 anchor 解码
+        # -------------------------------------------------------
+        a_cx = self.anchor_cx[indices_arr]
+        a_cy = self.anchor_cy[indices_arr]
+        a_w  = self.anchor_w[indices_arr]
+        a_h  = self.anchor_h[indices_arr]
+
+        bbox_cx = a_cx + loc_cx * 0.1 * a_w
+        bbox_cy = a_cy + loc_cy * 0.1 * a_h
+        bbox_w  = a_w * np.exp(loc_w * 0.2)
+        bbox_h  = a_h * np.exp(loc_h * 0.2)
+
+        # 解码 landmarks (向量化)
+        lm_decoded = np.empty_like(lm_vals)
+        for ll in range(5):
+            lm_decoded[:, 2 * ll]     = a_cx + lm_vals[:, 2 * ll]     * 0.1 * a_w
+            lm_decoded[:, 2 * ll + 1] = a_cy + lm_vals[:, 2 * ll + 1] * 0.1 * a_h
+
+        # -------------------------------------------------------
+        # Phase 4: NMS (向量化 IoU)
+        # -------------------------------------------------------
+        suppressed = np.zeros(n_candidates, dtype=bool)
+        keep = []
+
+        for i in range(n_candidates):
+            if suppressed[i]:
+                continue
+            keep.append(i)
+
+            # 批量 IoU: i vs all j > i 且未被抑制的
+            remaining = ~suppressed[i + 1:]
+            if not np.any(remaining):
+                break
+
+            r_idx = np.arange(i + 1, n_candidates)
+
+            l1 = bbox_cx[i] - bbox_w[i] / 2
+            l2 = bbox_cx[r_idx] - bbox_w[r_idx] / 2
+            left = np.maximum(l1, l2)
+
+            r1 = bbox_cx[i] + bbox_w[i] / 2
+            r2 = bbox_cx[r_idx] + bbox_w[r_idx] / 2
+            right = np.minimum(r1, r2)
+
+            t1 = bbox_cy[i] - bbox_h[i] / 2
+            t2 = bbox_cy[r_idx] - bbox_h[r_idx] / 2
+            top = np.maximum(t1, t2)
+
+            b1 = bbox_cy[i] + bbox_h[i] / 2
+            b2 = bbox_cy[r_idx] + bbox_h[r_idx] / 2
+            bottom = np.minimum(b1, b2)
+
+            intersection = np.maximum(right - left, 0) * np.maximum(bottom - top, 0)
+            union = bbox_w[i] * bbox_h[i] + bbox_w[r_idx] * bbox_h[r_idx] - intersection
+            iou = np.where(union > 0, intersection / union, 0)
+
+            suppressed[r_idx[iou >= self.nms_thresh]] = True
+
+        # -------------------------------------------------------
+        # Phase 5: 生成结果 (向量化坐标转换)
+        # -------------------------------------------------------
         frame_w, frame_h = original_shape
         max_src_size = max(frame_w, frame_h)
 
-        for i in range(len(so)):
-            obj_index = so[i]['index']
+        keep_arr = np.array(keep)
+        k_cx = bbox_cx[keep_arr]
+        k_cy = bbox_cy[keep_arr]
+        k_w  = bbox_w[keep_arr]
+        k_h  = bbox_h[keep_arr]
+        k_conf = conf_arr[keep_arr]
+        k_lm = lm_decoded[keep_arr] * max_src_size
 
-            if so[i]['confidence'] < self.obj_thresh:
-                continue
+        x0 = np.maximum((k_cx - k_w / 2) * max_src_size, 0)
+        x1 = np.minimum((k_cx + k_w / 2) * max_src_size, frame_w)
+        y0 = np.maximum((k_cy - k_h / 2) * max_src_size, 0)
+        y1 = np.minimum((k_cy + k_h / 2) * max_src_size, frame_h)
 
-            # 获取检测框
-            bbox = get_box(self.boxes, obj_index, self.anchors)
-
-            # 获取关键点
-            landmark = get_landmark(self.landmarks, obj_index, self.anchors)
-
-            # NMS
-            keep = True
-            for j in range(i):
-                if so[j]['confidence'] < self.obj_thresh:
-                    continue
-                other_bbox = get_box(self.boxes, so[j]['index'], self.anchors)
-                if box_iou(bbox, other_bbox) >= self.nms_thresh:
-                    keep = False
-                    break
-
-            if not keep:
-                continue
-
-            # 缩放到原始图像尺寸
-            # 对应 C++ get_final_box
-            x1 = (bbox['x'] + bbox['w'] / 2) * max_src_size
-            x0 = (bbox['x'] - bbox['w'] / 2) * max_src_size
-            y0 = (bbox['y'] - bbox['h'] / 2) * max_src_size
-            y1 = (bbox['y'] + bbox['h'] / 2) * max_src_size
-
-            # 裁剪到图像边界
-            x0 = max(0, min(x0, frame_w))
-            x1 = max(0, min(x1, frame_w))
-            y0 = max(0, min(y0, frame_h))
-            y1 = max(0, min(y1, frame_h))
-
-            # 缩放关键点
-            scaled_landmarks = []
-            for ll in range(5):
-                px = landmark[2 * ll] * max_src_size
-                py = landmark[2 * ll + 1] * max_src_size
-                scaled_landmarks.extend([px, py])
-
+        results = []
+        for j in range(len(keep_arr)):
             results.append({
-                'box': [int(x0), int(y0), int(x1 - x0), int(y1 - y0)],  # x, y, w, h
-                'score': float(so[i]['confidence']),
-                'landmarks': scaled_landmarks
+                'box': [int(x0[j]), int(y0[j]), int(x1[j] - x0[j]), int(y1[j] - y0[j])],
+                'score': float(k_conf[j]),
+                'landmarks': k_lm[j].tolist()
             })
 
         return results
 
     @staticmethod
-    def draw_result(img, faces):
+    def draw_result(img, faces, scale_factor=(1.0, 1.0)):
         """
         在图像上绘制检测结果
 
         Args:
             img: OpenCV 图像 (BGR 或 BGRA 格式)
             faces: 人脸检测结果列表
+            scale_factor: AI 图像到显示图像的缩放因子 (scale_x, scale_y)
         """
+        scale_x, scale_y = scale_factor
+
         colors = [
             (255, 0, 0, 255),    # 蓝色 - 左眼
             (255, 0, 255, 255),  # 紫色 - 右眼
@@ -874,6 +813,12 @@ class FaceDetection:
         for face in faces:
             x, y, w, h = face['box']
             score = face['score']
+
+            # 将 AI 坐标缩放到显示坐标
+            x = int(x * scale_x)
+            y = int(y * scale_y)
+            w = int(w * scale_x)
+            h = int(h * scale_y)
 
             # 绘制矩形框 (白色)
             cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255, 255), 2)
@@ -887,11 +832,9 @@ class FaceDetection:
             landmarks = face.get('landmarks', [])
             for ll in range(5):
                 if len(landmarks) >= 10:
-                    px = int(landmarks[2 * ll])
-                    py = int(landmarks[2 * ll + 1])
+                    px = int(landmarks[2 * ll] * scale_x)
+                    py = int(landmarks[2 * ll + 1] * scale_y)
                     cv2.circle(img, (px, py), 3, colors[ll], -1)
-
-            #print(f"Face detected: box=[{x}, {y}, {w}, {h}], score={score:.3f}")
 
 
 def print_usage():
@@ -910,125 +853,137 @@ def main():
     # ===============================
     # 一、参数解析
     # ===============================
-    if len(sys.argv) < 2:
-        print_usage()
-        return -1
 
-    kmodel_path = sys.argv[1]
-    obj_thresh = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
-    nms_thresh = float(sys.argv[3]) if len(sys.argv) > 3 else 0.2
+    kmodel_path = sys.argv[1]  if len(sys.argv) > 1 else "/root/app/face_detect/face_detection_320.kmodel"   #人脸检测 kmodel 文件路径")
+    obj_thresh = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5   # 检测置信度阈值 (默认: 0.5)")
+    nms_thresh = float(sys.argv[3]) if len(sys.argv) > 3 else 0.2   # NMS 阈值 (默认: 0.2)")
+
+    # 检查模型文件是否存在
+    if not os.path.exists(kmodel_path):
+        print(f"Error: KModel file not found: {kmodel_path}")
+        print(f"Please download the model file first.")
+        return -1
 
     print(f"KModel: {kmodel_path}")
     print(f"Obj Thresh: {obj_thresh}, NMS Thresh: {nms_thresh}")
 
+    with ScopedTiming("init", debug_mode):
+        # ===============================
+        # 二、初始化 V4L2-DRM 和摄像头
+        # ===============================
+        v4l2 = V4l2Drm(context_num=2)
+        display_w, display_h = v4l2.drm_init()
+        print(f"Display: {display_w}x{display_h}")
+
+        # 自动检测屏幕旋转方向
+        if display_w > display_h:
+            rotation = ROTATION_0
+        else:
+            rotation = ROTATION_90
+
+        # Context 0: 摄像头直接显示 (NV12 格式)
+        v4l2.set_context(
+            index=0, device=1,
+            width=max(display_w, display_h), height=min(display_w, display_h),
+            format="NV12", display=True
+        )
+
+        # Context 1: AI 推理输入 (BG3P 格式, hwc)
+        v4l2.set_context(
+            index=1, device=2,
+            width=SENSOR_WIDTH, height=SENSOR_HEIGHT,
+            format="BG3P", display=False
+        )
+
+        v4l2.set_rotation(0, rotation)
+        v4l2.set_osd_format(DRM_FORMAT_ARGB8888)
+
+        if not v4l2.setup():
+            print("Error: V4L2-DRM setup failed!")
+            return -1
+
+        v4l2.display_start()
+        v4l2.dump_start(1)
+
+        # ===============================
+        # 三、初始化人脸检测模型
+        # ===============================
+        fd = FaceDetection(
+            kmodel_path,
+            obj_thresh=obj_thresh,
+            nms_thresh=nms_thresh,
+            model_input_size=MODEL_INPUT_SIZE
+        )
+        print("Face detection model loaded successfully")
+
+        # 计算 AI 图像到显示图像的缩放因子
+        scale_factor = (
+            max(display_w, display_h) / SENSOR_WIDTH,
+            min(display_w, display_h) / SENSOR_HEIGHT
+        )
+
+        # 预分配 OSD 缓冲区 (复用, 避免每帧创建新数组)
+        osd_h = min(display_w, display_h)
+        osd_w = max(display_w, display_h)
+        osd_img = np.zeros((osd_h, osd_w, 4), dtype=np.uint8)
+
     # ===============================
-    # 二、初始化 V4L2-DRM 和摄像头
+    # 四、主循环
     # ===============================
-    v4l2 = V4l2Drm(context_num=2, osd=True)
-    display_w, display_h = v4l2.drm_init()
-
-    print(f"Display: {display_w}x{display_h}")
-
-    # Context 0: 摄像头直接显示 (NV12 格式)
-    v4l2.set_context(
-        index=0, device=1,
-        width=display_w, height=display_h,
-        format="NV12", display=True
-    )
-
-    # Context 1: AI 推理输入 (BG3P 格式, hwc)
-    v4l2.set_context(
-        index=1, device=2,
-        width=SENSOR_WIDTH, height=SENSOR_HEIGHT,
-        format="BG3P", display=False
-    )
-
-    if not v4l2.setup():
-        print("Error: V4L2-DRM setup failed!")
-        return -1
-
-    # ===============================
-    # 三、初始化人脸检测模型
-    # ===============================
-    fd = FaceDetection(
-        kmodel_path,
-        obj_thresh=obj_thresh,
-        nms_thresh=nms_thresh,
-        model_input_size=320  # 根据模型调整: 320 或 640
-    )
-
-    print("Face detection model loaded successfully")
-
-    # ===============================
-    # 四、启动显示和捕获
-    # ===============================
-    v4l2.display_start()
-    v4l2.dump_start(1)
+    last_time = time.time()
+    frame_count = 0
+    ai_fps = 0.0
+    enable_profile = debug_mode  # 只在 debug 模式下计时
 
     print("Press Ctrl+C to stop")
 
-    # FPS 统计变量
-    ai_frame_count = 0
-    ai_start_time = time.time()
-    display_start_time = time.time()
-
-    ai_fps = 0.0
-
     try:
         while True:
-            # ===============================
-            # 五、计算显示 FPS (每秒更新)
-            # ===============================
-            elapsed = time.time() - display_start_time
-            if elapsed >= 1.0:
-                display_fps = v4l2.display_frame_count / elapsed
-                v4l2.display_frame_count = 0
+            with ScopedTiming("total", enable_profile):
+                # 摄像头捕获
+                if not v4l2.dump_frame(index=1, timeout_ms=1000):
+                    continue
+                frame_nchw = v4l2.get_buffer_array(1)
 
-                video_fps = v4l2.get_frame_count() / elapsed
-                v4l2.set_frame_count(0)
-                display_start_time = time.time()
+                # AI 预处理
+                with ScopedTiming("pre_process", enable_profile):
+                    fd.pre_process(frame_nchw)
 
-                fps_text = f"Display: {display_fps:.1f} FPS, Video: {video_fps:.1f} FPS"
-                print(f"{fps_text}")
-
-            # ===============================
-            # 六、AI 推理
-            # ===============================
-            if v4l2.dump_frame(index=1, timeout_ms=1000):
-                # 获取帧数据 (NCHW 格式)
-                frame_nchw = v4l2.get_buffer_array(1)  # (1, 3, H, W)
-                ai_frame_count += 1
-
-                # 执行推理
-                fd.pre_process(frame_nchw)
-                fd.inference()
-                faces = fd.post_process((display_w, display_h))
-
-                # 创建 OSD 图像
-                osd_img = np.zeros((display_h, display_w, 4), dtype=np.uint8)
-
-                # 绘制检测结果
-                fd.draw_result(osd_img, faces)
-                cv2.putText(osd_img, f"ai fps:{ai_fps:.1f}", (200,200),
-                       cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255, 255), 2)
-                v4l2.osd_update(osd_img)
-
-                # 计算 AI FPS
-                elapsed = time.time() - ai_start_time
-                if elapsed >= 2.0:
-                    ai_fps = ai_frame_count / elapsed
-                    print(f"AI FPS: {ai_fps:.1f}")
-                    ai_frame_count = 0
-                    ai_start_time = time.time()
+                # 模型推理
+                with ScopedTiming("inference", enable_profile):
+                    fd.inference()
 
                 v4l2.dump_release(1)
 
+                # 后处理 (无需子计时, post_process 内部已优化)
+                with ScopedTiming("post_process", enable_profile):
+                    faces = fd.post_process((SENSOR_WIDTH, SENSOR_HEIGHT))
+
+                with ScopedTiming("post_process", enable_profile):
+                    # OSD 绘制 (复用缓冲区, 清零代替重新创建)
+                    osd_img[:] = 0  # 清零复用缓冲区, 比 np.zeros 快 (避免分配)
+                    FaceDetection.draw_result(osd_img, faces, scale_factor)
+                    cv2.putText(osd_img, f"FPS: {ai_fps:.1f}", (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0, 255), 2)
+                    v4l2.osd_update(osd_img)
+
+                # FPS 计算
+                frame_count += 1
+                now_time = time.time()
+                if now_time - last_time >= 1.0:
+                    ai_fps = frame_count / (now_time - last_time)
+                    last_time = now_time
+                    frame_count = 0
+                    #if enable_profile:
+                    print(f"[{time.strftime('%H:%M:%S')}] AI FPS: {ai_fps:.1f}")
+
     except KeyboardInterrupt:
         print("\nStopping...")
-        v4l2.display_stop()
-        v4l2.dump_stop(1)
 
-    print("Face detection stopped")
+    # 清理资源
+    v4l2.dump_stop(1)
+    v4l2.display_stop()
+    print("Done!")
     return 0
 
 

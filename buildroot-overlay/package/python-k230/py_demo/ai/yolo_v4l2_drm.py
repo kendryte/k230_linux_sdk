@@ -36,7 +36,7 @@ CONFIDENCE_THRES = 0.3      # 置信度阈值
 IOU_THRES = 0.45            # NMS IoU 阈值
 #KMODEL_PATH = "yolov8n_224.kmodel"  #https://g.a-bug.org/canmv/k230/nncase_kmodels_v2_11/-/blob/v2.11.0/ai_poc/kmodel/yolov8n_224.kmodel?ref_type=heads
 #INPUT_SIZE = (224, 224)     # 模型输入尺寸 (width, height)
-KMODEL_PATH = "yolov8n.kmodel"  #wget --no-check-certificate https://raw.githubusercontent.com/kendryte/k230_linux_sdk/dev/buildroot-overlay/package/yolo/utils/yolov8n.kmodel
+KMODEL_PATH = "/root/app/object_detect_yolov8n/yolov8n_320.kmodel"
 INPUT_SIZE = (320, 320)     # 模型输入尺寸 (width, height)
 #SENSOR_2_AI_SIZE = (1920,1080)
 SENSOR_2_AI_SIZE = (1280, 720)
