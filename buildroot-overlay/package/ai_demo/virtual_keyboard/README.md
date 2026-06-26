@@ -21,7 +21,7 @@ debug_mode      是否需要调试，0、1、2分别表示不调试、简单调�
 ```
 
 ## 2.2 效果展示
-![demo示例](https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/virtual_keyboard/virtual_keyboard.gif){:height="50%" width="50%"}
+![demo示例](https://download.kendryte.com/k230/downloads/doc_images/ai_demo/virtual_keyboard/virtual_keyboard.gif){:height="50%" width="50%"}
 
 其中 ```Space```空格键，```clr```清空键，```<--```
 退格键。

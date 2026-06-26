@@ -40,7 +40,7 @@ cloudplat_deploy_code_linux
 git clone https://github.com/kendryte/k230_linux_sdk.git
 
 #下载编译工具链
-wget https://kendryte-download.canaan-creative.com/k230/downloads/dl/gcc/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2-20250410.tar.gz
+wget https://download.kendryte.com/k230/downloads/dl/gcc/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2-20250410.tar.gz
 
 # 解压工具链到/opt/toolchain
 mkdir -p /opt/toolchain;
@@ -52,7 +52,7 @@ apt-get install -y   git sed make binutils build-essential diffutils gcc  g++ ba
         libssl-dev gawk cmake bison flex  bash-completion parted curl
 
 # 选择对应的开发板配置文件，编译固件
-make CONF=k230_canmv_lckfb_defconfig  BR2_PRIMARY_SITE=https://kendryte-download.canaan-creative.com/k230/downloads/dl/
+make CONF=k230_canmv_lckfb_defconfig  BR2_PRIMARY_SITE=https://download.kendryte.com/k230/downloads/dl/
 ```
 
 固件编译成功后，将固件烧录到开发板上。

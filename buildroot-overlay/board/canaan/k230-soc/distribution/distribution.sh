@@ -279,7 +279,7 @@ if curl --output /dev/null --silent --head --fail "${DEFAULT_MIRROR}" 2>/dev/nul
     DISTR_DOWN_URI="${DEFAULT_MIRROR}"
     print_green "Using mirror: ${DISTR_DOWN_URI}"
 else
-    DISTR_DOWN_URI="https://kendryte-download.canaan-creative.com/k230/downloads/dl/distribution"
+    DISTR_DOWN_URI="https://download.kendryte.com/k230/downloads/dl/distribution"
     print_yellow "Primary mirror unavailable, using fallback: ${DISTR_DOWN_URI}"
 fi
 

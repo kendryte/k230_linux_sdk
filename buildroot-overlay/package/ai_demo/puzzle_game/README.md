@@ -28,6 +28,6 @@ debug_mode      是否需要调试，0、1、2分别表示不调试、简单调�
 屏幕界面显示左右（上下）两块拼图，左（上）部分的拼图为游戏区域，右（下）部分为原始图像 以供参考。使用食指进入游戏，中指与食指指尖相距较远时，食指指尖用来确定当前指向哪一块拼图分区。当食指与中指指尖逼近时，可以交换当前区域和灰色移动块区域（注：只能交换灰色移动块区域的上下左右四个区域）。
 ```
 ## 2.2 效果展示
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/puzzle_game/puzzle_game.gif" alt="video.gif" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/puzzle_game/puzzle_game.gif" alt="video.gif" width="50%" height="50%" />
 
 

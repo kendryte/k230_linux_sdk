@@ -26,4 +26,4 @@ debug_mode      是否需要调试，0、1、2分别表示不调试、简单调�
 
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/person_distance/pd_result.jpg" alt="行人测距效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/person_distance/pd_result.jpg" alt="行人测距效果图" width="50%" height="50%" />

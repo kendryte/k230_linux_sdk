@@ -25,5 +25,5 @@ Options:
 
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/anomaly_det/anomaly_detection_result.jpg" alt="异常检测效果图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/anomaly_det/anomaly_detection_result.jpg" alt="异常检测效果图" width="50%" height="50%"/>
 

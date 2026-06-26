@@ -26,8 +26,8 @@ Options:
 ```
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/face_alignment/face_depth.jpg" alt="人脸深度图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/face_alignment/face_depth.jpg" alt="人脸深度图" width="50%" height="50%"/>
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/face_alignment/face_pncc.jpg" alt="人脸pncc图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/face_alignment/face_pncc.jpg" alt="人脸pncc图" width="50%" height="50%"/>
 
 

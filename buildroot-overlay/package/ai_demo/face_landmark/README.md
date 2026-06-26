@@ -26,6 +26,6 @@ Options:
 ```
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/face_landmark/face_landmark_result.png" alt="密集关键点效果图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/face_landmark/face_landmark_result.png" alt="密集关键点效果图" width="50%" height="50%"/>
 
 

@@ -87,7 +87,7 @@ def get_product_name_from_filepath(file_path):
     return ""
 
 def get_url(file_path):
-    a = file_path.replace("/data/kendryte-download", "https://kendryte-download.canaan-creative.com")
+    a = file_path.replace("/data/kendryte-download", "https://download.kendryte.com")
     return a.replace("/data1/k230/release/", "https://ai.b-bug.org/k230/release/")
 
 def update_file_to_json(file_path, products):

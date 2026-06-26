@@ -60,7 +60,7 @@ esac
     if $(curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl/ddr_test ) ;then
         DOWN_URI="https://ai.b-bug.org/k230/downloads/dl/ddr_test"
     else
-        DOWN_URI="https://kendryte-download.canaan-creative.com/k230/downloads/dl/ddr_test"
+        DOWN_URI="https://download.kendryte.com/k230/downloads/dl/ddr_test"
     fi
 
     wget "${DOWN_URI}/vpu/${vpu}" -O "${SDK_DIR}/output/${CONF}/target/${vpu}"

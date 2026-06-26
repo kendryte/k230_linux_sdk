@@ -25,4 +25,4 @@ Options:
 ```
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/face_mesh/face_mesh_result.jpg" alt="人脸mesh图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/face_mesh/face_mesh_result.jpg" alt="人脸mesh图" width="50%" height="50%"/>

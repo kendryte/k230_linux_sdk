@@ -25,4 +25,4 @@ Options:
 
 ## 2.2效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/tts_zh/tts_zh.png" alt="tts_zh应用图示" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/tts_zh/tts_zh.png" alt="tts_zh应用图示" width="50%" height="50%"/>

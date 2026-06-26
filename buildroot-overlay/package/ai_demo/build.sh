@@ -19,7 +19,7 @@ else
         rm -rf kmodel_v2.11.0.tgz;
     else
         echo "URL is not accessible";
-        wget https://kendryte-download.canaan-creative.com/k230/downloads/kmodel/kmodel_v2.11.0.tgz;
+        wget https://download.kendryte.com/k230/downloads/kmodel/kmodel_v2.11.0.tgz;
         tar -xvf kmodel_v2.11.0.tgz;
         rm -rf kmodel_v2.11.0.tgz;
     fi

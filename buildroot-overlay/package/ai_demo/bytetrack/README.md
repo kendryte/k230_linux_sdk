@@ -24,7 +24,7 @@ Options:
 
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/bytetrack/150.jpg" alt="多目标跟踪效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/bytetrack/150.jpg" alt="多目标跟踪效果图" width="50%" height="50%" />
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/bytetrack/188.jpg" alt="多目标跟踪效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/bytetrack/188.jpg" alt="多目标跟踪效果图" width="50%" height="50%" />
 

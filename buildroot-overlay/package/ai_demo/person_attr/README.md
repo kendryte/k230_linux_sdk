@@ -41,5 +41,5 @@ Options:
 
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/person_attr/person_attr_result.jpg" alt="人体属性识别效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/person_attr/person_attr_result.jpg" alt="人体属性识别效果图" width="50%" height="50%" />
 

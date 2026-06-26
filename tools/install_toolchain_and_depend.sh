@@ -20,7 +20,7 @@ function install_toolcahin()
     if $(curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl/gcc ) ;then
         DOWN_URI="https://ai.b-bug.org/k230/downloads/dl/gcc"
     else
-        DOWN_URI="https://kendryte-download.canaan-creative.com/k230/downloads/dl/gcc"
+        DOWN_URI="https://download.kendryte.com/k230/downloads/dl/gcc"
     fi
 
 

@@ -9,7 +9,7 @@ export BR2_PRIMARY_SITE ?= $(shell \
 	if curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl ;then  \
 	echo "https://ai.b-bug.org/k230/downloads/dl";\
 	else \
-	echo "https://kendryte-download.canaan-creative.com/k230/downloads/dl";\
+	echo "https://download.kendryte.com/k230/downloads/dl";\
 	fi ;)
 
 

@@ -25,4 +25,4 @@ Options:
 
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/person_detect/pd_result.jpg" alt="行人检测效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/person_detect/pd_result.jpg" alt="行人检测效果图" width="50%" height="50%" />

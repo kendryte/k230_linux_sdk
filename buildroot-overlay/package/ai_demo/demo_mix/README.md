@@ -10,7 +10,7 @@
 
 支持手势如下：
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/demo_mix/gesture.jpg" alt="手势关键点类别" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/demo_mix/gesture.jpg" alt="手势关键点类别" width="50%" height="50%"/>
 
 one手势进入动态手势识别，love手势退出；yeah手势进入姿态角调整，会选择距离屏幕中心点最近的点调整，love手势退出；three手势进入单目标追踪，会选择距离屏幕中心点最近的人脸进行跟踪。
 

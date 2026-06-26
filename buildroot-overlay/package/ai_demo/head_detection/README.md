@@ -23,5 +23,5 @@ Usage: ./head_detection.elf<kmodel_det> <score_thres> <nms_thres> <input_mode> <
 ```
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/head_detection/head_detection_result.jpg" alt="人头计数效果图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/head_detection/head_detection_result.jpg" alt="人头计数效果图" width="50%" height="50%"/>
 

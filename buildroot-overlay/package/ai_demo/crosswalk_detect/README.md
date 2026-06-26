@@ -21,4 +21,4 @@ Options:
  5> debug_mode      是否需要调试，0、1、2分别表示不调试、简单调试、详细调试
 ```
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/crosswalk_detect/crosswalk_detect.gif" alt="人行横道检测效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/crosswalk_detect/crosswalk_detect.gif" alt="人行横道检测效果图" width="50%" height="50%" />

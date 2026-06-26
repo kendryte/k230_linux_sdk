@@ -25,7 +25,7 @@ Options:
 小楠响应“我在”：
 
 <audio controls>
-  <source src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/kws/wozai.mp3" type="audio/mpeg">
+  <source src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/kws/wozai.mp3" type="audio/mpeg">
 </audio>
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/kws/kws.png" alt="kws检测图示" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/kws/kws.png" alt="kws检测图示" width="50%" height="50%"/>

@@ -26,6 +26,6 @@ Options:
 ```
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/face_gender/face_gender_result.png" alt="性别识别效果图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/face_gender/face_gender_result.png" alt="性别识别效果图" width="50%" height="50%"/>
 
 

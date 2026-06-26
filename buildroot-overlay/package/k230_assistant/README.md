@@ -106,7 +106,7 @@ BR2_PACKAGE_NTP_NTPDATE=y
 BR2_PACKAGE_WEBRTC_AUDIO_PROCESSING=y
 
 # 编译
-make CONF=k230_canmv_defconfig  BR2_PRIMARY_SITE=https://kendryte-download.canaan-creative.com/k230/downloads/dl/
+make CONF=k230_canmv_defconfig  BR2_PRIMARY_SITE=https://download.kendryte.com/k230/downloads/dl/
 
 make CONF=k230_canmv_01studio_defconfig
 

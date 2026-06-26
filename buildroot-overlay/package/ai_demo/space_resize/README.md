@@ -23,7 +23,7 @@ debug_mode      是否需要调试，0、1、2分别表示不调试、简单调�
 首先固定中指和拇指的初始距离，将手置于摄像头前，缩放中指和拇指的距离，即可范围区域进行缩放。
 ```
 ## 2.2 效果展示
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/space_resize/space_resize.gif" alt="video.gif" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/space_resize/space_resize.gif" alt="video.gif" width="50%" height="50%" />
 
 
 

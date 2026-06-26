@@ -7,7 +7,7 @@ RTL8733BS_INSTALL_STAGING = YES
 RTL8733BS_INSTALL_TARGET = YES
 RTL8733BS_SUPPORTS_IN_SOURCE_BUILD = NO
 
-RTL8733BS_SITE := https://kendryte-download.canaan-creative.com/k230/downloads/dl/rtl8733bs
+RTL8733BS_SITE := https://download.kendryte.com/k230/downloads/dl/rtl8733bs
 
 
 RTL8733BS_wifi := rtl8733BS_WiFi_linux_v5.15.17-113-g1924716b3.20250521_COEX20241204-390f

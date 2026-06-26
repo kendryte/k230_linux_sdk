@@ -2,7 +2,7 @@ COMMON_INSTALL_STAGING = YES
 COMMON_INSTALL_TARGET = NO
 
 
-COMMON_SITE := https://kendryte-download.canaan-creative.com/k230/downloads/kmodel
+COMMON_SITE := https://download.kendryte.com/k230/downloads/kmodel
 
 COMMON_SOURCE := kmodel_v2.10.0.tgz
 COMMON_DEPENDENCIES += libmmz libnncase gsl-lite

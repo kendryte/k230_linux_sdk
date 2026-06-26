@@ -23,8 +23,8 @@ Options:
 
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/traffic_light_detect/td_result_111_r.jpg" alt="交通信号灯检测效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/traffic_light_detect/td_result_111_r.jpg" alt="交通信号灯检测效果图" width="50%" height="50%" />
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/traffic_light_detect/td_result_222_r.jpg" alt="交通信号灯检测效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/traffic_light_detect/td_result_222_r.jpg" alt="交通信号灯检测效果图" width="50%" height="50%" />
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/traffic_light_detect/td_result_333_r.jpg" alt="交通信号灯检测效果图" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/traffic_light_detect/td_result_333_r.jpg" alt="交通信号灯检测效果图" width="50%" height="50%" />

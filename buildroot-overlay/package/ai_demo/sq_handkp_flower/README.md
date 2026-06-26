@@ -25,6 +25,6 @@ debug_mode      是否需要调试，0、1、2分别表示不调试、简单调�
 ./sq_handkp_flower.elf hand_det.kmodel None 0.15 0.4 handkp_det.kmodel flower_rec.kmodel 0
 ```
 ## 2.2 效果展示
-![demo示例](https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/sq_handkp_flower/handkp_flower.jpg){:height="50%" width="50%"}
+![demo示例](https://download.kendryte.com/k230/downloads/doc_images/ai_demo/sq_handkp_flower/handkp_flower.jpg){:height="50%" width="50%"}
 
 **注意：** 当两只手同时稳定出现在摄像头下才会做花卉识别，正确使用方式请参考上图。本应用仅提供一个示例实现，如需更高精度或更优体验，可通过调整阈值或自行替换相应的模型文件。

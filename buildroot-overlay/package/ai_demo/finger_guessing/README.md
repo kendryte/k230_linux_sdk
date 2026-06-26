@@ -33,6 +33,6 @@ debug_mode      是否需要调试，0、1、2分别表示不调试、简单调�
 显示屏会提示当前是第几回合，将自己想出的手势置于摄像头前方停留几秒后，将手移出摄像头方可进行下回合。
 ```
 ## 2.2 效果展示
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/finger_guessing/guess_01.gif" alt="video.gif" width="45%" height="45%" /> <img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/finger_guessing/guess_n.gif" alt="video0.gif" width="45%" height="45%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/finger_guessing/guess_01.gif" alt="video.gif" width="45%" height="45%" /> <img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/finger_guessing/guess_n.gif" alt="video0.gif" width="45%" height="45%" />
 
 

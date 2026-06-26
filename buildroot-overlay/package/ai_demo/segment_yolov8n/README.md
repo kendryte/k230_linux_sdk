@@ -31,7 +31,7 @@ debug_mode   是否需要调试，0、1、2分别表示不调试、简单调试�
 将摄像头置于需分割目标前即可在显示屏中观察到该目标的分割效果。
 ```
 ## 2.2 效果展示
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/segment_yolov8n/person.jpg" alt="image.jpg" width="50%" height="50%" />
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/segment_yolov8n/person.jpg" alt="image.jpg" width="50%" height="50%" />
 
 
 

@@ -26,7 +26,7 @@ Options:
 ```
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/face_emotion/face_emotion_result.png" alt="情感识别效果图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/face_emotion/face_emotion_result.png" alt="情感识别效果图" width="50%" height="50%"/>
 
 
 

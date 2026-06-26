@@ -1,7 +1,7 @@
 # 1.简介
 
 手掌检测采用了yolov5网络结构，backbone选取了1.0-mobilenetV2，手势识别backbone选取了1.0-mobilenetV2。使用该应用，可得到图像或视频中的每个手势的类别。可识别的类别如下以及其他手势：
-![Alt text](https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/sq_handreco/img.png "demo示例")
+![Alt text](https://download.kendryte.com/k230/downloads/doc_images/ai_demo/sq_handreco/img.png "demo示例")
 
 # 2.应用使用说明
 

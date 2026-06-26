@@ -25,7 +25,7 @@ Usage: ./face_detection.elf <kmodel_det> <obj_thres> <nms_thres> <input_mode> <d
 
 ## 2.2 效果展示
 
-<img src="https://kendryte-download.canaan-creative.com/k230/downloads/doc_images/ai_demo/face_detection/face_detect_result.jpg" alt="人脸检测效果图" width="50%" height="50%"/>
+<img src="https://download.kendryte.com/k230/downloads/doc_images/ai_demo/face_detection/face_detect_result.jpg" alt="人脸检测效果图" width="50%" height="50%"/>
 
 
 
