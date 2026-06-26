@@ -1,0 +1,13 @@
+config BR2_PACKAGE_WEBRTC
+    bool "webrtc (libpeer)"
+    depends on BR2_INSTALL_LIBSTDCPP
+    depends on BR2_TOOLCHAIN_HAS_THREADS
+    help
+        WebRTC library based on libpeer, providing peer connection,
+        ICE, DTLS-SRTP, SCTP, and signaling functionality.
+
+        This library bundles mbedtls, libsrtp2, usrsctp,
+        coreHTTP, and coreMQTT as internal dependencies.
+        cJSON is provided by the buildroot cjson package.
+
+        https://github.com/nicbarker/libpeer

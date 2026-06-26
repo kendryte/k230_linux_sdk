@@ -1,0 +1,8 @@
+config BR2_PACKAGE_CAMERA_WEBRTC_DEMO
+    bool "Enable Camera WebRTC Demo"
+    depends on BR2_PACKAGE_WEBRTC
+    depends on BR2_PACKAGE_FFMPEG
+    help
+      This option enables the Camera WebRTC Demo package, which provides
+      a demonstration of streaming video from a camera using WebRTC
+      via libpeer, with HTTP-based SDP signaling.
