@@ -43,8 +43,8 @@ struct v4l2_drm_context {
     struct v4l2_crop_size crop_size;
     unsigned offset_x;
     unsigned offset_y;
-    bool flag_dqbuf;
-    uint8_t wp;
+    bool flag_dqbuf;  // 是否已完成 DQBUF（出队）但尚未显示" 的标志
+    uint8_t wp; //Write Position，是双缓冲环形队列的写指针
     struct v4l2_buffer vbuffer; //当前使用的v4l2_buffer
     int buffer_hold[DRM_BUFFERING];
     bool flag_dump; //dump 标记

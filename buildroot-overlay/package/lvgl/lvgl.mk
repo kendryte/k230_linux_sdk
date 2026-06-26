@@ -60,3 +60,35 @@ endef
 $(eval $(cmake-package))
 
 endif
+
+
+
+ifeq ($(LVGL_VERSION), 97a99a8affe966617f048830a007bbf8bea63da6)
+LVGL_SITE = $(call github,lvgl,lvgl,$(LVGL_VERSION))
+LVGL_SUPPORTS_IN_SOURCE_BUILD = NO
+LVGL_INSTALL_STAGING = YES
+
+LVGL_DEPENDENCIES += libevdev
+LVGL_EXTRA_DOWNLOADS = $(call github,lvgl,lv_port_linux,0a57deb47bada6916da2a1d103f31458ce933a6c.tar.gz)
+
+
+define LVGL_EXTRACT_CMDS
+	tar zxf $(LVGL_DL_DIR)/$(LVGL_SOURCE) -C $(@D)
+	mv $(@D)/lvgl-* $(@D)/lvgl
+	tar zxf $(LVGL_DL_DIR)/0a57deb47bada6916da2a1d103f31458ce933a6c.tar.gz --strip-components=1  -C $(@D)
+	#rsync -au --chmod=u=rwX,go=rX --exclude='*.patch'  $(RSYNC_VCS_EXCLUSIONS) $(LVGL_PKGDIR)/$(LVGL_VERSION)/ $(@D)
+endef
+
+define LVGL_INSTALL_LV_CONF
+	$(INSTALL) -D -m 0644 $(@D)/buildroot-build/lv_conf.h $(STAGING_DIR)/usr/include/lvgl/lv_conf.h
+endef
+LVGL_POST_INSTALL_STAGING_HOOKS += LVGL_INSTALL_LV_CONF
+
+# define LVGL_INSTALL_TARGET_CMDS
+# 	$(TARGET_MAKE_ENV) $(MAKE) DESTDIR="$(TARGET_DIR)" -C $(@D) install
+# endef
+
+
+$(eval $(cmake-package))
+
+endif

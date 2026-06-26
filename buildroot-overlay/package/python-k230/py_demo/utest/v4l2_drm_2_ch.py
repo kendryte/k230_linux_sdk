@@ -73,9 +73,10 @@ try:
         osd_img = np.zeros((min(display_w, display_h), max(display_w, display_h), 4), dtype=np.uint8)
         # 在osd_img上绘制检测框、文字等...
         # cv2.rectangle(osd_img, (x1, y1), (x2, y2), (B, G, R, A), 2)
+        cv2.rectangle(osd_img, (0, 0), (max(display_w, display_h), min(display_w, display_h)), (255, 0, 0, 255), 20)
 
         # 7. 显示帧率到OSD
-        cv2.putText(osd_img, f"FPS: {fps:.1f}", (10, 40),
+        cv2.putText(osd_img, f"FPS: {fps:.1f}", (40, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0, 255), 2)
 
         # 8. 更新OSD显示
@@ -87,3 +88,20 @@ except KeyboardInterrupt:
 v4l2.dump_stop(index=1)
 v4l2.display_stop()
 print("Done!")
+
+"""
+关于添加osd后视频抖动问题：
+思路:1)回退版本试下 2）使用argb4444试下 3）调整noc配置不管用 4）后台单独提交osd； 5)看代码；
+
+
+关键代码：
+buildroot-overlay/package/display/src/display.c  ：显示
+buildroot-overlay/package/vvcam/v4l2-drm/src/lib.c ：v4l2-->drm绑定库；
+
+
+devmem  0x91301f10 32 0x400
+devmem  0x91301f14 32 0x3ff
+devmem  0x91301f08  32 0x2 #不限速 不管用；
+#调整 qos不管用
+#回退版本，最古老的版本也有问题；
+"""

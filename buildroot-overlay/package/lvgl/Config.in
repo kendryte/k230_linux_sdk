@@ -6,8 +6,8 @@ config BR2_PACKAGE_LVGL
 
 config BR2_PACKAGE_LVGL_CUSTOM_VERSION
 	string "lvgl version"
-    default "59dc7e436ae97a25e32656739ea6a943f9f11b6a"
+    default "97a99a8affe966617f048830a007bbf8bea63da6"
     depends on  BR2_PACKAGE_LVGL
 	help
 	  This option allows to use a specific official version from
-	  lvgl, only surpport 8.3.7 and 59dc7e436ae97a25e32656739ea6a943f9f11b6a
+	  lvgl, only surpport 8.3.7   59dc7e436ae97a25e32656739ea6a943f9f11b6a  97a99a8affe966617f048830a007bbf8bea63da6

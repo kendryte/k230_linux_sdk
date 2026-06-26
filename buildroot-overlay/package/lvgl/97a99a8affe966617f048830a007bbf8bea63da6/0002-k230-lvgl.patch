@@ -1,0 +1,69 @@
+From b7aff221d3777d82b000d7fcb5ddbadbcc4dedf5 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 24 Jun 2026 18:11:06 +0800
+Subject: [PATCH 2/2] k230 lvgl
+
+---
+ CMakeLists.txt                    | 5 ++++-
+ lv_conf.defaults                  | 4 ++--
+ lvgl/env_support/cmake/main.cmake | 4 ++--
+ 3 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6f6164d..20cc0f6 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -409,7 +409,7 @@ target_link_libraries(lvgl PUBLIC ${PKG_CONFIG_LIB} m pthread rt dl)
+ add_executable(lvglsim src/main.c)
+ 
+ # Repeat lvgl_linux to resolve circular dependency with lvgl
+-target_link_libraries(lvglsim lvgl_linux lvgl lvgl_linux)
++target_link_libraries(lvglsim lvgl_linux lvgl lvgl_demos lvgl_linux)
+ 
+ if(WERROR)
+     target_compile_options(lvglsim PRIVATE -Werror)
+@@ -431,3 +431,6 @@ install(TARGETS lvgl_linux
+ )
+ 
+ add_custom_target(run COMMAND ${EXECUTABLE_OUTPUT_PATH}/lvglsim DEPENDS lvglsim)
++install(TARGETS lvglsim
++    RUNTIME DESTINATION /root/app/
++)
+diff --git a/lv_conf.defaults b/lv_conf.defaults
+index b37fa16..6006fae 100644
+--- a/lv_conf.defaults
++++ b/lv_conf.defaults
+@@ -25,12 +25,12 @@ LV_USE_DRAW_SDL 0
+ # A display driver is responsible for how the draw buffer is rendered to the screen
+ 
+ # Simple framebuffer device
+-LV_USE_LINUX_FBDEV      1
++LV_USE_LINUX_FBDEV      0
+ LV_LINUX_FBDEV_RENDER_MODE   LV_DISPLAY_RENDER_MODE_DIRECT
+ LV_LINUX_FBDEV_BUFFER_COUNT  2
+ 
+ # DRM Support
+-LV_USE_LINUX_DRM        0
++LV_USE_LINUX_DRM        1
+ LV_USE_LINUX_DRM_GBM_BUFFERS 0
+ 
+ # SDL2
+diff --git a/lvgl/env_support/cmake/main.cmake b/lvgl/env_support/cmake/main.cmake
+index d02b269..81cb169 100644
+--- a/lvgl/env_support/cmake/main.cmake
++++ b/lvgl/env_support/cmake/main.cmake
+@@ -319,9 +319,9 @@ if(CONFIG_LV_USE_PRIVATE_API)
+     )
+ 
+     install(CODE "
+-        file(READ \"${CMAKE_INSTALL_FULL_INCLUDEDIR}/lvgl_private/lvgl_public.h\" content)
++        file(READ \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/lvgl_private/lvgl_public.h\" content)
+         string(REPLACE \"../include/lvgl/lvgl.h\" \"../lvgl/lvgl.h\" content \"\${content}\")
+-        file(WRITE \"${CMAKE_INSTALL_FULL_INCLUDEDIR}/lvgl_private/lvgl_public.h\" \"\${content}\")
++        file(WRITE \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/lvgl_private/lvgl_public.h\" \"\${content}\")
+     ")
+ endif()
+ 
+-- 
+2.25.1
+

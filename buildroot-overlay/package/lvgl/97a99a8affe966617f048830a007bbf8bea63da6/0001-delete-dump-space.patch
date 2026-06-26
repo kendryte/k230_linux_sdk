@@ -1,0 +1,204 @@
+From f4c7277ec2aa27f906737310d99089b06eac7ec4 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 24 Jun 2026 18:02:02 +0800
+Subject: [PATCH 1/2] delete dump space
+
+---
+ CMakeLists.txt                    | 32 +++++++++++++++----------------
+ lv_conf.defaults                  | 14 +++++++-------
+ lvgl/env_support/cmake/main.cmake |  4 ++--
+ 3 files changed, 25 insertions(+), 25 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4ea29f4..6f6164d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -167,7 +167,7 @@ if (CONFIG_LV_USE_WAYLAND)
+     if(DEFINED ENV{SDKTARGETSYSROOT} AND DEFINED ENV{SYSROOT})
+         message(FATAL_ERROR "Both SDKTARGETSYSROOT and SYSROOT are set. Please set only one.")
+     endif()
+-    
++
+     if(DEFINED ENV{SDKTARGETSYSROOT})
+         set(PROTOCOL_ROOT "$ENV{SDKTARGETSYSROOT}/usr/share/wayland-protocols")
+     elseif(DEFINED ENV{SYSROOT})
+@@ -175,14 +175,14 @@ if (CONFIG_LV_USE_WAYLAND)
+     else()
+         set(PROTOCOL_ROOT "/usr/share/wayland-protocols")
+     endif()
+-    
++
+     if(NOT EXISTS ${PROTOCOL_ROOT})
+         message(FATAL_ERROR "Wayland protocols not found at ${PROTOCOL_ROOT}")
+     endif()
+-    
++
+     set(PROTOCOLS_DIR "${CMAKE_CURRENT_BINARY_DIR}/protocols")
+     file(MAKE_DIRECTORY ${PROTOCOLS_DIR})
+-    
++
+     set(WAYLAND_PROTOCOLS_SRC "")
+ 
+     # Use public-code for shared libs, private-code for static libs
+@@ -196,19 +196,19 @@ if (CONFIG_LV_USE_WAYLAND)
+     set(XDG_SHELL_XML "${PROTOCOL_ROOT}/stable/xdg-shell/xdg-shell.xml")
+     set(XDG_SHELL_HEADER "${PROTOCOLS_DIR}/wayland_xdg_shell.h")
+     set(XDG_SHELL_SOURCE "${PROTOCOLS_DIR}/wayland_xdg_shell.c")
+-    
++
+     if(NOT EXISTS ${XDG_SHELL_HEADER} OR NOT EXISTS ${XDG_SHELL_SOURCE})
+         execute_process(COMMAND wayland-scanner client-header ${XDG_SHELL_XML} ${XDG_SHELL_HEADER})
+         execute_process(COMMAND wayland-scanner ${WAYLAND_SCANNER_CODE_MODE} ${XDG_SHELL_XML} ${XDG_SHELL_SOURCE})
+     endif()
+     list(APPEND WAYLAND_PROTOCOLS_SRC ${XDG_SHELL_SOURCE})
+-    
++
+     # Generate dmabuf protocol (if config is set)
+     if(CONFIG_LV_WAYLAND_USE_G2D)
+         set(DMABUF_XML "${PROTOCOL_ROOT}/stable/linux-dmabuf/linux-dmabuf-v1.xml")
+         set(DMABUF_HEADER "${PROTOCOLS_DIR}/wayland_linux_dmabuf.h")
+         set(DMABUF_SOURCE "${PROTOCOLS_DIR}/wayland_linux_dmabuf.c")
+-        
++
+         if(NOT EXISTS ${DMABUF_HEADER} OR NOT EXISTS ${DMABUF_SOURCE})
+             execute_process(COMMAND wayland-scanner client-header ${DMABUF_XML} ${DMABUF_HEADER})
+             execute_process(COMMAND wayland-scanner ${WAYLAND_SCANNER_CODE_MODE} ${DMABUF_XML} ${DMABUF_SOURCE})
+@@ -222,7 +222,7 @@ if (CONFIG_LV_USE_WAYLAND)
+         list(APPEND PKG_CONFIG_LIB ${WAYLAND_EGL_LIBRARIES})
+         list(APPEND PKG_CONFIG_INC ${WAYLAND_EGL_INCLUDE_DIRS})
+     endif()
+-    
++
+     list(APPEND PKG_CONFIG_INC ${PROTOCOLS_DIR})
+     list(APPEND LV_LINUX_BACKEND_SRC src/lib/display_backends/wayland.c ${WAYLAND_PROTOCOLS_SRC})
+ 
+@@ -271,22 +271,22 @@ endif()
+ if (CONFIG_LV_USE_GLTF)
+     message(STATUS "Including with GLTF support")
+     include(FetchContent)
+-  
++
+     FetchContent_Declare(
+       fastgltf
+       GIT_REPOSITORY https://github.com/spnda/fastgltf
+       GIT_TAG f04052ebd8d157c7b6e8fc3dd9f1ed83df99f3e5)
+-  
++
+     set(FASTGLTF_ENABLE_DEPRECATED_EXT
+         ON
+         CACHE BOOL "" FORCE)
+-  
++
+     set(FASTGLTF_DIFFUSE_TRANSMISSION_SUPPORT
+         ON
+         CACHE BOOL "" FORCE)
+-  
++
+     FetchContent_MakeAvailable(fastgltf)
+-  
++
+     set(WEBP_BUILD_ANIM_UTILS
+         OFF
+         CACHE BOOL "" FORCE)
+@@ -314,14 +314,14 @@ if (CONFIG_LV_USE_GLTF)
+     set(WEBP_BUILD_EXTRAS
+         OFF
+         CACHE BOOL "" FORCE)
+-  
++
+     FetchContent_Declare(
+       webp
+       GIT_REPOSITORY https://github.com/webmproject/libwebp
+       GIT_TAG fa6f56496a442eed59b103250021e4b14ebf1427)
+-  
++
+     FetchContent_MakeAvailable(webp)
+-  
++
+     list(APPEND PKG_CONFIG_LIB fastgltf webp)
+ endif()
+ 
+diff --git a/lv_conf.defaults b/lv_conf.defaults
+index b35a6c2..b37fa16 100644
+--- a/lv_conf.defaults
++++ b/lv_conf.defaults
+@@ -1,6 +1,6 @@
+ # This file gets converted into a `lv_conf.h` at compile time
+ # A list of all configuration options can be found inside `lvgl/lv_conf_template.h`
+-# You can also start from a vast list of configs inside the configs folder. 
++# You can also start from a vast list of configs inside the configs folder.
+ # To use one of those configs directly, set the `CONFIG` CMake variable:
+ # eg: `cmake -B build -DCONFIG=drm-egl-2d` for `configs/drm-egl-2d.defaults`
+ 
+@@ -35,12 +35,12 @@ LV_USE_LINUX_DRM_GBM_BUFFERS 0
+ 
+ # SDL2
+ LV_USE_SDL              0
+-LV_SDL_RENDER_MODE      LV_DISPLAY_RENDER_MODE_DIRECT 
++LV_SDL_RENDER_MODE      LV_DISPLAY_RENDER_MODE_DIRECT
+ LV_SDL_BUF_COUNT        1
+ LV_SDL_ACCELERATED      1
+ LV_SDL_FULLSCREEN       0
+ LV_SDL_DIRECT_EXIT      1
+-LV_SDL_MOUSEWHEEL_MODE  LV_SDL_MOUSEWHEEL_MODE_ENCODER 
++LV_SDL_MOUSEWHEEL_MODE  LV_SDL_MOUSEWHEEL_MODE_ENCODER
+ 
+ # Wayland
+ LV_USE_WAYLAND          0
+@@ -55,11 +55,11 @@ LV_USE_EVDEV    1
+ LV_USE_LIBINPUT 0
+ 
+ # Auxiliary drivers
+-LV_USE_OPENGLES 0 
++LV_USE_OPENGLES 0
+ 
+ # Demos
+ # Requires GLFW or EGL
+-LV_USE_DEMO_GLTF 0 
++LV_USE_DEMO_GLTF 0
+ 
+ # Demos from `https://github.com/lvgl/lv_demos`
+ LV_USE_DEMO_HIGH_RES        0
+@@ -71,7 +71,7 @@ LV_USE_DEMO_FLEX_LAYOUT     0
+ # TTF decoder
+ LV_USE_TINY_TTF         1
+ 
+-# Support using images as font in label or span widgets 
++# Support using images as font in label or span widgets
+ LV_USE_IMGFONT          1
+ 
+ # FS support
+@@ -120,7 +120,7 @@ LV_SYSMON_PROC_IDLE_AVAILABLE 1
+ LV_USE_FLOAT            1
+ LV_USE_MATRIX           1
+ LV_USE_VECTOR_GRAPHIC   1
+-LV_USE_THORVG_INTERNAL  1 
++LV_USE_THORVG_INTERNAL  1
+ LV_USE_LOTTIE           1
+ 
+ # Assert handler
+diff --git a/lvgl/env_support/cmake/main.cmake b/lvgl/env_support/cmake/main.cmake
+index 45e6f1e..d02b269 100644
+--- a/lvgl/env_support/cmake/main.cmake
++++ b/lvgl/env_support/cmake/main.cmake
+@@ -30,7 +30,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+ # LV_USE_PKG_CONFIG_<DEP>, and LV_FETCH_<DEP> options.
+ 
+ # Dependency management require CONFIG_LV_* variables to be set (e.g. CONFIG_LV_USE_WAYLAND).
+-# CONFIG_LV_* variables can be set manually using the -D argument or cmake-gui and are kept in cache  
++# CONFIG_LV_* variables can be set manually using the -D argument or cmake-gui and are kept in cache
+ # or generated automatically by enabling LV_BUILD_SET_CONFIG_OPTS, which parses lv_conf_internal.h to derive them.
+ option(LV_USE_FIND_PACKAGE "Resolve dependencies via find_package" ON)
+ option(LV_USE_PKG_CONFIG "Resolve dependencies via pkg-config (requires pkg-config to be installed)" ON)
+@@ -251,7 +251,7 @@ if(CONFIG_LV_USE_THORVG_INTERNAL)
+     set_target_properties(lvgl_thorvg PROPERTIES COMPILE_DEFINITIONS "${COMP_DEF}")
+ 
+     # This tells cmake to link lvgl with lvgl_thorvg
+-    # The linker will resolve all dependencies when dynamic linking 
++    # The linker will resolve all dependencies when dynamic linking
+     target_link_libraries(lvgl PRIVATE lvgl_thorvg)
+ 
+     # export lvgl_thorvg as a private library to pkg-config
+-- 
+2.25.1
+
