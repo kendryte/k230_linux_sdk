@@ -1,0 +1,181 @@
+/* Copyright (c) 2025, Canaan Bright Sight Co., Ltd
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+ * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+/dts-v1/;
+#include <dt-bindings/pinctrl/k230_evb.h>
+
+/*
+ * K230D Junroc AI Cam Board - Schematic: K230D_Camera.SchDoc
+ *
+ * Bank Voltage Configuration (from schematic):
+ *   BANK0 (IO0-IO1):   1V8 - FIXED (VCC_1V8)
+ *   BANK1 (IO2-IO13):  3V3 (VCC_3V3)
+ *   BANK2 (IO14-IO25): 3V3 (VCC_3V3)
+ *   BANK3 (IO26-IO37): 3V3 (VCC_3V3)
+ *   BANK4 (IO38-IO49): 3V3 (VCC_3V3)
+ *   BANK5 (IO50-IO63): 3V3 (VCC_3V3)
+ *
+ * Camera: GC2093 on MIPI RX1 (4-lane), I2C4, CAM_RST/CAM_CLK
+ * WiFi:   RTL8189FTV on SDIO0 (MMC0, GPIO via K230D MMC0 pins)
+ * Display: MIPI TX (4-lane), Touch I2C3, LCD_RST/LCD_EN
+ * USB:    Type-C USB OTG
+ * SD:     SDIO1 (MMC1, GPIO26-GPIO31)
+ * UART:   UART0 (debug via CH342K), UART2
+ * Audio:  Built-in codec (MIC in, HP out)
+ * Boot:   SD card boot via SDIO1 (BOOT0/BOOT1 pulled high to 1V8)
+ */
+#define BANK_VOLTAGE_IO0_IO1	 K230_MSC_1V8  // FIXED
+#define BANK_VOLTAGE_IO2_IO13	 K230_MSC_3V3
+#define BANK_VOLTAGE_IO14_IO25	 K230_MSC_3V3
+#define BANK_VOLTAGE_IO26_IO37	 K230_MSC_3V3
+#define BANK_VOLTAGE_IO38_IO49	 K230_MSC_3V3
+#define BANK_VOLTAGE_IO50_IO61	 K230_MSC_3V3
+#define BANK_VOLTAGE_IO62_IO63	 K230_MSC_3V3
+#include "k230d.dtsi"
+
+/ {
+	model = "kendryte k230d canmv junroc ai cam";
+	compatible = "kendryte,k230d_canmv_junroc_ai_cam";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <
+				0x0 0 0x0 0x7000000  /*MEM_LINUX_SYS*/
+				0x0 0x7000000 0 0x1000000  /*nuttx*/
+			  >;
+	};
+};
+
+&mmc0 {
+	status = "okay";
+};
+
+&mmc1 {
+	status = "okay";
+};
+
+&usbotg0 {
+	status = "okay";
+};
+
+&iomux {
+	pinctrl-names = "default";
+	pinctrl-0 = <&drop_pins &pins>;
+
+//	Please pay attention to the bank voltage! will damage the chip.
+	pins: iomux_pins {
+		u-boot,dm-pre-reloc;
+		pinctrl-single,pins = <
+
+		// SW1 KEY (RSTN) - GPIO0
+		(IO0 ) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO0_IO1 <<MSC | 1<<IE | 0<<OE | 1<<PU | 0<<PD | 2<<DS | 0<<ST )
+		// SW2 KEY (BOOT0) - GPIO1
+		(IO1 ) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO0_IO1 <<MSC | 1<<IE | 0<<OE | 1<<PU | 0<<PD | 2<<DS | 0<<ST )
+
+		// JTAG (TCK, TDI, TDO, TMS, RST)
+		(IO2 ) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 0<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST )
+		(IO3 ) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST )
+		(IO4 ) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST )
+		(IO5 ) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST )
+		(IO6 ) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 0<<OE | 1<<PU | 0<<PD | 4<<DS | 0<<ST )
+
+		// I2C4 -> Camera (GC2093)
+		(IO7 ) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST ) //GPIO7/IIC4_SCL
+		(IO8 ) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST ) //GPIO8/IIC4_SDA
+
+		// GPIO10/11/12 - unused as GPIO
+		(IO10) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 8<<DS | 0<<ST )
+		(IO11) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 8<<DS | 0<<ST )
+		(IO12) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 8<<DS | 0<<ST )
+
+		// M_CLK1 -> Camera (GC2093 MCLK)
+		(IO13) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 0<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST )
+
+		// OSPI/QSPI flash pins (GPIO14-GPIO25) - not populated, configure as GPIO
+		(IO14) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO15) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO16) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO17) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO18) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO19) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		// CAM_RST (GC2093 reset) - GPIO20
+		(IO20) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		// CAM_CLK (GC2093 clock enable) - GPIO21
+		(IO21) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		// TP_INT (Touch panel interrupt)
+		(IO22) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		// TP_RST (Touch panel reset)
+		(IO23) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		// LCD_RST (LCD reset)
+		(IO24) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 0<<IE | 1<<OE | 0<<PU | 1<<PD | 7<<DS | 1<<ST )
+		// LCD_EN (LCD enable)
+		(IO25) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST )
+
+		// SD Card (SDIO1/MMC1) - GPIO26-GPIO31 = MMC1 function (SEL=1)
+		(IO26) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //SD_CLK
+		(IO27) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //SD_CMD
+		(IO28) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //SD_DAT0
+		(IO29) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //SD_DAT1
+		(IO30) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //SD_DAT2
+		(IO31) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //SD_DAT3
+
+		// I2S / IIC0 (GPIO32-GPIO35) - audio interface
+		(IO32) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST ) //IIC0_SCL/IIS_CLK
+		(IO33) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST ) //IIC0_SDA/IIS_WS
+		(IO34) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST ) //IIC1_SCL/IIS_D_IN0
+		(IO35) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 4<<DS | 0<<ST ) //IIC1_SDA/IIS_D_OUT0
+
+		// I2C3 -> Touch Panel
+		(IO36) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST ) //IIC3_SCL
+		(IO37) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO26_IO37<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST ) //IIC3_SDA
+
+		// UART0 (Debug via CH342K)
+		(IO38) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO38_IO49<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //UART0_TXD
+		(IO39) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO38_IO49<<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //UART0_RXD
+
+		// IIC1 (GPIO40/41) - not actively used, configure as I2C
+		(IO40) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO38_IO49<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST ) //IIC1_SCL
+		(IO41) ( 2<<SEL | 0<<SL | BANK_VOLTAGE_IO38_IO49<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST ) //IIC1_SDA
+
+		// UART2
+		(IO44) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO38_IO49<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //UART2_TXD
+		(IO45) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO38_IO49<<MSC | 1<<IE | 0<<OE | 0<<PU | 0<<PD | 7<<DS | 1<<ST ) //UART2_RXD
+
+		// IIC0 (GPIO48/49) - alternative I2C
+		(IO48) ( 3<<SEL | 0<<SL | BANK_VOLTAGE_IO38_IO49<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST ) //IIC0_SCL
+		(IO49) ( 3<<SEL | 0<<SL | BANK_VOLTAGE_IO38_IO49<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST ) //IIC0_SDA
+
+		// GPIO59 - PWM5 / QSPI0_D3
+		(IO59) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO50_IO61<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
+		// GPIO60 - PWM0 / IIC0_SCL
+		(IO60) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO50_IO61<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
+		// GPIO61 - PWM1 / IIC0_SDA
+		(IO61) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO50_IO61<<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 7<<DS | 1<<ST )
+
+		// M_CLK2 / M_CLK3
+		(IO62) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO62_IO63<<MSC | 0<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST ) //M_CLK2
+		(IO63) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO62_IO63<<MSC | 0<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST ) //M_CLK3
+		>;
+	};
+};

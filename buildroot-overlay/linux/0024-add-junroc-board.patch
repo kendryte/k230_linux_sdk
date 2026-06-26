@@ -1,0 +1,178 @@
+From ea83596ae740aa829801ec6a5d2cc65529f3909e Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 26 Jun 2026 16:15:48 +0800
+Subject: [PATCH] add junroc board
+
+---
+ .../dts/canaan/k230d-canmv-junroc-ai-cam.dts  | 145 ++++++++++++++++++
+ arch/riscv/boot/dts/canaan/k230d-canmv.dts    |   2 +
+ 2 files changed, 147 insertions(+)
+ create mode 100644 arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+new file mode 100644
+index 000000000..85cd164b4
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+@@ -0,0 +1,145 @@
++// SPDX-License-Identifier: GPL-2.0 OR MIT
++/*
++ * Copyright (C) 2025 Junroc AI Cam Board
++ *
++ * K230D Junroc AI Cam Board - Schematic: K230D_Camera.SchDoc
++ *
++ * Hardware:
++ *   - K230D SoC with 128MB LPDDR4
++ *   - Camera: GC2093 on MIPI RX1 (4-lane), I2C4
++ *   - WiFi:   RTL8189FTV on SDIO0 (mmc_sd0)
++ *   - Display: MIPI TX0 (4-lane DSI) + Touch I2C3
++ *   - SD Card: SDIO1 (mmc_sd1)
++ *   - USB:    Type-C USB OTG (usb0)
++ *   - UART:   UART0 (debug via CH342K), UART2
++ *   - Audio:  Built-in codec (MIC in, HP out)
++ */
++
++#include "k230.dtsi"
++#include "display-st7701-480x800.dtsi"
++
++/ {
++	model = "K230D CanMV Junroc AI Cam";
++	compatible = "canaan,canmv-k230d-junroc-ai-cam", "canaan,canmv-k230d", "canaan,kendryte-k230";
++
++	aliases {
++		serial0 = &uart0;
++		serial2 = &uart2;
++		mmc0 = &mmc_sd1;
++		mmc1 = &mmc_sd0;
++		i2c0 = &i2c4;
++		i2c1 = &i2c3;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++		bootargs = "root=/dev/mmcblk0p2 loglevel=8 rw rootdelay=4 \
++						rootfstype=ext4 console=ttyS0,115200  earlycon=sbi";
++	};
++
++	ddr: memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x8000000>;
++	};
++
++	sound {
++		status                      = "okay";
++		compatible                  = "canaan,k230-audio-inno";
++		canaan,model                = "K230_I2S_INNO";
++		canaan,k230-i2s-controller  = <&i2s>;
++		canaan,k230-audio-codec     = <&inno_codec>;
++	};
++
++	cam_clk: cam-clock {
++		compatible = "fixed-clock";
++		clock-frequency = <24000000>;
++		clock-output-names = "cam_clk";
++		#clock-cells = <0>;
++	};
++};
++
++/* UART0 - Debug console via CH342K USB-UART bridge */
++&uart0 {
++	status = "okay";
++};
++
++/* UART2 - Available on connector */
++&uart2 {
++	status = "okay";
++};
++
++/* mmc_sd0 - WiFi RTL8189FTV on SDIO0 */
++&mmc_sd0 {
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	mshc_ctrl_r = <0x00>;
++	// keep-power-in-suspend;
++	non-removable;
++};
++
++/* mmc_sd1 - SD Card on SDIO1 */
++&mmc_sd1 {
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	mshc_ctrl_r = <0x00>;
++};
++
++/* USB0 - Type-C USB OTG */
++&usb0 {
++	status = "okay";
++	dr_mode = "otg";
++};
++
++// /* USB1 */
++// &usb1 {
++// 	status = "okay";
++// 	dr_mode = "host";
++// };
++
++/* I2C4 - Camera sensor (GC2093) */
++&i2c4 {
++	status = "okay";
++};
++
++/* I2C3 - Touch panel */
++&i2c3 {
++	status = "okay";
++
++	touchscreen@38 {
++		compatible = "edt,edt-ft5306";
++		reg = <0x38>;
++		reset-gpios = <&gpio0_ports 23 GPIO_ACTIVE_LOW>;
++		interrupt-parent = <&gpio0_ports>;
++		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <800>;
++	};
++};
++
++/* LCD panel - MIPI DSI output */
++&lcd {
++	dsi_reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_HIGH>;
++	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
++};
++
++
++
++&mipi0 {
++	// set to csi2
++	id = <1>;
++	reg = <0x0 0x9000a000 0x0 0x800>;
++	interrupts = <118 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset
++				K230_RESET_CSI1_REG_OFFSET
++				K230_RESET_CSI1_TYPE
++				K230_RESET_CSI1_DONE_BIT
++				K230_RESET_CSI1_ASSERT_BIT>,
++				<&sysctl_reset
++				K230_RESET_M1_REG_OFFSET
++				K230_RESET_M1_TYPE
++				K230_RESET_M1_DONE_BIT
++				K230_RESET_M1_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 10 GPIO_ACTIVE_HIGH>;
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv.dts b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+index ce9b96c93..be60d64b4 100755
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+@@ -73,6 +73,8 @@ touchscreen@38 {
+ 		reset-gpios = <&gpio0_ports 23 GPIO_ACTIVE_LOW>;
+ 		interrupt-parent = <&gpio0_ports>;
+ 		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <800>;
+ 	};
+ };
+ 
+-- 
+2.25.1
+

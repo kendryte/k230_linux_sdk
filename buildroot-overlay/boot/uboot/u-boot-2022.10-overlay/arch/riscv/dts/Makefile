@@ -10,6 +10,7 @@ dtb-$(CONFIG_TARGET_SIPEED_MAIX) += k210-maix-bit.dtb
 dtb-$(CONFIG_TARGET_K230_FPGA) += k230_fpga.dtb
 dtb-$(CONFIG_TARGET_K230_EVB) += k230_evb.dtb
 dtb-$(CONFIG_TARGET_K230_CANMV_01STUDIO) += k230_canmv_01studio_mmc.dtb  k230_canmv_01studio.dtb
+dtb-$(CONFIG_TARGET_K230D_CANMV_JUNROC_AI_CAM) += k230d_canmv_junroc_ai_cam.dtb
 
 
 include $(srctree)/scripts/Makefile.dts

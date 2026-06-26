@@ -59,6 +59,10 @@ config TARGET_K230D_CANMV
 	bool "Support k230D_CANMV(K230PI zero)"
 	select SYS_CACHE_SHIFT_6
 
+config TARGET_K230D_CANMV_JUNROC_AI_CAM
+	bool "Support k230D_CANMV_Junroc AI Cam"
+	select SYS_CACHE_SHIFT_6
+
 config TARGET_K230_UNSIPLP4
 	bool "Support usiplp4"
 	select SYS_CACHE_SHIFT_6
@@ -108,6 +112,7 @@ source "board/canaan/k230_canmv_01studio/Kconfig"
 source "board/canaan/k230_canmv_dongshanpi/Kconfig"
 source "board/canaan/k230_canmv_gt6700/Kconfig"
 source "board/canaan/k230d_canmv/Kconfig"
+source "board/canaan/k230d_canmv_junroc_ai_cam/Kconfig"
 source "board/canaan/k230_unsiplp4/Kconfig"
 source "board/canaan/k230_siplp4/Kconfig"
 

@@ -80,6 +80,7 @@ def get_product_name_from_filepath(file_path):
             "CanMV_K230_YAHBOOM":"k230_canmv_yahboom_defconfig",
             "CanMV_K230_GT6700" :"k230_canmv_gt6700_defconfig",
             "CanMV_K230D_LabPlusAiCamera":"k230d_canmv_labplus_ai_camera_defconfig",
+            "CanMV_K230D_JUNROC_AI_CAM":"k230d_canmv_junroc_ai_cam_defconfig",
             "CanMV_K230_V3P0": "k230_canmv_v3_defconfig"
         }
         return product_dict.get(product_, product_)
@@ -238,6 +239,12 @@ json_str = u'''
             "name": "银杏",
             "description": "k230_canmv_gt6700_defconfig",
             "image_url": "https://www.kendryte.com/api/post/attachment?id=577",
+            "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
+        },
+        "k230d_canmv_junroc_ai_cam_defconfig": {
+            "name": "隽鹏Junroc",
+            "description": "隽鹏Junroc AI Cam",
+            "image_url": "https://www.kendryte.com/img/junpeng.15e0c9ac.webp",
             "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
         "k230d_canmv_labplus_ai_camera_defconfig": {

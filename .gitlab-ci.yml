@@ -965,6 +965,7 @@ release_image_publish:
         - k230d_canmv_defconfig
         - BPI-CanMV-K230D-Zero_defconfig
         - k230_canmv_01studio_defconfig
+        - k230d_canmv_junroc_ai_cam_defconfig
         - k230_canmv_lckfb_defconfig
         - k230_canmv_v3_defconfig
         - k230_canmv_01studio_emmc_defconfig
@@ -1121,6 +1122,7 @@ build-image_all:
         - k230d_canmv_defconfig
         - BPI-CanMV-K230D-Zero_defconfig
         - k230_canmv_01studio_defconfig
+        - k230d_canmv_junroc_ai_cam_defconfig
         - k230_canmv_lckfb_defconfig
         - k230_canmv_v3_defconfig
         - k230_canmv_01studio_emmc_defconfig

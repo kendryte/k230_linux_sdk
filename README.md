@@ -30,7 +30,7 @@ make CONF=k230d_canmv_defconfig #build k230d canmv image (kernel and rootfs both
 # make help # view help
 ```
 
->The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://kendryte-download.canaan-creative.com/k230/release/linux_sdk_images/daily_build/).
+>The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://download.kendryte.com/k230/release/linux_sdk_images/daily_build/).
 >
 ## output
 
@@ -75,7 +75,7 @@ make debian #generate debian distribution image
 make ubuntu #generate ubuntu distribution image
 ```
 
->The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://kendryte-download.canaan-creative.com/k230/release/linux_sdk_images/daily_build/)
+>The initial image build takes considerable time. If you'd like to skip compilation and try the Linux system directly, you can download the [daily build image provided by Canaan](https://download.kendryte.com/k230/release/linux_sdk_images/daily_build/)
 >
 >For more information about Debian, please refer to [<<K230 Debian/Ubuntu 系统使用>>](https://www.kendryte.com/k230_linux/zh/main/app_develop_guide/user_develop/debian_ubuntu.html)
 
