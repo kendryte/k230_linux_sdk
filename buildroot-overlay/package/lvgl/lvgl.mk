@@ -71,17 +71,6 @@ LVGL_INSTALL_STAGING = YES
 LVGL_DEPENDENCIES += libevdev
 LVGL_EXTRA_DOWNLOADS = $(call github,lvgl,lv_port_linux,0a57deb47bada6916da2a1d103f31458ce933a6c.tar.gz)
 
-# LVGL v9 CMake configure requires pcpp (C preprocessor).
-# Buildroot's host Python lacks SSL so pip can't install pcpp.
-# Copy system pcpp into host/bin so shutil.which("pcpp") finds it.
-define LVGL_ENSURE_PCPP
-	if ! which pcpp > /dev/null 2>&1; then \
-		pip3 install pcpp; \
-	fi
-	$(INSTALL) -D -m 0755 $$(which pcpp) $(HOST_DIR)/bin/pcpp
-endef
-LVGL_PRE_CONFIGURE_HOOKS += LVGL_ENSURE_PCPP
-
 
 define LVGL_EXTRACT_CMDS
 	tar zxf $(LVGL_DL_DIR)/$(LVGL_SOURCE) -C $(@D)

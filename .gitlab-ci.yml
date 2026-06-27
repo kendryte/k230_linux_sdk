@@ -336,7 +336,7 @@ before_script:
   - uptime
   - pwd
   - uname -a
-  - pip3 install pcpp
+  - sudo pip3 install pcpp
   - cat /etc/issue
   - echo $CI_PROJECT_DIR
   - echo $CI_PROJECT_NAME
