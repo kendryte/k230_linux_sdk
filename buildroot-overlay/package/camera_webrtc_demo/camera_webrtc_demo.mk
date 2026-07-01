@@ -9,7 +9,7 @@ define CAMERA_WEBRTC_DEMO_BUILD_CMDS
 endef
 
 define CAMERA_WEBRTC_DEMO_INSTALL_TARGET_CMDS
-	$(INSTALL) -m 0755 $(@D)/camera_webrtc_demo $(TARGET_DIR)/usr/bin/camera_webrtc_demo
+	$(INSTALL) -m 0755 $(@D)/camera_webrtc_demo $(TARGET_DIR)/root/app/camera_webrtc_demo
 endef
 
 $(eval $(generic-package))

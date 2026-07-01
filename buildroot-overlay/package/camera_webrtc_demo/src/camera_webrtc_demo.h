@@ -55,7 +55,8 @@ private:
     // Peer connection thread
     pthread_t peer_thread_;
     std::atomic<int> interrupted_{0};
-    pthread_mutex_t pc_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+    volatile int peer_in_pc_ = 0;
+    volatile int venc_in_pc_ = 0;
 
     // Offer synchronization (ICE gathering)
     pthread_mutex_t offer_mutex_ = PTHREAD_MUTEX_INITIALIZER;

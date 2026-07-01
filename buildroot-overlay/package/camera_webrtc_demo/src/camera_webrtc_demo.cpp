@@ -217,9 +217,9 @@ void MyCameraWebRtcDemo::OnUpdateOsdRegions(OsdRegion* regions, int region_count
 void *MyCameraWebRtcDemo::PeerConnectionTask(void *data) {
     MyCameraWebRtcDemo *self = static_cast<MyCameraWebRtcDemo *>(data);
     while (!self->interrupted_) {
-        pthread_mutex_lock(&self->pc_mutex_);
+        self->peer_in_pc_ = 1;
         peer_connection_loop(self->pc_);
-        pthread_mutex_unlock(&self->pc_mutex_);
+        self->peer_in_pc_ = 0;
         usleep(1000);
     }
     return NULL;
@@ -240,14 +240,17 @@ void MyCameraWebRtcDemo::OnHttpRequest(const char *method, const char *path,
         response->body_len = strlen(WEB_PAGE_HTML);
 
     } else if (strcmp(method, "GET") == 0 && strcmp(path, "/offer") == 0) {
-        /* Hold pc_mutex_ during close+create_offer to prevent the peer thread
-         * from accessing dtls_srtp/agent while we re-initialize them.
-         * Previously the ~1.8s RSA key gen acted as an implicit barrier; now
-         * that cert caching reduces this to ~10ms, explicit locking is required. */
-        pthread_mutex_lock(&self->pc_mutex_);
         if (self->state_ == PEER_CONNECTION_COMPLETED || self->state_ == PEER_CONNECTION_CONNECTED) {
             peer_connection_close(self->pc_);
             self->state_ = PEER_CONNECTION_CLOSED;
+            /* Drain: wait for both worker threads to exit pc_ internals.
+             * close() sets pc->state=CLOSED so no new loop/send_video calls
+             * will enter the dtls_srtp code path, but a call already past the
+             * state check may still be using srtp_out. Wait until both
+             * in-use flags are 0 — guaranteed within ~1ms. */
+            while (self->peer_in_pc_ || self->venc_in_pc_) {
+                usleep(1000);
+            }
         }
 
         self->offer_ready_ = 0;
@@ -257,7 +260,6 @@ void MyCameraWebRtcDemo::OnHttpRequest(const char *method, const char *path,
         }
 
         peer_connection_create_offer(self->pc_);
-        pthread_mutex_unlock(&self->pc_mutex_);
 
         pthread_mutex_lock(&self->offer_mutex_);
         while (!self->offer_ready_ && !self->interrupted_) {
@@ -289,9 +291,7 @@ void MyCameraWebRtcDemo::OnHttpRequest(const char *method, const char *path,
         memcpy(answer_copy, body, body_len);
         answer_copy[body_len] = '\0';
 
-        pthread_mutex_lock(&self->pc_mutex_);
         peer_connection_set_remote_description(self->pc_, answer_copy, SDP_TYPE_ANSWER);
-        pthread_mutex_unlock(&self->pc_mutex_);
 
         response->status = 200;
         response->content_type = "text/plain";
@@ -327,13 +327,18 @@ void MyCameraWebRtcDemo::OnVEncData(unsigned char *data, size_t size, bool bKeyF
 
     if (state_ != PEER_CONNECTION_COMPLETED) return;
 
-    /* peer_connection_send_video internally calls dtls_srtp_encrypt_rtp_packet
-     * and agent_send, which are also accessed by peer_connection_loop (peer thread)
-     * and dtls_srtp_init (HTTP thread on reconnect). Must hold pc_mutex_. */
-    pthread_mutex_lock(&pc_mutex_);
+    /* Mark in-use BEFORE the state check so the reconnect path (GET /offer)
+     * sees us and waits. If we checked state first, close() could happen
+     * between the check and setting the flag — the drain would miss us. */
+    venc_in_pc_ = 1;
+    if (state_ != PEER_CONNECTION_COMPLETED) {
+        venc_in_pc_ = 0;
+        return;
+    }
+
     if (nal_type == 5 && sps_pps_buf_ && sps_pps_size_ > 0) {
         peer_connection_send_video(pc_, sps_pps_buf_, sps_pps_size_, timestamp);
     }
     peer_connection_send_video(pc_, data, size, timestamp);
-    pthread_mutex_unlock(&pc_mutex_);
+    venc_in_pc_ = 0;
 }
