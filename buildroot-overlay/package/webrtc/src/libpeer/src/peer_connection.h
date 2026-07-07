@@ -52,11 +52,12 @@ typedef enum MediaCodec {
 
   /* Video */
   CODEC_H264,
+  CODEC_H265,
   CODEC_VP8,    // not implemented yet
   CODEC_MJPEG,  // not implemented yet
 
   /* Audio */
-  CODEC_OPUS,  // not implemented yet
+  CODEC_OPUS,
   CODEC_PCMA,
   CODEC_PCMU,
 
@@ -73,6 +74,7 @@ typedef struct PeerConfiguration {
   IceServer ice_servers[5];
 
   MediaCodec audio_codec;
+  uint32_t audio_sample_rate;  // Audio sample rate in Hz (e.g. 8000). Used for Opus fmtp to constrain browser encoder.
   MediaCodec video_codec;
   DataChannelType datachannel;
 

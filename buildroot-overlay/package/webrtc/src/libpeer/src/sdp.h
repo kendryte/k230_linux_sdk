@@ -1,6 +1,7 @@
 #ifndef SDP_H_
 #define SDP_H_
 
+#include <stdint.h>
 #include <string.h>
 #include "config.h"
 
@@ -12,11 +13,13 @@
 
 void sdp_append_h264(char* sdp);
 
+void sdp_append_h265(char* sdp);
+
 void sdp_append_pcma(char* sdp);
 
 void sdp_append_pcmu(char* sdp);
 
-void sdp_append_opus(char* sdp);
+void sdp_append_opus(char* sdp, uint32_t audio_sample_rate);
 
 void sdp_append_datachannel(char* sdp);
 

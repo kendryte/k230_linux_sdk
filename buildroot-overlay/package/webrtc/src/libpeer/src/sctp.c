@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "dtls_srtp.h"
 #include "sctp.h"
@@ -106,7 +107,15 @@ int sctp_outgoing_data(Sctp* sctp, char* buf, size_t len, SctpDataPpid ppid, uin
 
   res = usrsctp_sendv(sctp->sock, buf, len, NULL, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
   if (res < 0) {
-    LOGE("sctp sendv error %d: %s", errno, strerror(errno));
+    // EAGAIN/EWOULDBLOCK is normal flow-control backpressure (send buffer or
+    // congestion window temporarily full on this non-blocking socket) — the
+    // caller is expected to retry, this is NOT an error. Logging it on every
+    // occurrence floods a (typically blocking) UART and becomes a throughput
+    // bottleneck in its own right under heavy send rates. Only log real
+    // failures.
+    if (errno != EAGAIN && errno != EWOULDBLOCK) {
+      LOGE("sctp sendv error %d: %s", errno, strerror(errno));
+    }
   }
   return res;
 #else
@@ -530,6 +539,16 @@ int sctp_create_association(Sctp* sctp, DtlsSrtp* dtls_srtp) {
     lopt.l_onoff = 1;
     lopt.l_linger = 0;
     usrsctp_setsockopt(sock, SOL_SOCKET, SO_LINGER, &lopt, sizeof(lopt));
+
+    // The default usrsctp send buffer (sctp_sendspace, ~256KB in userspace
+    // builds — see SCTPCTL_MAXDGRAM_DEFAULT/SB_MAX) is smaller than the
+    // application-level file-transfer sliding window (FILE_TRANSFER_WINDOW_SIZE
+    // * FILE_TRANSFER_CHUNK_SIZE, up to 1MB). On a non-blocking socket,
+    // sending faster than this buffer can drain immediately returns
+    // EAGAIN/EWOULDBLOCK. Raise it so the buffer can hold the full window's
+    // worth of in-flight data without spurious backpressure.
+    int sndbuf_size = 2 * 1024 * 1024;  // 2MB: headroom above the 1MB window
+    usrsctp_setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size));
 
 #if 0
     struct sctp_paddrparams peer_param;

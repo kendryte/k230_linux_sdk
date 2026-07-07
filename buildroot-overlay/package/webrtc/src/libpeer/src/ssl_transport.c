@@ -28,7 +28,7 @@ static int ssl_transport_mbedtls_recv_timeout(void* ctx, unsigned char* buf, siz
   if (ret < 0) {
     return -1;
   } else if (ret == 0) {
-    // timeout
+    return MBEDTLS_ERR_SSL_TIMEOUT;
   } else {
     if (FD_ISSET(((TcpSocket*)ctx)->fd, &read_fds)) {
       ret = tcp_socket_recv((TcpSocket*)ctx, buf, len);
@@ -95,7 +95,7 @@ int ssl_transport_connect(NetworkContext_t* net_ctx,
   tcp_socket_open(&net_ctx->tcp_socket, AF_INET);
   ports_resolve_addr(host, &resolved_addr);
   addr_set_port(&resolved_addr, port);
-  if ((ret = tcp_socket_connect(&net_ctx->tcp_socket, &resolved_addr) < 0)) {
+  if ((ret = tcp_socket_connect(&net_ctx->tcp_socket, &resolved_addr)) < 0) {
     return -1;
   }
 
@@ -129,6 +129,15 @@ int32_t ssl_transport_recv(NetworkContext_t* net_ctx, void* buf, size_t len) {
   int ret;
   memset(buf, 0, len);
   ret = mbedtls_ssl_read(&net_ctx->ssl, buf, len);
+
+  /* mbedtls_ssl_read returns MBEDTLS_ERR_SSL_TIMEOUT when the underlying
+   * select() times out — this is normal idle, not a connection error.
+   * coreMQTT treats recv < 0 as MQTTRecvFailed (fatal), so we must
+   * translate timeout to 0 (no data available) to avoid spurious
+   * disconnection and reconnect cycles. */
+  if (ret == MBEDTLS_ERR_SSL_TIMEOUT) {
+    return 0;
+  }
 
   return ret;
 }

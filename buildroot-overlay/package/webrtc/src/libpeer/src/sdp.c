@@ -39,6 +39,19 @@ void sdp_append_h264(char* sdp) {
   sdp_append(sdp, "a=rtcp-mux");
 }
 
+void sdp_append_h265(char* sdp) {
+  sdp_append(sdp, "m=video 9 UDP/TLS/RTP/SAVPF 98");
+  sdp_append(sdp, "c=IN IP4 0.0.0.0");
+  sdp_append(sdp, "a=rtcp-fb:98 nack");
+  sdp_append(sdp, "a=rtcp-fb:98 nack pli");
+  sdp_append(sdp, "a=fmtp:98 profile-id=1");
+  sdp_append(sdp, "a=rtpmap:98 H265/90000");
+  sdp_append(sdp, "a=ssrc:2 cname:webrtc-h265");
+  sdp_append(sdp, "a=sendrecv");
+  sdp_append(sdp, "a=mid:video");
+  sdp_append(sdp, "a=rtcp-mux");
+}
+
 void sdp_append_pcma(char* sdp) {
   sdp_append(sdp, "m=audio 9 UDP/TLS/RTP/SAVP 8");
   sdp_append(sdp, "c=IN IP4 0.0.0.0");
@@ -59,10 +72,20 @@ void sdp_append_pcmu(char* sdp) {
   sdp_append(sdp, "a=rtcp-mux");
 }
 
-void sdp_append_opus(char* sdp) {
-  sdp_append(sdp, "m=audio 9 UDP/TLS/RTP/SAVP 111");
+void sdp_append_opus(char* sdp, uint32_t audio_sample_rate) {
+  sdp_append(sdp, "m=audio 9 UDP/TLS/RTP/SAVPF 111");
   sdp_append(sdp, "c=IN IP4 0.0.0.0");
   sdp_append(sdp, "a=rtpmap:111 opus/48000/2");
+  // Constrain browser Opus encoder to narrowband mono matching device sample rate.
+  // Per RFC 7587: maxplaybackrate = max rate receiver renders,
+  //   sprop-maxcapturerate = max rate sender captures, stereo = 0 forces mono.
+  // Browser respects these and configures its Opus encoder accordingly.
+  if (audio_sample_rate > 0 && audio_sample_rate < 48000) {
+    sdp_append(sdp, "a=fmtp:111 maxplaybackrate=%u;sprop-maxcapturerate=%u;stereo=0;minptime=20;useinbandfec=1",
+               audio_sample_rate, audio_sample_rate);
+  } else {
+    sdp_append(sdp, "a=fmtp:111 minptime=20;useinbandfec=1");
+  }
   sdp_append(sdp, "a=ssrc:6 cname:webrtc-opus");
   sdp_append(sdp, "a=sendrecv");
   sdp_append(sdp, "a=mid:audio");

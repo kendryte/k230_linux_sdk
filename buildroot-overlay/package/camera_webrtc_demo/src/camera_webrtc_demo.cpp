@@ -69,10 +69,15 @@ int MyCameraWebRtcDemo::Init(const KdMediaInputConfig &config, int port) {
     }
 
     peer_init();
+    MediaCodec video_codec = CODEC_H264;
+    if (input_config_.video_type == KdMediaVideoType::kVideoTypeH265) {
+        video_codec = CODEC_H265;
+    }
+
     PeerConfiguration pc_config = {
         .ice_servers = {{0}},
         .audio_codec = CODEC_NONE,
-        .video_codec = CODEC_H264,
+        .video_codec = video_codec,
         .datachannel = DATA_CHANNEL_NONE,
         .onaudiotrack = NULL,
         .onvideotrack = NULL,
@@ -144,7 +149,8 @@ int MyCameraWebRtcDemo::Start() {
     printf("\n========================================\n");
     printf("  Camera WebRTC Demo\n");
     printf("========================================\n");
-    printf("  Encode: %dx%d @ %dkbps H264\n", input_config_.venc_width, input_config_.venc_height, input_config_.bitrate_kbps);
+    printf("  Encode: %dx%d @ %dkbps %s\n", input_config_.venc_width, input_config_.venc_height, input_config_.bitrate_kbps,
+           (input_config_.video_type == KdMediaVideoType::kVideoTypeH265) ? "H265" : "H264");
     printf("  Open in browser:\n");
     printf("  http://%s:%d\n", local_ip, port_);
     printf("========================================\n\n");
@@ -313,9 +319,22 @@ void MyCameraWebRtcDemo::OnVEncData(unsigned char *data, size_t size, bool bKeyF
     if (!started_) return;
     if (size < 5 || data[0] != 0 || data[1] != 0) return;
 
-    uint8_t nal_type = data[4] & 0x1f;
+    bool is_param_set = false;
+    bool is_idr = false;
 
-    if (nal_type == 7 || nal_type == 8) {
+    if (input_config_.video_type == KdMediaVideoType::kVideoTypeH265) {
+        // H.265: NAL type is in bits 1-6 of byte[4]
+        uint8_t nal_type = (data[4] >> 1) & 0x3f;
+        is_param_set = (nal_type == 32 || nal_type == 33 || nal_type == 34); // VPS/SPS/PPS
+        is_idr = (nal_type == 19 || nal_type == 20); // IDR_W_RADL / IDR_N_LP
+    } else {
+        // H.264: NAL type is in bits 0-4 of byte[4]
+        uint8_t nal_type = data[4] & 0x1f;
+        is_param_set = (nal_type == 7 || nal_type == 8); // SPS/PPS
+        is_idr = (nal_type == 5); // IDR
+    }
+
+    if (is_param_set) {
         if (sps_pps_buf_) free(sps_pps_buf_);
         sps_pps_buf_ = (uint8_t *)malloc(size);
         if (sps_pps_buf_) {
@@ -336,7 +355,7 @@ void MyCameraWebRtcDemo::OnVEncData(unsigned char *data, size_t size, bool bKeyF
         return;
     }
 
-    if (nal_type == 5 && sps_pps_buf_ && sps_pps_size_ > 0) {
+    if (is_idr && sps_pps_buf_ && sps_pps_size_ > 0) {
         peer_connection_send_video(pc_, sps_pps_buf_, sps_pps_size_, timestamp);
     }
     peer_connection_send_video(pc_, data, size, timestamp);

@@ -34,6 +34,15 @@ int peer_signaling_connect(const char* url, const char* token, PeerConnection* p
 
 void peer_signaling_disconnect();
 
+/*
+ * Reconnect to the MQTT signaling server.
+ * Tears down the existing TLS/TCP/MQTT session and establishes a new one,
+ * then re-subscribes to the invoke topic. The PeerConnection is preserved.
+ *
+ * @return 0 on success, -1 on failure
+ */
+int peer_signaling_reconnect();
+
 int peer_signaling_loop();
 
 /*

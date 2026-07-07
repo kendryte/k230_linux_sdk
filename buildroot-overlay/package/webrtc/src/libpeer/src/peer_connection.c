@@ -613,6 +613,8 @@ static const char* peer_connection_create_sdp(PeerConnection* pc, SdpType sdp_ty
   // Build: m=video → candidates → m=audio → m=datachannel
   if (pc->config.video_codec == CODEC_H264) {
     sdp_append_h264(pc->sdp);
+  } else if (pc->config.video_codec == CODEC_H265) {
+    sdp_append_h265(pc->sdp);
   }
 
   agent_get_local_description(&pc->agent, description, sizeof(pc->temp_buf));
@@ -626,7 +628,8 @@ static const char* peer_connection_create_sdp(PeerConnection* pc, SdpType sdp_ty
       sdp_append_pcmu(pc->sdp);
       break;
     case CODEC_OPUS:
-      sdp_append_opus(pc->sdp);
+      sdp_append_opus(pc->sdp, pc->config.audio_sample_rate);
+      break;
     default:
       break;
   }

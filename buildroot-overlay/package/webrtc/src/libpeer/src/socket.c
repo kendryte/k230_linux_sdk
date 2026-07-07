@@ -240,6 +240,7 @@ int tcp_socket_connect(TcpSocket* tcp_socket, Address* addr) {
 void tcp_socket_close(TcpSocket* tcp_socket) {
   if (tcp_socket->fd > 0) {
     close(tcp_socket->fd);
+    tcp_socket->fd = -1;
   }
 }
 

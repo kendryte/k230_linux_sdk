@@ -12,8 +12,9 @@ static void sigHandler(int sig_no) {
 }
 
 static void Usage() {
-    std::cout << "Usage: ./camera_webrtc_demo [-H] [-w <width>] [-h <height>] [-b <bitrate_kbps>] [-p <port>] [-l <enable_log>] [-r <osd_region>]" << std::endl;
+    std::cout << "Usage: ./camera_webrtc_demo [-H] [-t <codec_type>] [-w <width>] [-h <height>] [-b <bitrate_kbps>] [-p <port>] [-l <enable_log>] [-r <osd_region>]" << std::endl;
     std::cout << "-H: display this help message" << std::endl;
+    std::cout << "-t: the video encoder type: h264/h265, default h264" << std::endl;
     std::cout << "-w: video encoder width, default 1280" << std::endl;
     std::cout << "-h: video encoder height, default 720" << std::endl;
     std::cout << "-b: video encoder bitrate(kbps), default 2000" << std::endl;
@@ -33,9 +34,16 @@ int main(int argc, char *argv[]) {
 
     int result;
     opterr = 0;
-    while ((result = getopt(argc, argv, "Hw:h:b:p:l:r:")) != -1) {
+    while ((result = getopt(argc, argv, "Ht:w:h:b:p:l:r:")) != -1) {
         switch (result) {
         case 'H': Usage(); break;
+        case 't': {
+            std::string s = optarg;
+            if (s == "h264") config.video_type = KdMediaVideoType::kVideoTypeH264;
+            else if (s == "h265") config.video_type = KdMediaVideoType::kVideoTypeH265;
+            else Usage();
+            break;
+        }
         case 'w': config.venc_width = atoi(optarg); break;
         case 'h': config.venc_height = atoi(optarg); break;
         case 'b': config.bitrate_kbps = atoi(optarg); break;
@@ -46,7 +54,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("Config: %dx%d @ %dkbps, HTTP port %d, log=%d, osd=%d\n",
+    printf("Config: %s %dx%d @ %dkbps, HTTP port %d, log=%d, osd=%d\n",
+           (config.video_type == KdMediaVideoType::kVideoTypeH264) ? "h264" : "h265",
            config.venc_width, config.venc_height, config.bitrate_kbps, port, config.enable_log, config.osd_region);
 
     MyCameraWebRtcDemo *demo = new MyCameraWebRtcDemo();

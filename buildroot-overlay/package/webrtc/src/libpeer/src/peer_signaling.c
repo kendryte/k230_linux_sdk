@@ -552,7 +552,8 @@ void peer_signaling_set_custom_rpc_handler(peer_signaling_custom_rpc_cb cb, void
 void peer_signaling_disconnect() {
   MQTTStatus_t status = MQTTSuccess;
 
-  if (!g_ps.proto && !peer_signaling_mqtt_subscribe(0)) {
+  if (!g_ps.proto && g_ps.mqtt_fixed_buf.pBuffer != NULL) {
+    peer_signaling_mqtt_subscribe(0);
     status = MQTT_Disconnect(&g_ps.mqtt_ctx);
     if (status != MQTTSuccess) {
       LOGE("Failed to disconnect with broker: %s", MQTT_Status_strerror(status));
@@ -563,9 +564,38 @@ void peer_signaling_disconnect() {
   LOGI("Disconnected");
 }
 
-int peer_signaling_loop() {
-  MQTT_ProcessLoop(&g_ps.mqtt_ctx);
+int peer_signaling_reconnect() {
+  if (g_ps.proto != 0) {
+    LOGW("Reconnect not supported in HTTP mode");
+    return -1;
+  }
+
+  LOGI("Reconnecting to MQTT broker %s:%d ...", g_ps.host, g_ps.port);
+
+  // Tear down existing session (only if MQTT was previously initialized)
+  if (g_ps.mqtt_fixed_buf.pBuffer != NULL) {
+    MQTT_Disconnect(&g_ps.mqtt_ctx);
+  }
+  ssl_transport_disconnect(&g_ps.net_ctx);
+
+  // Re-establish: TLS connect → MQTT connect → subscribe
+  if (peer_signaling_mqtt_connect(g_ps.host, g_ps.port) < 0) {
+    LOGE("Reconnect: MQTT connect failed");
+    return -1;
+  }
+
+  if (peer_signaling_mqtt_subscribe(1) < 0) {
+    LOGE("Reconnect: MQTT subscribe failed");
+    return -1;
+  }
+
+  LOGI("Reconnect succeeded");
   return 0;
+}
+
+int peer_signaling_loop() {
+  MQTTStatus_t status = MQTT_ProcessLoop(&g_ps.mqtt_ctx);
+  return (int)status;
 }
 
 int peer_signaling_publish(const char* topic, const char* message) {

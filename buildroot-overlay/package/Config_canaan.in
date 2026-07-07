@@ -20,6 +20,8 @@ menu "canaan package"
 	source "package/librtsp_server/Config.in"
 	source "package/mvx_player/Config.in"
 	source "package/camera_rtsp_demo/Config.in"
+	source "package/webrtc/Config.in"
+	source "package/camera_webrtc_demo/Config.in"
 	source "package/audio_rec_play/Config.in"
 
 	source "package/vg_lite/Config.in"
