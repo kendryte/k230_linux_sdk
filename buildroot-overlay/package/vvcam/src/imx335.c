@@ -679,8 +679,6 @@ static int imx335_apply_orient(struct imx335_ctx *sensor)
 
 static int set_mode(void* ctx, uint32_t index) {
     struct imx335_ctx* sensor = ctx;
-    const bool want_hflip = sensor->hflip;
-    const bool want_vflip = sensor->vflip;
     //printf("f=%s l=%d index =%d\n", __func__, __LINE__,index);
 
     if (index >= ARRAY_SIZE(modes)) {
@@ -742,8 +740,8 @@ static int set_mode(void* ctx, uint32_t index) {
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
-    sensor->hflip = want_hflip;
-    sensor->vflip = want_vflip;
+    sensor->hflip = false;
+    sensor->vflip = false;
     CHECK_ERROR(imx335_apply_orient(sensor));
 
     return 0;
@@ -819,7 +817,11 @@ static int set_stream(void* ctx, bool on) {
     if (on) {
         ret = write_reg(ctx, IMX335_REG_MODE_SELECT, IMX335_MODE_STREAMING);
     } else {
-        ret = write_reg(ctx, IMX335_REG_MODE_SELECT, IMX335_MODE_STREAMING);
+        sensor->hflip = false;
+        sensor->vflip = false;
+        imx335_apply_orient(sensor);
+
+        ret = write_reg(ctx, IMX335_REG_MODE_SELECT, IMX335_MODE_STANDBY);
     }
     return ret;
 }

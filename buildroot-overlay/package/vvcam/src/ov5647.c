@@ -421,8 +421,6 @@ static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
 
 static int set_mode(void* ctx, uint32_t index) {
     struct ov5647_ctx* sensor = ctx;
-    const bool want_hflip = sensor->hflip;
-    const bool want_vflip = sensor->vflip;
 
     if (index >= modes_len) {
         // out of range
@@ -478,8 +476,8 @@ static int set_mode(void* ctx, uint32_t index) {
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
-    sensor->hflip = want_hflip;
-    sensor->vflip = want_vflip;
+    sensor->hflip = false;
+    sensor->vflip = false;
     CHECK_ERROR(ov5647_apply_orient(sensor));
 
     return 0;
@@ -560,6 +558,10 @@ static int set_stream(void* ctx, bool on) {
             return -1;
         }
     } else {
+        sensor->hflip = false;
+        sensor->vflip = false;
+        ov5647_apply_orient(sensor);
+
         if (write_reg(sensor, 0x3018, 0xff) || write_reg(sensor, 0x0100, 0)) {
             printf("ov5647 write reg error");
             return -1;

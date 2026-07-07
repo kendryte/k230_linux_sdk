@@ -375,8 +375,6 @@ static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
 
 static int set_mode(void* ctx, uint32_t index) {
     struct bf3238_ctx* sensor = ctx;
-    const bool want_hflip = sensor->hflip;
-    const bool want_vflip = sensor->vflip;
 
     if (index >= modes_len) {
         // out of range
@@ -435,8 +433,8 @@ static int set_mode(void* ctx, uint32_t index) {
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
-    sensor->hflip = want_hflip;
-    sensor->vflip = want_vflip;
+    sensor->hflip = false;
+    sensor->vflip = false;
     CHECK_ERROR(bf3238_apply_orient(sensor));
 
     return 0;
@@ -518,8 +516,10 @@ static int set_stream(void* ctx, bool on) {
         // write_reg(sensor, 0x3e, 0x81);
         // write_reg(sensor, 0x3e, 0x91);
     } else {
-        // write_reg(sensor, 0x03fe, 0xf0);
-        // write_reg(sensor, 0x03fe, 0xf0);
+        sensor->hflip = false;
+        sensor->vflip = false;
+        bf3238_apply_orient(sensor);
+
         write_reg(sensor, 0xf3, 0x01);
     }
 

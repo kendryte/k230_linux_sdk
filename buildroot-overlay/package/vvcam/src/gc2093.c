@@ -737,6 +737,8 @@ static int set_mode(void* ctx, uint32_t index) {
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
+    sensor->hflip = false;
+    sensor->vflip = false;
     CHECK_ERROR(gc2093_apply_orient(sensor));
 
     return 0;
@@ -826,6 +828,10 @@ static int set_stream(void* ctx, bool on) {
         //     return -1;
         // }
     } else {
+        sensor->hflip = false;
+        sensor->vflip = false;
+        gc2093_apply_orient(sensor);
+
         write_reg(sensor, 0x03fe, 0xf0);
         write_reg(sensor, 0x03fe, 0xf0);
         write_reg(sensor, 0x03fe, 0xf0);
