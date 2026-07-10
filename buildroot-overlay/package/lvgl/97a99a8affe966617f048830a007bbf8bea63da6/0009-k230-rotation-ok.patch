@@ -1,0 +1,226 @@
+From a8f895b731eefb68e27510bc7b6c0892e218b95b Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 10 Jul 2026 10:12:54 +0800
+Subject: [PATCH] k230 rotation ok
+
+---
+ lvgl/src/drivers/display/drm/lv_linux_drm.c |   2 +
+ src/lib/display_backends/drm_k230_v4l2.c    | 112 ++++++++++++++++----
+ 2 files changed, 93 insertions(+), 21 deletions(-)
+
+diff --git a/lvgl/src/drivers/display/drm/lv_linux_drm.c b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+index 50410cc..437c098 100644
+--- a/lvgl/src/drivers/display/drm/lv_linux_drm.c
++++ b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+@@ -482,6 +482,8 @@ static int drm_dmabuf_set_plane(drm_dev_t * drm_dev, drm_buffer_t * buf)
+     drm_add_plane_property(drm_dev, "CRTC_Y", 0);
+     drm_add_plane_property(drm_dev, "CRTC_W", drm_dev->width);
+     drm_add_plane_property(drm_dev, "CRTC_H", drm_dev->height);
++    drm_add_plane_property(drm_dev,  "rotation",DRM_MODE_ROTATE_0);
++
+ 
+     ret = drmModeAtomicCommit(drm_dev->fd, drm_dev->req, flags, drm_dev);
+     if(ret) {
+diff --git a/src/lib/display_backends/drm_k230_v4l2.c b/src/lib/display_backends/drm_k230_v4l2.c
+index 71f04d7..d35cc54 100644
+--- a/src/lib/display_backends/drm_k230_v4l2.c
++++ b/src/lib/display_backends/drm_k230_v4l2.c
+@@ -107,10 +107,22 @@ static uint32_t tick_get_cb(void)
+ static lv_display_t * init_drm_k230(void)
+ {
+     if(k230_display == NULL) {
+-        LV_LOG_ERROR("k230_display is NULL — call  first");
++        LV_LOG_ERROR("k230_display is NULL — call init first");
+         return NULL;
+     }
+ 
++    /* Determine LVGL display and buffer dimensions based on rotation.
++     * K230 DRM supports hardware rotation via plane property.
++     * For 90°/270°: LVGL renders in rotated dimensions (e.g. 480x800),
++     *   buffer is allocated as 480x800, DRM hardware rotates to 800x480 output.
++     * For 0°/180°: LVGL renders in native dimensions (e.g. 800x480).
++     * LVGL does NOT do software rotation — it always renders in the
++     * same coordinate system as the buffer layout. */
++    bool rotated_90or270 = (k230_display->drm_rotation == rotation_90) ||
++                           (k230_display->drm_rotation == rotation_270);
++    uint32_t disp_w = rotated_90or270 ? k230_display->height : k230_display->width;
++    uint32_t disp_h = rotated_90or270 ? k230_display->width  : k230_display->height;
++
+     lv_tick_set_cb(tick_get_cb);
+ 
+     /* Get an RGB565 plane for the OSD layer */
+@@ -128,27 +140,39 @@ static lv_display_t * init_drm_k230(void)
+         return NULL;
+     }
+ 
+-    /* Allocate double-buffered display buffers */
++    /* Allocate double-buffered display buffers.
++     * Buffer dimensions match LVGL display dimensions (rotated for 90/270).
++     * DRM hardware rotation property handles the final display rotation. */
+     drm_k230_data_t * data = malloc(sizeof(drm_k230_data_t));
+     if(data == NULL) {
+         LV_LOG_ERROR("Failed to allocate drm_k230_data");
+         return NULL;
+     }
+-    data->bufs[0] = display_allocate_buffer(plane, k230_display->width, k230_display->height);
+-    data->bufs[1] = display_allocate_buffer(plane, k230_display->width, k230_display->height);
++    data->bufs[0] = display_allocate_buffer(plane, disp_w, disp_h);
++    data->bufs[1] = display_allocate_buffer(plane, disp_w, disp_h);
+     if(data->bufs[0] == NULL || data->bufs[1] == NULL) {
+         LV_LOG_ERROR("Failed to allocate OSD display buffers");
+         free(data);
+         return NULL;
+     }
+ 
+-    LV_LOG_INFO("OSD plane %u, buffers %u/%u, size %u, stride %u",
+-                plane->plane_id,
+-                data->bufs[0]->id, data->bufs[1]->id,
+-                data->bufs[0]->size, data->bufs[0]->stride);
+-
+-    /* Create LVGL display - size matches the DRM mode */
+-    lv_display_t * disp = lv_display_create(k230_display->width, k230_display->height);
++    /* Set rotation on both buffers so DRM plane applies hardware rotation */
++    data->bufs[0]->drm_rotation = k230_display->drm_rotation;
++    data->bufs[1]->drm_rotation = k230_display->drm_rotation;
++
++    LV_LOG_INFO("bufs[0]: id=%u w=%u h=%u stride=%u size=%u map=%p rotation=%d",
++                data->bufs[0]->id, data->bufs[0]->width, data->bufs[0]->height,
++                data->bufs[0]->stride, data->bufs[0]->size, data->bufs[0]->map,
++                data->bufs[0]->drm_rotation);
++    LV_LOG_INFO("bufs[1]: id=%u w=%u h=%u stride=%u size=%u map=%p rotation=%d",
++                data->bufs[1]->id, data->bufs[1]->width, data->bufs[1]->height,
++                data->bufs[1]->stride, data->bufs[1]->size, data->bufs[1]->map,
++                data->bufs[1]->drm_rotation);
++
++    /* Create LVGL display with the same dimensions as the buffer.
++     * No lv_display_set_rotation — LVGL renders directly in buffer layout,
++     * DRM hardware rotation handles the final screen orientation. */
++    lv_display_t * disp = lv_display_create(disp_w, disp_h);
+     if(disp == NULL) {
+         LV_LOG_ERROR("lv_display_create failed");
+         return NULL;
+@@ -158,24 +182,30 @@ static lv_display_t * init_drm_k230(void)
+      * Must be set BEFORE lv_display_set_buffers so LVGL validates buffer size correctly. */
+     lv_display_set_color_format(disp, LV_COLOR_FORMAT_ARGB8888);
+ 
+-    /* Set resolution first (required for DIRECT mode before setting buffers) */
+-    lv_display_set_resolution(disp, k230_display->width, k230_display->height);
++    /* Set resolution matching buffer dimensions */
++    lv_display_set_resolution(disp, disp_w, disp_h);
+ 
+     /* Wire the display_buffer mmap regions directly as LVGL render buffers.
+      * LVGL renders in-place into the DRM dumb buffers — zero copy.
+-     * Must use set_buffers_with_stride so LVGL knows the DRM stride. */
++     * Must use the DRM-allocated stride (not LV_STRIDE_AUTO) because
++     * DRM driver may align stride to 64/128 bytes, while LVGL's auto
++     * stride has no alignment — mismatch causes corrupted rendering. */
++    LV_ASSERT_MSG(data->bufs[0]->stride == data->bufs[1]->stride,
++                  "DRM buffer strides differ — double buffer broken");
+     lv_display_set_buffers_with_stride(disp,
+                                        data->bufs[0]->map,
+                                        data->bufs[1]->map,
+                                        data->bufs[0]->size,
+                                        data->bufs[0]->stride,
+                                        LV_DISPLAY_RENDER_MODE_DIRECT);
++
+     lv_display_set_flush_cb(disp, drm_k230_flush);
+     lv_display_set_flush_wait_cb(disp, drm_k230_flush_wait);
+     lv_display_set_user_data(disp, data);
+ 
+-    LV_LOG_INFO("K230 OSD display initialized: %ux%u fourcc=0x%x",
+-                k230_display->width, k230_display->height, fourcc);
++    LV_LOG_INFO("K230 OSD display initialized: physical %ux%u, display %ux%u, rotation=%d fourcc=0x%x",
++                k230_display->width, k230_display->height, disp_w, disp_h,
++                k230_display->drm_rotation, fourcc);
+ 
+     return disp;
+ }
+@@ -200,14 +230,23 @@ static void drm_k230_flush(lv_display_t * disp, const lv_area_t * area, uint8_t
+ 
+     drm_k230_data_t * data = lv_display_get_user_data(disp);
+ 
+-    /* Determine which buffer LVGL just rendered into */
++    /* Determine which buffer LVGL just rendered into by comparing px_map address */
+     struct display_buffer * buf;
+     if(px_map == data->bufs[0]->map) {
+         buf = data->bufs[0];
+-    } else {
++    } else if(px_map == data->bufs[1]->map) {
+         buf = data->bufs[1];
++    } else {
++        LV_LOG_WARN("px_map %p doesn't match any buffer (bufs[0]=%p bufs[1]=%p), fallback to bufs[0]",
++                    px_map, data->bufs[0]->map, data->bufs[1]->map);
++        buf = data->bufs[0];
+     }
+ 
++    LV_LOG_INFO("flush: buf=%s id=%u map=%p w=%u h=%u stride=%u size=%u fb_id=%u rotation=%d",
++                (buf == data->bufs[0]) ? "bufs[0]" : "bufs[1]",
++                buf->id, buf->map, buf->width, buf->height,
++                buf->stride, buf->size, buf->id, buf->drm_rotation);
++
+     /* Flush CPU dcache so DRM DMA reads the rendered pixels */
+     thead_csi_dcache_clean_invalid_range(buf->map, buf->size);
+ 
+@@ -268,18 +307,17 @@ int k230_driver_init(void * d, char  v4l2_drm_run_flag)
+     lv_init();
+ 
+     if(k230_display){
+-        printf("f=%s l=%d\n",__func__, __LINE__);
++        printf("use DRM_V4L2_K230 \n",__func__, __LINE__);
+         /* Initialize display backend (DRM_V4L2_K230 is the default/first) */
+         ret = driver_backends_init_backend("DRM_V4L2_K230");
+     }else {
+-        printf("f=%s l=%d\n",__func__, __LINE__);
++        printf("use linux default drm \n",__func__, __LINE__);
+         ret = driver_backends_init_backend("DRM");
+     }
+     if(ret == -1) {
+         fprintf(stderr, "LVGL display init failed\n");
+         return -1;
+     }
+-    printf("[main] LVGL display initxxxx  OK\n");
+ 
+     /* Initialize evdev input backend */
+ #if LV_USE_EVDEV
+@@ -287,6 +325,38 @@ int k230_driver_init(void * d, char  v4l2_drm_run_flag)
+     if(ret == -1) {
+         fprintf(stderr, "Failed to initialize evdev\n");
+     }
++
++    /* Set touch coordinate rotation for 90°/270° screen rotation.
++     * evdev auto-discovery is async, so we poll briefly for the indev. */
++    if(k230_display &&
++       (k230_display->drm_rotation == rotation_90 ||
++        k230_display->drm_rotation == rotation_270)) {
++        lv_indev_t * indev = NULL;
++        int attempts = 20; /* wait up to ~200ms for device discovery */
++        while(attempts-- > 0) {
++            indev = NULL;
++            while((indev = lv_indev_get_next(indev)) != NULL) {
++                if(lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER)
++                    break;
++            }
++            if(indev) break;
++            usleep(10000);
++        }
++        if(indev) {
++            lv_evdev_set_swap_axes(indev, true);
++            int phys_w = k230_display->width;
++            int phys_h = k230_display->height;
++            if(k230_display->drm_rotation == rotation_90) {
++                lv_evdev_set_calibration(indev, 0, phys_w - 1, phys_h - 1, 0);
++            } else {
++                lv_evdev_set_calibration(indev, phys_h - 1, 0, 0, phys_w - 1);
++            }
++            LV_LOG_INFO("Touch rotation set for %d° rotation",
++                        k230_display->drm_rotation == rotation_90 ? 90 : 270);
++        } else {
++            LV_LOG_WARN("Touch indev not found, rotation not set");
++        }
++    }
+ #endif
+ 
+     return ret;
+-- 
+2.25.1
+

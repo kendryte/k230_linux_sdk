@@ -18,3 +18,4 @@ GTAGS
 gtags.files
 df/
 .vscode/settings.json
+__pycache__/

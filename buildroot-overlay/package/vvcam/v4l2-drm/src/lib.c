@@ -345,6 +345,7 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
             flag_enable_display = 1;
             d = context[i].plane->display;
             display_fd = d->fd;
+            d->frame_count = 0;
         }
         continue;
         streamerr:
@@ -353,10 +354,8 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
         }
         return -1;
     }
-    uint32_t display_frame_count = 0;
+
     struct pollfd fds[num + flag_enable_display];
-    struct timeval tv, tv2;
-    gettimeofday(&tv, NULL);
     while (1) {
         for (unsigned i = 0; i < num; i++) {
             fds[i].fd = context[i].video_fd;
@@ -475,7 +474,7 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
                 context[i].flag_dqbuf = false;
             }
             CKE(display_commit(d), streamoff);
-            display_frame_count += 1;
+            d->frame_count += 1;
         }
     }
     streamoff:
@@ -486,7 +485,18 @@ int v4l2_drm_run(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handl
 }
 
 bool v4l2_drm_run_v4l2_2_drm_need_run = 1;
-struct display_buffer *g_p_osd_disp_buffer = NULL;
+
+static int v4l2_drm_run_v4l2_2_drm_have_data_to_display(const struct display* d, const struct v4l2_drm_context context[], unsigned num)
+{
+    if(d->lvgl_disp_buffer || d->osd_disp_buffer)
+        return 1;
+
+    for (unsigned i = 0; i < num; i++) {
+        if ((context[i].buffer_hold[context[i].wp] >= 0) && (context[i].display))
+            return 1;
+    }
+    return 0;//no data
+}
 int v4l2_drm_run_v4l2_2_drm(struct v4l2_drm_context context[], unsigned num, v4l2_drm_handler handler) {
     int flag_enable_display = 0;
     int display_fd;
@@ -501,6 +511,7 @@ int v4l2_drm_run_v4l2_2_drm(struct v4l2_drm_context context[], unsigned num, v4l
                 flag_enable_display = 1;
                 d = context[i].plane->display;
                 display_fd = d->fd;
+                d->frame_count = 0;
             }
 
         }
@@ -511,10 +522,8 @@ int v4l2_drm_run_v4l2_2_drm(struct v4l2_drm_context context[], unsigned num, v4l
         }
         return -1;
     }
-    uint32_t display_frame_count = 0;
+
     struct pollfd fds[num + flag_enable_display];
-    struct timeval tv, tv2;
-    gettimeofday(&tv, NULL);
     while (v4l2_drm_run_v4l2_2_drm_need_run) {
         for (unsigned i = 0; i < num; i++) {
             fds[i].fd = context[i].video_fd;
@@ -612,17 +621,9 @@ int v4l2_drm_run_v4l2_2_drm(struct v4l2_drm_context context[], unsigned num, v4l
         }
 
         if (flag_enable_display && fds[num].revents) {
-            // display
-            bool flag_check_source = false;
-            for (unsigned i = 0; i < num; i++) {
-                if ((context[i].buffer_hold[context[i].wp] >= 0) && (context[i].display)) {
-                    flag_check_source = true;
-                    break;
-                }
-            }
-            if (!flag_check_source) {
-                // skip
-                continue;
+            if(!v4l2_drm_run_v4l2_2_drm_have_data_to_display(d,context,num)){
+                usleep(10000);// delay 10ms
+                continue; //no data to dispaly
             }
             display_handle_vsync(d);
             for (unsigned i = 0; i < num; i++) {
@@ -635,13 +636,17 @@ int v4l2_drm_run_v4l2_2_drm(struct v4l2_drm_context context[], unsigned num, v4l
                 ), streamoff);
                 context[i].flag_dqbuf = false;
             }
-            if(g_p_osd_disp_buffer){
-                display_update_buffer(g_p_osd_disp_buffer,0,0 );
-                g_p_osd_disp_buffer = NULL;
+            if(d->osd_disp_buffer){
+                display_update_buffer(d->osd_disp_buffer,0,0 );
+                d->osd_disp_buffer = NULL;
+            }
+            if(d->lvgl_disp_buffer){
+                display_update_buffer(d->lvgl_disp_buffer,0,0 );
+                d->lvgl_disp_buffer = NULL;
             }
 
             CKE(display_commit(d), streamoff);
-            display_frame_count += 1;
+            d->frame_count += 1;
         }
     }
     streamoff:

@@ -1,0 +1,71 @@
+From 54c4614e2386b383d561661d3c4c7d73327c1fdb Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 8 Jul 2026 17:16:38 +0800
+Subject: [PATCH 7/7] add flush cache
+
+---
+ CMakeLists.txt                              | 4 ++++
+ lvgl/src/drivers/display/drm/lv_linux_drm.c | 2 ++
+ src/lib/display_backends/drm_k230_v4l2.c    | 4 ++++
+ 3 files changed, 10 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7633098..8068d09 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -426,6 +426,10 @@ add_executable(lvglsim src/main_k230.c)
+ target_include_directories(lvglsim PRIVATE ${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS})
+ target_link_libraries(lvglsim lvgl_linux lvgl lvgl_demos lvgl_linux pthread v4l2-drm drm display)
+ 
++target_compile_options(lvgl_linux PRIVATE -mcpu=c908v -mabi=lp64d)
++target_compile_options(lvgl PRIVATE -mcpu=c908v -mabi=lp64d)
++target_compile_options(lvglsim PRIVATE -mcpu=c908v -mabi=lp64d)
++
+ if(WERROR)
+     target_compile_options(lvglsim PRIVATE -Werror)
+     target_compile_options(lvgl PRIVATE -Werror)
+diff --git a/lvgl/src/drivers/display/drm/lv_linux_drm.c b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+index edf1091..50410cc 100644
+--- a/lvgl/src/drivers/display/drm/lv_linux_drm.c
++++ b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+@@ -21,6 +21,7 @@
+ #include <xf86drm.h>
+ #include <xf86drmMode.h>
+ #include <drm_fourcc.h>
++#include <thead.h>
+ 
+ #if LV_USE_LINUX_DRM_GBM_BUFFERS
+     #include <gbm.h>
+@@ -1073,6 +1074,7 @@ static void drm_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_
+     drm_dev_t * drm_dev = lv_display_get_driver_data(disp);
+ 
+     LV_ASSERT(drm_dev->act_buf != NULL);
++    thead_csi_dcache_clean_invalid_range(drm_dev->act_buf->map, drm_dev->act_buf->size);
+ 
+     if(drm_dmabuf_set_plane(drm_dev, drm_dev->act_buf)) {
+         LV_LOG_ERROR("Flush fail");
+diff --git a/src/lib/display_backends/drm_k230_v4l2.c b/src/lib/display_backends/drm_k230_v4l2.c
+index 015992c..9751227 100644
+--- a/src/lib/display_backends/drm_k230_v4l2.c
++++ b/src/lib/display_backends/drm_k230_v4l2.c
+@@ -26,6 +26,7 @@
+ 
+ #include "display.h"
+ #include "v4l2-drm.h"
++#include <thead.h>
+ 
+ #include "../backends.h"
+ #include <time.h>
+@@ -206,6 +207,9 @@ static void drm_k230_flush(lv_display_t * disp, const lv_area_t * area, uint8_t
+         buf = data->bufs[1];
+     }
+ 
++    /* Flush CPU dcache so DRM DMA reads the rendered pixels */
++    thead_csi_dcache_clean_invalid_range(buf->map, buf->size);
++
+     /* Hand the buffer to the v4l2-drm thread — it will commit it on vsync */
+     k230_display->lvgl_disp_buffer = buf;
+ 
+-- 
+2.25.1
+

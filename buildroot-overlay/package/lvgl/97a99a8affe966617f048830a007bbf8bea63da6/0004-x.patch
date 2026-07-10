@@ -1,0 +1,349 @@
+From f7c61f96065c9284066b4fc2fdf22cfbfddb7091 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 8 Jul 2026 11:39:18 +0800
+Subject: [PATCH 4/4] x
+
+---
+ src/lib/display_backends/drm_k230_v4l2.c | 103 ++++++++++++++++-------
+ src/lib/driver_backends.h                |   5 +-
+ src/main_k230.c                          |  48 ++++-------
+ 3 files changed, 90 insertions(+), 66 deletions(-)
+
+diff --git a/src/lib/display_backends/drm_k230_v4l2.c b/src/lib/display_backends/drm_k230_v4l2.c
+index 77f1097..b605cda 100644
+--- a/src/lib/display_backends/drm_k230_v4l2.c
++++ b/src/lib/display_backends/drm_k230_v4l2.c
+@@ -29,6 +29,9 @@
+ 
+ #include "../backends.h"
+ #include <time.h>
++#include "../driver_backends.h"
++#include "stdlib.h"
++#include "stdio.h"
+ 
+ /*********************
+  *      DEFINES
+@@ -37,6 +40,9 @@
+ /**********************
+  *      TYPEDEFS
+  **********************/
++typedef struct {
++    struct display_buffer * bufs[2];
++} drm_k230_data_t;
+ 
+ /**********************
+  *  STATIC PROTOTYPES
+@@ -52,10 +58,8 @@ static void drm_k230_flush_wait(lv_display_t * disp);
+ static char * backend_name = "DRM_V4L2_K230";
+ 
+ 
+-extern struct display * g_display = NULL;
+-static struct display_plane * g_osd_plane = NULL;
+-static struct display_buffer * g_osd_bufs[2];
+-static int g_osd_buf_idx = 0;
++static  struct display * k230_display = NULL;
++static char k230_dispaly_v4l2_drm_run_flag = 0;
+ 
+ /**********************
+  *      MACROS
+@@ -100,8 +104,8 @@ static uint32_t tick_get_cb(void)
+  */
+ static lv_display_t * init_drm_k230(void)
+ {
+-    if(g_display == NULL) {
+-        LV_LOG_ERROR("g_display is NULL — call  first");
++    if(k230_display == NULL) {
++        LV_LOG_ERROR("k230_display is NULL — call  first");
+         return NULL;
+     }
+ 
+@@ -116,27 +120,33 @@ static lv_display_t * init_drm_k230(void)
+     uint32_t fourcc = DRM_FORMAT_RGB565;
+ #endif
+ 
+-    g_osd_plane = display_get_plane(g_display, fourcc);
+-    if(g_osd_plane == NULL) {
++    struct display_plane * plane = display_get_plane(k230_display, fourcc);
++    if(plane == NULL) {
+         LV_LOG_ERROR("Failed to get OSD plane for fourcc 0x%x", fourcc);
+         return NULL;
+     }
+ 
+     /* Allocate double-buffered display buffers */
+-    g_osd_bufs[0] = display_allocate_buffer(g_osd_plane, g_display->width, g_display->height);
+-    g_osd_bufs[1] = display_allocate_buffer(g_osd_plane, g_display->width, g_display->height);
+-    if(g_osd_bufs[0] == NULL || g_osd_bufs[1] == NULL) {
++    drm_k230_data_t * data = malloc(sizeof(drm_k230_data_t));
++    if(data == NULL) {
++        LV_LOG_ERROR("Failed to allocate drm_k230_data");
++        return NULL;
++    }
++    data->bufs[0] = display_allocate_buffer(plane, k230_display->width, k230_display->height);
++    data->bufs[1] = display_allocate_buffer(plane, k230_display->width, k230_display->height);
++    if(data->bufs[0] == NULL || data->bufs[1] == NULL) {
+         LV_LOG_ERROR("Failed to allocate OSD display buffers");
++        free(data);
+         return NULL;
+     }
+ 
+     LV_LOG_INFO("OSD plane %u, buffers %u/%u, size %u, stride %u",
+-                g_osd_plane->plane_id,
+-                g_osd_bufs[0]->id, g_osd_bufs[1]->id,
+-                g_osd_bufs[0]->size, g_osd_bufs[0]->stride);
++                plane->plane_id,
++                data->bufs[0]->id, data->bufs[1]->id,
++                data->bufs[0]->size, data->bufs[0]->stride);
+ 
+     /* Create LVGL display - size matches the DRM mode */
+-    lv_display_t * disp = lv_display_create(g_display->width, g_display->height);
++    lv_display_t * disp = lv_display_create(k230_display->width, k230_display->height);
+     if(disp == NULL) {
+         LV_LOG_ERROR("lv_display_create failed");
+         return NULL;
+@@ -147,24 +157,23 @@ static lv_display_t * init_drm_k230(void)
+     lv_display_set_color_format(disp, LV_COLOR_FORMAT_ARGB8888);
+ 
+     /* Set resolution first (required for DIRECT mode before setting buffers) */
+-    lv_display_set_resolution(disp, g_display->width, g_display->height);
++    lv_display_set_resolution(disp, k230_display->width, k230_display->height);
+ 
+     /* Wire the display_buffer mmap regions directly as LVGL render buffers.
+      * LVGL renders in-place into the DRM dumb buffers — zero copy.
+      * Must use set_buffers_with_stride so LVGL knows the DRM stride. */
+     lv_display_set_buffers_with_stride(disp,
+-                                       g_osd_bufs[0]->map,
+-                                       g_osd_bufs[1]->map,
+-                                       g_osd_bufs[0]->size,
+-                                       g_osd_bufs[0]->stride,
++                                       data->bufs[0]->map,
++                                       data->bufs[1]->map,
++                                       data->bufs[0]->size,
++                                       data->bufs[0]->stride,
+                                        LV_DISPLAY_RENDER_MODE_DIRECT);
+     lv_display_set_flush_cb(disp, drm_k230_flush);
+     lv_display_set_flush_wait_cb(disp, drm_k230_flush_wait);
+-
+-    g_osd_buf_idx = 0;
++    lv_display_set_user_data(disp, data);
+ 
+     LV_LOG_INFO("K230 OSD display initialized: %ux%u fourcc=0x%x",
+-                g_display->width, g_display->height, fourcc);
++                k230_display->width, k230_display->height, fourcc);
+ 
+     return disp;
+ }
+@@ -178,25 +187,27 @@ static lv_display_t * init_drm_k230(void)
+  *
+  * When LVGL finishes rendering a frame into one of the mmap'd
+  * display_buffers, we hand that buffer to the v4l2-drm thread
+- * via the g_p_osd_disp_buffer global.  The v4l2-drm thread
++ * via the display's lvgl_disp_buffer field.  The v4l2-drm thread
+  * will commit it together with the camera frame on the next vsync.
+  */
+ static void drm_k230_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
+ {
+     LV_UNUSED(area);
+-
++    (void)k230_dispaly_v4l2_drm_run_flag;
+     if(!lv_display_flush_is_last(disp)) return;
+ 
++    drm_k230_data_t * data = lv_display_get_user_data(disp);
++
+     /* Determine which buffer LVGL just rendered into */
+     struct display_buffer * buf;
+-    if(px_map == g_osd_bufs[0]->map) {
+-        buf = g_osd_bufs[0];
++    if(px_map == data->bufs[0]->map) {
++        buf = data->bufs[0];
+     } else {
+-        buf = g_osd_bufs[1];
++        buf = data->bufs[1];
+     }
+ 
+     /* Hand the buffer to the v4l2-drm thread — it will commit it on vsync */
+-    g_p_osd_disp_buffer = buf;
++    k230_display->lvgl_disp_buffer = buf;
+ 
+     lv_display_flush_ready(disp);
+ }
+@@ -211,14 +222,14 @@ static void drm_k230_flush(lv_display_t * disp, const lv_area_t * area, uint8_t
+ static void drm_k230_flush_wait(lv_display_t * disp)
+ {
+     LV_UNUSED(disp);
+-    if(g_display == NULL) return;
++    if(k230_display == NULL) return;
+ 
+     /* Wait for the next vblank — CPU sleeps until vsync, no busy-wait */
+     drmVBlank vblank;
+     memset(&vblank, 0, sizeof(vblank));
+     vblank.request.type = DRM_VBLANK_RELATIVE;
+     vblank.request.sequence = 1;
+-    while(drmWaitVBlank(g_display->fd, &vblank) != 0) {
++    while(drmWaitVBlank(k230_display->fd, &vblank) != 0) {
+         if(errno != EINTR) break;
+     }
+ }
+@@ -236,5 +247,35 @@ static void run_loop_drm(void)
+         usleep(idle_time * 1000);
+     }
+ }
++//struct display
++int k230_driver_init(void * d, char  v4l2_drm_run_flag)
++{
++    int ret = 0;
++
++    k230_dispaly_v4l2_drm_run_flag = v4l2_drm_run_flag;
++
++    k230_display = (struct display *)d;
++        /* Register all backends */
++    driver_backends_register();
++
++    /* Initialize display backend (DRM_V4L2_K230 is the default/first) */
++    ret = driver_backends_init_backend("DRM_V4L2_K230");
++    if(ret == -1) {
++        fprintf(stderr, "LVGL display init failed\n");
++        return -1;
++    }
++    printf("[main] LVGL display initxxxx  OK\n");
++
++    /* Initialize evdev input backend */
++#if LV_USE_EVDEV
++    ret = driver_backends_init_backend("EVDEV");
++    if(ret == -1) {
++        fprintf(stderr, "Failed to initialize evdev\n");
++    }
++#endif
++return ret;
++
++}
++
+ 
+ #endif /* LV_USE_LINUX_DRM */
+diff --git a/src/lib/driver_backends.h b/src/lib/driver_backends.h
+index 1680230..f3474e1 100644
+--- a/src/lib/driver_backends.h
++++ b/src/lib/driver_backends.h
+@@ -77,6 +77,7 @@ int driver_backends_print_supported(void);
+  * @description enter the run loop of the selected backend
+  */
+ void driver_backends_run_loop(void);
++int k230_driver_init(void * display, char  v4l2_drm_run_flag);
+ 
+ /**********************
+  *      MACROS
+@@ -87,7 +88,3 @@ void driver_backends_run_loop(void);
+ #endif
+ 
+ #endif /*DRIVER_BACKENDS_H*/
+-
+-
+-
+-
+diff --git a/src/main_k230.c b/src/main_k230.c
+index 9b20e1d..1987dca 100644
+--- a/src/main_k230.c
++++ b/src/main_k230.c
+@@ -17,6 +17,7 @@
+  * Author: EDGEMTech Ltd, Erik Tagirov (erik.tagirov@edgemtech.ch)
+  *
+  ******************************************************************/
++#include <stdbool.h>
+ #define _GNU_SOURCE
+ #include <unistd.h>
+ #include <pthread.h>
+@@ -157,23 +158,24 @@ static void configure_simulator(int argc, char ** argv)
+ }
+ 
+ 
+-/* v4l2-drm shared OSD buffer (consumed in v4l2_drm_run_v4l2_2_drm) */
+-extern struct display_buffer *g_p_osd_disp_buffer;
++/* v4l2-drm shared state */
+ extern bool v4l2_drm_run_v4l2_2_drm_need_run;
+ 
+ /* Global simulator settings, defined in the backend */
+ extern simulator_settings_t settings;
+ 
+ /* Shared display handle */
+-struct display * g_display = NULL;
++
+ 
+ /* Camera context */
+ static struct v4l2_drm_context g_v4l2_ctx;
+ 
++
++
+ /**
+  * v4l2-drm thread — runs the camera capture + display loop.
+- * It picks up the OSD buffer from g_p_osd_disp_buffer and
+- * commits both video and OSD planes on each vsync.
++ * It picks up the OSD/LVGL buffers from pdisplay->osd_disp_buffer /
++ * pdisplay->lvgl_disp_buffer and commits all planes on each vsync.
+  */
+ static void * v4l2_thread(void * arg)
+ {
+@@ -188,16 +190,15 @@ static void * v4l2_thread(void * arg)
+ int main(int argc, char ** argv)
+ {
+     int ret;
++    struct display * pdisplay = NULL;
+ 
+-    /* ---- 1. Initialize the shared DRM display ---- */
+-    g_display = display_init(0);
+-    if(g_display == NULL) {
++    pdisplay = display_init(0);
++      if(pdisplay == NULL) {
+         fprintf(stderr, "display_init failed\n");
+         return -1;
+     }
+-    printf("[main] display_init OK: %ux%u\n", g_display->width, g_display->height);
+-
+-    /* ---- 2. Initialize v4l2-drm (camera → NV12 video plane) ---- */
++    printf("[main] display_init OK: %ux%u\n", pdisplay->width, pdisplay->height);
++        /* ---- 2. Initialize v4l2-drm (camera → NV12 video plane) ---- */
+     v4l2_drm_default_context(&g_v4l2_ctx);
+     g_v4l2_ctx.device = 1;                     /* /dev/video1 */
+     g_v4l2_ctx.width = 480;
+@@ -207,35 +208,20 @@ int main(int argc, char ** argv)
+     g_v4l2_ctx.display = true;
+     g_v4l2_ctx.drm_rotation = rotation_0;
+ 
+-    ret = v4l2_drm_setup(&g_v4l2_ctx, 1, &g_display);
++    ret = v4l2_drm_setup(&g_v4l2_ctx, 1, &pdisplay);
+     if(ret < 0) {
+         fprintf(stderr, "v4l2_drm_setup failed\n");
+         return -1;
+     }
+     printf("[main] v4l2_drm_setup OK\n");
+ 
+-    /* ---- 3. Initialize LVGL via standard backend framework ---- */
+-    lv_init();
+-
+ 
+-    /* Register all backends */
+-    driver_backends_register();
++    /* ---- 1. Initialize the shared DRM display ---- */
++    k230_driver_init(pdisplay, true);
+ 
+-    /* Initialize display backend (DRM_V4L2_K230 is the default/first) */
+-    ret = driver_backends_init_backend("DRM_V4L2_K230");
+-    if(ret == -1) {
+-        fprintf(stderr, "LVGL display init failed\n");
+-        return -1;
+-    }
+-    printf("[main] LVGL display initxxxx  OK\n");
++    /* ---- 3. Initialize LVGL via standard backend framework ---- */
++    lv_init();
+ 
+-    /* Initialize evdev input backend */
+-#if LV_USE_EVDEV
+-    ret = driver_backends_init_backend("EVDEV");
+-    if(ret == -1) {
+-        fprintf(stderr, "Failed to initialize evdev\n");
+-    }
+-#endif
+ 
+     /* ---- 4. Create simple LVGL UI for testing ---- */
+     lv_obj_set_style_bg_opa(lv_screen_active(), LV_OPA_TRANSP, 0);
+-- 
+2.25.1
+

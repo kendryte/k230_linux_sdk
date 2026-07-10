@@ -37,9 +37,9 @@ struct v4l2_drm_context {
     uint32_t display_format;
     bool display;
     unsigned buffer_num; //显示或者v4l2 需要的buffer数量；
-    struct display_plane* plane; //所有display_plane的list头；
-    struct display_buffer** display_buffers;
-    struct v4l2_drm_video_buffer* buffers;
+    struct display_plane* plane; //本v4l2对应 plane ；
+    struct display_buffer** display_buffers; //v4l2对应 plane里面的display_buffers
+    struct v4l2_drm_video_buffer* buffers;   //v4l2 buffers
     struct v4l2_crop_size crop_size;
     unsigned offset_x;
     unsigned offset_y;
@@ -72,7 +72,6 @@ int v4l2_drm_stop(const struct v4l2_drm_context* context);
 int v4l2_drm_dump(struct v4l2_drm_context* context, int timeout);
 int v4l2_drm_dump_release(struct v4l2_drm_context* context);
 extern bool v4l2_drm_run_v4l2_2_drm_need_run;
-extern struct display_buffer *g_p_osd_disp_buffer;
 #ifdef __cplusplus
 }
 #endif

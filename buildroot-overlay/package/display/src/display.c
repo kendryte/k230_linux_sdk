@@ -242,7 +242,9 @@ void display_free_plane(struct display_plane* plane) {
         while (p != NULL) {
             if (p->next == plane) {
                 p->next = plane->next;
+                break;
             }
+            p = p->next;
         }
     }
     // also free buffer

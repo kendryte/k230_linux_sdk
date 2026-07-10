@@ -28,11 +28,9 @@ k230_v4l2_drm = Extension(
     "k230_v4l2_drm",
     sources=[
         "k230_v4l2/k230_v4l2_drm_pybind.cpp",
-        "k230_v4l2/k230_osd.cpp",
-        "k230_v4l2/v4l2_drm.cpp",
     ],
     include_dirs=[pybind11.get_include()],
-    libraries=["v4l2-drm", "display", "drm"],
+    libraries=["v4l2-drm++", "v4l2-drm", "display", "drm"],
     extra_compile_args=["-O3", "-mcpu=c908v", "-mabi=lp64d", "-mtune=c908", "-mrvv-v0p10-compatible", "-mrvv-auto-vectorize", "-std=c++17"],
     language='c++',
 )
@@ -51,7 +49,7 @@ lvgl_ext = Extension(
         os.path.join(os.path.dirname(__file__), 'lvgl'),  # for lvgl_pybind_helpers.h
     ],
     library_dirs=[lvgl_lib_dir],
-    libraries=["lvgl", "lvgl_linux", "drm", "evdev", "m", "pthread"],
+    libraries=["lvgl", "lvgl_demos", "lvgl_linux", "drm", "evdev", "m", "pthread"],
     extra_compile_args=[
         "-O3",
         "-mcpu=c908v",
@@ -75,7 +73,7 @@ setup(
     version="1.0.0",
     author="wangjianxin",
     description="Python for k230",
-    packages=find_packages(),
+    packages=find_packages(exclude=["lvgl.codegen_tools", "lvgl.codegen_tools.*"]),
     ext_modules=[ext, k230_display, k230_v4l2_drm, lvgl_ext],
     zip_safe=False,
     entry_points={

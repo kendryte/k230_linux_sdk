@@ -31,4 +31,4 @@ Example usage:
         time.sleep(0.01)
 """
 
-from ._lvgl import *
+from ._wrapper import *

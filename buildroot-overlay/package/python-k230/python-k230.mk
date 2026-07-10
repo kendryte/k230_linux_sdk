@@ -16,7 +16,7 @@ PYTHON_K230_ENV = \
     CFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/usr/include/drm -I$(STAGING_DIR)/usr/include/lvgl -I$(STAGING_DIR)/usr/include/lvgl_private -I$(STAGING_DIR)/usr/lib/python3.13/site-packages/numpy/core/include -I$(STAGING_DIR)/usr/lib/python3.13/site-packages/pybind11/include -I$(STAGING_DIR)/usr/include/opencv4 -I$(STAGING_DIR)/usr/include/libv4l2-drm" \
     CXXFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/usr/include/drm -I$(STAGING_DIR)/usr/include/lvgl -I$(STAGING_DIR)/usr/include/lvgl_private -I$(STAGING_DIR)/usr/lib/python3.13/site-packages/numpy/core/include -I$(STAGING_DIR)/usr/lib/python3.13/site-packages/pybind11/include -I$(STAGING_DIR)/usr/include/opencv4 -I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/usr/include/libv4l2-drm" \
     STAGING_DIR="$(STAGING_DIR)" \
-    LDFLAGS="-L$(STAGING_DIR)/usr/lib -llvgl -llvgl_linux"
+    LDFLAGS="-L$(STAGING_DIR)/usr/lib -llvgl -llvgl_linux -llvgl_demos"
 
 define PYTHON_K230_INSTALL_PY_DEMO
 	cp -rf  $(@D)/py_demo  $(TARGET_DIR)/root/

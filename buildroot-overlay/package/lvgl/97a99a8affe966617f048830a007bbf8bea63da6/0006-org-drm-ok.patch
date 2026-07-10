@@ -1,0 +1,80 @@
+From 3e376c697de9a12649c1c76924e9f5565e25c0c0 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 8 Jul 2026 16:54:29 +0800
+Subject: [PATCH 6/7] org drm ok
+
+---
+ lvgl/src/drivers/display/drm/lv_linux_drm.c |  7 +++++--
+ src/lib/display_backends/drm_k230_v4l2.c    | 20 ++++++++++++++------
+ 2 files changed, 19 insertions(+), 8 deletions(-)
+
+diff --git a/lvgl/src/drivers/display/drm/lv_linux_drm.c b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+index 22ca00b..edf1091 100644
+--- a/lvgl/src/drivers/display/drm/lv_linux_drm.c
++++ b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+@@ -32,7 +32,7 @@
+  *      DEFINES
+  *********************/
+ #if LV_COLOR_DEPTH == 32
+-    #define DRM_FOURCC DRM_FORMAT_XRGB8888
++    #define DRM_FOURCC DRM_FORMAT_ARGB8888
+ #elif LV_COLOR_DEPTH == 16
+     #define DRM_FOURCC DRM_FORMAT_RGB565
+ #else
+@@ -230,6 +230,9 @@ lv_result_t lv_linux_drm_set_file(lv_display_t * disp, const char * file, int64_
+      * to lv_display_create then the buffers aren't big enough for LV_DISPLAY_RENDER_MODE_DIRECT.
+      */
+     lv_display_set_resolution(disp, hor_res, ver_res);
++#if LV_COLOR_DEPTH == 32
++    lv_display_set_color_format(disp, LV_COLOR_FORMAT_ARGB8888);
++#endif
+     lv_display_set_buffers_with_stride(disp, drm_dev->drm_bufs[1].map, drm_dev->drm_bufs[0].map, buf_size,
+                                        stride, LV_DISPLAY_RENDER_MODE_DIRECT);
+ 
+@@ -941,7 +944,7 @@ static int create_gbm_buffer(drm_dev_t * drm_dev, drm_buffer_t * buf)
+ 
+     /* Create a linear GBM buffer object - best practice when modifiers are not used */
+     if(!(gbm_bo = gbm_bo_create(drm_dev->gbm_device,
+-                                drm_dev->width, drm_dev->height, GBM_BO_FORMAT_XRGB8888,
++                                drm_dev->width, drm_dev->height, GBM_BO_FORMAT_ARGB8888,
+                                 GBM_BO_USE_SCANOUT | GBM_BO_USE_LINEAR))) {
+ 
+         LV_LOG_ERROR("Unable to create gbm buffer object");
+diff --git a/src/lib/display_backends/drm_k230_v4l2.c b/src/lib/display_backends/drm_k230_v4l2.c
+index a32c024..015992c 100644
+--- a/src/lib/display_backends/drm_k230_v4l2.c
++++ b/src/lib/display_backends/drm_k230_v4l2.c
+@@ -256,16 +256,24 @@ int k230_driver_init(void * d, char  v4l2_drm_run_flag)
+ 
+     k230_display = (struct display *)d;
+ 
+-    /* Initialize LVGL core first — driver_backends_init_backend below
++
++
++    /* Register all backends */
++    driver_backends_register();
++
++       /* Initialize LVGL core first — driver_backends_init_backend below
+      * calls init_drm_k230() → lv_display_create(), which requires
+      * lv_init() to have been called already. */
+     lv_init();
+ 
+-        /* Register all backends */
+-    driver_backends_register();
+-
+-    /* Initialize display backend (DRM_V4L2_K230 is the default/first) */
+-    ret = driver_backends_init_backend("DRM_V4L2_K230");
++    if(k230_display){
++        printf("f=%s l=%d\n",__func__, __LINE__);
++        /* Initialize display backend (DRM_V4L2_K230 is the default/first) */
++        ret = driver_backends_init_backend("DRM_V4L2_K230");
++    }else {
++        printf("f=%s l=%d\n",__func__, __LINE__);
++        ret = driver_backends_init_backend("DRM");
++    }
+     if(ret == -1) {
+         fprintf(stderr, "LVGL display init failed\n");
+         return -1;
+-- 
+2.25.1
+

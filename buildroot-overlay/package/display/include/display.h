@@ -41,6 +41,9 @@ struct display {
     drmEventContext drm_event_ctx;
     enum drm_rotation drm_rotation;
     struct display_plane* planes; //plane链表头
+    struct display_buffer* osd_disp_buffer;   //OSD layer buffer to commit on next vsync
+    struct display_buffer* lvgl_disp_buffer;  //LVGL layer buffer to commit on next vsync
+    uint32_t frame_count;                     //total committed frames
 };
 
 

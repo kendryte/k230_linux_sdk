@@ -1,16 +1,91 @@
-#include "v4l2_drm.hpp"
+#include "../include/v4l2-drm++.hpp"
 
-#include <Python.h>
-
+#include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <pybind11/pytypes.h>
 #include <stdexcept>
 
 #include <display.h>
 #include <drm_fourcc.h>
 #include <linux/videodev2.h>
 #include <v4l2-drm.h>
+
+#include "thead.h"
+
+//=============================================================================
+// k230_osd implementation
+//=============================================================================
+
+k230_osd::k230_osd()
+    : plane_(nullptr), buffer_{nullptr, nullptr}, cur_buf_(nullptr), fourcc_(DRM_FORMAT_ARGB8888) {}
+
+k230_osd::~k230_osd() {
+    display_free_buffer(buffer_[0]);
+    display_free_buffer(buffer_[1]);
+
+    if (plane_)
+        display_free_plane(plane_);
+}
+
+int k230_osd::init(struct display* pdisplay) {
+    if (pdisplay == nullptr)
+        return 0;
+
+    plane_ = display_get_plane(pdisplay, fourcc_);
+    if (!plane_) {
+        return 1;
+    }
+    plane_->drm_rotation = pdisplay->drm_rotation;
+
+    // OSD buffer size (ensure width >= height)
+    int osd_width = std::max(pdisplay->width, pdisplay->height);
+    int osd_height = std::min(pdisplay->width, pdisplay->height);
+
+    buffer_[0] = display_allocate_buffer(plane_, osd_width, osd_height);
+    if (!buffer_[0]) {
+        display_free_plane(plane_);
+        plane_ = nullptr;
+        return 2;
+    }
+
+    buffer_[1] = display_allocate_buffer(plane_, osd_width, osd_height);
+    if (!buffer_[1]) {
+        display_free_buffer(buffer_[0]);
+        buffer_[0] = nullptr;
+        display_free_plane(plane_);
+        plane_ = nullptr;
+        return 3;
+    }
+
+    return 0;
+}
+
+int k230_osd::update(void* data, size_t size) {
+    if (!plane_ || !buffer_[0] || !buffer_[1]) {
+        return -1;  // OSD not initialized
+    }
+
+    // Switch to the other buffer
+    cur_buf_ = (cur_buf_ == buffer_[0]) ? buffer_[1] : buffer_[0];
+    if (!cur_buf_ || !cur_buf_->map) {
+        return -2;  // Buffer not mapped
+    }
+
+    if (size != cur_buf_->size) {
+        printf("[k230_osd::update] size mismatch: data_size=%zu, buf_size=%d\n",
+               size, cur_buf_->size);
+        return -3;
+    }
+
+    memcpy(cur_buf_->map, data, cur_buf_->size);
+    thead_csi_dcache_clean_invalid_range(static_cast<uint8_t*>(cur_buf_->map),
+                                         cur_buf_->size);
+
+    // Commit the buffer (non-blocking)
+    plane_->display->osd_disp_buffer = cur_buf_;
+
+    return 0;
+}
 
 //=============================================================================
 // V4l2Drm implementation
@@ -34,10 +109,6 @@ V4l2Drm::V4l2Drm(size_t context_num, bool osd)
 V4l2Drm::~V4l2Drm() {
     // Set global flag to stop callback loop first
     v4l2_drm_run_v4l2_2_drm_need_run = 0;
-
-
-    // Release Python handler first (before stopping thread)
-    // This prevents the static py::object from being destroyed during module unload
 
     // Stop all contexts to break v4l2_drm_run loop
     for (size_t i = 0; i < context_num_; i++) {
@@ -67,7 +138,7 @@ V4l2Drm::~V4l2Drm() {
     }
 }
 
-py::tuple V4l2Drm::drm_init(int drm_id) {
+std::pair<int, int> V4l2Drm::drm_init(int drm_id) {
     // Check if display is already initialized
     if (display_) {
         display_exit(display_);
@@ -77,17 +148,17 @@ py::tuple V4l2Drm::drm_init(int drm_id) {
     display_ = display_init(drm_id);
     if (display_ == nullptr) {
         printf("[V4l2Drm::drm_init] display_init failed, drm_id=%d\n", drm_id);
-        return py::make_tuple(-1, -1);
+        return {-1, -1};
     }
 
     printf("[V4l2Drm::drm_init] success, drm_id=%d, width=%u, height=%u\n",
            drm_id, display_->width, display_->height);
-    return py::make_tuple(static_cast<int>(display_->width),
-                          static_cast<int>(display_->height));
+    return {static_cast<int>(display_->width),
+            static_cast<int>(display_->height)};
 }
 
 void V4l2Drm::set_osd_format(unsigned int fourcc) {
-    if(posd_)
+    if (posd_)
         delete posd_;
     posd_ = new k230_osd;
     assert(posd_);
@@ -138,7 +209,7 @@ size_t V4l2Drm::calc_buffer_size(struct v4l2_drm_context* ctx) const {
             return ctx->width * ctx->height * 3;
         case V4L2_PIX_FMT_YUYV:
             return ctx->width * ctx->height * 2;
-        case v4l2_fourcc('B', 'G', '3', 'P'): // BGR32/BGRA32
+        case v4l2_fourcc('B', 'G', '3', 'P'):  // BGR32/BGRA32
             return ctx->width * ctx->height * 4;
         default:
             return ctx->vbuffer.length > 0 ? ctx->vbuffer.length
@@ -268,57 +339,39 @@ int V4l2Drm::get_video_fd(size_t index) const {
     return contexts_[index].video_fd;
 }
 
-py::array V4l2Drm::get_buffer_data(size_t index) {
+V4l2Drm::BufferInfo V4l2Drm::get_buffer_data(size_t index) {
     check_index(index);
     struct v4l2_drm_context* ctx = &contexts_[index];
     check_buffer(ctx);
     size_t sz = calc_buffer_size(ctx);
     void* data = ctx->buffers[ctx->vbuffer.index].mmap;
-    // printf("data=%lx\n", data);
-    std::vector<ssize_t> shape = {static_cast<ssize_t>(sz)};
-    return py::array_t<uint8_t>(shape, static_cast<uint8_t*>(data),
-                                py::handle());
+    return {data, sz};
 }
 
-py::array V4l2Drm::get_buffer_array(size_t index) {
+V4l2Drm::ArrayInfo V4l2Drm::get_buffer_array(size_t index) {
     check_index(index);
     struct v4l2_drm_context* ctx = &contexts_[index];
     check_buffer(ctx);
     void* data = ctx->buffers[ctx->vbuffer.index].mmap;
-    // printf("get_buffer_array data=%lx\n", data);
     ssize_t w = static_cast<ssize_t>(ctx->width);
     ssize_t h = static_cast<ssize_t>(ctx->height);
 
     switch (ctx->video_format) {
         case V4L2_PIX_FMT_NV12:
-        case V4L2_PIX_FMT_NV21: {
-            std::vector<ssize_t> shape = {h * 3 / 2, w};
-            std::vector<ssize_t> strides = {w, 1};
-            return py::array_t<uint8_t>(
-                shape, strides, static_cast<uint8_t*>(data), py::handle());
-        }
+        case V4L2_PIX_FMT_NV21:
+            return {data, {h * 3 / 2, w}, {w, 1}, 1};
         case V4L2_PIX_FMT_BGR24:
-        case V4L2_PIX_FMT_RGB24: {
-            std::vector<ssize_t> shape = {h, w, 3};
-            std::vector<ssize_t> strides = {w * 3, 3, 1};
-            return py::array_t<uint8_t>(
-                shape, strides, static_cast<uint8_t*>(data), py::handle());
+        case V4L2_PIX_FMT_RGB24:
+            return {data, {h, w, 3}, {w * 3, 3, 1}, 1};
+        case V4L2_PIX_FMT_YUYV:
+            return {data, {h, w, 2}, {w * 2, 2, 1}, 1};
+        case v4l2_fourcc('B', 'G', '3', 'P'): {  // NCHW format for AI inference
+            return {data, {1, 3, h, w}, {h * w * 3, h * w, w, 1}, 1};
         }
-        case V4L2_PIX_FMT_YUYV: {
-            std::vector<ssize_t> shape = {h, w, 2};
-            std::vector<ssize_t> strides = {w * 2, 2, 1};
-            return py::array_t<uint8_t>(
-                shape, strides, static_cast<uint8_t*>(data), py::handle());
+        default: {
+            size_t sz = calc_buffer_size(ctx);
+            return {data, {static_cast<ssize_t>(sz)}, {1}, 1};
         }
-        case v4l2_fourcc('B', 'G', '3', 'P'): { // NCHW format for AI inference
-            // Data is in NCHW format (1, 3, h, w)
-            std::vector<ssize_t> shape = {1, 3, h, w};
-            std::vector<ssize_t> strides = {h * w * 3, h * w, w, 1};
-            return py::array_t<uint8_t>(
-                shape, strides, static_cast<uint8_t*>(data), py::handle());
-        }
-        default:
-            return get_buffer_data(index);
     }
 }
 
@@ -340,45 +393,41 @@ bool V4l2Drm::setup() {
 }
 
 bool V4l2Drm::dump_start(size_t index) {
-    //check_display_thread();
     check_index(index);
-    if(contexts_[index].display)
-        return -1;
+    if (contexts_[index].display)
+        return false;
     return v4l2_drm_start(&contexts_[index]) == 0;
 }
 
 bool V4l2Drm::dump_stop(size_t index) {
-    //check_display_thread();
     check_index(index);
-    if(contexts_[index].display)
-        return -1;
+    if (contexts_[index].display)
+        return false;
     return v4l2_drm_stop(&contexts_[index]) == 0;
 }
 
 bool V4l2Drm::dump_frame(size_t index, int timeout_ms) {
-    //check_display_thread();
     check_index(index);
-    if(contexts_[index].display)
-        return -1;
+    if (contexts_[index].display)
+        return false;
     return v4l2_drm_dump(&contexts_[index], timeout_ms) == 0;
 }
 
 bool V4l2Drm::dump_release(size_t index) {
-    //check_display_thread();
     check_index(index);
-    if(contexts_[index].display)
-        return -1;
+    if (contexts_[index].display)
+        return false;
     return v4l2_drm_dump_release(&contexts_[index]) == 0;
 }
 
 void V4l2Drm::display_start() {
     int i = 0;
     check_display_thread();
-    for(i=0;i<context_num_;i++) {
-        if(contexts_[i].display)
+    for (i = 0; i < context_num_; i++) {
+        if (contexts_[i].display)
             break;
     }
-    if(i == context_num_)
+    if (i == context_num_)
         throw std::runtime_error("No display context configured");
 
     // Start background thread
@@ -386,13 +435,8 @@ void V4l2Drm::display_start() {
 }
 
 void V4l2Drm::display_stop() {
-    //printf("display_stop\n");
     // Set global flag to stop loop
     v4l2_drm_run_v4l2_2_drm_need_run = 0;
-    // Stop all contexts to break v4l2_drm_run loop
-    // for (size_t i = 0; i < context_num_; i++) {
-    //     v4l2_drm_stop(&contexts_[i]);
-    // }
     // Wait for thread to finish
     if (display_thread_.joinable()) {
         display_thread_.join();
@@ -404,50 +448,17 @@ void V4l2Drm::display_thread_func() {
 }
 
 int V4l2Drm::callback_wrapper(struct v4l2_drm_context* ctx, bool displayed) {
-    //printf("callback_wrapper\n");
-    // Check global flag first (no GIL needed)
+    // Check global flag first
     if (!v4l2_drm_run_v4l2_2_drm_need_run) {
         return -1;
     }
-    if(!displayed)
+    if (!displayed)
         return 0;
 
     display_frame_count_++;
-    // try {
-    //     py::gil_scoped_acquire acquire;
-
-    //     if (PyErr_CheckSignals() != 0) {
-    //         v4l2_drm_run_v4l2_2_drm_need_run  = 0;
-    //         PyErr_Clear();
-    //         return -1;
-    //     }
-
-    //     if (py_handler_.is_none())
-    //         return 0;
-
-
-
-    //     py::object result = py_handler_(displayed);
-    //     if (py::isinstance<py::int_>(result))
-    //         return result.cast<int>();
-    //     if (py::isinstance<py::str>(result)) {
-    //         std::string s = result.cast<std::string>();
-    //         if (s == "q")
-    //             return -1;
-    //         if (s == "d")
-    //             return 'd';
-    //     }
-    //     return 0;
-    // } catch (py::error_already_set& e) {
-    //     PyErr_Clear();
-    //     return -1;
-    // } catch (...) {
-    //     return -1;
-    // }
     return 0;
 }
 
-//=============================================================================
-// OSD implementation
-//=============================================================================
-int V4l2Drm::osd_update(py::array img) { return posd_->update(img); }
+int V4l2Drm::osd_update(void* data, size_t size) {
+    return posd_->update(data, size);
+}

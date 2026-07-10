@@ -84,7 +84,7 @@ private:
 // CallbackManager - manages Python callables for LVGL callbacks
 // ============================================================================
 
-class CallbackManager {
+class __attribute__((visibility("hidden"))) CallbackManager {
 public:
     static CallbackManager& instance() {
         static CallbackManager inst;

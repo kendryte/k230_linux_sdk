@@ -955,7 +955,7 @@ download_dir_release:
 
 release_image_publish:
   stage: release
-  timeout: 20m
+  timeout: 30m
   rules:
    - if: $CI_PIPELINE_SOURCE == "schedule"
    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/

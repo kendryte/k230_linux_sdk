@@ -1,0 +1,48 @@
+From f790c87690d9703921432706e150f368bfacfa54 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Thu, 9 Jul 2026 11:41:03 +0800
+Subject: [PATCH] flush wait modify
+
+---
+ src/lib/display_backends/drm_k230_v4l2.c | 11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/src/lib/display_backends/drm_k230_v4l2.c b/src/lib/display_backends/drm_k230_v4l2.c
+index 9751227..71f04d7 100644
+--- a/src/lib/display_backends/drm_k230_v4l2.c
++++ b/src/lib/display_backends/drm_k230_v4l2.c
+@@ -61,6 +61,7 @@ static char * backend_name = "DRM_V4L2_K230";
+ 
+ static  struct display * k230_display = NULL;
+ static char k230_dispaly_v4l2_drm_run_flag = 0;
++static unsigned int flush_data_fram_count=0;
+ 
+ /**********************
+  *      MACROS
+@@ -212,6 +213,7 @@ static void drm_k230_flush(lv_display_t * disp, const lv_area_t * area, uint8_t
+ 
+     /* Hand the buffer to the v4l2-drm thread — it will commit it on vsync */
+     k230_display->lvgl_disp_buffer = buf;
++    flush_data_fram_count = k230_display->frame_count;
+ 
+     lv_display_flush_ready(disp);
+ }
+@@ -228,13 +230,8 @@ static void drm_k230_flush_wait(lv_display_t * disp)
+     LV_UNUSED(disp);
+     if(k230_display == NULL) return;
+ 
+-    /* Wait for the next vblank — CPU sleeps until vsync, no busy-wait */
+-    drmVBlank vblank;
+-    memset(&vblank, 0, sizeof(vblank));
+-    vblank.request.type = DRM_VBLANK_RELATIVE;
+-    vblank.request.sequence = 1;
+-    while(drmWaitVBlank(k230_display->fd, &vblank) != 0) {
+-        if(errno != EINTR) break;
++    while(k230_display->lvgl_disp_buffer && (k230_display->frame_count <= flush_data_fram_count)){
++        usleep(15000);
+     }
+ }
+ 
+-- 
+2.25.1
+

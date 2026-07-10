@@ -1,0 +1,59 @@
+From 81b235fe65c6d62bfb641ecba3faf4cae4a512b5 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 8 Jul 2026 15:39:53 +0800
+Subject: [PATCH] k230ok
+
+---
+ src/lib/display_backends/drm_k230_v4l2.c | 9 ++++++++-
+ src/main_k230.c                          | 6 ++----
+ 2 files changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/src/lib/display_backends/drm_k230_v4l2.c b/src/lib/display_backends/drm_k230_v4l2.c
+index b605cda..a32c024 100644
+--- a/src/lib/display_backends/drm_k230_v4l2.c
++++ b/src/lib/display_backends/drm_k230_v4l2.c
+@@ -255,6 +255,12 @@ int k230_driver_init(void * d, char  v4l2_drm_run_flag)
+     k230_dispaly_v4l2_drm_run_flag = v4l2_drm_run_flag;
+ 
+     k230_display = (struct display *)d;
++
++    /* Initialize LVGL core first — driver_backends_init_backend below
++     * calls init_drm_k230() → lv_display_create(), which requires
++     * lv_init() to have been called already. */
++    lv_init();
++
+         /* Register all backends */
+     driver_backends_register();
+ 
+@@ -273,7 +279,8 @@ int k230_driver_init(void * d, char  v4l2_drm_run_flag)
+         fprintf(stderr, "Failed to initialize evdev\n");
+     }
+ #endif
+-return ret;
++
++    return ret;
+ 
+ }
+ 
+diff --git a/src/main_k230.c b/src/main_k230.c
+index 1987dca..551f05c 100644
+--- a/src/main_k230.c
++++ b/src/main_k230.c
+@@ -217,12 +217,10 @@ int main(int argc, char ** argv)
+ 
+ 
+     /* ---- 1. Initialize the shared DRM display ---- */
++    /* lv_init() is called inside k230_driver_init, before
++     * driver_backends_init_backend() which calls lv_display_create() */
+     k230_driver_init(pdisplay, true);
+ 
+-    /* ---- 3. Initialize LVGL via standard backend framework ---- */
+-    lv_init();
+-
+-
+     /* ---- 4. Create simple LVGL UI for testing ---- */
+     lv_obj_set_style_bg_opa(lv_screen_active(), LV_OPA_TRANSP, 0);
+ 
+-- 
+2.25.1
+

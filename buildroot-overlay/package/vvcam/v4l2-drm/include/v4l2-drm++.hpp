@@ -1,36 +1,49 @@
-#ifndef V4L2_DRM_HPP
-#define V4L2_DRM_HPP
+#ifndef V4L2_DRM_PLUS_PLUS_HPP
+#define V4L2_DRM_PLUS_PLUS_HPP
 
 #include <cassert>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
-#include <pybind11/functional.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
-#include "k230_osd.hpp"
+#include <v4l2-drm.h>
 
 struct display;
-struct v4l2_drm_context;
-
-namespace py = pybind11;
+struct display_plane;
+struct display_buffer;
 
 //=============================================================================
-// V4l2Drm class - simplified design with fixed-size array
+// k230_osd class - OSD overlay support (pure C++, no pybind11)
+//=============================================================================
+class k230_osd {
+public:
+    k230_osd();
+    ~k230_osd();
+
+    int init(struct display* pdisplay);
+    int update(void* data, size_t size);
+    unsigned int fourcc_;
+
+private:
+    struct display_plane* plane_;
+    struct display_buffer* buffer_[2];
+    struct display_buffer* cur_buf_;
+};
+
+//=============================================================================
+// V4l2Drm class - C++ wrapper for v4l2-drm C library
 //=============================================================================
 class V4l2Drm {
 public:
-    explicit V4l2Drm(size_t context_num = 1, bool osd = 0);
+    explicit V4l2Drm(size_t context_num = 1, bool osd = false);
     ~V4l2Drm();
 
-    // Display initialization - returns (width, height) tuple on success, (-1,
-    // -1) on failure
-    py::tuple drm_init(int drm_id);
+    // Display initialization - returns (width, height) on success, (-1, -1) on
+    // failure
+    std::pair<int, int> drm_init(int drm_id);
 
     // Context configuration
     void set_context(size_t index = 0, unsigned device = 1,
@@ -59,9 +72,21 @@ public:
     void set_frame_count(size_t index = 0, unsigned count = 0);
     int get_video_fd(size_t index = 0) const;
 
-    // Buffer access
-    py::array get_buffer_data(size_t index = 0);
-    py::array get_buffer_array(size_t index = 0);
+    // Buffer access (pure C++ - returns raw pointer + size)
+    struct BufferInfo {
+        void* ptr;
+        size_t size;
+    };
+    BufferInfo get_buffer_data(size_t index = 0);
+
+    // Buffer array access - returns shape/strides for numpy-like access
+    struct ArrayInfo {
+        void* ptr;
+        std::vector<ssize_t> shape;
+        std::vector<ssize_t> strides;
+        size_t elem_size;  // bytes per element (always 1 for uint8)
+    };
+    ArrayInfo get_buffer_array(size_t index = 0);
 
     // Setup and control
     bool setup();
@@ -78,11 +103,16 @@ public:
 
     // Display frame count access
     unsigned int get_display_frame_count() { return display_frame_count_; }
-    void set_display_frame_count(unsigned int count) { display_frame_count_ = count; }
+    void set_display_frame_count(unsigned int count) {
+        display_frame_count_ = count;
+    }
 
     // OSD methods
     void set_osd_format(unsigned int fourcc);
-    int osd_update(py::array img);
+    int osd_update(void* data, size_t size);
+
+    // Access internal display pointer (for LVGL integration)
+    struct display* get_display() const { return display_; }
 
 private:
     struct display* display_;
@@ -102,7 +132,6 @@ private:
     uint32_t string_to_fourcc(const std::string& str) const;
     size_t calc_buffer_size(struct v4l2_drm_context* ctx) const;
     void check_buffer(struct v4l2_drm_context* ctx) const;
-
 };
 
-#endif // V4L2_DRM_HPP
+#endif  // V4L2_DRM_PLUS_PLUS_HPP

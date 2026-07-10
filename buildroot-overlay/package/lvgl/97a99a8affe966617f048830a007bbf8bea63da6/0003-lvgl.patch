@@ -1,0 +1,670 @@
+From 227278746f035006b5a1a48b59d38d33901dd57f Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 7 Jul 2026 15:10:21 +0800
+Subject: [PATCH 3/4] lvgl
+
+---
+ .gitignore                                  |   4 +
+ CMakeLists.txt                              |  23 +-
+ lv_conf.defaults                            |   2 +-
+ lvgl/scripts/preprocess_lv_conf_internal.py |   2 +-
+ src/lib/backends.h                          |   5 +-
+ src/lib/display_backends/drm_k230_v4l2.c    | 240 ++++++++++++++++++
+ src/lib/driver_backends.c                   |   2 +-
+ src/main_k230.c                             | 267 ++++++++++++++++++++
+ 8 files changed, 536 insertions(+), 9 deletions(-)
+ create mode 100644 src/lib/display_backends/drm_k230_v4l2.c
+ create mode 100644 src/main_k230.c
+
+diff --git a/.gitignore b/.gitignore
+index 3f86065..6bea731 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -61,3 +61,7 @@ dkms.conf
+ /.settings/
+ .*project
+ .deps
++buildroot-build/
++.files-list*
++.stamp_*
++compile_commands.json
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 20cc0f6..7633098 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -89,13 +89,21 @@ endif()
+ 
+ if (CONFIG_LV_USE_LINUX_DRM)
+ 
+-    message("Including DRM support")
++    message("Including DRM support (with K230 v4l2-drm backend)")
+     find_package(PkgConfig REQUIRED)
+     pkg_check_modules(LIBDRM REQUIRED libdrm)
+ 
+     list(APPEND PKG_CONFIG_LIB ${LIBDRM_LIBRARIES})
+     list(APPEND PKG_CONFIG_INC ${LIBDRM_INCLUDE_DIRS})
+-    list(APPEND LV_LINUX_BACKEND_SRC src/lib/display_backends/drm.c)
++    list(APPEND LV_LINUX_BACKEND_SRC
++        src/lib/display_backends/drm.c
++        src/lib/display_backends/drm_k230_v4l2.c)
++
++    # v4l2-drm and display libraries for the K230 combined backend
++    pkg_check_modules(DISPLAY REQUIRED display)
++    pkg_check_modules(V4L2DRM REQUIRED v4l2-drm)
++    list(APPEND PKG_CONFIG_LIB ${DISPLAY_LIBRARIES} ${V4L2DRM_LIBRARIES})
++    list(APPEND PKG_CONFIG_INC ${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS})
+ 
+ endif()
+ 
+@@ -406,10 +414,17 @@ target_include_directories(lvgl_linux PUBLIC
+ # Link LVGL with external dependencies - Modern CMake/CMP0079 allows this
+ target_link_libraries(lvgl PUBLIC ${PKG_CONFIG_LIB} m pthread rt dl)
+ 
+-add_executable(lvglsim src/main.c)
++# lvgl_linux also needs display/v4l2-drm for the K230 backend
++if (CONFIG_LV_USE_LINUX_DRM)
++    target_link_libraries(lvgl_linux PUBLIC v4l2-drm drm display)
++endif()
++
++add_executable(lvglsim src/main_k230.c)
+ 
+ # Repeat lvgl_linux to resolve circular dependency with lvgl
+-target_link_libraries(lvglsim lvgl_linux lvgl lvgl_demos lvgl_linux)
++# v4l2-drm and display are needed for the K230 combined camera+OSD backend
++target_include_directories(lvglsim PRIVATE ${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS})
++target_link_libraries(lvglsim lvgl_linux lvgl lvgl_demos lvgl_linux pthread v4l2-drm drm display)
+ 
+ if(WERROR)
+     target_compile_options(lvglsim PRIVATE -Werror)
+diff --git a/lv_conf.defaults b/lv_conf.defaults
+index 6006fae..775db12 100644
+--- a/lv_conf.defaults
++++ b/lv_conf.defaults
+@@ -4,7 +4,7 @@
+ # To use one of those configs directly, set the `CONFIG` CMake variable:
+ # eg: `cmake -B build -DCONFIG=drm-egl-2d` for `configs/drm-egl-2d.defaults`
+ 
+-LV_COLOR_DEPTH	    16
++LV_COLOR_DEPTH	    32
+ 
+ # Draw units
+ # A draw unit is responsible for how the LVGL UI is rendered to the draw buffer
+diff --git a/lvgl/scripts/preprocess_lv_conf_internal.py b/lvgl/scripts/preprocess_lv_conf_internal.py
+index 7fc6e26..f3a4114 100755
+--- a/lvgl/scripts/preprocess_lv_conf_internal.py
++++ b/lvgl/scripts/preprocess_lv_conf_internal.py
+@@ -159,7 +159,7 @@ def main():
+     # Check if PCPP is already present on the system
+     # if it's not - create a python venv inside the workfolder directory
+     # and install it there
+-    pcpp_path = shutil.which("pcpp")
++    pcpp_path = shutil.which("pcpp")  or shutil.which("pcpp-python")
+ 
+     if pcpp_path:
+         pcpp_exe = pcpp_path
+diff --git a/src/lib/backends.h b/src/lib/backends.h
+index 69d558c..68c6544 100644
+--- a/src/lib/backends.h
++++ b/src/lib/backends.h
+@@ -26,6 +26,8 @@ extern "C" {
+ /**********************
+  *      TYPEDEFS
+  **********************/
++struct display; /* forward declaration — defined in display.h */
++
+ /* Prototype of the display initialization functions */
+ typedef lv_display_t * (*display_init_t)(void);
+ 
+@@ -76,6 +78,7 @@ typedef int (*backend_init_t)(backend_t *);
+ /* Graphics backends */
+ int backend_init_fbdev(backend_t * backend);
+ int backend_init_drm(backend_t * backend);
++int backend_init_drm_k230_v4l2(backend_t * backend);
+ int backend_init_sdl(backend_t * backend);
+ int backend_init_glfw3(backend_t * backend);
+ int backend_init_wayland(backend_t * backend);
+@@ -93,5 +96,3 @@ int backend_init_evdev(backend_t * backend);
+ #endif
+ 
+ #endif /*BACKEND_H*/
+-
+-
+diff --git a/src/lib/display_backends/drm_k230_v4l2.c b/src/lib/display_backends/drm_k230_v4l2.c
+new file mode 100644
+index 0000000..77f1097
+--- /dev/null
++++ b/src/lib/display_backends/drm_k230_v4l2.c
+@@ -0,0 +1,240 @@
++/**
++ * @file drm_k230_v4l2.c
++ *
++ * K230 custom DRM backend - uses v4l2-drm's display library
++ * so that LVGL (OSD layer) and camera (video layer) share
++ * the same DRM fd and can be committed together.
++ *
++ * The shared struct display is created externally (in main.c)
++ * and passed in via init_drm_k230_with_display().
++ */
++
++/*********************
++ *      INCLUDES
++ *********************/
++#include <unistd.h>
++#include <stdlib.h>
++#include <stdbool.h>
++#include <string.h>
++
++#include "lvgl/lvgl.h"
++#if LV_USE_LINUX_DRM
++
++#include <drm/drm_fourcc.h>
++#include <xf86drm.h>
++#include <errno.h>
++
++#include "display.h"
++#include "v4l2-drm.h"
++
++#include "../backends.h"
++#include <time.h>
++
++/*********************
++ *      DEFINES
++ *********************/
++
++/**********************
++ *      TYPEDEFS
++ **********************/
++
++/**********************
++ *  STATIC PROTOTYPES
++ **********************/
++static void run_loop_drm(void);
++static lv_display_t * init_drm_k230(void);
++static void drm_k230_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map);
++static void drm_k230_flush_wait(lv_display_t * disp);
++
++/**********************
++ *  STATIC VARIABLES
++ **********************/
++static char * backend_name = "DRM_V4L2_K230";
++
++
++extern struct display * g_display = NULL;
++static struct display_plane * g_osd_plane = NULL;
++static struct display_buffer * g_osd_bufs[2];
++static int g_osd_buf_idx = 0;
++
++/**********************
++ *      MACROS
++ **********************/
++
++/**********************
++ *   GLOBAL FUNCTIONS
++ **********************/
++
++/**
++ * Register the backend
++ */
++int backend_init_drm_k230_v4l2(backend_t * backend)
++{
++    LV_ASSERT_NULL(backend);
++
++    backend->handle->display = malloc(sizeof(display_backend_t));
++    LV_ASSERT_NULL(backend->handle->display);
++
++    backend->handle->display->init_display = init_drm_k230;
++    backend->handle->display->run_loop = run_loop_drm;
++    backend->name = backend_name;
++    backend->type = BACKEND_DISPLAY;
++
++    return 0;
++}
++
++
++static uint32_t tick_get_cb(void)
++{
++    struct timespec t;
++    clock_gettime(CLOCK_MONOTONIC, &t);
++    uint64_t time_ms = t.tv_sec * 1000 + (t.tv_nsec / 1000000);
++    return time_ms;
++}
++
++/**
++ * Initialize LVGL display using the shared v4l2-drm display.
++ *
++
++ * This is the standard backend init_display callback (no arguments).
++ */
++static lv_display_t * init_drm_k230(void)
++{
++    if(g_display == NULL) {
++        LV_LOG_ERROR("g_display is NULL — call  first");
++        return NULL;
++    }
++
++    lv_tick_set_cb(tick_get_cb);
++
++    /* Get an RGB565 plane for the OSD layer */
++#if LV_COLOR_DEPTH == 32
++    uint32_t fourcc = DRM_FORMAT_ARGB8888;
++#elif LV_COLOR_DEPTH == 16
++    uint32_t fourcc = DRM_FORMAT_RGB565;
++#else
++    uint32_t fourcc = DRM_FORMAT_RGB565;
++#endif
++
++    g_osd_plane = display_get_plane(g_display, fourcc);
++    if(g_osd_plane == NULL) {
++        LV_LOG_ERROR("Failed to get OSD plane for fourcc 0x%x", fourcc);
++        return NULL;
++    }
++
++    /* Allocate double-buffered display buffers */
++    g_osd_bufs[0] = display_allocate_buffer(g_osd_plane, g_display->width, g_display->height);
++    g_osd_bufs[1] = display_allocate_buffer(g_osd_plane, g_display->width, g_display->height);
++    if(g_osd_bufs[0] == NULL || g_osd_bufs[1] == NULL) {
++        LV_LOG_ERROR("Failed to allocate OSD display buffers");
++        return NULL;
++    }
++
++    LV_LOG_INFO("OSD plane %u, buffers %u/%u, size %u, stride %u",
++                g_osd_plane->plane_id,
++                g_osd_bufs[0]->id, g_osd_bufs[1]->id,
++                g_osd_bufs[0]->size, g_osd_bufs[0]->stride);
++
++    /* Create LVGL display - size matches the DRM mode */
++    lv_display_t * disp = lv_display_create(g_display->width, g_display->height);
++    if(disp == NULL) {
++        LV_LOG_ERROR("lv_display_create failed");
++        return NULL;
++    }
++
++    /* Use ARGB8888 so LVGL outputs real alpha — needed for transparent OSD overlay.
++     * Must be set BEFORE lv_display_set_buffers so LVGL validates buffer size correctly. */
++    lv_display_set_color_format(disp, LV_COLOR_FORMAT_ARGB8888);
++
++    /* Set resolution first (required for DIRECT mode before setting buffers) */
++    lv_display_set_resolution(disp, g_display->width, g_display->height);
++
++    /* Wire the display_buffer mmap regions directly as LVGL render buffers.
++     * LVGL renders in-place into the DRM dumb buffers — zero copy.
++     * Must use set_buffers_with_stride so LVGL knows the DRM stride. */
++    lv_display_set_buffers_with_stride(disp,
++                                       g_osd_bufs[0]->map,
++                                       g_osd_bufs[1]->map,
++                                       g_osd_bufs[0]->size,
++                                       g_osd_bufs[0]->stride,
++                                       LV_DISPLAY_RENDER_MODE_DIRECT);
++    lv_display_set_flush_cb(disp, drm_k230_flush);
++    lv_display_set_flush_wait_cb(disp, drm_k230_flush_wait);
++
++    g_osd_buf_idx = 0;
++
++    LV_LOG_INFO("K230 OSD display initialized: %ux%u fourcc=0x%x",
++                g_display->width, g_display->height, fourcc);
++
++    return disp;
++}
++
++/**********************
++ *   STATIC FUNCTIONS
++ **********************/
++
++/**
++ * LVGL flush callback.
++ *
++ * When LVGL finishes rendering a frame into one of the mmap'd
++ * display_buffers, we hand that buffer to the v4l2-drm thread
++ * via the g_p_osd_disp_buffer global.  The v4l2-drm thread
++ * will commit it together with the camera frame on the next vsync.
++ */
++static void drm_k230_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
++{
++    LV_UNUSED(area);
++
++    if(!lv_display_flush_is_last(disp)) return;
++
++    /* Determine which buffer LVGL just rendered into */
++    struct display_buffer * buf;
++    if(px_map == g_osd_bufs[0]->map) {
++        buf = g_osd_bufs[0];
++    } else {
++        buf = g_osd_bufs[1];
++    }
++
++    /* Hand the buffer to the v4l2-drm thread — it will commit it on vsync */
++    g_p_osd_disp_buffer = buf;
++
++    lv_display_flush_ready(disp);
++}
++
++/**
++ * LVGL flush_wait callback.
++ *
++ * Called after flush_ready — LVGL waits here before starting the next frame.
++ * We block on the DRM vsync event so the CPU is idle until the next frame.
++ * This is the same approach as the official lv_linux_drm backend's drm_flush_wait.
++ */
++static void drm_k230_flush_wait(lv_display_t * disp)
++{
++    LV_UNUSED(disp);
++    if(g_display == NULL) return;
++
++    /* Wait for the next vblank — CPU sleeps until vsync, no busy-wait */
++    drmVBlank vblank;
++    memset(&vblank, 0, sizeof(vblank));
++    vblank.request.type = DRM_VBLANK_RELATIVE;
++    vblank.request.sequence = 1;
++    while(drmWaitVBlank(g_display->fd, &vblank) != 0) {
++        if(errno != EINTR) break;
++    }
++}
++
++/**
++ * The run loop — just drives LVGL's timer handler.
++ * The actual DRM commit happens in the v4l2-drm thread.
++ */
++static void run_loop_drm(void)
++{
++    uint32_t idle_time;
++
++    while(true) {
++        idle_time = lv_timer_handler();
++        usleep(idle_time * 1000);
++    }
++}
++
++#endif /* LV_USE_LINUX_DRM */
+diff --git a/src/lib/driver_backends.c b/src/lib/driver_backends.c
+index ec278b8..112f128 100644
+--- a/src/lib/driver_backends.c
++++ b/src/lib/driver_backends.c
+@@ -67,6 +67,7 @@ backend_init_t available_backends[] = {
+ #if LV_USE_LINUX_DRM
+     backend_init_drm,
+ #endif
++    backend_init_drm_k230_v4l2,
+ 
+ #if LV_USE_SDL
+     backend_init_sdl,
+@@ -283,4 +284,3 @@ void driver_backends_run_loop(void)
+ /**********************
+  *   STATIC FUNCTIONS
+  **********************/
+-
+diff --git a/src/main_k230.c b/src/main_k230.c
+new file mode 100644
+index 0000000..9b20e1d
+--- /dev/null
++++ b/src/main_k230.c
+@@ -0,0 +1,267 @@
++/*******************************************************************
++ *
++ * main.c - LVGL simulator for GNU/Linux
++ *
++ * Based on the original file from the repository
++ *
++ * @note eventually this file won't contain a main function and will
++ * become a library supporting all major operating systems
++ *
++ * To see how each driver is initialized check the
++ * 'src/lib/display_backends' directory
++ *
++ * - Clean up
++ * - Support for multiple backends at once
++ *   2025 EDGEMTech Ltd.
++ *
++ * Author: EDGEMTech Ltd, Erik Tagirov (erik.tagirov@edgemtech.ch)
++ *
++ ******************************************************************/
++#define _GNU_SOURCE
++#include <unistd.h>
++#include <pthread.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++#include "lvgl/lvgl.h"
++#include "lvgl/demos/lv_demos.h"
++
++#include "display.h"
++#include "v4l2-drm.h"
++
++#include "src/lib/driver_backends.h"
++#include "src/lib/simulator_util.h"
++#include "src/lib/simulator_settings.h"
++#include "src/lib/backends.h"
++
++/* Internal functions */
++static void configure_simulator(int argc, char ** argv);
++static void print_lvgl_version(void);
++static void print_usage(void);
++
++/* contains the name of the selected backend if user
++ * has specified one on the command line */
++static char * selected_backend;
++
++/* Global simulator settings, defined in lv_linux_backend.c */
++extern simulator_settings_t settings;
++
++
++/**
++ * @brief Print LVGL version
++ */
++static void print_lvgl_version(void)
++{
++    fprintf(stdout, "%d.%d.%d-%s\n",
++            LVGL_VERSION_MAJOR,
++            LVGL_VERSION_MINOR,
++            LVGL_VERSION_PATCH,
++            LVGL_VERSION_INFO);
++}
++
++/**
++ * @brief Print usage information
++ */
++static void print_usage(void)
++{
++    fprintf(stdout,
++            "\nlvglsim [-V] [-B] [-f] [-m] [-b backend_name] [-W window_width] [-H window_height] [-R rotation]\n\n");
++    fprintf(stdout, "-V print LVGL version\n");
++    fprintf(stdout, "-B list supported backends\n");
++    fprintf(stdout, "-f fullscreen\n");
++    fprintf(stdout, "-m maximize\n");
++}
++
++/**
++ * @brief Configure simulator
++ * @description process arguments received by the program to select
++ * appropriate options
++ * @param argc the count of arguments in argv
++ * @param argv The arguments
++ */
++static void configure_simulator(int argc, char ** argv)
++{
++    int opt = 0;
++
++    selected_backend = NULL;
++    driver_backends_register();
++
++    const char * env_w = getenv("LV_SIM_WINDOW_WIDTH");
++    const char * env_h = getenv("LV_SIM_WINDOW_HEIGHT");
++    /* Default values */
++    settings.window_width = atoi(env_w ? env_w : "800");
++    settings.window_height = atoi(env_h ? env_h : "480");
++
++    /* Parse the command-line options. */
++    while((opt = getopt(argc, argv, "b:fmW:H:R:BVh")) != -1) {
++        switch(opt) {
++            case 'h':
++                print_usage();
++                exit(EXIT_SUCCESS);
++                break;
++            case 'V':
++                print_lvgl_version();
++                exit(EXIT_SUCCESS);
++                break;
++            case 'B':
++                driver_backends_print_supported();
++                exit(EXIT_SUCCESS);
++                break;
++            case 'b':
++                if(driver_backends_is_supported(optarg) == 0) {
++                    die("error no such backend: %s\n", optarg);
++                }
++                selected_backend = strdup(optarg);
++                break;
++            case 'f':
++                settings.fullscreen = true;
++                break;
++            case 'm':
++                settings.maximize = true;
++                break;
++            case 'W':
++                settings.window_width = atoi(optarg);
++                break;
++            case 'H':
++                settings.window_height = atoi(optarg);
++                break;
++            case 'R':
++                switch(atoi(optarg)) {
++                    case 0:
++                        settings.rotation = LV_DISPLAY_ROTATION_0;
++                        break;
++                    case 90:
++                        settings.rotation = LV_DISPLAY_ROTATION_90;
++                        break;
++                    case 180:
++                        settings.rotation = LV_DISPLAY_ROTATION_180;
++                        break;
++                    case 270:
++                        settings.rotation = LV_DISPLAY_ROTATION_270;
++                        break;
++                    default:
++                        LV_LOG_WARN("Invalid rotation angle. Valid angles are {0, 90, 180, 270}");
++                        break;
++                }
++                break;
++            case ':':
++                print_usage();
++                die("Option -%c requires an argument.\n", optopt);
++                break;
++            case '?':
++                print_usage();
++                die("Unknown option -%c.\n", optopt);
++        }
++    }
++}
++
++
++/* v4l2-drm shared OSD buffer (consumed in v4l2_drm_run_v4l2_2_drm) */
++extern struct display_buffer *g_p_osd_disp_buffer;
++extern bool v4l2_drm_run_v4l2_2_drm_need_run;
++
++/* Global simulator settings, defined in the backend */
++extern simulator_settings_t settings;
++
++/* Shared display handle */
++struct display * g_display = NULL;
++
++/* Camera context */
++static struct v4l2_drm_context g_v4l2_ctx;
++
++/**
++ * v4l2-drm thread — runs the camera capture + display loop.
++ * It picks up the OSD buffer from g_p_osd_disp_buffer and
++ * commits both video and OSD planes on each vsync.
++ */
++static void * v4l2_thread(void * arg)
++{
++    (void)arg;
++    v4l2_drm_run_v4l2_2_drm(&g_v4l2_ctx, 1, NULL);
++    return NULL;
++}
++
++/**
++ * @brief entry point
++ */
++int main(int argc, char ** argv)
++{
++    int ret;
++
++    /* ---- 1. Initialize the shared DRM display ---- */
++    g_display = display_init(0);
++    if(g_display == NULL) {
++        fprintf(stderr, "display_init failed\n");
++        return -1;
++    }
++    printf("[main] display_init OK: %ux%u\n", g_display->width, g_display->height);
++
++    /* ---- 2. Initialize v4l2-drm (camera → NV12 video plane) ---- */
++    v4l2_drm_default_context(&g_v4l2_ctx);
++    g_v4l2_ctx.device = 1;                     /* /dev/video1 */
++    g_v4l2_ctx.width = 480;
++    g_v4l2_ctx.height = 800;
++    g_v4l2_ctx.video_format = V4L2_PIX_FMT_NV12;
++    g_v4l2_ctx.display_format = DRM_FORMAT_NV12;
++    g_v4l2_ctx.display = true;
++    g_v4l2_ctx.drm_rotation = rotation_0;
++
++    ret = v4l2_drm_setup(&g_v4l2_ctx, 1, &g_display);
++    if(ret < 0) {
++        fprintf(stderr, "v4l2_drm_setup failed\n");
++        return -1;
++    }
++    printf("[main] v4l2_drm_setup OK\n");
++
++    /* ---- 3. Initialize LVGL via standard backend framework ---- */
++    lv_init();
++
++
++    /* Register all backends */
++    driver_backends_register();
++
++    /* Initialize display backend (DRM_V4L2_K230 is the default/first) */
++    ret = driver_backends_init_backend("DRM_V4L2_K230");
++    if(ret == -1) {
++        fprintf(stderr, "LVGL display init failed\n");
++        return -1;
++    }
++    printf("[main] LVGL display initxxxx  OK\n");
++
++    /* Initialize evdev input backend */
++#if LV_USE_EVDEV
++    ret = driver_backends_init_backend("EVDEV");
++    if(ret == -1) {
++        fprintf(stderr, "Failed to initialize evdev\n");
++    }
++#endif
++
++    /* ---- 4. Create simple LVGL UI for testing ---- */
++    lv_obj_set_style_bg_opa(lv_screen_active(), LV_OPA_TRANSP, 0);
++
++    /* Just a simple label in the center — rest of screen is transparent */
++    lv_obj_t * label = lv_label_create(lv_screen_active());
++    lv_label_set_text(label, "K230 LVGL xx OK");
++    lv_obj_set_style_bg_opa(label, LV_OPA_50, 0);
++    lv_obj_set_style_bg_color(label, lv_color_black(), 0);
++    lv_obj_set_style_text_color(label, lv_color_white(), 0);
++    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
++
++    /* ---- 5. Start the v4l2-drm thread ---- */
++    v4l2_drm_run_v4l2_2_drm_need_run = true;
++    pthread_t tid;
++    ret = pthread_create(&tid, NULL, v4l2_thread, NULL);
++    if(ret != 0) {
++        fprintf(stderr, "pthread_create failed: %s\n", strerror(ret));
++        return -1;
++    }
++    pthread_setname_np(tid, "v4l2-drm");
++    printf("[main] v4l2-drm thread started\n");
++
++    /* ---- 6. Run the backend's main loop ---- */
++    printf("[main] entering LVGL main loop\n");
++    driver_backends_run_loop();
++
++    return 0;
++}
+-- 
+2.25.1
+
