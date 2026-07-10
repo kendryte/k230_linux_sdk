@@ -124,11 +124,13 @@ def get_cpp_type(c_type: str) -> Optional[str]:
     if c_type in ("const char *", "char *", "const char*"):
         return "const char *"
 
-    # Void pointer - preserve const qualifier
+    # Void pointer - map const void* to const char* so pybind11 accepts Python str
+    # (used for LVGL icon/image source parameters like LV_SYMBOL_FILE)
+    # The codegen will add a (const void*) cast at the call site.
     if c_type == "void *":
         return "void *"
     if c_type == "const void *":
-        return "const void *"
+        return "const char *"
 
     # Basic pointer types
     if c_type in BASIC_PTR_TYPES:

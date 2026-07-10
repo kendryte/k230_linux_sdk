@@ -40,6 +40,8 @@ class Pybind11Generator:
         self._emit_obj_class()
         self._emit_widget_factories()
         self._emit_widget_methods()
+        self._emit_string_overloads()
+        self._emit_chart_manual_bindings()
         self._emit_event_callbacks()
         self._emit_color_type()
         self._emit_display_class()
@@ -123,12 +125,27 @@ class Pybind11Generator:
                 self.emit("        .export_values();")
                 self.emit("")
             else:
-                # Emit as integer constants
-                self.emit("    /* Enum %s (no C type found, emitting as constants) */" % c_type)
-                for member in enum_ir.members:
-                    safe_name = self._sanitize(member.c_name)
-                    self.emit('    m.attr("%s") = (int)%s;' % (safe_name, member.c_name))
-                self.emit("")
+                # Check if this is the LVGL symbol ID enum
+                is_symbol_enum = any(
+                    m.c_name.startswith("LV_STR_SYMBOL_") for m in enum_ir.members
+                )
+                if is_symbol_enum:
+                    # Export as UTF-8 symbol strings (LV_SYMBOL_*) instead of int enum values
+                    # so they can be passed directly to icon APIs like add_button()
+                    self.emit("    /* Enum %s - exported as UTF-8 symbol strings for use with icon APIs */" % c_type)
+                    for member in enum_ir.members:
+                        safe_name = self._sanitize(member.c_name)
+                        # LV_STR_SYMBOL_FOO → LV_SYMBOL_FOO (the actual UTF-8 string macro)
+                        symbol_macro = member.c_name.replace("LV_STR_SYMBOL_", "LV_SYMBOL_")
+                        self.emit('    m.attr("%s") = %s;' % (safe_name, symbol_macro))
+                    self.emit("")
+                else:
+                    # Emit as integer constants
+                    self.emit("    /* Enum %s (no C type found, emitting as constants) */" % c_type)
+                    for member in enum_ir.members:
+                        safe_name = self._sanitize(member.c_name)
+                        self.emit('    m.attr("%s") = (int)%s;' % (safe_name, member.c_name))
+                    self.emit("")
 
     @staticmethod
     def _enum_python_name(c_type: str) -> str:
@@ -242,8 +259,11 @@ class Pybind11Generator:
                 return  # Can't generate this factory
 
             # For wrapper types, need .get() when calling C function
+            # For const void* params (mapped to const char* for pybind11), add cast
             if cpp_type.endswith("Wrapper &"):
                 call_args.append("%s.get()" % arg_name)
+            elif param.c_type == "const void *" and cpp_type == "const char *":
+                call_args.append("(const void *)%s" % arg_name)
             else:
                 call_args.append(arg_name)
             lambda_params.append("%s %s" % (cpp_type, arg_name))
@@ -341,8 +361,11 @@ class Pybind11Generator:
                 return  # Can't handle this parameter
 
             # For wrapper type params, call .get()
+            # For const void* params (mapped to const char* for pybind11), add cast
             if cpp_type.endswith("Wrapper &"):
                 call_args.append("%s.get()" % arg_name)
+            elif param.c_type == "const void *" and cpp_type == "const char *":
+                call_args.append("(const void *)%s" % arg_name)
             else:
                 call_args.append(arg_name)
             lambda_params.append("%s %s" % (cpp_type, arg_name))
@@ -393,6 +416,100 @@ class Pybind11Generator:
             self.emit("        );")
 
         self.generated_funcs.add(func.name)
+
+    # -----------------------------------------------------------------------
+    # String overloads for const void* (icon/image source) methods
+    # -----------------------------------------------------------------------
+
+    # Methods that take const void* (mapped to const char*) for icon/image sources
+    # also need a std::string overload so Python str works seamlessly
+    CONST_VOID_PTR_METHODS = {
+        "set_style_bg_image_src": ("value", "selector"),
+        "set_src": ("src",),
+    }
+
+    def _emit_string_overloads(self):
+        """Emit std::string overloads for methods that accept const void* (icon/image src).
+
+        The primary binding uses const char* (mapped from const void*), but adding
+        a std::string overload ensures Python str objects work without encoding issues.
+        """
+        self.emit("    /* String overloads for icon/image source methods */")
+        for method_name, args in self.CONST_VOID_PTR_METHODS.items():
+            if method_name in self.generated_funcs:
+                # Build lambda params and call args
+                lambda_params = ["LvObjWrapper &self"]
+                call_args = ["self.get()"]
+                py_args = []
+                for arg in args:
+                    if arg == "selector":
+                        lambda_params.append("uint32_t %s" % arg)
+                        call_args.append(arg)
+                    else:
+                        lambda_params.append("const std::string & %s" % arg)
+                        call_args.append("%s.c_str()" % arg)
+                    py_args.append('py::arg("%s")' % arg)
+
+                lambda_params_str = ", ".join(lambda_params)
+                call_args_str = ", ".join(call_args)
+                py_args_str = ", ".join(py_args)
+
+                # Determine the C function name
+                c_func = "lv_obj_%s" % method_name
+                if method_name == "set_src":
+                    c_func = "lv_image_set_src"
+
+                self.emit('    obj_cls.def("%s", [](%s) { %s(%s); return; }' % (
+                    method_name, lambda_params_str, c_func, call_args_str))
+                self.emit("        , %s);" % py_args_str)
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Chart manual bindings (series pointer as uintptr_t)
+    # -----------------------------------------------------------------------
+
+    def _emit_chart_manual_bindings(self):
+        """Emit manual bindings for chart series operations.
+
+        lv_chart_series_t* is an opaque struct that can't be auto-wrapped,
+        so we pass it as uintptr_t (Python int) instead.
+        """
+        self.emit("    /* Chart: manual bindings for series and data (series pointer stored as user_data) */")
+
+        self.emit('    obj_cls.def("chart_set_point_count", [](LvObjWrapper &self, uint32_t cnt) {')
+        self.emit("        lv_chart_set_point_count(self.get(), cnt);")
+        self.emit('    }, py::arg("cnt"), "Set the number of points on a chart series");')
+
+        self.emit('    obj_cls.def("chart_add_series", [](LvObjWrapper &self, lv_color_t color, lv_chart_axis_t axis) -> uintptr_t {')
+        self.emit("        lv_chart_series_t *ser = lv_chart_add_series(self.get(), color, axis);")
+        self.emit("        return reinterpret_cast<uintptr_t>(ser);")
+        self.emit('    }, py::arg("color"), py::arg("axis"), "Add a data series to chart, returns series handle as int");')
+
+        self.emit('    obj_cls.def("chart_set_next_value", [](LvObjWrapper &self, uintptr_t series, int32_t value) {')
+        self.emit("        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);")
+        self.emit("        lv_chart_set_next_value(self.get(), ser, value);")
+        self.emit('    }, py::arg("series"), py::arg("value"), "Set next value on a chart series");')
+
+        self.emit('    obj_cls.def("chart_set_next_value2", [](LvObjWrapper &self, uintptr_t series, int32_t x_value, int32_t y_value) {')
+        self.emit("        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);")
+        self.emit("        lv_chart_set_next_value2(self.get(), ser, x_value, y_value);")
+        self.emit('    }, py::arg("series"), py::arg("x_value"), py::arg("y_value"), "Set next X/Y value on a chart series (scatter)");')
+
+        self.emit('    obj_cls.def("chart_refresh", [](LvObjWrapper &self) {')
+        self.emit("        lv_chart_refresh(self.get());")
+        self.emit('    }, "Refresh chart after data change");')
+
+        self.emit('    obj_cls.def("chart_set_series_color", [](LvObjWrapper &self, uintptr_t series, lv_color_t color) {')
+        self.emit("        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);")
+        self.emit("        lv_chart_set_series_color(self.get(), ser, color);")
+        self.emit('    }, py::arg("series"), py::arg("color"), "Set series color");')
+
+        self.emit('    obj_cls.def("chart_set_all_values", [](LvObjWrapper &self, uintptr_t series, int32_t value) {')
+        self.emit("        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);")
+        self.emit("        lv_chart_set_all_values(self.get(), ser, value);")
+        self.emit('    }, py::arg("series"), py::arg("value"), "Set all values of a series to the same value");')
+
+        self.emit("")
 
     # -----------------------------------------------------------------------
     # Event callbacks

@@ -169,69 +169,69 @@ PYBIND11_MODULE(_lvgl, m) {
         .value("LV_GROUP_REFOCUS_POLICY_PREV", LV_GROUP_REFOCUS_POLICY_PREV)
         .export_values();
 
-    /* Enum _lv_str_symbol_id_t (no C type found, emitting as constants) */
-    m.attr("LV_STR_SYMBOL_BULLET") = (int)LV_STR_SYMBOL_BULLET;
-    m.attr("LV_STR_SYMBOL_AUDIO") = (int)LV_STR_SYMBOL_AUDIO;
-    m.attr("LV_STR_SYMBOL_VIDEO") = (int)LV_STR_SYMBOL_VIDEO;
-    m.attr("LV_STR_SYMBOL_LIST") = (int)LV_STR_SYMBOL_LIST;
-    m.attr("LV_STR_SYMBOL_OK") = (int)LV_STR_SYMBOL_OK;
-    m.attr("LV_STR_SYMBOL_CLOSE") = (int)LV_STR_SYMBOL_CLOSE;
-    m.attr("LV_STR_SYMBOL_POWER") = (int)LV_STR_SYMBOL_POWER;
-    m.attr("LV_STR_SYMBOL_SETTINGS") = (int)LV_STR_SYMBOL_SETTINGS;
-    m.attr("LV_STR_SYMBOL_HOME") = (int)LV_STR_SYMBOL_HOME;
-    m.attr("LV_STR_SYMBOL_DOWNLOAD") = (int)LV_STR_SYMBOL_DOWNLOAD;
-    m.attr("LV_STR_SYMBOL_DRIVE") = (int)LV_STR_SYMBOL_DRIVE;
-    m.attr("LV_STR_SYMBOL_REFRESH") = (int)LV_STR_SYMBOL_REFRESH;
-    m.attr("LV_STR_SYMBOL_MUTE") = (int)LV_STR_SYMBOL_MUTE;
-    m.attr("LV_STR_SYMBOL_VOLUME_MID") = (int)LV_STR_SYMBOL_VOLUME_MID;
-    m.attr("LV_STR_SYMBOL_VOLUME_MAX") = (int)LV_STR_SYMBOL_VOLUME_MAX;
-    m.attr("LV_STR_SYMBOL_IMAGE") = (int)LV_STR_SYMBOL_IMAGE;
-    m.attr("LV_STR_SYMBOL_TINT") = (int)LV_STR_SYMBOL_TINT;
-    m.attr("LV_STR_SYMBOL_PREV") = (int)LV_STR_SYMBOL_PREV;
-    m.attr("LV_STR_SYMBOL_PLAY") = (int)LV_STR_SYMBOL_PLAY;
-    m.attr("LV_STR_SYMBOL_PAUSE") = (int)LV_STR_SYMBOL_PAUSE;
-    m.attr("LV_STR_SYMBOL_STOP") = (int)LV_STR_SYMBOL_STOP;
-    m.attr("LV_STR_SYMBOL_NEXT") = (int)LV_STR_SYMBOL_NEXT;
-    m.attr("LV_STR_SYMBOL_EJECT") = (int)LV_STR_SYMBOL_EJECT;
-    m.attr("LV_STR_SYMBOL_LEFT") = (int)LV_STR_SYMBOL_LEFT;
-    m.attr("LV_STR_SYMBOL_RIGHT") = (int)LV_STR_SYMBOL_RIGHT;
-    m.attr("LV_STR_SYMBOL_PLUS") = (int)LV_STR_SYMBOL_PLUS;
-    m.attr("LV_STR_SYMBOL_MINUS") = (int)LV_STR_SYMBOL_MINUS;
-    m.attr("LV_STR_SYMBOL_EYE_OPEN") = (int)LV_STR_SYMBOL_EYE_OPEN;
-    m.attr("LV_STR_SYMBOL_EYE_CLOSE") = (int)LV_STR_SYMBOL_EYE_CLOSE;
-    m.attr("LV_STR_SYMBOL_WARNING") = (int)LV_STR_SYMBOL_WARNING;
-    m.attr("LV_STR_SYMBOL_SHUFFLE") = (int)LV_STR_SYMBOL_SHUFFLE;
-    m.attr("LV_STR_SYMBOL_UP") = (int)LV_STR_SYMBOL_UP;
-    m.attr("LV_STR_SYMBOL_DOWN") = (int)LV_STR_SYMBOL_DOWN;
-    m.attr("LV_STR_SYMBOL_LOOP") = (int)LV_STR_SYMBOL_LOOP;
-    m.attr("LV_STR_SYMBOL_DIRECTORY") = (int)LV_STR_SYMBOL_DIRECTORY;
-    m.attr("LV_STR_SYMBOL_UPLOAD") = (int)LV_STR_SYMBOL_UPLOAD;
-    m.attr("LV_STR_SYMBOL_CALL") = (int)LV_STR_SYMBOL_CALL;
-    m.attr("LV_STR_SYMBOL_CUT") = (int)LV_STR_SYMBOL_CUT;
-    m.attr("LV_STR_SYMBOL_COPY") = (int)LV_STR_SYMBOL_COPY;
-    m.attr("LV_STR_SYMBOL_SAVE") = (int)LV_STR_SYMBOL_SAVE;
-    m.attr("LV_STR_SYMBOL_BARS") = (int)LV_STR_SYMBOL_BARS;
-    m.attr("LV_STR_SYMBOL_ENVELOPE") = (int)LV_STR_SYMBOL_ENVELOPE;
-    m.attr("LV_STR_SYMBOL_CHARGE") = (int)LV_STR_SYMBOL_CHARGE;
-    m.attr("LV_STR_SYMBOL_PASTE") = (int)LV_STR_SYMBOL_PASTE;
-    m.attr("LV_STR_SYMBOL_BELL") = (int)LV_STR_SYMBOL_BELL;
-    m.attr("LV_STR_SYMBOL_KEYBOARD") = (int)LV_STR_SYMBOL_KEYBOARD;
-    m.attr("LV_STR_SYMBOL_GPS") = (int)LV_STR_SYMBOL_GPS;
-    m.attr("LV_STR_SYMBOL_FILE") = (int)LV_STR_SYMBOL_FILE;
-    m.attr("LV_STR_SYMBOL_WIFI") = (int)LV_STR_SYMBOL_WIFI;
-    m.attr("LV_STR_SYMBOL_BATTERY_FULL") = (int)LV_STR_SYMBOL_BATTERY_FULL;
-    m.attr("LV_STR_SYMBOL_BATTERY_3") = (int)LV_STR_SYMBOL_BATTERY_3;
-    m.attr("LV_STR_SYMBOL_BATTERY_2") = (int)LV_STR_SYMBOL_BATTERY_2;
-    m.attr("LV_STR_SYMBOL_BATTERY_1") = (int)LV_STR_SYMBOL_BATTERY_1;
-    m.attr("LV_STR_SYMBOL_BATTERY_EMPTY") = (int)LV_STR_SYMBOL_BATTERY_EMPTY;
-    m.attr("LV_STR_SYMBOL_USB") = (int)LV_STR_SYMBOL_USB;
-    m.attr("LV_STR_SYMBOL_BLUETOOTH") = (int)LV_STR_SYMBOL_BLUETOOTH;
-    m.attr("LV_STR_SYMBOL_TRASH") = (int)LV_STR_SYMBOL_TRASH;
-    m.attr("LV_STR_SYMBOL_EDIT") = (int)LV_STR_SYMBOL_EDIT;
-    m.attr("LV_STR_SYMBOL_BACKSPACE") = (int)LV_STR_SYMBOL_BACKSPACE;
-    m.attr("LV_STR_SYMBOL_SD_CARD") = (int)LV_STR_SYMBOL_SD_CARD;
-    m.attr("LV_STR_SYMBOL_NEW_LINE") = (int)LV_STR_SYMBOL_NEW_LINE;
-    m.attr("LV_STR_SYMBOL_DUMMY") = (int)LV_STR_SYMBOL_DUMMY;
+    /* Enum _lv_str_symbol_id_t - exported as UTF-8 symbol strings for use with icon APIs */
+    m.attr("LV_STR_SYMBOL_BULLET") = LV_SYMBOL_BULLET;
+    m.attr("LV_STR_SYMBOL_AUDIO") = LV_SYMBOL_AUDIO;
+    m.attr("LV_STR_SYMBOL_VIDEO") = LV_SYMBOL_VIDEO;
+    m.attr("LV_STR_SYMBOL_LIST") = LV_SYMBOL_LIST;
+    m.attr("LV_STR_SYMBOL_OK") = LV_SYMBOL_OK;
+    m.attr("LV_STR_SYMBOL_CLOSE") = LV_SYMBOL_CLOSE;
+    m.attr("LV_STR_SYMBOL_POWER") = LV_SYMBOL_POWER;
+    m.attr("LV_STR_SYMBOL_SETTINGS") = LV_SYMBOL_SETTINGS;
+    m.attr("LV_STR_SYMBOL_HOME") = LV_SYMBOL_HOME;
+    m.attr("LV_STR_SYMBOL_DOWNLOAD") = LV_SYMBOL_DOWNLOAD;
+    m.attr("LV_STR_SYMBOL_DRIVE") = LV_SYMBOL_DRIVE;
+    m.attr("LV_STR_SYMBOL_REFRESH") = LV_SYMBOL_REFRESH;
+    m.attr("LV_STR_SYMBOL_MUTE") = LV_SYMBOL_MUTE;
+    m.attr("LV_STR_SYMBOL_VOLUME_MID") = LV_SYMBOL_VOLUME_MID;
+    m.attr("LV_STR_SYMBOL_VOLUME_MAX") = LV_SYMBOL_VOLUME_MAX;
+    m.attr("LV_STR_SYMBOL_IMAGE") = LV_SYMBOL_IMAGE;
+    m.attr("LV_STR_SYMBOL_TINT") = LV_SYMBOL_TINT;
+    m.attr("LV_STR_SYMBOL_PREV") = LV_SYMBOL_PREV;
+    m.attr("LV_STR_SYMBOL_PLAY") = LV_SYMBOL_PLAY;
+    m.attr("LV_STR_SYMBOL_PAUSE") = LV_SYMBOL_PAUSE;
+    m.attr("LV_STR_SYMBOL_STOP") = LV_SYMBOL_STOP;
+    m.attr("LV_STR_SYMBOL_NEXT") = LV_SYMBOL_NEXT;
+    m.attr("LV_STR_SYMBOL_EJECT") = LV_SYMBOL_EJECT;
+    m.attr("LV_STR_SYMBOL_LEFT") = LV_SYMBOL_LEFT;
+    m.attr("LV_STR_SYMBOL_RIGHT") = LV_SYMBOL_RIGHT;
+    m.attr("LV_STR_SYMBOL_PLUS") = LV_SYMBOL_PLUS;
+    m.attr("LV_STR_SYMBOL_MINUS") = LV_SYMBOL_MINUS;
+    m.attr("LV_STR_SYMBOL_EYE_OPEN") = LV_SYMBOL_EYE_OPEN;
+    m.attr("LV_STR_SYMBOL_EYE_CLOSE") = LV_SYMBOL_EYE_CLOSE;
+    m.attr("LV_STR_SYMBOL_WARNING") = LV_SYMBOL_WARNING;
+    m.attr("LV_STR_SYMBOL_SHUFFLE") = LV_SYMBOL_SHUFFLE;
+    m.attr("LV_STR_SYMBOL_UP") = LV_SYMBOL_UP;
+    m.attr("LV_STR_SYMBOL_DOWN") = LV_SYMBOL_DOWN;
+    m.attr("LV_STR_SYMBOL_LOOP") = LV_SYMBOL_LOOP;
+    m.attr("LV_STR_SYMBOL_DIRECTORY") = LV_SYMBOL_DIRECTORY;
+    m.attr("LV_STR_SYMBOL_UPLOAD") = LV_SYMBOL_UPLOAD;
+    m.attr("LV_STR_SYMBOL_CALL") = LV_SYMBOL_CALL;
+    m.attr("LV_STR_SYMBOL_CUT") = LV_SYMBOL_CUT;
+    m.attr("LV_STR_SYMBOL_COPY") = LV_SYMBOL_COPY;
+    m.attr("LV_STR_SYMBOL_SAVE") = LV_SYMBOL_SAVE;
+    m.attr("LV_STR_SYMBOL_BARS") = LV_SYMBOL_BARS;
+    m.attr("LV_STR_SYMBOL_ENVELOPE") = LV_SYMBOL_ENVELOPE;
+    m.attr("LV_STR_SYMBOL_CHARGE") = LV_SYMBOL_CHARGE;
+    m.attr("LV_STR_SYMBOL_PASTE") = LV_SYMBOL_PASTE;
+    m.attr("LV_STR_SYMBOL_BELL") = LV_SYMBOL_BELL;
+    m.attr("LV_STR_SYMBOL_KEYBOARD") = LV_SYMBOL_KEYBOARD;
+    m.attr("LV_STR_SYMBOL_GPS") = LV_SYMBOL_GPS;
+    m.attr("LV_STR_SYMBOL_FILE") = LV_SYMBOL_FILE;
+    m.attr("LV_STR_SYMBOL_WIFI") = LV_SYMBOL_WIFI;
+    m.attr("LV_STR_SYMBOL_BATTERY_FULL") = LV_SYMBOL_BATTERY_FULL;
+    m.attr("LV_STR_SYMBOL_BATTERY_3") = LV_SYMBOL_BATTERY_3;
+    m.attr("LV_STR_SYMBOL_BATTERY_2") = LV_SYMBOL_BATTERY_2;
+    m.attr("LV_STR_SYMBOL_BATTERY_1") = LV_SYMBOL_BATTERY_1;
+    m.attr("LV_STR_SYMBOL_BATTERY_EMPTY") = LV_SYMBOL_BATTERY_EMPTY;
+    m.attr("LV_STR_SYMBOL_USB") = LV_SYMBOL_USB;
+    m.attr("LV_STR_SYMBOL_BLUETOOTH") = LV_SYMBOL_BLUETOOTH;
+    m.attr("LV_STR_SYMBOL_TRASH") = LV_SYMBOL_TRASH;
+    m.attr("LV_STR_SYMBOL_EDIT") = LV_SYMBOL_EDIT;
+    m.attr("LV_STR_SYMBOL_BACKSPACE") = LV_SYMBOL_BACKSPACE;
+    m.attr("LV_STR_SYMBOL_SD_CARD") = LV_SYMBOL_SD_CARD;
+    m.attr("LV_STR_SYMBOL_NEW_LINE") = LV_SYMBOL_NEW_LINE;
+    m.attr("LV_STR_SYMBOL_DUMMY") = LV_SYMBOL_DUMMY;
 
     /* Enum _lv_opacity_level_t (no C type found, emitting as constants) */
     m.attr("LV_OPA_TRANSP") = (int)LV_OPA_TRANSP;
@@ -1788,9 +1788,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("value"), py::arg("selector"));
     obj_cls.def("set_style_bg_grad_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_bg_grad_opa(self.get(), value, selector); return; }
         , py::arg("value"), py::arg("selector"));
-    obj_cls.def("set_style_bg_image_src", [](LvObjWrapper &self, const void * value, uint32_t selector) { lv_obj_set_style_bg_image_src(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
-    obj_cls.def("set_style_bg_image_src", [](LvObjWrapper &self, const std::string & value, uint32_t selector) { lv_obj_set_style_bg_image_src(self.get(), value.c_str(), selector); return; }
+    obj_cls.def("set_style_bg_image_src", [](LvObjWrapper &self, const char * value, uint32_t selector) { lv_obj_set_style_bg_image_src(self.get(), (const void *)value, selector); return; }
         , py::arg("value"), py::arg("selector"));
     obj_cls.def("set_style_bg_image_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_bg_image_opa(self.get(), value, selector); return; }
         , py::arg("value"), py::arg("selector"));
@@ -1856,7 +1854,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("value"), py::arg("selector"));
     obj_cls.def("set_style_arc_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_arc_opa(self.get(), value, selector); return; }
         , py::arg("value"), py::arg("selector"));
-    obj_cls.def("set_style_arc_image_src", [](LvObjWrapper &self, const void * value, uint32_t selector) { lv_obj_set_style_arc_image_src(self.get(), value, selector); return; }
+    obj_cls.def("set_style_arc_image_src", [](LvObjWrapper &self, const char * value, uint32_t selector) { lv_obj_set_style_arc_image_src(self.get(), (const void *)value, selector); return; }
         , py::arg("value"), py::arg("selector"));
     obj_cls.def("set_style_text_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_text_color(self.get(), value, selector); return; }
         , py::arg("value"), py::arg("selector"));
@@ -1922,7 +1920,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("value"), py::arg("selector"));
     obj_cls.def("set_style_base_dir", [](LvObjWrapper &self, lv_base_dir_t value, uint32_t selector) { lv_obj_set_style_base_dir(self.get(), value, selector); return; }
         , py::arg("value"), py::arg("selector"));
-    obj_cls.def("set_style_bitmap_mask_src", [](LvObjWrapper &self, const void * value, uint32_t selector) { lv_obj_set_style_bitmap_mask_src(self.get(), value, selector); return; }
+    obj_cls.def("set_style_bitmap_mask_src", [](LvObjWrapper &self, const char * value, uint32_t selector) { lv_obj_set_style_bitmap_mask_src(self.get(), (const void *)value, selector); return; }
         , py::arg("value"), py::arg("selector"));
     obj_cls.def("set_style_rotary_sensitivity", [](LvObjWrapper &self, uint32_t value, uint32_t selector) { lv_obj_set_style_rotary_sensitivity(self.get(), value, selector); return; }
         , py::arg("value"), py::arg("selector"));
@@ -2321,7 +2319,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("sel_opt"));
     obj_cls.def("set_dir", [](LvObjWrapper &self, lv_dir_t dir) { lv_dropdown_set_dir(self.get(), dir); return; }
         , py::arg("dir"));
-    obj_cls.def("set_symbol", [](LvObjWrapper &self, const void * symbol) { lv_dropdown_set_symbol(self.get(), symbol); return; }
+    obj_cls.def("set_symbol", [](LvObjWrapper &self, const char * symbol) { lv_dropdown_set_symbol(self.get(), (const void *)symbol); return; }
         , py::arg("symbol"));
     obj_cls.def("set_selected_highlight", [](LvObjWrapper &self, bool en) { lv_dropdown_set_selected_highlight(self.get(), en); return; }
         , py::arg("en"));
@@ -2349,9 +2347,7 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("is_open", [](LvObjWrapper &self) -> bool { return lv_dropdown_is_open(self.get()); }
         );
-    obj_cls.def("set_src", [](LvObjWrapper &self, const void * src) { lv_image_set_src(self.get(), src); return; }
-        , py::arg("src"));
-    obj_cls.def("set_src", [](LvObjWrapper &self, const std::string & src) { lv_image_set_src(self.get(), src.c_str()); return; }
+    obj_cls.def("set_src", [](LvObjWrapper &self, const char * src) { lv_image_set_src(self.get(), (const void *)src); return; }
         , py::arg("src"));
     obj_cls.def("set_offset_x", [](LvObjWrapper &self, int32_t x) { lv_image_set_offset_x(self.get(), x); return; }
         , py::arg("x"));
@@ -2489,7 +2485,7 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("add_text", [](LvObjWrapper &self, const char * txt) -> LvObjWrapper* { return new LvObjWrapper(lv_list_add_text(self.get(), txt)); }
         , py::arg("txt"));
-    obj_cls.def("add_button", [](LvObjWrapper &self, const void * icon, const char * txt) -> LvObjWrapper* { return new LvObjWrapper(lv_list_add_button(self.get(), icon, txt)); }
+    obj_cls.def("add_button", [](LvObjWrapper &self, const char * icon, const char * txt) -> LvObjWrapper* { return new LvObjWrapper(lv_list_add_button(self.get(), (const void *)icon, txt)); }
         , py::arg("icon"), py::arg("txt"));
     obj_cls.def("list_get_button_text", [](LvObjWrapper &self, LvObjWrapper & btn) -> const char * { return lv_list_get_button_text(self.get(), btn.get()); }
         , py::arg("btn"));
@@ -2531,7 +2527,7 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("add_title", [](LvObjWrapper &self, const char * title) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_title(self.get(), title)); }
         , py::arg("title"));
-    obj_cls.def("add_header_button", [](LvObjWrapper &self, const void * icon) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_header_button(self.get(), icon)); }
+    obj_cls.def("add_header_button", [](LvObjWrapper &self, const char * icon) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_header_button(self.get(), (const void *)icon)); }
         , py::arg("icon"));
     obj_cls.def("msgbox_add_text", [](LvObjWrapper &self, const char * text) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_text(self.get(), text)); }
         , py::arg("text"));
@@ -2835,12 +2831,42 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("win_add_title", [](LvObjWrapper &self, const char * txt) -> LvObjWrapper* { return new LvObjWrapper(lv_win_add_title(self.get(), txt)); }
         , py::arg("txt"));
-    obj_cls.def("win_add_button", [](LvObjWrapper &self, const void * icon, int32_t btn_w) -> LvObjWrapper* { return new LvObjWrapper(lv_win_add_button(self.get(), icon, btn_w)); }
+    obj_cls.def("win_add_button", [](LvObjWrapper &self, const char * icon, int32_t btn_w) -> LvObjWrapper* { return new LvObjWrapper(lv_win_add_button(self.get(), (const void *)icon, btn_w)); }
         , py::arg("icon"), py::arg("btn_w"));
     obj_cls.def("win_get_header", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_win_get_header(self.get())); }
         );
     obj_cls.def("win_get_content", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_win_get_content(self.get())); }
         );
+
+    /* String overloads for icon/image source methods */
+
+    /* Chart: manual bindings for series and data (series pointer stored as user_data) */
+    obj_cls.def("chart_set_point_count", [](LvObjWrapper &self, uint32_t cnt) {
+        lv_chart_set_point_count(self.get(), cnt);
+    }, py::arg("cnt"), "Set the number of points on a chart series");
+    obj_cls.def("chart_add_series", [](LvObjWrapper &self, lv_color_t color, lv_chart_axis_t axis) -> uintptr_t {
+        lv_chart_series_t *ser = lv_chart_add_series(self.get(), color, axis);
+        return reinterpret_cast<uintptr_t>(ser);
+    }, py::arg("color"), py::arg("axis"), "Add a data series to chart, returns series handle as int");
+    obj_cls.def("chart_set_next_value", [](LvObjWrapper &self, uintptr_t series, int32_t value) {
+        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
+        lv_chart_set_next_value(self.get(), ser, value);
+    }, py::arg("series"), py::arg("value"), "Set next value on a chart series");
+    obj_cls.def("chart_set_next_value2", [](LvObjWrapper &self, uintptr_t series, int32_t x_value, int32_t y_value) {
+        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
+        lv_chart_set_next_value2(self.get(), ser, x_value, y_value);
+    }, py::arg("series"), py::arg("x_value"), py::arg("y_value"), "Set next X/Y value on a chart series (scatter)");
+    obj_cls.def("chart_refresh", [](LvObjWrapper &self) {
+        lv_chart_refresh(self.get());
+    }, "Refresh chart after data change");
+    obj_cls.def("chart_set_series_color", [](LvObjWrapper &self, uintptr_t series, lv_color_t color) {
+        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
+        lv_chart_set_series_color(self.get(), ser, color);
+    }, py::arg("series"), py::arg("color"), "Set series color");
+    obj_cls.def("chart_set_all_values", [](LvObjWrapper &self, uintptr_t series, int32_t value) {
+        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
+        lv_chart_set_all_values(self.get(), ser, value);
+    }, py::arg("series"), py::arg("value"), "Set all values of a series to the same value");
 
     /* Event callback support */
     obj_cls.def("add_event_cb", [](LvObjWrapper &self, int filter, py::function callback) {
