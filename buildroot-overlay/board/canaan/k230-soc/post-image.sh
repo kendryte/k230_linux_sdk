@@ -18,6 +18,7 @@ gz_file_add_ver()
 
 	local sdk_ver="v0.0.0";
 	local nncase_ver="2.9.0";
+	local commit_id="xx";
 
 	local sdk_ver_file="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version"
 	local nncase_ver_file="${K230_SDK_ROOT}/output/${CONF}/build/libnncase/nncase/include/nncase/version.h"
@@ -46,13 +47,14 @@ gz_file_add_ver()
 
 
 	sdk_ver=$(awk -F- '/^sdk:/ { print $1}' ${sdk_ver_file}  | cut -d: -f2 )
+	commit_id=$(awk -F- '/^sdk:/ { print $6}' ${sdk_ver_file})
 
 	if [ -e "${nncase_ver_file}" ]; then
 		cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
 			nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
 	fi
-	rm -rf  ${canaan_site_name}_linux_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
-	ln -s  $f ${canaan_site_name}_linux_${sdk_ver}_nncase_v${nncase_ver}.img.gz;
+	final_img_name="${canaan_site_name}_linux_${sdk_ver}_nncase_v${nncase_ver}_${commit_id}.img.gz"
+	rm -rf  ${final_img_name}; ln -s  $f ${final_img_name};
 }
 
 

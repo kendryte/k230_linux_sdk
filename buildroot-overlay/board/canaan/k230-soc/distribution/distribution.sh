@@ -66,6 +66,7 @@ get_image_last_name() {
 
     local sdk_ver="v0.0.0"
     local nncase_ver="v2.11.0"  # Default nncase version
+    local commit_id="xx"
 
     local sdk_ver_file="${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/etc/version/release_version"
     local nncase_ver_file="${K230_SDK_ROOT}/output/${CONF}/build/libnncase/nncase/include/nncase/version.h"
@@ -74,13 +75,25 @@ get_image_last_name() {
     local canaan_site_name
     case "${CONF}" in
         k230_canmv_defconfig)
-            canaan_site_name="CanMV-K230"
+            canaan_site_name="CanMV-K230_V1P0_P1"
             ;;
         k230_evb_defconfig)
             canaan_site_name="EVB-K230"
             ;;
         k230_canmv_01studio_defconfig)
             canaan_site_name="CanMV-K230_01studio"
+            ;;
+        k230_canmv_lckfb_defconfig)
+            canaan_site_name="CanMV-K230_LCKFB"
+            ;;
+        k230_canmv_v3_defconfig)
+            canaan_site_name="CanMV-K230_V3P0"
+            ;;
+        k230d_canmv_defconfig)
+            canaan_site_name="CanMV-K230D"
+            ;;
+        k230d_canmv_junroc_ai_cam_defconfig)
+            canaan_site_name="CanMV_K230D_JUNROC_AI_CAM"
             ;;
         *)
             canaan_site_name="${CONF%%_defconfig}"
@@ -90,6 +103,7 @@ get_image_last_name() {
     # Extract SDK version
     if [ -f "${sdk_ver_file}" ]; then
         sdk_ver=$(awk -F- '/^sdk:/ { print $1 }' "${sdk_ver_file}" | cut -d: -f2)
+        commit_id=$(awk -F- '/^sdk:/ { print $6}' ${sdk_ver_file})
     fi
 
     # Extract nncase version from version.h if available
@@ -101,7 +115,7 @@ get_image_last_name() {
         fi
     fi
 
-    echo "${canaan_site_name}_${distname}_${sdk_ver}_nncase_${nncase_ver}.img.gz"
+    echo "${canaan_site_name}_${distname}_${sdk_ver}_nncase_v${nncase_ver}_${commit_id}.img.gz"
 }
 
 
