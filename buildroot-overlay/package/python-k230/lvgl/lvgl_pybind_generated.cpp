@@ -4,10 +4,10 @@
  * LVGL Python bindings generated via libclang → IR → pybind11 pipeline.
  *
  * Module: lvgl
- * Total functions: 2045
- * Bound functions: 1293
+ * Total functions: 2054
+ * Bound functions: 1302
  * Skipped functions: 752
- * Enums: 98
+ * Enums: 101
  * Widgets: 38
  */
 
@@ -18,6 +18,7 @@
 #include "lvgl/lvgl.h"
 #include "lvgl/driver_backends.h"
 #include "lvgl/demos/benchmark/lv_demo_benchmark.h"
+#include "lvgl/font/lv_freetype.h"
 #include "lvgl_pybind_helpers.h"
 
 namespace py = pybind11;
@@ -30,1158 +31,1590 @@ PYBIND11_MODULE(_lvgl, m) {
      */
 
     py::enum_<lv_result_t>(m, "RESULT")
-        .value("LV_RESULT_INVALID", LV_RESULT_INVALID)
-        .value("LV_RESULT_OK", LV_RESULT_OK)
-        .export_values();
+        .value("INVALID", LV_RESULT_INVALID)
+        .value("OK", LV_RESULT_OK)
+;
 
     py::enum_<lv_align_t>(m, "ALIGN")
-        .value("LV_ALIGN_DEFAULT", LV_ALIGN_DEFAULT)
-        .value("LV_ALIGN_TOP_LEFT", LV_ALIGN_TOP_LEFT)
-        .value("LV_ALIGN_TOP_MID", LV_ALIGN_TOP_MID)
-        .value("LV_ALIGN_TOP_RIGHT", LV_ALIGN_TOP_RIGHT)
-        .value("LV_ALIGN_BOTTOM_LEFT", LV_ALIGN_BOTTOM_LEFT)
-        .value("LV_ALIGN_BOTTOM_MID", LV_ALIGN_BOTTOM_MID)
-        .value("LV_ALIGN_BOTTOM_RIGHT", LV_ALIGN_BOTTOM_RIGHT)
-        .value("LV_ALIGN_LEFT_MID", LV_ALIGN_LEFT_MID)
-        .value("LV_ALIGN_RIGHT_MID", LV_ALIGN_RIGHT_MID)
-        .value("LV_ALIGN_CENTER", LV_ALIGN_CENTER)
-        .value("LV_ALIGN_OUT_TOP_LEFT", LV_ALIGN_OUT_TOP_LEFT)
-        .value("LV_ALIGN_OUT_TOP_MID", LV_ALIGN_OUT_TOP_MID)
-        .value("LV_ALIGN_OUT_TOP_RIGHT", LV_ALIGN_OUT_TOP_RIGHT)
-        .value("LV_ALIGN_OUT_BOTTOM_LEFT", LV_ALIGN_OUT_BOTTOM_LEFT)
-        .value("LV_ALIGN_OUT_BOTTOM_MID", LV_ALIGN_OUT_BOTTOM_MID)
-        .value("LV_ALIGN_OUT_BOTTOM_RIGHT", LV_ALIGN_OUT_BOTTOM_RIGHT)
-        .value("LV_ALIGN_OUT_LEFT_TOP", LV_ALIGN_OUT_LEFT_TOP)
-        .value("LV_ALIGN_OUT_LEFT_MID", LV_ALIGN_OUT_LEFT_MID)
-        .value("LV_ALIGN_OUT_LEFT_BOTTOM", LV_ALIGN_OUT_LEFT_BOTTOM)
-        .value("LV_ALIGN_OUT_RIGHT_TOP", LV_ALIGN_OUT_RIGHT_TOP)
-        .value("LV_ALIGN_OUT_RIGHT_MID", LV_ALIGN_OUT_RIGHT_MID)
-        .value("LV_ALIGN_OUT_RIGHT_BOTTOM", LV_ALIGN_OUT_RIGHT_BOTTOM)
-        .export_values();
+        .value("DEFAULT", LV_ALIGN_DEFAULT)
+        .value("TOP_LEFT", LV_ALIGN_TOP_LEFT)
+        .value("TOP_MID", LV_ALIGN_TOP_MID)
+        .value("TOP_RIGHT", LV_ALIGN_TOP_RIGHT)
+        .value("BOTTOM_LEFT", LV_ALIGN_BOTTOM_LEFT)
+        .value("BOTTOM_MID", LV_ALIGN_BOTTOM_MID)
+        .value("BOTTOM_RIGHT", LV_ALIGN_BOTTOM_RIGHT)
+        .value("LEFT_MID", LV_ALIGN_LEFT_MID)
+        .value("RIGHT_MID", LV_ALIGN_RIGHT_MID)
+        .value("CENTER", LV_ALIGN_CENTER)
+        .value("OUT_TOP_LEFT", LV_ALIGN_OUT_TOP_LEFT)
+        .value("OUT_TOP_MID", LV_ALIGN_OUT_TOP_MID)
+        .value("OUT_TOP_RIGHT", LV_ALIGN_OUT_TOP_RIGHT)
+        .value("OUT_BOTTOM_LEFT", LV_ALIGN_OUT_BOTTOM_LEFT)
+        .value("OUT_BOTTOM_MID", LV_ALIGN_OUT_BOTTOM_MID)
+        .value("OUT_BOTTOM_RIGHT", LV_ALIGN_OUT_BOTTOM_RIGHT)
+        .value("OUT_LEFT_TOP", LV_ALIGN_OUT_LEFT_TOP)
+        .value("OUT_LEFT_MID", LV_ALIGN_OUT_LEFT_MID)
+        .value("OUT_LEFT_BOTTOM", LV_ALIGN_OUT_LEFT_BOTTOM)
+        .value("OUT_RIGHT_TOP", LV_ALIGN_OUT_RIGHT_TOP)
+        .value("OUT_RIGHT_MID", LV_ALIGN_OUT_RIGHT_MID)
+        .value("OUT_RIGHT_BOTTOM", LV_ALIGN_OUT_RIGHT_BOTTOM)
+;
 
     py::enum_<lv_dir_t>(m, "DIR")
-        .value("LV_DIR_NONE", LV_DIR_NONE)
-        .value("LV_DIR_LEFT", LV_DIR_LEFT)
-        .value("LV_DIR_RIGHT", LV_DIR_RIGHT)
-        .value("LV_DIR_TOP", LV_DIR_TOP)
-        .value("LV_DIR_BOTTOM", LV_DIR_BOTTOM)
-        .value("LV_DIR_HOR", LV_DIR_HOR)
-        .value("LV_DIR_VER", LV_DIR_VER)
-        .value("LV_DIR_ALL", LV_DIR_ALL)
-        .export_values();
+        .value("NONE", LV_DIR_NONE)
+        .value("LEFT", LV_DIR_LEFT)
+        .value("RIGHT", LV_DIR_RIGHT)
+        .value("TOP", LV_DIR_TOP)
+        .value("BOTTOM", LV_DIR_BOTTOM)
+        .value("HOR", LV_DIR_HOR)
+        .value("VER", LV_DIR_VER)
+        .value("ALL", LV_DIR_ALL)
+;
 
-    py::enum_<lv_event_code_t>(m, "EVENT_CODE")
-        .value("LV_EVENT_ALL", LV_EVENT_ALL)
-        .value("LV_EVENT_PRESSED", LV_EVENT_PRESSED)
-        .value("LV_EVENT_PRESSING", LV_EVENT_PRESSING)
-        .value("LV_EVENT_PRESS_LOST", LV_EVENT_PRESS_LOST)
-        .value("LV_EVENT_SHORT_CLICKED", LV_EVENT_SHORT_CLICKED)
-        .value("LV_EVENT_SINGLE_CLICKED", LV_EVENT_SINGLE_CLICKED)
-        .value("LV_EVENT_DOUBLE_CLICKED", LV_EVENT_DOUBLE_CLICKED)
-        .value("LV_EVENT_TRIPLE_CLICKED", LV_EVENT_TRIPLE_CLICKED)
-        .value("LV_EVENT_LONG_PRESSED", LV_EVENT_LONG_PRESSED)
-        .value("LV_EVENT_LONG_PRESSED_REPEAT", LV_EVENT_LONG_PRESSED_REPEAT)
-        .value("LV_EVENT_CLICKED", LV_EVENT_CLICKED)
-        .value("LV_EVENT_RELEASED", LV_EVENT_RELEASED)
-        .value("LV_EVENT_SCROLL_BEGIN", LV_EVENT_SCROLL_BEGIN)
-        .value("LV_EVENT_SCROLL_THROW_BEGIN", LV_EVENT_SCROLL_THROW_BEGIN)
-        .value("LV_EVENT_SCROLL_END", LV_EVENT_SCROLL_END)
-        .value("LV_EVENT_SCROLL", LV_EVENT_SCROLL)
-        .value("LV_EVENT_GESTURE", LV_EVENT_GESTURE)
-        .value("LV_EVENT_KEY", LV_EVENT_KEY)
-        .value("LV_EVENT_ROTARY", LV_EVENT_ROTARY)
-        .value("LV_EVENT_FOCUSED", LV_EVENT_FOCUSED)
-        .value("LV_EVENT_DEFOCUSED", LV_EVENT_DEFOCUSED)
-        .value("LV_EVENT_LEAVE", LV_EVENT_LEAVE)
-        .value("LV_EVENT_HIT_TEST", LV_EVENT_HIT_TEST)
-        .value("LV_EVENT_INDEV_RESET", LV_EVENT_INDEV_RESET)
-        .value("LV_EVENT_HOVER_OVER", LV_EVENT_HOVER_OVER)
-        .value("LV_EVENT_HOVER_LEAVE", LV_EVENT_HOVER_LEAVE)
-        .value("LV_EVENT_COVER_CHECK", LV_EVENT_COVER_CHECK)
-        .value("LV_EVENT_REFR_EXT_DRAW_SIZE", LV_EVENT_REFR_EXT_DRAW_SIZE)
-        .value("LV_EVENT_DRAW_MAIN_BEGIN", LV_EVENT_DRAW_MAIN_BEGIN)
-        .value("LV_EVENT_DRAW_MAIN", LV_EVENT_DRAW_MAIN)
-        .value("LV_EVENT_DRAW_MAIN_END", LV_EVENT_DRAW_MAIN_END)
-        .value("LV_EVENT_DRAW_POST_BEGIN", LV_EVENT_DRAW_POST_BEGIN)
-        .value("LV_EVENT_DRAW_POST", LV_EVENT_DRAW_POST)
-        .value("LV_EVENT_DRAW_POST_END", LV_EVENT_DRAW_POST_END)
-        .value("LV_EVENT_DRAW_TASK_ADDED", LV_EVENT_DRAW_TASK_ADDED)
-        .value("LV_EVENT_VALUE_CHANGED", LV_EVENT_VALUE_CHANGED)
-        .value("LV_EVENT_INSERT", LV_EVENT_INSERT)
-        .value("LV_EVENT_REFRESH", LV_EVENT_REFRESH)
-        .value("LV_EVENT_READY", LV_EVENT_READY)
-        .value("LV_EVENT_CANCEL", LV_EVENT_CANCEL)
-        .value("LV_EVENT_STATE_CHANGED", LV_EVENT_STATE_CHANGED)
-        .value("LV_EVENT_CREATE", LV_EVENT_CREATE)
-        .value("LV_EVENT_DELETE", LV_EVENT_DELETE)
-        .value("LV_EVENT_CHILD_CHANGED", LV_EVENT_CHILD_CHANGED)
-        .value("LV_EVENT_CHILD_CREATED", LV_EVENT_CHILD_CREATED)
-        .value("LV_EVENT_CHILD_DELETED", LV_EVENT_CHILD_DELETED)
-        .value("LV_EVENT_SCREEN_UNLOAD_START", LV_EVENT_SCREEN_UNLOAD_START)
-        .value("LV_EVENT_SCREEN_LOAD_START", LV_EVENT_SCREEN_LOAD_START)
-        .value("LV_EVENT_SCREEN_LOADED", LV_EVENT_SCREEN_LOADED)
-        .value("LV_EVENT_SCREEN_UNLOADED", LV_EVENT_SCREEN_UNLOADED)
-        .value("LV_EVENT_SIZE_CHANGED", LV_EVENT_SIZE_CHANGED)
-        .value("LV_EVENT_STYLE_CHANGED", LV_EVENT_STYLE_CHANGED)
-        .value("LV_EVENT_LAYOUT_CHANGED", LV_EVENT_LAYOUT_CHANGED)
-        .value("LV_EVENT_GET_SELF_SIZE", LV_EVENT_GET_SELF_SIZE)
-        .value("LV_EVENT_INVALIDATE_AREA", LV_EVENT_INVALIDATE_AREA)
-        .value("LV_EVENT_RESOLUTION_CHANGED", LV_EVENT_RESOLUTION_CHANGED)
-        .value("LV_EVENT_COLOR_FORMAT_CHANGED", LV_EVENT_COLOR_FORMAT_CHANGED)
-        .value("LV_EVENT_REFR_REQUEST", LV_EVENT_REFR_REQUEST)
-        .value("LV_EVENT_REFR_START", LV_EVENT_REFR_START)
-        .value("LV_EVENT_REFR_READY", LV_EVENT_REFR_READY)
-        .value("LV_EVENT_RENDER_START", LV_EVENT_RENDER_START)
-        .value("LV_EVENT_RENDER_READY", LV_EVENT_RENDER_READY)
-        .value("LV_EVENT_FLUSH_START", LV_EVENT_FLUSH_START)
-        .value("LV_EVENT_FLUSH_FINISH", LV_EVENT_FLUSH_FINISH)
-        .value("LV_EVENT_FLUSH_WAIT_START", LV_EVENT_FLUSH_WAIT_START)
-        .value("LV_EVENT_FLUSH_WAIT_FINISH", LV_EVENT_FLUSH_WAIT_FINISH)
-        .value("LV_EVENT_SYNC_START", LV_EVENT_SYNC_START)
-        .value("LV_EVENT_SYNC_FINISH", LV_EVENT_SYNC_FINISH)
-        .value("LV_EVENT_SYNC_WAIT_START", LV_EVENT_SYNC_WAIT_START)
-        .value("LV_EVENT_SYNC_WAIT_FINISH", LV_EVENT_SYNC_WAIT_FINISH)
-        .value("LV_EVENT_UPDATE_LAYOUT_COMPLETED", LV_EVENT_UPDATE_LAYOUT_COMPLETED)
-        .value("LV_EVENT_VSYNC", LV_EVENT_VSYNC)
-        .value("LV_EVENT_VSYNC_REQUEST", LV_EVENT_VSYNC_REQUEST)
-        .value("LV_EVENT_LAST", LV_EVENT_LAST)
-        .value("LV_EVENT_PREPROCESS", LV_EVENT_PREPROCESS)
-        .value("LV_EVENT_MARKED_DELETING", LV_EVENT_MARKED_DELETING)
-        .export_values();
+    py::enum_<lv_event_code_t>(m, "EVENT")
+        .value("ALL", LV_EVENT_ALL)
+        .value("PRESSED", LV_EVENT_PRESSED)
+        .value("PRESSING", LV_EVENT_PRESSING)
+        .value("PRESS_LOST", LV_EVENT_PRESS_LOST)
+        .value("SHORT_CLICKED", LV_EVENT_SHORT_CLICKED)
+        .value("SINGLE_CLICKED", LV_EVENT_SINGLE_CLICKED)
+        .value("DOUBLE_CLICKED", LV_EVENT_DOUBLE_CLICKED)
+        .value("TRIPLE_CLICKED", LV_EVENT_TRIPLE_CLICKED)
+        .value("LONG_PRESSED", LV_EVENT_LONG_PRESSED)
+        .value("LONG_PRESSED_REPEAT", LV_EVENT_LONG_PRESSED_REPEAT)
+        .value("CLICKED", LV_EVENT_CLICKED)
+        .value("RELEASED", LV_EVENT_RELEASED)
+        .value("SCROLL_BEGIN", LV_EVENT_SCROLL_BEGIN)
+        .value("SCROLL_THROW_BEGIN", LV_EVENT_SCROLL_THROW_BEGIN)
+        .value("SCROLL_END", LV_EVENT_SCROLL_END)
+        .value("SCROLL", LV_EVENT_SCROLL)
+        .value("GESTURE", LV_EVENT_GESTURE)
+        .value("KEY", LV_EVENT_KEY)
+        .value("ROTARY", LV_EVENT_ROTARY)
+        .value("FOCUSED", LV_EVENT_FOCUSED)
+        .value("DEFOCUSED", LV_EVENT_DEFOCUSED)
+        .value("LEAVE", LV_EVENT_LEAVE)
+        .value("HIT_TEST", LV_EVENT_HIT_TEST)
+        .value("INDEV_RESET", LV_EVENT_INDEV_RESET)
+        .value("HOVER_OVER", LV_EVENT_HOVER_OVER)
+        .value("HOVER_LEAVE", LV_EVENT_HOVER_LEAVE)
+        .value("COVER_CHECK", LV_EVENT_COVER_CHECK)
+        .value("REFR_EXT_DRAW_SIZE", LV_EVENT_REFR_EXT_DRAW_SIZE)
+        .value("DRAW_MAIN_BEGIN", LV_EVENT_DRAW_MAIN_BEGIN)
+        .value("DRAW_MAIN", LV_EVENT_DRAW_MAIN)
+        .value("DRAW_MAIN_END", LV_EVENT_DRAW_MAIN_END)
+        .value("DRAW_POST_BEGIN", LV_EVENT_DRAW_POST_BEGIN)
+        .value("DRAW_POST", LV_EVENT_DRAW_POST)
+        .value("DRAW_POST_END", LV_EVENT_DRAW_POST_END)
+        .value("DRAW_TASK_ADDED", LV_EVENT_DRAW_TASK_ADDED)
+        .value("VALUE_CHANGED", LV_EVENT_VALUE_CHANGED)
+        .value("INSERT", LV_EVENT_INSERT)
+        .value("REFRESH", LV_EVENT_REFRESH)
+        .value("READY", LV_EVENT_READY)
+        .value("CANCEL", LV_EVENT_CANCEL)
+        .value("STATE_CHANGED", LV_EVENT_STATE_CHANGED)
+        .value("CREATE", LV_EVENT_CREATE)
+        .value("DELETE", LV_EVENT_DELETE)
+        .value("CHILD_CHANGED", LV_EVENT_CHILD_CHANGED)
+        .value("CHILD_CREATED", LV_EVENT_CHILD_CREATED)
+        .value("CHILD_DELETED", LV_EVENT_CHILD_DELETED)
+        .value("SCREEN_UNLOAD_START", LV_EVENT_SCREEN_UNLOAD_START)
+        .value("SCREEN_LOAD_START", LV_EVENT_SCREEN_LOAD_START)
+        .value("SCREEN_LOADED", LV_EVENT_SCREEN_LOADED)
+        .value("SCREEN_UNLOADED", LV_EVENT_SCREEN_UNLOADED)
+        .value("SIZE_CHANGED", LV_EVENT_SIZE_CHANGED)
+        .value("STYLE_CHANGED", LV_EVENT_STYLE_CHANGED)
+        .value("LAYOUT_CHANGED", LV_EVENT_LAYOUT_CHANGED)
+        .value("GET_SELF_SIZE", LV_EVENT_GET_SELF_SIZE)
+        .value("INVALIDATE_AREA", LV_EVENT_INVALIDATE_AREA)
+        .value("RESOLUTION_CHANGED", LV_EVENT_RESOLUTION_CHANGED)
+        .value("COLOR_FORMAT_CHANGED", LV_EVENT_COLOR_FORMAT_CHANGED)
+        .value("REFR_REQUEST", LV_EVENT_REFR_REQUEST)
+        .value("REFR_START", LV_EVENT_REFR_START)
+        .value("REFR_READY", LV_EVENT_REFR_READY)
+        .value("RENDER_START", LV_EVENT_RENDER_START)
+        .value("RENDER_READY", LV_EVENT_RENDER_READY)
+        .value("FLUSH_START", LV_EVENT_FLUSH_START)
+        .value("FLUSH_FINISH", LV_EVENT_FLUSH_FINISH)
+        .value("FLUSH_WAIT_START", LV_EVENT_FLUSH_WAIT_START)
+        .value("FLUSH_WAIT_FINISH", LV_EVENT_FLUSH_WAIT_FINISH)
+        .value("SYNC_START", LV_EVENT_SYNC_START)
+        .value("SYNC_FINISH", LV_EVENT_SYNC_FINISH)
+        .value("SYNC_WAIT_START", LV_EVENT_SYNC_WAIT_START)
+        .value("SYNC_WAIT_FINISH", LV_EVENT_SYNC_WAIT_FINISH)
+        .value("UPDATE_LAYOUT_COMPLETED", LV_EVENT_UPDATE_LAYOUT_COMPLETED)
+        .value("VSYNC", LV_EVENT_VSYNC)
+        .value("VSYNC_REQUEST", LV_EVENT_VSYNC_REQUEST)
+        .value("LAST", LV_EVENT_LAST)
+        .value("PREPROCESS", LV_EVENT_PREPROCESS)
+        .value("MARKED_DELETING", LV_EVENT_MARKED_DELETING)
+;
 
     py::enum_<lv_key_t>(m, "KEY")
-        .value("LV_KEY_UP", LV_KEY_UP)
-        .value("LV_KEY_DOWN", LV_KEY_DOWN)
-        .value("LV_KEY_RIGHT", LV_KEY_RIGHT)
-        .value("LV_KEY_LEFT", LV_KEY_LEFT)
-        .value("LV_KEY_ESC", LV_KEY_ESC)
-        .value("LV_KEY_DEL", LV_KEY_DEL)
-        .value("LV_KEY_BACKSPACE", LV_KEY_BACKSPACE)
-        .value("LV_KEY_ENTER", LV_KEY_ENTER)
-        .value("LV_KEY_NEXT", LV_KEY_NEXT)
-        .value("LV_KEY_PREV", LV_KEY_PREV)
-        .value("LV_KEY_HOME", LV_KEY_HOME)
-        .value("LV_KEY_END", LV_KEY_END)
-        .export_values();
+        .value("UP", LV_KEY_UP)
+        .value("DOWN", LV_KEY_DOWN)
+        .value("RIGHT", LV_KEY_RIGHT)
+        .value("LEFT", LV_KEY_LEFT)
+        .value("ESC", LV_KEY_ESC)
+        .value("DEL", LV_KEY_DEL)
+        .value("BACKSPACE", LV_KEY_BACKSPACE)
+        .value("ENTER", LV_KEY_ENTER)
+        .value("NEXT", LV_KEY_NEXT)
+        .value("PREV", LV_KEY_PREV)
+        .value("HOME", LV_KEY_HOME)
+        .value("END", LV_KEY_END)
+;
 
-    py::enum_<lv_group_refocus_policy_t>(m, "GROUP_REFOCUS_POLICY")
-        .value("LV_GROUP_REFOCUS_POLICY_NEXT", LV_GROUP_REFOCUS_POLICY_NEXT)
-        .value("LV_GROUP_REFOCUS_POLICY_PREV", LV_GROUP_REFOCUS_POLICY_PREV)
-        .export_values();
+    py::enum_<lv_group_refocus_policy_t>(m, "GROUP")
+        .value("NEXT", LV_GROUP_REFOCUS_POLICY_NEXT)
+        .value("PREV", LV_GROUP_REFOCUS_POLICY_PREV)
+;
 
     /* Enum _lv_str_symbol_id_t - exported as UTF-8 symbol strings for use with icon APIs */
-    m.attr("LV_STR_SYMBOL_BULLET") = LV_SYMBOL_BULLET;
-    m.attr("LV_STR_SYMBOL_AUDIO") = LV_SYMBOL_AUDIO;
-    m.attr("LV_STR_SYMBOL_VIDEO") = LV_SYMBOL_VIDEO;
-    m.attr("LV_STR_SYMBOL_LIST") = LV_SYMBOL_LIST;
-    m.attr("LV_STR_SYMBOL_OK") = LV_SYMBOL_OK;
-    m.attr("LV_STR_SYMBOL_CLOSE") = LV_SYMBOL_CLOSE;
-    m.attr("LV_STR_SYMBOL_POWER") = LV_SYMBOL_POWER;
-    m.attr("LV_STR_SYMBOL_SETTINGS") = LV_SYMBOL_SETTINGS;
-    m.attr("LV_STR_SYMBOL_HOME") = LV_SYMBOL_HOME;
-    m.attr("LV_STR_SYMBOL_DOWNLOAD") = LV_SYMBOL_DOWNLOAD;
-    m.attr("LV_STR_SYMBOL_DRIVE") = LV_SYMBOL_DRIVE;
-    m.attr("LV_STR_SYMBOL_REFRESH") = LV_SYMBOL_REFRESH;
-    m.attr("LV_STR_SYMBOL_MUTE") = LV_SYMBOL_MUTE;
-    m.attr("LV_STR_SYMBOL_VOLUME_MID") = LV_SYMBOL_VOLUME_MID;
-    m.attr("LV_STR_SYMBOL_VOLUME_MAX") = LV_SYMBOL_VOLUME_MAX;
-    m.attr("LV_STR_SYMBOL_IMAGE") = LV_SYMBOL_IMAGE;
-    m.attr("LV_STR_SYMBOL_TINT") = LV_SYMBOL_TINT;
-    m.attr("LV_STR_SYMBOL_PREV") = LV_SYMBOL_PREV;
-    m.attr("LV_STR_SYMBOL_PLAY") = LV_SYMBOL_PLAY;
-    m.attr("LV_STR_SYMBOL_PAUSE") = LV_SYMBOL_PAUSE;
-    m.attr("LV_STR_SYMBOL_STOP") = LV_SYMBOL_STOP;
-    m.attr("LV_STR_SYMBOL_NEXT") = LV_SYMBOL_NEXT;
-    m.attr("LV_STR_SYMBOL_EJECT") = LV_SYMBOL_EJECT;
-    m.attr("LV_STR_SYMBOL_LEFT") = LV_SYMBOL_LEFT;
-    m.attr("LV_STR_SYMBOL_RIGHT") = LV_SYMBOL_RIGHT;
-    m.attr("LV_STR_SYMBOL_PLUS") = LV_SYMBOL_PLUS;
-    m.attr("LV_STR_SYMBOL_MINUS") = LV_SYMBOL_MINUS;
-    m.attr("LV_STR_SYMBOL_EYE_OPEN") = LV_SYMBOL_EYE_OPEN;
-    m.attr("LV_STR_SYMBOL_EYE_CLOSE") = LV_SYMBOL_EYE_CLOSE;
-    m.attr("LV_STR_SYMBOL_WARNING") = LV_SYMBOL_WARNING;
-    m.attr("LV_STR_SYMBOL_SHUFFLE") = LV_SYMBOL_SHUFFLE;
-    m.attr("LV_STR_SYMBOL_UP") = LV_SYMBOL_UP;
-    m.attr("LV_STR_SYMBOL_DOWN") = LV_SYMBOL_DOWN;
-    m.attr("LV_STR_SYMBOL_LOOP") = LV_SYMBOL_LOOP;
-    m.attr("LV_STR_SYMBOL_DIRECTORY") = LV_SYMBOL_DIRECTORY;
-    m.attr("LV_STR_SYMBOL_UPLOAD") = LV_SYMBOL_UPLOAD;
-    m.attr("LV_STR_SYMBOL_CALL") = LV_SYMBOL_CALL;
-    m.attr("LV_STR_SYMBOL_CUT") = LV_SYMBOL_CUT;
-    m.attr("LV_STR_SYMBOL_COPY") = LV_SYMBOL_COPY;
-    m.attr("LV_STR_SYMBOL_SAVE") = LV_SYMBOL_SAVE;
-    m.attr("LV_STR_SYMBOL_BARS") = LV_SYMBOL_BARS;
-    m.attr("LV_STR_SYMBOL_ENVELOPE") = LV_SYMBOL_ENVELOPE;
-    m.attr("LV_STR_SYMBOL_CHARGE") = LV_SYMBOL_CHARGE;
-    m.attr("LV_STR_SYMBOL_PASTE") = LV_SYMBOL_PASTE;
-    m.attr("LV_STR_SYMBOL_BELL") = LV_SYMBOL_BELL;
-    m.attr("LV_STR_SYMBOL_KEYBOARD") = LV_SYMBOL_KEYBOARD;
-    m.attr("LV_STR_SYMBOL_GPS") = LV_SYMBOL_GPS;
-    m.attr("LV_STR_SYMBOL_FILE") = LV_SYMBOL_FILE;
-    m.attr("LV_STR_SYMBOL_WIFI") = LV_SYMBOL_WIFI;
-    m.attr("LV_STR_SYMBOL_BATTERY_FULL") = LV_SYMBOL_BATTERY_FULL;
-    m.attr("LV_STR_SYMBOL_BATTERY_3") = LV_SYMBOL_BATTERY_3;
-    m.attr("LV_STR_SYMBOL_BATTERY_2") = LV_SYMBOL_BATTERY_2;
-    m.attr("LV_STR_SYMBOL_BATTERY_1") = LV_SYMBOL_BATTERY_1;
-    m.attr("LV_STR_SYMBOL_BATTERY_EMPTY") = LV_SYMBOL_BATTERY_EMPTY;
-    m.attr("LV_STR_SYMBOL_USB") = LV_SYMBOL_USB;
-    m.attr("LV_STR_SYMBOL_BLUETOOTH") = LV_SYMBOL_BLUETOOTH;
-    m.attr("LV_STR_SYMBOL_TRASH") = LV_SYMBOL_TRASH;
-    m.attr("LV_STR_SYMBOL_EDIT") = LV_SYMBOL_EDIT;
-    m.attr("LV_STR_SYMBOL_BACKSPACE") = LV_SYMBOL_BACKSPACE;
-    m.attr("LV_STR_SYMBOL_SD_CARD") = LV_SYMBOL_SD_CARD;
-    m.attr("LV_STR_SYMBOL_NEW_LINE") = LV_SYMBOL_NEW_LINE;
-    m.attr("LV_STR_SYMBOL_DUMMY") = LV_SYMBOL_DUMMY;
+    m.attr("SYMBOL_BULLET") = LV_SYMBOL_BULLET;
+    m.attr("SYMBOL_AUDIO") = LV_SYMBOL_AUDIO;
+    m.attr("SYMBOL_VIDEO") = LV_SYMBOL_VIDEO;
+    m.attr("SYMBOL_LIST") = LV_SYMBOL_LIST;
+    m.attr("SYMBOL_OK") = LV_SYMBOL_OK;
+    m.attr("SYMBOL_CLOSE") = LV_SYMBOL_CLOSE;
+    m.attr("SYMBOL_POWER") = LV_SYMBOL_POWER;
+    m.attr("SYMBOL_SETTINGS") = LV_SYMBOL_SETTINGS;
+    m.attr("SYMBOL_HOME") = LV_SYMBOL_HOME;
+    m.attr("SYMBOL_DOWNLOAD") = LV_SYMBOL_DOWNLOAD;
+    m.attr("SYMBOL_DRIVE") = LV_SYMBOL_DRIVE;
+    m.attr("SYMBOL_REFRESH") = LV_SYMBOL_REFRESH;
+    m.attr("SYMBOL_MUTE") = LV_SYMBOL_MUTE;
+    m.attr("SYMBOL_VOLUME_MID") = LV_SYMBOL_VOLUME_MID;
+    m.attr("SYMBOL_VOLUME_MAX") = LV_SYMBOL_VOLUME_MAX;
+    m.attr("SYMBOL_IMAGE") = LV_SYMBOL_IMAGE;
+    m.attr("SYMBOL_TINT") = LV_SYMBOL_TINT;
+    m.attr("SYMBOL_PREV") = LV_SYMBOL_PREV;
+    m.attr("SYMBOL_PLAY") = LV_SYMBOL_PLAY;
+    m.attr("SYMBOL_PAUSE") = LV_SYMBOL_PAUSE;
+    m.attr("SYMBOL_STOP") = LV_SYMBOL_STOP;
+    m.attr("SYMBOL_NEXT") = LV_SYMBOL_NEXT;
+    m.attr("SYMBOL_EJECT") = LV_SYMBOL_EJECT;
+    m.attr("SYMBOL_LEFT") = LV_SYMBOL_LEFT;
+    m.attr("SYMBOL_RIGHT") = LV_SYMBOL_RIGHT;
+    m.attr("SYMBOL_PLUS") = LV_SYMBOL_PLUS;
+    m.attr("SYMBOL_MINUS") = LV_SYMBOL_MINUS;
+    m.attr("SYMBOL_EYE_OPEN") = LV_SYMBOL_EYE_OPEN;
+    m.attr("SYMBOL_EYE_CLOSE") = LV_SYMBOL_EYE_CLOSE;
+    m.attr("SYMBOL_WARNING") = LV_SYMBOL_WARNING;
+    m.attr("SYMBOL_SHUFFLE") = LV_SYMBOL_SHUFFLE;
+    m.attr("SYMBOL_UP") = LV_SYMBOL_UP;
+    m.attr("SYMBOL_DOWN") = LV_SYMBOL_DOWN;
+    m.attr("SYMBOL_LOOP") = LV_SYMBOL_LOOP;
+    m.attr("SYMBOL_DIRECTORY") = LV_SYMBOL_DIRECTORY;
+    m.attr("SYMBOL_UPLOAD") = LV_SYMBOL_UPLOAD;
+    m.attr("SYMBOL_CALL") = LV_SYMBOL_CALL;
+    m.attr("SYMBOL_CUT") = LV_SYMBOL_CUT;
+    m.attr("SYMBOL_COPY") = LV_SYMBOL_COPY;
+    m.attr("SYMBOL_SAVE") = LV_SYMBOL_SAVE;
+    m.attr("SYMBOL_BARS") = LV_SYMBOL_BARS;
+    m.attr("SYMBOL_ENVELOPE") = LV_SYMBOL_ENVELOPE;
+    m.attr("SYMBOL_CHARGE") = LV_SYMBOL_CHARGE;
+    m.attr("SYMBOL_PASTE") = LV_SYMBOL_PASTE;
+    m.attr("SYMBOL_BELL") = LV_SYMBOL_BELL;
+    m.attr("SYMBOL_KEYBOARD") = LV_SYMBOL_KEYBOARD;
+    m.attr("SYMBOL_GPS") = LV_SYMBOL_GPS;
+    m.attr("SYMBOL_FILE") = LV_SYMBOL_FILE;
+    m.attr("SYMBOL_WIFI") = LV_SYMBOL_WIFI;
+    m.attr("SYMBOL_BATTERY_FULL") = LV_SYMBOL_BATTERY_FULL;
+    m.attr("SYMBOL_BATTERY_3") = LV_SYMBOL_BATTERY_3;
+    m.attr("SYMBOL_BATTERY_2") = LV_SYMBOL_BATTERY_2;
+    m.attr("SYMBOL_BATTERY_1") = LV_SYMBOL_BATTERY_1;
+    m.attr("SYMBOL_BATTERY_EMPTY") = LV_SYMBOL_BATTERY_EMPTY;
+    m.attr("SYMBOL_USB") = LV_SYMBOL_USB;
+    m.attr("SYMBOL_BLUETOOTH") = LV_SYMBOL_BLUETOOTH;
+    m.attr("SYMBOL_TRASH") = LV_SYMBOL_TRASH;
+    m.attr("SYMBOL_EDIT") = LV_SYMBOL_EDIT;
+    m.attr("SYMBOL_BACKSPACE") = LV_SYMBOL_BACKSPACE;
+    m.attr("SYMBOL_SD_CARD") = LV_SYMBOL_SD_CARD;
+    m.attr("SYMBOL_NEW_LINE") = LV_SYMBOL_NEW_LINE;
+    m.attr("SYMBOL_DUMMY") = LV_SYMBOL_DUMMY;
 
     /* Enum _lv_opacity_level_t (no C type found, emitting as constants) */
-    m.attr("LV_OPA_TRANSP") = (int)LV_OPA_TRANSP;
-    m.attr("LV_OPA_0") = (int)LV_OPA_0;
-    m.attr("LV_OPA_10") = (int)LV_OPA_10;
-    m.attr("LV_OPA_20") = (int)LV_OPA_20;
-    m.attr("LV_OPA_30") = (int)LV_OPA_30;
-    m.attr("LV_OPA_40") = (int)LV_OPA_40;
-    m.attr("LV_OPA_50") = (int)LV_OPA_50;
-    m.attr("LV_OPA_60") = (int)LV_OPA_60;
-    m.attr("LV_OPA_70") = (int)LV_OPA_70;
-    m.attr("LV_OPA_80") = (int)LV_OPA_80;
-    m.attr("LV_OPA_90") = (int)LV_OPA_90;
-    m.attr("LV_OPA_100") = (int)LV_OPA_100;
-    m.attr("LV_OPA_COVER") = (int)LV_OPA_COVER;
+    m.attr("OPA_TRANSP") = (int)LV_OPA_TRANSP;
+    m.attr("OPA_0") = (int)LV_OPA_0;
+    m.attr("OPA_10") = (int)LV_OPA_10;
+    m.attr("OPA_20") = (int)LV_OPA_20;
+    m.attr("OPA_30") = (int)LV_OPA_30;
+    m.attr("OPA_40") = (int)LV_OPA_40;
+    m.attr("OPA_50") = (int)LV_OPA_50;
+    m.attr("OPA_60") = (int)LV_OPA_60;
+    m.attr("OPA_70") = (int)LV_OPA_70;
+    m.attr("OPA_80") = (int)LV_OPA_80;
+    m.attr("OPA_90") = (int)LV_OPA_90;
+    m.attr("OPA_100") = (int)LV_OPA_100;
+    m.attr("OPA_COVER") = (int)LV_OPA_COVER;
 
     py::enum_<lv_color_format_t>(m, "COLOR_FORMAT")
-        .value("LV_COLOR_FORMAT_UNKNOWN", LV_COLOR_FORMAT_UNKNOWN)
-        .value("LV_COLOR_FORMAT_RAW", LV_COLOR_FORMAT_RAW)
-        .value("LV_COLOR_FORMAT_RAW_ALPHA", LV_COLOR_FORMAT_RAW_ALPHA)
-        .value("LV_COLOR_FORMAT_L8", LV_COLOR_FORMAT_L8)
-        .value("LV_COLOR_FORMAT_I1", LV_COLOR_FORMAT_I1)
-        .value("LV_COLOR_FORMAT_I2", LV_COLOR_FORMAT_I2)
-        .value("LV_COLOR_FORMAT_I4", LV_COLOR_FORMAT_I4)
-        .value("LV_COLOR_FORMAT_I8", LV_COLOR_FORMAT_I8)
-        .value("LV_COLOR_FORMAT_A8", LV_COLOR_FORMAT_A8)
-        .value("LV_COLOR_FORMAT_RGB565", LV_COLOR_FORMAT_RGB565)
-        .value("LV_COLOR_FORMAT_ARGB8565", LV_COLOR_FORMAT_ARGB8565)
-        .value("LV_COLOR_FORMAT_RGB565A8", LV_COLOR_FORMAT_RGB565A8)
-        .value("LV_COLOR_FORMAT_AL88", LV_COLOR_FORMAT_AL88)
-        .value("LV_COLOR_FORMAT_RGB565_SWAPPED", LV_COLOR_FORMAT_RGB565_SWAPPED)
-        .value("LV_COLOR_FORMAT_RGB888", LV_COLOR_FORMAT_RGB888)
-        .value("LV_COLOR_FORMAT_ARGB8888", LV_COLOR_FORMAT_ARGB8888)
-        .value("LV_COLOR_FORMAT_XRGB8888", LV_COLOR_FORMAT_XRGB8888)
-        .value("LV_COLOR_FORMAT_ARGB8888_PREMULTIPLIED", LV_COLOR_FORMAT_ARGB8888_PREMULTIPLIED)
-        .value("LV_COLOR_FORMAT_A1", LV_COLOR_FORMAT_A1)
-        .value("LV_COLOR_FORMAT_A2", LV_COLOR_FORMAT_A2)
-        .value("LV_COLOR_FORMAT_A4", LV_COLOR_FORMAT_A4)
-        .value("LV_COLOR_FORMAT_ARGB1555", LV_COLOR_FORMAT_ARGB1555)
-        .value("LV_COLOR_FORMAT_ARGB4444", LV_COLOR_FORMAT_ARGB4444)
-        .value("LV_COLOR_FORMAT_ARGB2222", LV_COLOR_FORMAT_ARGB2222)
-        .value("LV_COLOR_FORMAT_YUV_START", LV_COLOR_FORMAT_YUV_START)
-        .value("LV_COLOR_FORMAT_I420", LV_COLOR_FORMAT_I420)
-        .value("LV_COLOR_FORMAT_I422", LV_COLOR_FORMAT_I422)
-        .value("LV_COLOR_FORMAT_I444", LV_COLOR_FORMAT_I444)
-        .value("LV_COLOR_FORMAT_I400", LV_COLOR_FORMAT_I400)
-        .value("LV_COLOR_FORMAT_NV21", LV_COLOR_FORMAT_NV21)
-        .value("LV_COLOR_FORMAT_NV12", LV_COLOR_FORMAT_NV12)
-        .value("LV_COLOR_FORMAT_YUY2", LV_COLOR_FORMAT_YUY2)
-        .value("LV_COLOR_FORMAT_UYVY", LV_COLOR_FORMAT_UYVY)
-        .value("LV_COLOR_FORMAT_YUV_END", LV_COLOR_FORMAT_YUV_END)
-        .value("LV_COLOR_FORMAT_PROPRIETARY_START", LV_COLOR_FORMAT_PROPRIETARY_START)
-        .value("LV_COLOR_FORMAT_NEMA_TSC_START", LV_COLOR_FORMAT_NEMA_TSC_START)
-        .value("LV_COLOR_FORMAT_NEMA_TSC4", LV_COLOR_FORMAT_NEMA_TSC4)
-        .value("LV_COLOR_FORMAT_NEMA_TSC6", LV_COLOR_FORMAT_NEMA_TSC6)
-        .value("LV_COLOR_FORMAT_NEMA_TSC6A", LV_COLOR_FORMAT_NEMA_TSC6A)
-        .value("LV_COLOR_FORMAT_NEMA_TSC6AP", LV_COLOR_FORMAT_NEMA_TSC6AP)
-        .value("LV_COLOR_FORMAT_NEMA_TSC12", LV_COLOR_FORMAT_NEMA_TSC12)
-        .value("LV_COLOR_FORMAT_NEMA_TSC12A", LV_COLOR_FORMAT_NEMA_TSC12A)
-        .value("LV_COLOR_FORMAT_NEMA_TSC_END", LV_COLOR_FORMAT_NEMA_TSC_END)
-        .value("LV_COLOR_FORMAT_NATIVE", LV_COLOR_FORMAT_NATIVE)
-        .value("LV_COLOR_FORMAT_NATIVE_WITH_ALPHA", LV_COLOR_FORMAT_NATIVE_WITH_ALPHA)
-        .export_values();
+        .value("UNKNOWN", LV_COLOR_FORMAT_UNKNOWN)
+        .value("RAW", LV_COLOR_FORMAT_RAW)
+        .value("RAW_ALPHA", LV_COLOR_FORMAT_RAW_ALPHA)
+        .value("L8", LV_COLOR_FORMAT_L8)
+        .value("I1", LV_COLOR_FORMAT_I1)
+        .value("I2", LV_COLOR_FORMAT_I2)
+        .value("I4", LV_COLOR_FORMAT_I4)
+        .value("I8", LV_COLOR_FORMAT_I8)
+        .value("A8", LV_COLOR_FORMAT_A8)
+        .value("RGB565", LV_COLOR_FORMAT_RGB565)
+        .value("ARGB8565", LV_COLOR_FORMAT_ARGB8565)
+        .value("RGB565A8", LV_COLOR_FORMAT_RGB565A8)
+        .value("AL88", LV_COLOR_FORMAT_AL88)
+        .value("RGB565_SWAPPED", LV_COLOR_FORMAT_RGB565_SWAPPED)
+        .value("RGB888", LV_COLOR_FORMAT_RGB888)
+        .value("ARGB8888", LV_COLOR_FORMAT_ARGB8888)
+        .value("XRGB8888", LV_COLOR_FORMAT_XRGB8888)
+        .value("ARGB8888_PREMULTIPLIED", LV_COLOR_FORMAT_ARGB8888_PREMULTIPLIED)
+        .value("A1", LV_COLOR_FORMAT_A1)
+        .value("A2", LV_COLOR_FORMAT_A2)
+        .value("A4", LV_COLOR_FORMAT_A4)
+        .value("ARGB1555", LV_COLOR_FORMAT_ARGB1555)
+        .value("ARGB4444", LV_COLOR_FORMAT_ARGB4444)
+        .value("ARGB2222", LV_COLOR_FORMAT_ARGB2222)
+        .value("YUV_START", LV_COLOR_FORMAT_YUV_START)
+        .value("I420", LV_COLOR_FORMAT_I420)
+        .value("I422", LV_COLOR_FORMAT_I422)
+        .value("I444", LV_COLOR_FORMAT_I444)
+        .value("I400", LV_COLOR_FORMAT_I400)
+        .value("NV21", LV_COLOR_FORMAT_NV21)
+        .value("NV12", LV_COLOR_FORMAT_NV12)
+        .value("YUY2", LV_COLOR_FORMAT_YUY2)
+        .value("UYVY", LV_COLOR_FORMAT_UYVY)
+        .value("YUV_END", LV_COLOR_FORMAT_YUV_END)
+        .value("PROPRIETARY_START", LV_COLOR_FORMAT_PROPRIETARY_START)
+        .value("NEMA_TSC_START", LV_COLOR_FORMAT_NEMA_TSC_START)
+        .value("NEMA_TSC4", LV_COLOR_FORMAT_NEMA_TSC4)
+        .value("NEMA_TSC6", LV_COLOR_FORMAT_NEMA_TSC6)
+        .value("NEMA_TSC6A", LV_COLOR_FORMAT_NEMA_TSC6A)
+        .value("NEMA_TSC6AP", LV_COLOR_FORMAT_NEMA_TSC6AP)
+        .value("NEMA_TSC12", LV_COLOR_FORMAT_NEMA_TSC12)
+        .value("NEMA_TSC12A", LV_COLOR_FORMAT_NEMA_TSC12A)
+        .value("NEMA_TSC_END", LV_COLOR_FORMAT_NEMA_TSC_END)
+        .value("NATIVE", LV_COLOR_FORMAT_NATIVE)
+        .value("NATIVE_WITH_ALPHA", LV_COLOR_FORMAT_NATIVE_WITH_ALPHA)
+;
 
     py::enum_<lv_palette_t>(m, "PALETTE")
-        .value("LV_PALETTE_RED", LV_PALETTE_RED)
-        .value("LV_PALETTE_PINK", LV_PALETTE_PINK)
-        .value("LV_PALETTE_PURPLE", LV_PALETTE_PURPLE)
-        .value("LV_PALETTE_DEEP_PURPLE", LV_PALETTE_DEEP_PURPLE)
-        .value("LV_PALETTE_INDIGO", LV_PALETTE_INDIGO)
-        .value("LV_PALETTE_BLUE", LV_PALETTE_BLUE)
-        .value("LV_PALETTE_LIGHT_BLUE", LV_PALETTE_LIGHT_BLUE)
-        .value("LV_PALETTE_CYAN", LV_PALETTE_CYAN)
-        .value("LV_PALETTE_TEAL", LV_PALETTE_TEAL)
-        .value("LV_PALETTE_GREEN", LV_PALETTE_GREEN)
-        .value("LV_PALETTE_LIGHT_GREEN", LV_PALETTE_LIGHT_GREEN)
-        .value("LV_PALETTE_LIME", LV_PALETTE_LIME)
-        .value("LV_PALETTE_YELLOW", LV_PALETTE_YELLOW)
-        .value("LV_PALETTE_AMBER", LV_PALETTE_AMBER)
-        .value("LV_PALETTE_ORANGE", LV_PALETTE_ORANGE)
-        .value("LV_PALETTE_DEEP_ORANGE", LV_PALETTE_DEEP_ORANGE)
-        .value("LV_PALETTE_BROWN", LV_PALETTE_BROWN)
-        .value("LV_PALETTE_BLUE_GREY", LV_PALETTE_BLUE_GREY)
-        .value("LV_PALETTE_GREY", LV_PALETTE_GREY)
-        .value("LV_PALETTE_LAST", LV_PALETTE_LAST)
-        .value("LV_PALETTE_NONE", LV_PALETTE_NONE)
-        .export_values();
+        .value("RED", LV_PALETTE_RED)
+        .value("PINK", LV_PALETTE_PINK)
+        .value("PURPLE", LV_PALETTE_PURPLE)
+        .value("DEEP_PURPLE", LV_PALETTE_DEEP_PURPLE)
+        .value("INDIGO", LV_PALETTE_INDIGO)
+        .value("BLUE", LV_PALETTE_BLUE)
+        .value("LIGHT_BLUE", LV_PALETTE_LIGHT_BLUE)
+        .value("CYAN", LV_PALETTE_CYAN)
+        .value("TEAL", LV_PALETTE_TEAL)
+        .value("GREEN", LV_PALETTE_GREEN)
+        .value("LIGHT_GREEN", LV_PALETTE_LIGHT_GREEN)
+        .value("LIME", LV_PALETTE_LIME)
+        .value("YELLOW", LV_PALETTE_YELLOW)
+        .value("AMBER", LV_PALETTE_AMBER)
+        .value("ORANGE", LV_PALETTE_ORANGE)
+        .value("DEEP_ORANGE", LV_PALETTE_DEEP_ORANGE)
+        .value("BROWN", LV_PALETTE_BROWN)
+        .value("BLUE_GREY", LV_PALETTE_BLUE_GREY)
+        .value("GREY", LV_PALETTE_GREY)
+        .value("LAST", LV_PALETTE_LAST)
+        .value("NONE", LV_PALETTE_NONE)
+;
 
     /* Enum _lvimage_flags_t (no C type found, emitting as constants) */
-    m.attr("LV_IMAGE_FLAGS_PREMULTIPLIED") = (int)LV_IMAGE_FLAGS_PREMULTIPLIED;
-    m.attr("LV_IMAGE_FLAGS_COMPRESSED") = (int)LV_IMAGE_FLAGS_COMPRESSED;
-    m.attr("LV_IMAGE_FLAGS_ALLOCATED") = (int)LV_IMAGE_FLAGS_ALLOCATED;
-    m.attr("LV_IMAGE_FLAGS_MODIFIABLE") = (int)LV_IMAGE_FLAGS_MODIFIABLE;
-    m.attr("LV_IMAGE_FLAGS_CUSTOM_DRAW") = (int)LV_IMAGE_FLAGS_CUSTOM_DRAW;
-    m.attr("LV_IMAGE_FLAGS_USER1") = (int)LV_IMAGE_FLAGS_USER1;
-    m.attr("LV_IMAGE_FLAGS_USER2") = (int)LV_IMAGE_FLAGS_USER2;
-    m.attr("LV_IMAGE_FLAGS_USER3") = (int)LV_IMAGE_FLAGS_USER3;
-    m.attr("LV_IMAGE_FLAGS_USER4") = (int)LV_IMAGE_FLAGS_USER4;
-    m.attr("LV_IMAGE_FLAGS_USER5") = (int)LV_IMAGE_FLAGS_USER5;
-    m.attr("LV_IMAGE_FLAGS_USER6") = (int)LV_IMAGE_FLAGS_USER6;
-    m.attr("LV_IMAGE_FLAGS_USER7") = (int)LV_IMAGE_FLAGS_USER7;
-    m.attr("LV_IMAGE_FLAGS_USER8") = (int)LV_IMAGE_FLAGS_USER8;
+    m.attr("IMAGE_FLAGS_PREMULTIPLIED") = (int)LV_IMAGE_FLAGS_PREMULTIPLIED;
+    m.attr("IMAGE_FLAGS_COMPRESSED") = (int)LV_IMAGE_FLAGS_COMPRESSED;
+    m.attr("IMAGE_FLAGS_ALLOCATED") = (int)LV_IMAGE_FLAGS_ALLOCATED;
+    m.attr("IMAGE_FLAGS_MODIFIABLE") = (int)LV_IMAGE_FLAGS_MODIFIABLE;
+    m.attr("IMAGE_FLAGS_CUSTOM_DRAW") = (int)LV_IMAGE_FLAGS_CUSTOM_DRAW;
+    m.attr("IMAGE_FLAGS_USER1") = (int)LV_IMAGE_FLAGS_USER1;
+    m.attr("IMAGE_FLAGS_USER2") = (int)LV_IMAGE_FLAGS_USER2;
+    m.attr("IMAGE_FLAGS_USER3") = (int)LV_IMAGE_FLAGS_USER3;
+    m.attr("IMAGE_FLAGS_USER4") = (int)LV_IMAGE_FLAGS_USER4;
+    m.attr("IMAGE_FLAGS_USER5") = (int)LV_IMAGE_FLAGS_USER5;
+    m.attr("IMAGE_FLAGS_USER6") = (int)LV_IMAGE_FLAGS_USER6;
+    m.attr("IMAGE_FLAGS_USER7") = (int)LV_IMAGE_FLAGS_USER7;
+    m.attr("IMAGE_FLAGS_USER8") = (int)LV_IMAGE_FLAGS_USER8;
 
     py::enum_<lv_image_compress_t>(m, "IMAGE_COMPRESS")
-        .value("LV_IMAGE_COMPRESS_NONE", LV_IMAGE_COMPRESS_NONE)
-        .value("LV_IMAGE_COMPRESS_RLE", LV_IMAGE_COMPRESS_RLE)
-        .value("LV_IMAGE_COMPRESS_LZ4", LV_IMAGE_COMPRESS_LZ4)
-        .export_values();
+        .value("NONE", LV_IMAGE_COMPRESS_NONE)
+        .value("RLE", LV_IMAGE_COMPRESS_RLE)
+        .value("LZ4", LV_IMAGE_COMPRESS_LZ4)
+;
 
     py::enum_<lv_font_glyph_format_t>(m, "FONT_GLYPH_FORMAT")
-        .value("LV_FONT_GLYPH_FORMAT_NONE", LV_FONT_GLYPH_FORMAT_NONE)
-        .value("LV_FONT_GLYPH_FORMAT_A1", LV_FONT_GLYPH_FORMAT_A1)
-        .value("LV_FONT_GLYPH_FORMAT_A2", LV_FONT_GLYPH_FORMAT_A2)
-        .value("LV_FONT_GLYPH_FORMAT_A3", LV_FONT_GLYPH_FORMAT_A3)
-        .value("LV_FONT_GLYPH_FORMAT_A4", LV_FONT_GLYPH_FORMAT_A4)
-        .value("LV_FONT_GLYPH_FORMAT_A8", LV_FONT_GLYPH_FORMAT_A8)
-        .value("LV_FONT_GLYPH_FORMAT_IMAGE", LV_FONT_GLYPH_FORMAT_IMAGE)
-        .value("LV_FONT_GLYPH_FORMAT_VECTOR", LV_FONT_GLYPH_FORMAT_VECTOR)
-        .value("LV_FONT_GLYPH_FORMAT_SVG", LV_FONT_GLYPH_FORMAT_SVG)
-        .value("LV_FONT_GLYPH_FORMAT_CUSTOM", LV_FONT_GLYPH_FORMAT_CUSTOM)
-        .export_values();
+        .value("NONE", LV_FONT_GLYPH_FORMAT_NONE)
+        .value("A1", LV_FONT_GLYPH_FORMAT_A1)
+        .value("A2", LV_FONT_GLYPH_FORMAT_A2)
+        .value("A3", LV_FONT_GLYPH_FORMAT_A3)
+        .value("A4", LV_FONT_GLYPH_FORMAT_A4)
+        .value("A8", LV_FONT_GLYPH_FORMAT_A8)
+        .value("IMAGE", LV_FONT_GLYPH_FORMAT_IMAGE)
+        .value("VECTOR", LV_FONT_GLYPH_FORMAT_VECTOR)
+        .value("SVG", LV_FONT_GLYPH_FORMAT_SVG)
+        .value("CUSTOM", LV_FONT_GLYPH_FORMAT_CUSTOM)
+;
 
     py::enum_<lv_font_subpx_t>(m, "FONT_SUBPX")
-        .value("LV_FONT_SUBPX_NONE", LV_FONT_SUBPX_NONE)
-        .value("LV_FONT_SUBPX_HOR", LV_FONT_SUBPX_HOR)
-        .value("LV_FONT_SUBPX_VER", LV_FONT_SUBPX_VER)
-        .value("LV_FONT_SUBPX_BOTH", LV_FONT_SUBPX_BOTH)
-        .export_values();
+        .value("NONE", LV_FONT_SUBPX_NONE)
+        .value("HOR", LV_FONT_SUBPX_HOR)
+        .value("VER", LV_FONT_SUBPX_VER)
+        .value("BOTH", LV_FONT_SUBPX_BOTH)
+;
 
     py::enum_<lv_font_kerning_t>(m, "FONT_KERNING")
-        .value("LV_FONT_KERNING_NORMAL", LV_FONT_KERNING_NORMAL)
-        .value("LV_FONT_KERNING_NONE", LV_FONT_KERNING_NONE)
-        .export_values();
+        .value("NORMAL", LV_FONT_KERNING_NORMAL)
+        .value("NONE", LV_FONT_KERNING_NONE)
+;
 
     py::enum_<lv_text_flag_t>(m, "TEXT_FLAG")
-        .value("LV_TEXT_FLAG_NONE", LV_TEXT_FLAG_NONE)
-        .value("LV_TEXT_FLAG_EXPAND", LV_TEXT_FLAG_EXPAND)
-        .value("LV_TEXT_FLAG_FIT", LV_TEXT_FLAG_FIT)
-        .value("LV_TEXT_FLAG_BREAK_ALL", LV_TEXT_FLAG_BREAK_ALL)
-        .value("LV_TEXT_FLAG_RECOLOR", LV_TEXT_FLAG_RECOLOR)
-        .export_values();
+        .value("NONE", LV_TEXT_FLAG_NONE)
+        .value("EXPAND", LV_TEXT_FLAG_EXPAND)
+        .value("FIT", LV_TEXT_FLAG_FIT)
+        .value("BREAK_ALL", LV_TEXT_FLAG_BREAK_ALL)
+        .value("RECOLOR", LV_TEXT_FLAG_RECOLOR)
+;
 
     py::enum_<lv_text_align_t>(m, "TEXT_ALIGN")
-        .value("LV_TEXT_ALIGN_AUTO", LV_TEXT_ALIGN_AUTO)
-        .value("LV_TEXT_ALIGN_LEFT", LV_TEXT_ALIGN_LEFT)
-        .value("LV_TEXT_ALIGN_CENTER", LV_TEXT_ALIGN_CENTER)
-        .value("LV_TEXT_ALIGN_RIGHT", LV_TEXT_ALIGN_RIGHT)
-        .export_values();
+        .value("AUTO", LV_TEXT_ALIGN_AUTO)
+        .value("LEFT", LV_TEXT_ALIGN_LEFT)
+        .value("CENTER", LV_TEXT_ALIGN_CENTER)
+        .value("RIGHT", LV_TEXT_ALIGN_RIGHT)
+;
 
     py::enum_<lv_text_leading_trim_t>(m, "TEXT_LEADING_TRIM")
-        .value("LV_TEXT_LEADING_TRIM_NONE", LV_TEXT_LEADING_TRIM_NONE)
-        .value("LV_TEXT_LEADING_TRIM_CAPITAL_BASELINE", LV_TEXT_LEADING_TRIM_CAPITAL_BASELINE)
-        .value("LV_TEXT_LEADING_TRIM_LOWER_BASELINE", LV_TEXT_LEADING_TRIM_LOWER_BASELINE)
-        .value("LV_TEXT_LEADING_TRIM_CAPITAL", LV_TEXT_LEADING_TRIM_CAPITAL)
-        .value("LV_TEXT_LEADING_TRIM_LOWER", LV_TEXT_LEADING_TRIM_LOWER)
-        .export_values();
+        .value("NONE", LV_TEXT_LEADING_TRIM_NONE)
+        .value("CAPITAL_BASELINE", LV_TEXT_LEADING_TRIM_CAPITAL_BASELINE)
+        .value("LOWER_BASELINE", LV_TEXT_LEADING_TRIM_LOWER_BASELINE)
+        .value("CAPITAL", LV_TEXT_LEADING_TRIM_CAPITAL)
+        .value("LOWER", LV_TEXT_LEADING_TRIM_LOWER)
+;
 
     py::enum_<lv_base_dir_t>(m, "BASE_DIR")
-        .value("LV_BASE_DIR_LTR", LV_BASE_DIR_LTR)
-        .value("LV_BASE_DIR_RTL", LV_BASE_DIR_RTL)
-        .value("LV_BASE_DIR_AUTO", LV_BASE_DIR_AUTO)
-        .value("LV_BASE_DIR_NEUTRAL", LV_BASE_DIR_NEUTRAL)
-        .value("LV_BASE_DIR_WEAK", LV_BASE_DIR_WEAK)
-        .export_values();
+        .value("LTR", LV_BASE_DIR_LTR)
+        .value("RTL", LV_BASE_DIR_RTL)
+        .value("AUTO", LV_BASE_DIR_AUTO)
+        .value("NEUTRAL", LV_BASE_DIR_NEUTRAL)
+        .value("WEAK", LV_BASE_DIR_WEAK)
+;
 
     py::enum_<lv_grad_dir_t>(m, "GRAD_DIR")
-        .value("LV_GRAD_DIR_NONE", LV_GRAD_DIR_NONE)
-        .value("LV_GRAD_DIR_VER", LV_GRAD_DIR_VER)
-        .value("LV_GRAD_DIR_HOR", LV_GRAD_DIR_HOR)
-        .value("LV_GRAD_DIR_LINEAR", LV_GRAD_DIR_LINEAR)
-        .value("LV_GRAD_DIR_RADIAL", LV_GRAD_DIR_RADIAL)
-        .value("LV_GRAD_DIR_CONICAL", LV_GRAD_DIR_CONICAL)
-        .export_values();
+        .value("NONE", LV_GRAD_DIR_NONE)
+        .value("VER", LV_GRAD_DIR_VER)
+        .value("HOR", LV_GRAD_DIR_HOR)
+        .value("LINEAR", LV_GRAD_DIR_LINEAR)
+        .value("RADIAL", LV_GRAD_DIR_RADIAL)
+        .value("CONICAL", LV_GRAD_DIR_CONICAL)
+;
 
     py::enum_<lv_grad_extend_t>(m, "GRAD_EXTEND")
-        .value("LV_GRAD_EXTEND_PAD", LV_GRAD_EXTEND_PAD)
-        .value("LV_GRAD_EXTEND_REPEAT", LV_GRAD_EXTEND_REPEAT)
-        .value("LV_GRAD_EXTEND_REFLECT", LV_GRAD_EXTEND_REFLECT)
-        .export_values();
+        .value("PAD", LV_GRAD_EXTEND_PAD)
+        .value("REPEAT", LV_GRAD_EXTEND_REPEAT)
+        .value("REFLECT", LV_GRAD_EXTEND_REFLECT)
+;
 
     py::enum_<lv_layout_t>(m, "LAYOUT")
-        .value("LV_LAYOUT_NONE", LV_LAYOUT_NONE)
-        .value("LV_LAYOUT_FLEX", LV_LAYOUT_FLEX)
-        .value("LV_LAYOUT_GRID", LV_LAYOUT_GRID)
-        .value("LV_LAYOUT_LAST", LV_LAYOUT_LAST)
-        .export_values();
+        .value("NONE", LV_LAYOUT_NONE)
+        .value("FLEX", LV_LAYOUT_FLEX)
+        .value("GRID", LV_LAYOUT_GRID)
+        .value("LAST", LV_LAYOUT_LAST)
+;
 
     py::enum_<lv_flex_align_t>(m, "FLEX_ALIGN")
-        .value("LV_FLEX_ALIGN_START", LV_FLEX_ALIGN_START)
-        .value("LV_FLEX_ALIGN_END", LV_FLEX_ALIGN_END)
-        .value("LV_FLEX_ALIGN_CENTER", LV_FLEX_ALIGN_CENTER)
-        .value("LV_FLEX_ALIGN_SPACE_EVENLY", LV_FLEX_ALIGN_SPACE_EVENLY)
-        .value("LV_FLEX_ALIGN_SPACE_AROUND", LV_FLEX_ALIGN_SPACE_AROUND)
-        .value("LV_FLEX_ALIGN_SPACE_BETWEEN", LV_FLEX_ALIGN_SPACE_BETWEEN)
-        .export_values();
+        .value("START", LV_FLEX_ALIGN_START)
+        .value("END", LV_FLEX_ALIGN_END)
+        .value("CENTER", LV_FLEX_ALIGN_CENTER)
+        .value("SPACE_EVENLY", LV_FLEX_ALIGN_SPACE_EVENLY)
+        .value("SPACE_AROUND", LV_FLEX_ALIGN_SPACE_AROUND)
+        .value("SPACE_BETWEEN", LV_FLEX_ALIGN_SPACE_BETWEEN)
+;
 
     py::enum_<lv_flex_flow_t>(m, "FLEX_FLOW")
-        .value("LV_FLEX_FLOW_ROW", LV_FLEX_FLOW_ROW)
-        .value("LV_FLEX_FLOW_COLUMN", LV_FLEX_FLOW_COLUMN)
-        .value("LV_FLEX_FLOW_ROW_WRAP", LV_FLEX_FLOW_ROW_WRAP)
-        .value("LV_FLEX_FLOW_ROW_REVERSE", LV_FLEX_FLOW_ROW_REVERSE)
-        .value("LV_FLEX_FLOW_ROW_WRAP_REVERSE", LV_FLEX_FLOW_ROW_WRAP_REVERSE)
-        .value("LV_FLEX_FLOW_COLUMN_WRAP", LV_FLEX_FLOW_COLUMN_WRAP)
-        .value("LV_FLEX_FLOW_COLUMN_REVERSE", LV_FLEX_FLOW_COLUMN_REVERSE)
-        .value("LV_FLEX_FLOW_COLUMN_WRAP_REVERSE", LV_FLEX_FLOW_COLUMN_WRAP_REVERSE)
-        .export_values();
+        .value("ROW", LV_FLEX_FLOW_ROW)
+        .value("COLUMN", LV_FLEX_FLOW_COLUMN)
+        .value("ROW_WRAP", LV_FLEX_FLOW_ROW_WRAP)
+        .value("ROW_REVERSE", LV_FLEX_FLOW_ROW_REVERSE)
+        .value("ROW_WRAP_REVERSE", LV_FLEX_FLOW_ROW_WRAP_REVERSE)
+        .value("COLUMN_WRAP", LV_FLEX_FLOW_COLUMN_WRAP)
+        .value("COLUMN_REVERSE", LV_FLEX_FLOW_COLUMN_REVERSE)
+        .value("COLUMN_WRAP_REVERSE", LV_FLEX_FLOW_COLUMN_WRAP_REVERSE)
+;
 
     py::enum_<lv_grid_align_t>(m, "GRID_ALIGN")
-        .value("LV_GRID_ALIGN_START", LV_GRID_ALIGN_START)
-        .value("LV_GRID_ALIGN_CENTER", LV_GRID_ALIGN_CENTER)
-        .value("LV_GRID_ALIGN_END", LV_GRID_ALIGN_END)
-        .value("LV_GRID_ALIGN_STRETCH", LV_GRID_ALIGN_STRETCH)
-        .value("LV_GRID_ALIGN_SPACE_EVENLY", LV_GRID_ALIGN_SPACE_EVENLY)
-        .value("LV_GRID_ALIGN_SPACE_AROUND", LV_GRID_ALIGN_SPACE_AROUND)
-        .value("LV_GRID_ALIGN_SPACE_BETWEEN", LV_GRID_ALIGN_SPACE_BETWEEN)
-        .export_values();
+        .value("START", LV_GRID_ALIGN_START)
+        .value("CENTER", LV_GRID_ALIGN_CENTER)
+        .value("END", LV_GRID_ALIGN_END)
+        .value("STRETCH", LV_GRID_ALIGN_STRETCH)
+        .value("SPACE_EVENLY", LV_GRID_ALIGN_SPACE_EVENLY)
+        .value("SPACE_AROUND", LV_GRID_ALIGN_SPACE_AROUND)
+        .value("SPACE_BETWEEN", LV_GRID_ALIGN_SPACE_BETWEEN)
+;
 
-    py::enum_<lv_blend_mode_t>(m, "BLEND_MODE")
-        .value("LV_BLEND_MODE_NORMAL", LV_BLEND_MODE_NORMAL)
-        .value("LV_BLEND_MODE_ADDITIVE", LV_BLEND_MODE_ADDITIVE)
-        .value("LV_BLEND_MODE_SUBTRACTIVE", LV_BLEND_MODE_SUBTRACTIVE)
-        .value("LV_BLEND_MODE_MULTIPLY", LV_BLEND_MODE_MULTIPLY)
-        .value("LV_BLEND_MODE_DIFFERENCE", LV_BLEND_MODE_DIFFERENCE)
-        .export_values();
+    py::enum_<lv_blend_mode_t>(m, "BLEND")
+        .value("NORMAL", LV_BLEND_MODE_NORMAL)
+        .value("ADDITIVE", LV_BLEND_MODE_ADDITIVE)
+        .value("SUBTRACTIVE", LV_BLEND_MODE_SUBTRACTIVE)
+        .value("MULTIPLY", LV_BLEND_MODE_MULTIPLY)
+        .value("DIFFERENCE", LV_BLEND_MODE_DIFFERENCE)
+;
 
     py::enum_<lv_text_decor_t>(m, "TEXT_DECOR")
-        .value("LV_TEXT_DECOR_NONE", LV_TEXT_DECOR_NONE)
-        .value("LV_TEXT_DECOR_UNDERLINE", LV_TEXT_DECOR_UNDERLINE)
-        .value("LV_TEXT_DECOR_STRIKETHROUGH", LV_TEXT_DECOR_STRIKETHROUGH)
-        .export_values();
+        .value("NONE", LV_TEXT_DECOR_NONE)
+        .value("UNDERLINE", LV_TEXT_DECOR_UNDERLINE)
+        .value("STRIKETHROUGH", LV_TEXT_DECOR_STRIKETHROUGH)
+;
 
     py::enum_<lv_border_side_t>(m, "BORDER_SIDE")
-        .value("LV_BORDER_SIDE_NONE", LV_BORDER_SIDE_NONE)
-        .value("LV_BORDER_SIDE_BOTTOM", LV_BORDER_SIDE_BOTTOM)
-        .value("LV_BORDER_SIDE_TOP", LV_BORDER_SIDE_TOP)
-        .value("LV_BORDER_SIDE_LEFT", LV_BORDER_SIDE_LEFT)
-        .value("LV_BORDER_SIDE_RIGHT", LV_BORDER_SIDE_RIGHT)
-        .value("LV_BORDER_SIDE_FULL", LV_BORDER_SIDE_FULL)
-        .value("LV_BORDER_SIDE_INTERNAL", LV_BORDER_SIDE_INTERNAL)
-        .export_values();
+        .value("NONE", LV_BORDER_SIDE_NONE)
+        .value("BOTTOM", LV_BORDER_SIDE_BOTTOM)
+        .value("TOP", LV_BORDER_SIDE_TOP)
+        .value("LEFT", LV_BORDER_SIDE_LEFT)
+        .value("RIGHT", LV_BORDER_SIDE_RIGHT)
+        .value("FULL", LV_BORDER_SIDE_FULL)
+        .value("INTERNAL", LV_BORDER_SIDE_INTERNAL)
+;
 
     py::enum_<lv_blur_quality_t>(m, "BLUR_QUALITY")
-        .value("LV_BLUR_QUALITY_AUTO", LV_BLUR_QUALITY_AUTO)
-        .value("LV_BLUR_QUALITY_SPEED", LV_BLUR_QUALITY_SPEED)
-        .value("LV_BLUR_QUALITY_PRECISION", LV_BLUR_QUALITY_PRECISION)
-        .export_values();
+        .value("AUTO", LV_BLUR_QUALITY_AUTO)
+        .value("SPEED", LV_BLUR_QUALITY_SPEED)
+        .value("PRECISION", LV_BLUR_QUALITY_PRECISION)
+;
 
     /* Enum _lv_style_id_t (no C type found, emitting as constants) */
-    m.attr("LV_STYLE_PROP_INV") = (int)LV_STYLE_PROP_INV;
-    m.attr("LV_STYLE_WIDTH") = (int)LV_STYLE_WIDTH;
-    m.attr("LV_STYLE_HEIGHT") = (int)LV_STYLE_HEIGHT;
-    m.attr("LV_STYLE_LENGTH") = (int)LV_STYLE_LENGTH;
-    m.attr("LV_STYLE_TRANSFORM_WIDTH") = (int)LV_STYLE_TRANSFORM_WIDTH;
-    m.attr("LV_STYLE_TRANSFORM_HEIGHT") = (int)LV_STYLE_TRANSFORM_HEIGHT;
-    m.attr("LV_STYLE_MIN_WIDTH") = (int)LV_STYLE_MIN_WIDTH;
-    m.attr("LV_STYLE_MAX_WIDTH") = (int)LV_STYLE_MAX_WIDTH;
-    m.attr("LV_STYLE_MIN_HEIGHT") = (int)LV_STYLE_MIN_HEIGHT;
-    m.attr("LV_STYLE_MAX_HEIGHT") = (int)LV_STYLE_MAX_HEIGHT;
-    m.attr("LV_STYLE_TRANSLATE_X") = (int)LV_STYLE_TRANSLATE_X;
-    m.attr("LV_STYLE_TRANSLATE_Y") = (int)LV_STYLE_TRANSLATE_Y;
-    m.attr("LV_STYLE_RADIAL_OFFSET") = (int)LV_STYLE_RADIAL_OFFSET;
-    m.attr("LV_STYLE_X") = (int)LV_STYLE_X;
-    m.attr("LV_STYLE_Y") = (int)LV_STYLE_Y;
-    m.attr("LV_STYLE_ALIGN") = (int)LV_STYLE_ALIGN;
-    m.attr("LV_STYLE_PAD_TOP") = (int)LV_STYLE_PAD_TOP;
-    m.attr("LV_STYLE_PAD_BOTTOM") = (int)LV_STYLE_PAD_BOTTOM;
-    m.attr("LV_STYLE_PAD_LEFT") = (int)LV_STYLE_PAD_LEFT;
-    m.attr("LV_STYLE_PAD_RIGHT") = (int)LV_STYLE_PAD_RIGHT;
-    m.attr("LV_STYLE_PAD_RADIAL") = (int)LV_STYLE_PAD_RADIAL;
-    m.attr("LV_STYLE_PAD_ROW") = (int)LV_STYLE_PAD_ROW;
-    m.attr("LV_STYLE_PAD_COLUMN") = (int)LV_STYLE_PAD_COLUMN;
-    m.attr("LV_STYLE_MARGIN_TOP") = (int)LV_STYLE_MARGIN_TOP;
-    m.attr("LV_STYLE_MARGIN_BOTTOM") = (int)LV_STYLE_MARGIN_BOTTOM;
-    m.attr("LV_STYLE_MARGIN_LEFT") = (int)LV_STYLE_MARGIN_LEFT;
-    m.attr("LV_STYLE_MARGIN_RIGHT") = (int)LV_STYLE_MARGIN_RIGHT;
-    m.attr("LV_STYLE_BG_GRAD") = (int)LV_STYLE_BG_GRAD;
-    m.attr("LV_STYLE_BG_GRAD_DIR") = (int)LV_STYLE_BG_GRAD_DIR;
-    m.attr("LV_STYLE_BG_MAIN_OPA") = (int)LV_STYLE_BG_MAIN_OPA;
-    m.attr("LV_STYLE_BG_GRAD_OPA") = (int)LV_STYLE_BG_GRAD_OPA;
-    m.attr("LV_STYLE_BG_GRAD_COLOR") = (int)LV_STYLE_BG_GRAD_COLOR;
-    m.attr("LV_STYLE_BG_MAIN_STOP") = (int)LV_STYLE_BG_MAIN_STOP;
-    m.attr("LV_STYLE_BG_GRAD_STOP") = (int)LV_STYLE_BG_GRAD_STOP;
-    m.attr("LV_STYLE_BG_IMAGE_SRC") = (int)LV_STYLE_BG_IMAGE_SRC;
-    m.attr("LV_STYLE_BG_IMAGE_OPA") = (int)LV_STYLE_BG_IMAGE_OPA;
-    m.attr("LV_STYLE_BG_IMAGE_RECOLOR_OPA") = (int)LV_STYLE_BG_IMAGE_RECOLOR_OPA;
-    m.attr("LV_STYLE_BG_IMAGE_TILED") = (int)LV_STYLE_BG_IMAGE_TILED;
-    m.attr("LV_STYLE_BG_IMAGE_RECOLOR") = (int)LV_STYLE_BG_IMAGE_RECOLOR;
-    m.attr("LV_STYLE_BORDER_WIDTH") = (int)LV_STYLE_BORDER_WIDTH;
-    m.attr("LV_STYLE_BORDER_COLOR") = (int)LV_STYLE_BORDER_COLOR;
-    m.attr("LV_STYLE_BORDER_OPA") = (int)LV_STYLE_BORDER_OPA;
-    m.attr("LV_STYLE_BORDER_POST") = (int)LV_STYLE_BORDER_POST;
-    m.attr("LV_STYLE_BORDER_SIDE") = (int)LV_STYLE_BORDER_SIDE;
-    m.attr("LV_STYLE_OUTLINE_WIDTH") = (int)LV_STYLE_OUTLINE_WIDTH;
-    m.attr("LV_STYLE_OUTLINE_COLOR") = (int)LV_STYLE_OUTLINE_COLOR;
-    m.attr("LV_STYLE_OUTLINE_OPA") = (int)LV_STYLE_OUTLINE_OPA;
-    m.attr("LV_STYLE_OUTLINE_PAD") = (int)LV_STYLE_OUTLINE_PAD;
-    m.attr("LV_STYLE_BG_OPA") = (int)LV_STYLE_BG_OPA;
-    m.attr("LV_STYLE_BG_COLOR") = (int)LV_STYLE_BG_COLOR;
-    m.attr("LV_STYLE_SHADOW_WIDTH") = (int)LV_STYLE_SHADOW_WIDTH;
-    m.attr("LV_STYLE_LINE_WIDTH") = (int)LV_STYLE_LINE_WIDTH;
-    m.attr("LV_STYLE_ARC_WIDTH") = (int)LV_STYLE_ARC_WIDTH;
-    m.attr("LV_STYLE_TEXT_FONT") = (int)LV_STYLE_TEXT_FONT;
-    m.attr("LV_STYLE_IMAGE_RECOLOR_OPA") = (int)LV_STYLE_IMAGE_RECOLOR_OPA;
-    m.attr("LV_STYLE_IMAGE_OPA") = (int)LV_STYLE_IMAGE_OPA;
-    m.attr("LV_STYLE_SHADOW_OPA") = (int)LV_STYLE_SHADOW_OPA;
-    m.attr("LV_STYLE_LINE_OPA") = (int)LV_STYLE_LINE_OPA;
-    m.attr("LV_STYLE_ARC_OPA") = (int)LV_STYLE_ARC_OPA;
-    m.attr("LV_STYLE_TEXT_OPA") = (int)LV_STYLE_TEXT_OPA;
-    m.attr("LV_STYLE_SHADOW_COLOR") = (int)LV_STYLE_SHADOW_COLOR;
-    m.attr("LV_STYLE_IMAGE_RECOLOR") = (int)LV_STYLE_IMAGE_RECOLOR;
-    m.attr("LV_STYLE_LINE_COLOR") = (int)LV_STYLE_LINE_COLOR;
-    m.attr("LV_STYLE_ARC_COLOR") = (int)LV_STYLE_ARC_COLOR;
-    m.attr("LV_STYLE_TEXT_COLOR") = (int)LV_STYLE_TEXT_COLOR;
-    m.attr("LV_STYLE_ARC_IMAGE_SRC") = (int)LV_STYLE_ARC_IMAGE_SRC;
-    m.attr("LV_STYLE_SHADOW_OFFSET_X") = (int)LV_STYLE_SHADOW_OFFSET_X;
-    m.attr("LV_STYLE_SHADOW_OFFSET_Y") = (int)LV_STYLE_SHADOW_OFFSET_Y;
-    m.attr("LV_STYLE_SHADOW_SPREAD") = (int)LV_STYLE_SHADOW_SPREAD;
-    m.attr("LV_STYLE_LINE_DASH_WIDTH") = (int)LV_STYLE_LINE_DASH_WIDTH;
-    m.attr("LV_STYLE_TEXT_ALIGN") = (int)LV_STYLE_TEXT_ALIGN;
-    m.attr("LV_STYLE_TEXT_LETTER_SPACE") = (int)LV_STYLE_TEXT_LETTER_SPACE;
-    m.attr("LV_STYLE_TEXT_LINE_SPACE") = (int)LV_STYLE_TEXT_LINE_SPACE;
-    m.attr("LV_STYLE_LINE_DASH_GAP") = (int)LV_STYLE_LINE_DASH_GAP;
-    m.attr("LV_STYLE_LINE_ROUNDED") = (int)LV_STYLE_LINE_ROUNDED;
-    m.attr("LV_STYLE_IMAGE_COLORKEY") = (int)LV_STYLE_IMAGE_COLORKEY;
-    m.attr("LV_STYLE_TEXT_OUTLINE_STROKE_WIDTH") = (int)LV_STYLE_TEXT_OUTLINE_STROKE_WIDTH;
-    m.attr("LV_STYLE_TEXT_OUTLINE_STROKE_OPA") = (int)LV_STYLE_TEXT_OUTLINE_STROKE_OPA;
-    m.attr("LV_STYLE_TEXT_OUTLINE_STROKE_COLOR") = (int)LV_STYLE_TEXT_OUTLINE_STROKE_COLOR;
-    m.attr("LV_STYLE_TEXT_DECOR") = (int)LV_STYLE_TEXT_DECOR;
-    m.attr("LV_STYLE_ARC_ROUNDED") = (int)LV_STYLE_ARC_ROUNDED;
-    m.attr("LV_STYLE_OPA") = (int)LV_STYLE_OPA;
-    m.attr("LV_STYLE_OPA_LAYERED") = (int)LV_STYLE_OPA_LAYERED;
-    m.attr("LV_STYLE_COLOR_FILTER_DSC") = (int)LV_STYLE_COLOR_FILTER_DSC;
-    m.attr("LV_STYLE_COLOR_FILTER_OPA") = (int)LV_STYLE_COLOR_FILTER_OPA;
-    m.attr("LV_STYLE_ANIM") = (int)LV_STYLE_ANIM;
-    m.attr("LV_STYLE_ANIM_DURATION") = (int)LV_STYLE_ANIM_DURATION;
-    m.attr("LV_STYLE_TRANSITION") = (int)LV_STYLE_TRANSITION;
-    m.attr("LV_STYLE_RADIUS") = (int)LV_STYLE_RADIUS;
-    m.attr("LV_STYLE_BITMAP_MASK_SRC") = (int)LV_STYLE_BITMAP_MASK_SRC;
-    m.attr("LV_STYLE_BLEND_MODE") = (int)LV_STYLE_BLEND_MODE;
-    m.attr("LV_STYLE_ROTARY_SENSITIVITY") = (int)LV_STYLE_ROTARY_SENSITIVITY;
-    m.attr("LV_STYLE_TRANSLATE_RADIAL") = (int)LV_STYLE_TRANSLATE_RADIAL;
-    m.attr("LV_STYLE_CLIP_CORNER") = (int)LV_STYLE_CLIP_CORNER;
-    m.attr("LV_STYLE_BASE_DIR") = (int)LV_STYLE_BASE_DIR;
-    m.attr("LV_STYLE_RECOLOR") = (int)LV_STYLE_RECOLOR;
-    m.attr("LV_STYLE_RECOLOR_OPA") = (int)LV_STYLE_RECOLOR_OPA;
-    m.attr("LV_STYLE_LAYOUT") = (int)LV_STYLE_LAYOUT;
-    m.attr("LV_STYLE_BLUR_RADIUS") = (int)LV_STYLE_BLUR_RADIUS;
-    m.attr("LV_STYLE_BLUR_BACKDROP") = (int)LV_STYLE_BLUR_BACKDROP;
-    m.attr("LV_STYLE_BLUR_QUALITY") = (int)LV_STYLE_BLUR_QUALITY;
-    m.attr("LV_STYLE_DROP_SHADOW_RADIUS") = (int)LV_STYLE_DROP_SHADOW_RADIUS;
-    m.attr("LV_STYLE_DROP_SHADOW_OFFSET_X") = (int)LV_STYLE_DROP_SHADOW_OFFSET_X;
-    m.attr("LV_STYLE_DROP_SHADOW_OFFSET_Y") = (int)LV_STYLE_DROP_SHADOW_OFFSET_Y;
-    m.attr("LV_STYLE_DROP_SHADOW_COLOR") = (int)LV_STYLE_DROP_SHADOW_COLOR;
-    m.attr("LV_STYLE_DROP_SHADOW_OPA") = (int)LV_STYLE_DROP_SHADOW_OPA;
-    m.attr("LV_STYLE_DROP_SHADOW_QUALITY") = (int)LV_STYLE_DROP_SHADOW_QUALITY;
-    m.attr("LV_STYLE_TRANSFORM_SCALE_X") = (int)LV_STYLE_TRANSFORM_SCALE_X;
-    m.attr("LV_STYLE_TRANSFORM_SCALE_Y") = (int)LV_STYLE_TRANSFORM_SCALE_Y;
-    m.attr("LV_STYLE_TRANSFORM_PIVOT_X") = (int)LV_STYLE_TRANSFORM_PIVOT_X;
-    m.attr("LV_STYLE_TRANSFORM_PIVOT_Y") = (int)LV_STYLE_TRANSFORM_PIVOT_Y;
-    m.attr("LV_STYLE_TRANSFORM_ROTATION") = (int)LV_STYLE_TRANSFORM_ROTATION;
-    m.attr("LV_STYLE_TRANSFORM_SKEW_X") = (int)LV_STYLE_TRANSFORM_SKEW_X;
-    m.attr("LV_STYLE_TRANSFORM_SKEW_Y") = (int)LV_STYLE_TRANSFORM_SKEW_Y;
-    m.attr("LV_STYLE_FLEX_FLOW") = (int)LV_STYLE_FLEX_FLOW;
-    m.attr("LV_STYLE_FLEX_MAIN_PLACE") = (int)LV_STYLE_FLEX_MAIN_PLACE;
-    m.attr("LV_STYLE_FLEX_CROSS_PLACE") = (int)LV_STYLE_FLEX_CROSS_PLACE;
-    m.attr("LV_STYLE_FLEX_TRACK_PLACE") = (int)LV_STYLE_FLEX_TRACK_PLACE;
-    m.attr("LV_STYLE_FLEX_GROW") = (int)LV_STYLE_FLEX_GROW;
-    m.attr("LV_STYLE_GRID_COLUMN_DSC_ARRAY") = (int)LV_STYLE_GRID_COLUMN_DSC_ARRAY;
-    m.attr("LV_STYLE_GRID_ROW_DSC_ARRAY") = (int)LV_STYLE_GRID_ROW_DSC_ARRAY;
-    m.attr("LV_STYLE_GRID_COLUMN_ALIGN") = (int)LV_STYLE_GRID_COLUMN_ALIGN;
-    m.attr("LV_STYLE_GRID_ROW_ALIGN") = (int)LV_STYLE_GRID_ROW_ALIGN;
-    m.attr("LV_STYLE_GRID_CELL_COLUMN_POS") = (int)LV_STYLE_GRID_CELL_COLUMN_POS;
-    m.attr("LV_STYLE_GRID_CELL_COLUMN_SPAN") = (int)LV_STYLE_GRID_CELL_COLUMN_SPAN;
-    m.attr("LV_STYLE_GRID_CELL_X_ALIGN") = (int)LV_STYLE_GRID_CELL_X_ALIGN;
-    m.attr("LV_STYLE_GRID_CELL_ROW_POS") = (int)LV_STYLE_GRID_CELL_ROW_POS;
-    m.attr("LV_STYLE_GRID_CELL_ROW_SPAN") = (int)LV_STYLE_GRID_CELL_ROW_SPAN;
-    m.attr("LV_STYLE_GRID_CELL_Y_ALIGN") = (int)LV_STYLE_GRID_CELL_Y_ALIGN;
-    m.attr("LV_STYLE_TEXT_LEADING_TRIM") = (int)LV_STYLE_TEXT_LEADING_TRIM;
-    m.attr("LV_STYLE_LAST_BUILT_IN_PROP") = (int)LV_STYLE_LAST_BUILT_IN_PROP;
-    m.attr("LV_STYLE_NUM_BUILT_IN_PROPS") = (int)LV_STYLE_NUM_BUILT_IN_PROPS;
-    m.attr("LV_STYLE_PROP_ANY") = (int)LV_STYLE_PROP_ANY;
-    m.attr("LV_STYLE_PROP_CONST") = (int)LV_STYLE_PROP_CONST;
+    m.attr("STYLE_PROP_INV") = (int)LV_STYLE_PROP_INV;
+    m.attr("STYLE_WIDTH") = (int)LV_STYLE_WIDTH;
+    m.attr("STYLE_HEIGHT") = (int)LV_STYLE_HEIGHT;
+    m.attr("STYLE_LENGTH") = (int)LV_STYLE_LENGTH;
+    m.attr("STYLE_TRANSFORM_WIDTH") = (int)LV_STYLE_TRANSFORM_WIDTH;
+    m.attr("STYLE_TRANSFORM_HEIGHT") = (int)LV_STYLE_TRANSFORM_HEIGHT;
+    m.attr("STYLE_MIN_WIDTH") = (int)LV_STYLE_MIN_WIDTH;
+    m.attr("STYLE_MAX_WIDTH") = (int)LV_STYLE_MAX_WIDTH;
+    m.attr("STYLE_MIN_HEIGHT") = (int)LV_STYLE_MIN_HEIGHT;
+    m.attr("STYLE_MAX_HEIGHT") = (int)LV_STYLE_MAX_HEIGHT;
+    m.attr("STYLE_TRANSLATE_X") = (int)LV_STYLE_TRANSLATE_X;
+    m.attr("STYLE_TRANSLATE_Y") = (int)LV_STYLE_TRANSLATE_Y;
+    m.attr("STYLE_RADIAL_OFFSET") = (int)LV_STYLE_RADIAL_OFFSET;
+    m.attr("STYLE_X") = (int)LV_STYLE_X;
+    m.attr("STYLE_Y") = (int)LV_STYLE_Y;
+    m.attr("STYLE_ALIGN") = (int)LV_STYLE_ALIGN;
+    m.attr("STYLE_PAD_TOP") = (int)LV_STYLE_PAD_TOP;
+    m.attr("STYLE_PAD_BOTTOM") = (int)LV_STYLE_PAD_BOTTOM;
+    m.attr("STYLE_PAD_LEFT") = (int)LV_STYLE_PAD_LEFT;
+    m.attr("STYLE_PAD_RIGHT") = (int)LV_STYLE_PAD_RIGHT;
+    m.attr("STYLE_PAD_RADIAL") = (int)LV_STYLE_PAD_RADIAL;
+    m.attr("STYLE_PAD_ROW") = (int)LV_STYLE_PAD_ROW;
+    m.attr("STYLE_PAD_COLUMN") = (int)LV_STYLE_PAD_COLUMN;
+    m.attr("STYLE_MARGIN_TOP") = (int)LV_STYLE_MARGIN_TOP;
+    m.attr("STYLE_MARGIN_BOTTOM") = (int)LV_STYLE_MARGIN_BOTTOM;
+    m.attr("STYLE_MARGIN_LEFT") = (int)LV_STYLE_MARGIN_LEFT;
+    m.attr("STYLE_MARGIN_RIGHT") = (int)LV_STYLE_MARGIN_RIGHT;
+    m.attr("STYLE_BG_GRAD") = (int)LV_STYLE_BG_GRAD;
+    m.attr("STYLE_BG_GRAD_DIR") = (int)LV_STYLE_BG_GRAD_DIR;
+    m.attr("STYLE_BG_MAIN_OPA") = (int)LV_STYLE_BG_MAIN_OPA;
+    m.attr("STYLE_BG_GRAD_OPA") = (int)LV_STYLE_BG_GRAD_OPA;
+    m.attr("STYLE_BG_GRAD_COLOR") = (int)LV_STYLE_BG_GRAD_COLOR;
+    m.attr("STYLE_BG_MAIN_STOP") = (int)LV_STYLE_BG_MAIN_STOP;
+    m.attr("STYLE_BG_GRAD_STOP") = (int)LV_STYLE_BG_GRAD_STOP;
+    m.attr("STYLE_BG_IMAGE_SRC") = (int)LV_STYLE_BG_IMAGE_SRC;
+    m.attr("STYLE_BG_IMAGE_OPA") = (int)LV_STYLE_BG_IMAGE_OPA;
+    m.attr("STYLE_BG_IMAGE_RECOLOR_OPA") = (int)LV_STYLE_BG_IMAGE_RECOLOR_OPA;
+    m.attr("STYLE_BG_IMAGE_TILED") = (int)LV_STYLE_BG_IMAGE_TILED;
+    m.attr("STYLE_BG_IMAGE_RECOLOR") = (int)LV_STYLE_BG_IMAGE_RECOLOR;
+    m.attr("STYLE_BORDER_WIDTH") = (int)LV_STYLE_BORDER_WIDTH;
+    m.attr("STYLE_BORDER_COLOR") = (int)LV_STYLE_BORDER_COLOR;
+    m.attr("STYLE_BORDER_OPA") = (int)LV_STYLE_BORDER_OPA;
+    m.attr("STYLE_BORDER_POST") = (int)LV_STYLE_BORDER_POST;
+    m.attr("STYLE_BORDER_SIDE") = (int)LV_STYLE_BORDER_SIDE;
+    m.attr("STYLE_OUTLINE_WIDTH") = (int)LV_STYLE_OUTLINE_WIDTH;
+    m.attr("STYLE_OUTLINE_COLOR") = (int)LV_STYLE_OUTLINE_COLOR;
+    m.attr("STYLE_OUTLINE_OPA") = (int)LV_STYLE_OUTLINE_OPA;
+    m.attr("STYLE_OUTLINE_PAD") = (int)LV_STYLE_OUTLINE_PAD;
+    m.attr("STYLE_BG_OPA") = (int)LV_STYLE_BG_OPA;
+    m.attr("STYLE_BG_COLOR") = (int)LV_STYLE_BG_COLOR;
+    m.attr("STYLE_SHADOW_WIDTH") = (int)LV_STYLE_SHADOW_WIDTH;
+    m.attr("STYLE_LINE_WIDTH") = (int)LV_STYLE_LINE_WIDTH;
+    m.attr("STYLE_ARC_WIDTH") = (int)LV_STYLE_ARC_WIDTH;
+    m.attr("STYLE_TEXT_FONT") = (int)LV_STYLE_TEXT_FONT;
+    m.attr("STYLE_IMAGE_RECOLOR_OPA") = (int)LV_STYLE_IMAGE_RECOLOR_OPA;
+    m.attr("STYLE_IMAGE_OPA") = (int)LV_STYLE_IMAGE_OPA;
+    m.attr("STYLE_SHADOW_OPA") = (int)LV_STYLE_SHADOW_OPA;
+    m.attr("STYLE_LINE_OPA") = (int)LV_STYLE_LINE_OPA;
+    m.attr("STYLE_ARC_OPA") = (int)LV_STYLE_ARC_OPA;
+    m.attr("STYLE_TEXT_OPA") = (int)LV_STYLE_TEXT_OPA;
+    m.attr("STYLE_SHADOW_COLOR") = (int)LV_STYLE_SHADOW_COLOR;
+    m.attr("STYLE_IMAGE_RECOLOR") = (int)LV_STYLE_IMAGE_RECOLOR;
+    m.attr("STYLE_LINE_COLOR") = (int)LV_STYLE_LINE_COLOR;
+    m.attr("STYLE_ARC_COLOR") = (int)LV_STYLE_ARC_COLOR;
+    m.attr("STYLE_TEXT_COLOR") = (int)LV_STYLE_TEXT_COLOR;
+    m.attr("STYLE_ARC_IMAGE_SRC") = (int)LV_STYLE_ARC_IMAGE_SRC;
+    m.attr("STYLE_SHADOW_OFFSET_X") = (int)LV_STYLE_SHADOW_OFFSET_X;
+    m.attr("STYLE_SHADOW_OFFSET_Y") = (int)LV_STYLE_SHADOW_OFFSET_Y;
+    m.attr("STYLE_SHADOW_SPREAD") = (int)LV_STYLE_SHADOW_SPREAD;
+    m.attr("STYLE_LINE_DASH_WIDTH") = (int)LV_STYLE_LINE_DASH_WIDTH;
+    m.attr("STYLE_TEXT_ALIGN") = (int)LV_STYLE_TEXT_ALIGN;
+    m.attr("STYLE_TEXT_LETTER_SPACE") = (int)LV_STYLE_TEXT_LETTER_SPACE;
+    m.attr("STYLE_TEXT_LINE_SPACE") = (int)LV_STYLE_TEXT_LINE_SPACE;
+    m.attr("STYLE_LINE_DASH_GAP") = (int)LV_STYLE_LINE_DASH_GAP;
+    m.attr("STYLE_LINE_ROUNDED") = (int)LV_STYLE_LINE_ROUNDED;
+    m.attr("STYLE_IMAGE_COLORKEY") = (int)LV_STYLE_IMAGE_COLORKEY;
+    m.attr("STYLE_TEXT_OUTLINE_STROKE_WIDTH") = (int)LV_STYLE_TEXT_OUTLINE_STROKE_WIDTH;
+    m.attr("STYLE_TEXT_OUTLINE_STROKE_OPA") = (int)LV_STYLE_TEXT_OUTLINE_STROKE_OPA;
+    m.attr("STYLE_TEXT_OUTLINE_STROKE_COLOR") = (int)LV_STYLE_TEXT_OUTLINE_STROKE_COLOR;
+    m.attr("STYLE_TEXT_DECOR") = (int)LV_STYLE_TEXT_DECOR;
+    m.attr("STYLE_ARC_ROUNDED") = (int)LV_STYLE_ARC_ROUNDED;
+    m.attr("STYLE_OPA") = (int)LV_STYLE_OPA;
+    m.attr("STYLE_OPA_LAYERED") = (int)LV_STYLE_OPA_LAYERED;
+    m.attr("STYLE_COLOR_FILTER_DSC") = (int)LV_STYLE_COLOR_FILTER_DSC;
+    m.attr("STYLE_COLOR_FILTER_OPA") = (int)LV_STYLE_COLOR_FILTER_OPA;
+    m.attr("STYLE_ANIM") = (int)LV_STYLE_ANIM;
+    m.attr("STYLE_ANIM_DURATION") = (int)LV_STYLE_ANIM_DURATION;
+    m.attr("STYLE_TRANSITION") = (int)LV_STYLE_TRANSITION;
+    m.attr("STYLE_RADIUS") = (int)LV_STYLE_RADIUS;
+    m.attr("STYLE_BITMAP_MASK_SRC") = (int)LV_STYLE_BITMAP_MASK_SRC;
+    m.attr("STYLE_BLEND_MODE") = (int)LV_STYLE_BLEND_MODE;
+    m.attr("STYLE_ROTARY_SENSITIVITY") = (int)LV_STYLE_ROTARY_SENSITIVITY;
+    m.attr("STYLE_TRANSLATE_RADIAL") = (int)LV_STYLE_TRANSLATE_RADIAL;
+    m.attr("STYLE_CLIP_CORNER") = (int)LV_STYLE_CLIP_CORNER;
+    m.attr("STYLE_BASE_DIR") = (int)LV_STYLE_BASE_DIR;
+    m.attr("STYLE_RECOLOR") = (int)LV_STYLE_RECOLOR;
+    m.attr("STYLE_RECOLOR_OPA") = (int)LV_STYLE_RECOLOR_OPA;
+    m.attr("STYLE_LAYOUT") = (int)LV_STYLE_LAYOUT;
+    m.attr("STYLE_BLUR_RADIUS") = (int)LV_STYLE_BLUR_RADIUS;
+    m.attr("STYLE_BLUR_BACKDROP") = (int)LV_STYLE_BLUR_BACKDROP;
+    m.attr("STYLE_BLUR_QUALITY") = (int)LV_STYLE_BLUR_QUALITY;
+    m.attr("STYLE_DROP_SHADOW_RADIUS") = (int)LV_STYLE_DROP_SHADOW_RADIUS;
+    m.attr("STYLE_DROP_SHADOW_OFFSET_X") = (int)LV_STYLE_DROP_SHADOW_OFFSET_X;
+    m.attr("STYLE_DROP_SHADOW_OFFSET_Y") = (int)LV_STYLE_DROP_SHADOW_OFFSET_Y;
+    m.attr("STYLE_DROP_SHADOW_COLOR") = (int)LV_STYLE_DROP_SHADOW_COLOR;
+    m.attr("STYLE_DROP_SHADOW_OPA") = (int)LV_STYLE_DROP_SHADOW_OPA;
+    m.attr("STYLE_DROP_SHADOW_QUALITY") = (int)LV_STYLE_DROP_SHADOW_QUALITY;
+    m.attr("STYLE_TRANSFORM_SCALE_X") = (int)LV_STYLE_TRANSFORM_SCALE_X;
+    m.attr("STYLE_TRANSFORM_SCALE_Y") = (int)LV_STYLE_TRANSFORM_SCALE_Y;
+    m.attr("STYLE_TRANSFORM_PIVOT_X") = (int)LV_STYLE_TRANSFORM_PIVOT_X;
+    m.attr("STYLE_TRANSFORM_PIVOT_Y") = (int)LV_STYLE_TRANSFORM_PIVOT_Y;
+    m.attr("STYLE_TRANSFORM_ROTATION") = (int)LV_STYLE_TRANSFORM_ROTATION;
+    m.attr("STYLE_TRANSFORM_SKEW_X") = (int)LV_STYLE_TRANSFORM_SKEW_X;
+    m.attr("STYLE_TRANSFORM_SKEW_Y") = (int)LV_STYLE_TRANSFORM_SKEW_Y;
+    m.attr("STYLE_FLEX_FLOW") = (int)LV_STYLE_FLEX_FLOW;
+    m.attr("STYLE_FLEX_MAIN_PLACE") = (int)LV_STYLE_FLEX_MAIN_PLACE;
+    m.attr("STYLE_FLEX_CROSS_PLACE") = (int)LV_STYLE_FLEX_CROSS_PLACE;
+    m.attr("STYLE_FLEX_TRACK_PLACE") = (int)LV_STYLE_FLEX_TRACK_PLACE;
+    m.attr("STYLE_FLEX_GROW") = (int)LV_STYLE_FLEX_GROW;
+    m.attr("STYLE_GRID_COLUMN_DSC_ARRAY") = (int)LV_STYLE_GRID_COLUMN_DSC_ARRAY;
+    m.attr("STYLE_GRID_ROW_DSC_ARRAY") = (int)LV_STYLE_GRID_ROW_DSC_ARRAY;
+    m.attr("STYLE_GRID_COLUMN_ALIGN") = (int)LV_STYLE_GRID_COLUMN_ALIGN;
+    m.attr("STYLE_GRID_ROW_ALIGN") = (int)LV_STYLE_GRID_ROW_ALIGN;
+    m.attr("STYLE_GRID_CELL_COLUMN_POS") = (int)LV_STYLE_GRID_CELL_COLUMN_POS;
+    m.attr("STYLE_GRID_CELL_COLUMN_SPAN") = (int)LV_STYLE_GRID_CELL_COLUMN_SPAN;
+    m.attr("STYLE_GRID_CELL_X_ALIGN") = (int)LV_STYLE_GRID_CELL_X_ALIGN;
+    m.attr("STYLE_GRID_CELL_ROW_POS") = (int)LV_STYLE_GRID_CELL_ROW_POS;
+    m.attr("STYLE_GRID_CELL_ROW_SPAN") = (int)LV_STYLE_GRID_CELL_ROW_SPAN;
+    m.attr("STYLE_GRID_CELL_Y_ALIGN") = (int)LV_STYLE_GRID_CELL_Y_ALIGN;
+    m.attr("STYLE_TEXT_LEADING_TRIM") = (int)LV_STYLE_TEXT_LEADING_TRIM;
+    m.attr("STYLE_LAST_BUILT_IN_PROP") = (int)LV_STYLE_LAST_BUILT_IN_PROP;
+    m.attr("STYLE_NUM_BUILT_IN_PROPS") = (int)LV_STYLE_NUM_BUILT_IN_PROPS;
+    m.attr("STYLE_PROP_ANY") = (int)LV_STYLE_PROP_ANY;
+    m.attr("STYLE_PROP_CONST") = (int)LV_STYLE_PROP_CONST;
 
-    py::enum_<lv_style_res_t>(m, "STYLE_RES")
-        .value("LV_STYLE_RES_NOT_FOUND", LV_STYLE_RES_NOT_FOUND)
-        .value("LV_STYLE_RES_FOUND", LV_STYLE_RES_FOUND)
-        .export_values();
+    py::enum_<lv_style_res_t>(m, "STYLE")
+        .value("NOT_FOUND", LV_STYLE_RES_NOT_FOUND)
+        .value("FOUND", LV_STYLE_RES_FOUND)
+;
 
     py::enum_<lv_display_rotation_t>(m, "DISPLAY_ROTATION")
-        .value("LV_DISPLAY_ROTATION_0", LV_DISPLAY_ROTATION_0)
-        .value("LV_DISPLAY_ROTATION_90", LV_DISPLAY_ROTATION_90)
-        .value("LV_DISPLAY_ROTATION_180", LV_DISPLAY_ROTATION_180)
-        .value("LV_DISPLAY_ROTATION_270", LV_DISPLAY_ROTATION_270)
-        .export_values();
+        .value("_0", LV_DISPLAY_ROTATION_0)
+        .value("_90", LV_DISPLAY_ROTATION_90)
+        .value("_180", LV_DISPLAY_ROTATION_180)
+        .value("_270", LV_DISPLAY_ROTATION_270)
+;
 
-    py::enum_<lv_display_render_mode_t>(m, "DISPLAY_RENDER_MODE")
-        .value("LV_DISPLAY_RENDER_MODE_PARTIAL", LV_DISPLAY_RENDER_MODE_PARTIAL)
-        .value("LV_DISPLAY_RENDER_MODE_DIRECT", LV_DISPLAY_RENDER_MODE_DIRECT)
-        .value("LV_DISPLAY_RENDER_MODE_FULL", LV_DISPLAY_RENDER_MODE_FULL)
-        .export_values();
+    py::enum_<lv_display_render_mode_t>(m, "DISPLAY_RENDER")
+        .value("PARTIAL", LV_DISPLAY_RENDER_MODE_PARTIAL)
+        .value("DIRECT", LV_DISPLAY_RENDER_MODE_DIRECT)
+        .value("FULL", LV_DISPLAY_RENDER_MODE_FULL)
+;
 
-    py::enum_<lv_screen_load_anim_t>(m, "SCREEN_LOAD_ANIM")
-        .value("LV_SCREEN_LOAD_ANIM_NONE", LV_SCREEN_LOAD_ANIM_NONE)
-        .value("LV_SCREEN_LOAD_ANIM_OVER_LEFT", LV_SCREEN_LOAD_ANIM_OVER_LEFT)
-        .value("LV_SCREEN_LOAD_ANIM_OVER_RIGHT", LV_SCREEN_LOAD_ANIM_OVER_RIGHT)
-        .value("LV_SCREEN_LOAD_ANIM_OVER_TOP", LV_SCREEN_LOAD_ANIM_OVER_TOP)
-        .value("LV_SCREEN_LOAD_ANIM_OVER_BOTTOM", LV_SCREEN_LOAD_ANIM_OVER_BOTTOM)
-        .value("LV_SCREEN_LOAD_ANIM_MOVE_LEFT", LV_SCREEN_LOAD_ANIM_MOVE_LEFT)
-        .value("LV_SCREEN_LOAD_ANIM_MOVE_RIGHT", LV_SCREEN_LOAD_ANIM_MOVE_RIGHT)
-        .value("LV_SCREEN_LOAD_ANIM_MOVE_TOP", LV_SCREEN_LOAD_ANIM_MOVE_TOP)
-        .value("LV_SCREEN_LOAD_ANIM_MOVE_BOTTOM", LV_SCREEN_LOAD_ANIM_MOVE_BOTTOM)
-        .value("LV_SCREEN_LOAD_ANIM_FADE_IN", LV_SCREEN_LOAD_ANIM_FADE_IN)
-        .value("LV_SCREEN_LOAD_ANIM_FADE_ON", LV_SCREEN_LOAD_ANIM_FADE_ON)
-        .value("LV_SCREEN_LOAD_ANIM_FADE_OUT", LV_SCREEN_LOAD_ANIM_FADE_OUT)
-        .value("LV_SCREEN_LOAD_ANIM_OUT_LEFT", LV_SCREEN_LOAD_ANIM_OUT_LEFT)
-        .value("LV_SCREEN_LOAD_ANIM_OUT_RIGHT", LV_SCREEN_LOAD_ANIM_OUT_RIGHT)
-        .value("LV_SCREEN_LOAD_ANIM_OUT_TOP", LV_SCREEN_LOAD_ANIM_OUT_TOP)
-        .value("LV_SCREEN_LOAD_ANIM_OUT_BOTTOM", LV_SCREEN_LOAD_ANIM_OUT_BOTTOM)
-        .export_values();
+    py::enum_<lv_screen_load_anim_t>(m, "SCREEN")
+        .value("NONE", LV_SCREEN_LOAD_ANIM_NONE)
+        .value("OVER_LEFT", LV_SCREEN_LOAD_ANIM_OVER_LEFT)
+        .value("OVER_RIGHT", LV_SCREEN_LOAD_ANIM_OVER_RIGHT)
+        .value("OVER_TOP", LV_SCREEN_LOAD_ANIM_OVER_TOP)
+        .value("OVER_BOTTOM", LV_SCREEN_LOAD_ANIM_OVER_BOTTOM)
+        .value("MOVE_LEFT", LV_SCREEN_LOAD_ANIM_MOVE_LEFT)
+        .value("MOVE_RIGHT", LV_SCREEN_LOAD_ANIM_MOVE_RIGHT)
+        .value("MOVE_TOP", LV_SCREEN_LOAD_ANIM_MOVE_TOP)
+        .value("MOVE_BOTTOM", LV_SCREEN_LOAD_ANIM_MOVE_BOTTOM)
+        .value("FADE_IN", LV_SCREEN_LOAD_ANIM_FADE_IN)
+        .value("FADE_ON", LV_SCREEN_LOAD_ANIM_FADE_ON)
+        .value("FADE_OUT", LV_SCREEN_LOAD_ANIM_FADE_OUT)
+        .value("OUT_LEFT", LV_SCREEN_LOAD_ANIM_OUT_LEFT)
+        .value("OUT_RIGHT", LV_SCREEN_LOAD_ANIM_OUT_RIGHT)
+        .value("OUT_TOP", LV_SCREEN_LOAD_ANIM_OUT_TOP)
+        .value("OUT_BOTTOM", LV_SCREEN_LOAD_ANIM_OUT_BOTTOM)
+;
 
-    py::enum_<lv_obj_tree_walk_res_t>(m, "OBJ_TREE_WALK_RES")
-        .value("LV_OBJ_TREE_WALK_NEXT", LV_OBJ_TREE_WALK_NEXT)
-        .value("LV_OBJ_TREE_WALK_SKIP_CHILDREN", LV_OBJ_TREE_WALK_SKIP_CHILDREN)
-        .value("LV_OBJ_TREE_WALK_END", LV_OBJ_TREE_WALK_END)
-        .export_values();
+    py::enum_<lv_obj_tree_walk_res_t>(m, "OBJ_TREE_WALK")
+        .value("NEXT", LV_OBJ_TREE_WALK_NEXT)
+        .value("SKIP_CHILDREN", LV_OBJ_TREE_WALK_SKIP_CHILDREN)
+        .value("END", LV_OBJ_TREE_WALK_END)
+;
 
-    py::enum_<lv_obj_point_transform_flag_t>(m, "OBJ_POINT_TRANSFORM_FLAG")
-        .value("LV_OBJ_POINT_TRANSFORM_FLAG_NONE", LV_OBJ_POINT_TRANSFORM_FLAG_NONE)
-        .value("LV_OBJ_POINT_TRANSFORM_FLAG_RECURSIVE", LV_OBJ_POINT_TRANSFORM_FLAG_RECURSIVE)
-        .value("LV_OBJ_POINT_TRANSFORM_FLAG_INVERSE", LV_OBJ_POINT_TRANSFORM_FLAG_INVERSE)
-        .value("LV_OBJ_POINT_TRANSFORM_FLAG_INVERSE_RECURSIVE", LV_OBJ_POINT_TRANSFORM_FLAG_INVERSE_RECURSIVE)
-        .export_values();
+    py::enum_<lv_obj_point_transform_flag_t>(m, "OBJ_POINT")
+        .value("NONE", LV_OBJ_POINT_TRANSFORM_FLAG_NONE)
+        .value("RECURSIVE", LV_OBJ_POINT_TRANSFORM_FLAG_RECURSIVE)
+        .value("INVERSE", LV_OBJ_POINT_TRANSFORM_FLAG_INVERSE)
+        .value("INVERSE_RECURSIVE", LV_OBJ_POINT_TRANSFORM_FLAG_INVERSE_RECURSIVE)
+;
 
-    py::enum_<lv_scrollbar_mode_t>(m, "SCROLLBAR_MODE")
-        .value("LV_SCROLLBAR_MODE_OFF", LV_SCROLLBAR_MODE_OFF)
-        .value("LV_SCROLLBAR_MODE_ON", LV_SCROLLBAR_MODE_ON)
-        .value("LV_SCROLLBAR_MODE_ACTIVE", LV_SCROLLBAR_MODE_ACTIVE)
-        .value("LV_SCROLLBAR_MODE_AUTO", LV_SCROLLBAR_MODE_AUTO)
-        .export_values();
+    py::enum_<lv_scrollbar_mode_t>(m, "SCROLLBAR")
+        .value("OFF", LV_SCROLLBAR_MODE_OFF)
+        .value("ON", LV_SCROLLBAR_MODE_ON)
+        .value("ACTIVE", LV_SCROLLBAR_MODE_ACTIVE)
+        .value("AUTO", LV_SCROLLBAR_MODE_AUTO)
+;
 
     py::enum_<lv_scroll_snap_t>(m, "SCROLL_SNAP")
-        .value("LV_SCROLL_SNAP_NONE", LV_SCROLL_SNAP_NONE)
-        .value("LV_SCROLL_SNAP_START", LV_SCROLL_SNAP_START)
-        .value("LV_SCROLL_SNAP_END", LV_SCROLL_SNAP_END)
-        .value("LV_SCROLL_SNAP_CENTER", LV_SCROLL_SNAP_CENTER)
-        .export_values();
+        .value("NONE", LV_SCROLL_SNAP_NONE)
+        .value("START", LV_SCROLL_SNAP_START)
+        .value("END", LV_SCROLL_SNAP_END)
+        .value("CENTER", LV_SCROLL_SNAP_CENTER)
+;
 
     py::enum_<lv_state_t>(m, "STATE")
-        .value("LV_STATE_DEFAULT", LV_STATE_DEFAULT)
-        .value("LV_STATE_ALT", LV_STATE_ALT)
-        .value("LV_STATE_CHECKED", LV_STATE_CHECKED)
-        .value("LV_STATE_FOCUSED", LV_STATE_FOCUSED)
-        .value("LV_STATE_FOCUS_KEY", LV_STATE_FOCUS_KEY)
-        .value("LV_STATE_EDITED", LV_STATE_EDITED)
-        .value("LV_STATE_HOVERED", LV_STATE_HOVERED)
-        .value("LV_STATE_PRESSED", LV_STATE_PRESSED)
-        .value("LV_STATE_SCROLLED", LV_STATE_SCROLLED)
-        .value("LV_STATE_DISABLED", LV_STATE_DISABLED)
-        .value("LV_STATE_USER_1", LV_STATE_USER_1)
-        .value("LV_STATE_USER_2", LV_STATE_USER_2)
-        .value("LV_STATE_USER_3", LV_STATE_USER_3)
-        .value("LV_STATE_USER_4", LV_STATE_USER_4)
-        .value("LV_STATE_ANY", LV_STATE_ANY)
-        .export_values();
+        .value("DEFAULT", LV_STATE_DEFAULT)
+        .value("ALT", LV_STATE_ALT)
+        .value("CHECKED", LV_STATE_CHECKED)
+        .value("FOCUSED", LV_STATE_FOCUSED)
+        .value("FOCUS_KEY", LV_STATE_FOCUS_KEY)
+        .value("EDITED", LV_STATE_EDITED)
+        .value("HOVERED", LV_STATE_HOVERED)
+        .value("PRESSED", LV_STATE_PRESSED)
+        .value("SCROLLED", LV_STATE_SCROLLED)
+        .value("DISABLED", LV_STATE_DISABLED)
+        .value("USER_1", LV_STATE_USER_1)
+        .value("USER_2", LV_STATE_USER_2)
+        .value("USER_3", LV_STATE_USER_3)
+        .value("USER_4", LV_STATE_USER_4)
+        .value("ANY", LV_STATE_ANY)
+;
 
     py::enum_<lv_part_t>(m, "PART")
-        .value("LV_PART_MAIN", LV_PART_MAIN)
-        .value("LV_PART_SCROLLBAR", LV_PART_SCROLLBAR)
-        .value("LV_PART_INDICATOR", LV_PART_INDICATOR)
-        .value("LV_PART_KNOB", LV_PART_KNOB)
-        .value("LV_PART_SELECTED", LV_PART_SELECTED)
-        .value("LV_PART_ITEMS", LV_PART_ITEMS)
-        .value("LV_PART_CURSOR", LV_PART_CURSOR)
-        .value("LV_PART_CUSTOM_FIRST", LV_PART_CUSTOM_FIRST)
-        .value("LV_PART_ANY", LV_PART_ANY)
-        .export_values();
+        .value("MAIN", LV_PART_MAIN)
+        .value("SCROLLBAR", LV_PART_SCROLLBAR)
+        .value("INDICATOR", LV_PART_INDICATOR)
+        .value("KNOB", LV_PART_KNOB)
+        .value("SELECTED", LV_PART_SELECTED)
+        .value("ITEMS", LV_PART_ITEMS)
+        .value("CURSOR", LV_PART_CURSOR)
+        .value("CUSTOM_FIRST", LV_PART_CUSTOM_FIRST)
+        .value("ANY", LV_PART_ANY)
+;
 
-    py::enum_<lv_style_state_cmp_t>(m, "STYLE_STATE_CMP")
-        .value("LV_STYLE_STATE_CMP_SAME", LV_STYLE_STATE_CMP_SAME)
-        .value("LV_STYLE_STATE_CMP_DIFF_REDRAW", LV_STYLE_STATE_CMP_DIFF_REDRAW)
-        .value("LV_STYLE_STATE_CMP_DIFF_DRAW_PAD", LV_STYLE_STATE_CMP_DIFF_DRAW_PAD)
-        .value("LV_STYLE_STATE_CMP_DIFF_LAYOUT", LV_STYLE_STATE_CMP_DIFF_LAYOUT)
-        .export_values();
+    py::enum_<lv_style_state_cmp_t>(m, "STYLE_STATE")
+        .value("SAME", LV_STYLE_STATE_CMP_SAME)
+        .value("DIFF_REDRAW", LV_STYLE_STATE_CMP_DIFF_REDRAW)
+        .value("DIFF_DRAW_PAD", LV_STYLE_STATE_CMP_DIFF_DRAW_PAD)
+        .value("DIFF_LAYOUT", LV_STYLE_STATE_CMP_DIFF_LAYOUT)
+;
 
-    py::enum_<lv_draw_task_type_t>(m, "DRAW_TASK_TYPE")
-        .value("LV_DRAW_TASK_TYPE_NONE", LV_DRAW_TASK_TYPE_NONE)
-        .value("LV_DRAW_TASK_TYPE_FILL", LV_DRAW_TASK_TYPE_FILL)
-        .value("LV_DRAW_TASK_TYPE_BORDER", LV_DRAW_TASK_TYPE_BORDER)
-        .value("LV_DRAW_TASK_TYPE_BOX_SHADOW", LV_DRAW_TASK_TYPE_BOX_SHADOW)
-        .value("LV_DRAW_TASK_TYPE_LETTER", LV_DRAW_TASK_TYPE_LETTER)
-        .value("LV_DRAW_TASK_TYPE_LABEL", LV_DRAW_TASK_TYPE_LABEL)
-        .value("LV_DRAW_TASK_TYPE_IMAGE", LV_DRAW_TASK_TYPE_IMAGE)
-        .value("LV_DRAW_TASK_TYPE_LAYER", LV_DRAW_TASK_TYPE_LAYER)
-        .value("LV_DRAW_TASK_TYPE_LINE", LV_DRAW_TASK_TYPE_LINE)
-        .value("LV_DRAW_TASK_TYPE_ARC", LV_DRAW_TASK_TYPE_ARC)
-        .value("LV_DRAW_TASK_TYPE_TRIANGLE", LV_DRAW_TASK_TYPE_TRIANGLE)
-        .value("LV_DRAW_TASK_TYPE_MASK_RECTANGLE", LV_DRAW_TASK_TYPE_MASK_RECTANGLE)
-        .value("LV_DRAW_TASK_TYPE_MASK_BITMAP", LV_DRAW_TASK_TYPE_MASK_BITMAP)
-        .value("LV_DRAW_TASK_TYPE_BLUR", LV_DRAW_TASK_TYPE_BLUR)
-        .value("LV_DRAW_TASK_TYPE_VECTOR", LV_DRAW_TASK_TYPE_VECTOR)
-        .export_values();
+    py::enum_<lv_draw_task_type_t>(m, "DRAW_TASK")
+        .value("NONE", LV_DRAW_TASK_TYPE_NONE)
+        .value("FILL", LV_DRAW_TASK_TYPE_FILL)
+        .value("BORDER", LV_DRAW_TASK_TYPE_BORDER)
+        .value("BOX_SHADOW", LV_DRAW_TASK_TYPE_BOX_SHADOW)
+        .value("LETTER", LV_DRAW_TASK_TYPE_LETTER)
+        .value("LABEL", LV_DRAW_TASK_TYPE_LABEL)
+        .value("IMAGE", LV_DRAW_TASK_TYPE_IMAGE)
+        .value("LAYER", LV_DRAW_TASK_TYPE_LAYER)
+        .value("LINE", LV_DRAW_TASK_TYPE_LINE)
+        .value("ARC", LV_DRAW_TASK_TYPE_ARC)
+        .value("TRIANGLE", LV_DRAW_TASK_TYPE_TRIANGLE)
+        .value("MASK_RECTANGLE", LV_DRAW_TASK_TYPE_MASK_RECTANGLE)
+        .value("MASK_BITMAP", LV_DRAW_TASK_TYPE_MASK_BITMAP)
+        .value("BLUR", LV_DRAW_TASK_TYPE_BLUR)
+        .value("VECTOR", LV_DRAW_TASK_TYPE_VECTOR)
+;
 
     py::enum_<lv_draw_task_state_t>(m, "DRAW_TASK_STATE")
-        .value("LV_DRAW_TASK_STATE_BLOCKED", LV_DRAW_TASK_STATE_BLOCKED)
-        .value("LV_DRAW_TASK_STATE_WAITING", LV_DRAW_TASK_STATE_WAITING)
-        .value("LV_DRAW_TASK_STATE_QUEUED", LV_DRAW_TASK_STATE_QUEUED)
-        .value("LV_DRAW_TASK_STATE_IN_PROGRESS", LV_DRAW_TASK_STATE_IN_PROGRESS)
-        .value("LV_DRAW_TASK_STATE_FINISHED", LV_DRAW_TASK_STATE_FINISHED)
-        .export_values();
+        .value("BLOCKED", LV_DRAW_TASK_STATE_BLOCKED)
+        .value("WAITING", LV_DRAW_TASK_STATE_WAITING)
+        .value("QUEUED", LV_DRAW_TASK_STATE_QUEUED)
+        .value("IN_PROGRESS", LV_DRAW_TASK_STATE_IN_PROGRESS)
+        .value("FINISHED", LV_DRAW_TASK_STATE_FINISHED)
+;
 
     py::enum_<lv_fs_res_t>(m, "FS_RES")
-        .value("LV_FS_RES_OK", LV_FS_RES_OK)
-        .value("LV_FS_RES_HW_ERR", LV_FS_RES_HW_ERR)
-        .value("LV_FS_RES_FS_ERR", LV_FS_RES_FS_ERR)
-        .value("LV_FS_RES_NOT_EX", LV_FS_RES_NOT_EX)
-        .value("LV_FS_RES_FULL", LV_FS_RES_FULL)
-        .value("LV_FS_RES_LOCKED", LV_FS_RES_LOCKED)
-        .value("LV_FS_RES_DENIED", LV_FS_RES_DENIED)
-        .value("LV_FS_RES_BUSY", LV_FS_RES_BUSY)
-        .value("LV_FS_RES_TOUT", LV_FS_RES_TOUT)
-        .value("LV_FS_RES_NOT_IMP", LV_FS_RES_NOT_IMP)
-        .value("LV_FS_RES_OUT_OF_MEM", LV_FS_RES_OUT_OF_MEM)
-        .value("LV_FS_RES_INV_PARAM", LV_FS_RES_INV_PARAM)
-        .value("LV_FS_RES_DRIVE_LETTER_ALREADY_USED", LV_FS_RES_DRIVE_LETTER_ALREADY_USED)
-        .value("LV_FS_RES_UNKNOWN", LV_FS_RES_UNKNOWN)
-        .export_values();
+        .value("OK", LV_FS_RES_OK)
+        .value("HW_ERR", LV_FS_RES_HW_ERR)
+        .value("FS_ERR", LV_FS_RES_FS_ERR)
+        .value("NOT_EX", LV_FS_RES_NOT_EX)
+        .value("FULL", LV_FS_RES_FULL)
+        .value("LOCKED", LV_FS_RES_LOCKED)
+        .value("DENIED", LV_FS_RES_DENIED)
+        .value("BUSY", LV_FS_RES_BUSY)
+        .value("TOUT", LV_FS_RES_TOUT)
+        .value("NOT_IMP", LV_FS_RES_NOT_IMP)
+        .value("OUT_OF_MEM", LV_FS_RES_OUT_OF_MEM)
+        .value("INV_PARAM", LV_FS_RES_INV_PARAM)
+        .value("DRIVE_LETTER_ALREADY_USED", LV_FS_RES_DRIVE_LETTER_ALREADY_USED)
+        .value("UNKNOWN", LV_FS_RES_UNKNOWN)
+;
 
     py::enum_<lv_fs_mode_t>(m, "FS_MODE")
-        .value("LV_FS_MODE_WR", LV_FS_MODE_WR)
-        .value("LV_FS_MODE_RD", LV_FS_MODE_RD)
-        .export_values();
+        .value("WR", LV_FS_MODE_WR)
+        .value("RD", LV_FS_MODE_RD)
+;
 
     py::enum_<lv_fs_whence_t>(m, "FS_WHENCE")
-        .value("LV_FS_SEEK_SET", LV_FS_SEEK_SET)
-        .value("LV_FS_SEEK_CUR", LV_FS_SEEK_CUR)
-        .value("LV_FS_SEEK_END", LV_FS_SEEK_END)
-        .export_values();
+        .value("FS_SEEK_SET", LV_FS_SEEK_SET)
+        .value("FS_SEEK_CUR", LV_FS_SEEK_CUR)
+        .value("FS_SEEK_END", LV_FS_SEEK_END)
+;
 
     py::enum_<lv_image_src_t>(m, "IMAGE_SRC")
-        .value("LV_IMAGE_SRC_VARIABLE", LV_IMAGE_SRC_VARIABLE)
-        .value("LV_IMAGE_SRC_FILE", LV_IMAGE_SRC_FILE)
-        .value("LV_IMAGE_SRC_SYMBOL", LV_IMAGE_SRC_SYMBOL)
-        .value("LV_IMAGE_SRC_UNKNOWN", LV_IMAGE_SRC_UNKNOWN)
-        .export_values();
+        .value("VARIABLE", LV_IMAGE_SRC_VARIABLE)
+        .value("FILE", LV_IMAGE_SRC_FILE)
+        .value("SYMBOL", LV_IMAGE_SRC_SYMBOL)
+        .value("UNKNOWN", LV_IMAGE_SRC_UNKNOWN)
+;
 
-    py::enum_<lv_layer_type_t>(m, "LAYER_TYPE")
-        .value("LV_LAYER_TYPE_NONE", LV_LAYER_TYPE_NONE)
-        .value("LV_LAYER_TYPE_SIMPLE", LV_LAYER_TYPE_SIMPLE)
-        .value("LV_LAYER_TYPE_TRANSFORM", LV_LAYER_TYPE_TRANSFORM)
-        .export_values();
+    py::enum_<lv_layer_type_t>(m, "LAYER")
+        .value("NONE", LV_LAYER_TYPE_NONE)
+        .value("SIMPLE", LV_LAYER_TYPE_SIMPLE)
+        .value("TRANSFORM", LV_LAYER_TYPE_TRANSFORM)
+;
 
     py::enum_<lv_obj_class_editable_t>(m, "OBJ_CLASS_EDITABLE")
-        .value("LV_OBJ_CLASS_EDITABLE_INHERIT", LV_OBJ_CLASS_EDITABLE_INHERIT)
-        .value("LV_OBJ_CLASS_EDITABLE_TRUE", LV_OBJ_CLASS_EDITABLE_TRUE)
-        .value("LV_OBJ_CLASS_EDITABLE_FALSE", LV_OBJ_CLASS_EDITABLE_FALSE)
-        .export_values();
+        .value("INHERIT", LV_OBJ_CLASS_EDITABLE_INHERIT)
+        .value("TRUE", LV_OBJ_CLASS_EDITABLE_TRUE)
+        .value("FALSE", LV_OBJ_CLASS_EDITABLE_FALSE)
+;
 
     py::enum_<lv_obj_class_group_def_t>(m, "OBJ_CLASS_GROUP_DEF")
-        .value("LV_OBJ_CLASS_GROUP_DEF_INHERIT", LV_OBJ_CLASS_GROUP_DEF_INHERIT)
-        .value("LV_OBJ_CLASS_GROUP_DEF_TRUE", LV_OBJ_CLASS_GROUP_DEF_TRUE)
-        .value("LV_OBJ_CLASS_GROUP_DEF_FALSE", LV_OBJ_CLASS_GROUP_DEF_FALSE)
-        .export_values();
+        .value("INHERIT", LV_OBJ_CLASS_GROUP_DEF_INHERIT)
+        .value("TRUE", LV_OBJ_CLASS_GROUP_DEF_TRUE)
+        .value("FALSE", LV_OBJ_CLASS_GROUP_DEF_FALSE)
+;
 
-    py::enum_<lv_obj_class_theme_inheritable_t>(m, "OBJ_CLASS_THEME_INHERITABLE")
-        .value("LV_OBJ_CLASS_THEME_INHERITABLE_FALSE", LV_OBJ_CLASS_THEME_INHERITABLE_FALSE)
-        .value("LV_OBJ_CLASS_THEME_INHERITABLE_TRUE", LV_OBJ_CLASS_THEME_INHERITABLE_TRUE)
-        .export_values();
+    py::enum_<lv_obj_class_theme_inheritable_t>(m, "OBJ_CLASS_THEME")
+        .value("FALSE", LV_OBJ_CLASS_THEME_INHERITABLE_FALSE)
+        .value("TRUE", LV_OBJ_CLASS_THEME_INHERITABLE_TRUE)
+;
 
     py::enum_<lv_indev_type_t>(m, "INDEV_TYPE")
-        .value("LV_INDEV_TYPE_NONE", LV_INDEV_TYPE_NONE)
-        .value("LV_INDEV_TYPE_POINTER", LV_INDEV_TYPE_POINTER)
-        .value("LV_INDEV_TYPE_KEYPAD", LV_INDEV_TYPE_KEYPAD)
-        .value("LV_INDEV_TYPE_BUTTON", LV_INDEV_TYPE_BUTTON)
-        .value("LV_INDEV_TYPE_ENCODER", LV_INDEV_TYPE_ENCODER)
-        .export_values();
+        .value("NONE", LV_INDEV_TYPE_NONE)
+        .value("POINTER", LV_INDEV_TYPE_POINTER)
+        .value("KEYPAD", LV_INDEV_TYPE_KEYPAD)
+        .value("BUTTON", LV_INDEV_TYPE_BUTTON)
+        .value("ENCODER", LV_INDEV_TYPE_ENCODER)
+;
 
     py::enum_<lv_indev_state_t>(m, "INDEV_STATE")
-        .value("LV_INDEV_STATE_RELEASED", LV_INDEV_STATE_RELEASED)
-        .value("LV_INDEV_STATE_PRESSED", LV_INDEV_STATE_PRESSED)
-        .export_values();
+        .value("RELEASED", LV_INDEV_STATE_RELEASED)
+        .value("PRESSED", LV_INDEV_STATE_PRESSED)
+;
 
     py::enum_<lv_indev_mode_t>(m, "INDEV_MODE")
-        .value("LV_INDEV_MODE_NONE", LV_INDEV_MODE_NONE)
-        .value("LV_INDEV_MODE_TIMER", LV_INDEV_MODE_TIMER)
-        .value("LV_INDEV_MODE_EVENT", LV_INDEV_MODE_EVENT)
-        .export_values();
+        .value("NONE", LV_INDEV_MODE_NONE)
+        .value("TIMER", LV_INDEV_MODE_TIMER)
+        .value("EVENT", LV_INDEV_MODE_EVENT)
+;
 
-    py::enum_<lv_indev_gesture_type_t>(m, "INDEV_GESTURE_TYPE")
-        .value("LV_INDEV_GESTURE_NONE", LV_INDEV_GESTURE_NONE)
-        .value("LV_INDEV_GESTURE_PINCH", LV_INDEV_GESTURE_PINCH)
-        .value("LV_INDEV_GESTURE_SWIPE", LV_INDEV_GESTURE_SWIPE)
-        .value("LV_INDEV_GESTURE_ROTATE", LV_INDEV_GESTURE_ROTATE)
-        .value("LV_INDEV_GESTURE_TWO_FINGERS_SWIPE", LV_INDEV_GESTURE_TWO_FINGERS_SWIPE)
-        .value("LV_INDEV_GESTURE_SCROLL", LV_INDEV_GESTURE_SCROLL)
-        .value("LV_INDEV_GESTURE_CNT", LV_INDEV_GESTURE_CNT)
-        .export_values();
+    py::enum_<lv_indev_gesture_type_t>(m, "INDEV_GESTURE")
+        .value("NONE", LV_INDEV_GESTURE_NONE)
+        .value("PINCH", LV_INDEV_GESTURE_PINCH)
+        .value("SWIPE", LV_INDEV_GESTURE_SWIPE)
+        .value("ROTATE", LV_INDEV_GESTURE_ROTATE)
+        .value("TWO_FINGERS_SWIPE", LV_INDEV_GESTURE_TWO_FINGERS_SWIPE)
+        .value("SCROLL", LV_INDEV_GESTURE_SCROLL)
+        .value("CNT", LV_INDEV_GESTURE_CNT)
+;
 
-    py::enum_<lv_cover_res_t>(m, "COVER_RES")
-        .value("LV_COVER_RES_COVER", LV_COVER_RES_COVER)
-        .value("LV_COVER_RES_NOT_COVER", LV_COVER_RES_NOT_COVER)
-        .value("LV_COVER_RES_MASKED", LV_COVER_RES_MASKED)
-        .export_values();
+    py::enum_<lv_cover_res_t>(m, "COVER")
+        .value("COVER", LV_COVER_RES_COVER)
+        .value("NOT_COVER", LV_COVER_RES_NOT_COVER)
+        .value("MASKED", LV_COVER_RES_MASKED)
+;
 
     py::enum_<lv_obj_flag_t>(m, "OBJ_FLAG")
-        .value("LV_OBJ_FLAG_HIDDEN", LV_OBJ_FLAG_HIDDEN)
-        .value("LV_OBJ_FLAG_CLICKABLE", LV_OBJ_FLAG_CLICKABLE)
-        .value("LV_OBJ_FLAG_CLICK_FOCUSABLE", LV_OBJ_FLAG_CLICK_FOCUSABLE)
-        .value("LV_OBJ_FLAG_CHECKABLE", LV_OBJ_FLAG_CHECKABLE)
-        .value("LV_OBJ_FLAG_SCROLLABLE", LV_OBJ_FLAG_SCROLLABLE)
-        .value("LV_OBJ_FLAG_SCROLL_ELASTIC", LV_OBJ_FLAG_SCROLL_ELASTIC)
-        .value("LV_OBJ_FLAG_SCROLL_MOMENTUM", LV_OBJ_FLAG_SCROLL_MOMENTUM)
-        .value("LV_OBJ_FLAG_SCROLL_ONE", LV_OBJ_FLAG_SCROLL_ONE)
-        .value("LV_OBJ_FLAG_SCROLL_CHAIN_HOR", LV_OBJ_FLAG_SCROLL_CHAIN_HOR)
-        .value("LV_OBJ_FLAG_SCROLL_CHAIN_VER", LV_OBJ_FLAG_SCROLL_CHAIN_VER)
-        .value("LV_OBJ_FLAG_SCROLL_CHAIN", LV_OBJ_FLAG_SCROLL_CHAIN)
-        .value("LV_OBJ_FLAG_SCROLL_ON_FOCUS", LV_OBJ_FLAG_SCROLL_ON_FOCUS)
-        .value("LV_OBJ_FLAG_SCROLL_WITH_ARROW", LV_OBJ_FLAG_SCROLL_WITH_ARROW)
-        .value("LV_OBJ_FLAG_SNAPPABLE", LV_OBJ_FLAG_SNAPPABLE)
-        .value("LV_OBJ_FLAG_PRESS_LOCK", LV_OBJ_FLAG_PRESS_LOCK)
-        .value("LV_OBJ_FLAG_EVENT_BUBBLE", LV_OBJ_FLAG_EVENT_BUBBLE)
-        .value("LV_OBJ_FLAG_GESTURE_BUBBLE", LV_OBJ_FLAG_GESTURE_BUBBLE)
-        .value("LV_OBJ_FLAG_ADV_HITTEST", LV_OBJ_FLAG_ADV_HITTEST)
-        .value("LV_OBJ_FLAG_IGNORE_LAYOUT", LV_OBJ_FLAG_IGNORE_LAYOUT)
-        .value("LV_OBJ_FLAG_FLOATING", LV_OBJ_FLAG_FLOATING)
-        .value("LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS", LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS)
-        .value("LV_OBJ_FLAG_OVERFLOW_VISIBLE", LV_OBJ_FLAG_OVERFLOW_VISIBLE)
-        .value("LV_OBJ_FLAG_EVENT_TRICKLE", LV_OBJ_FLAG_EVENT_TRICKLE)
-        .value("LV_OBJ_FLAG_STATE_TRICKLE", LV_OBJ_FLAG_STATE_TRICKLE)
-        .value("LV_OBJ_FLAG_LAYOUT_1", LV_OBJ_FLAG_LAYOUT_1)
-        .value("LV_OBJ_FLAG_LAYOUT_2", LV_OBJ_FLAG_LAYOUT_2)
-        .value("LV_OBJ_FLAG_FLEX_IN_NEW_TRACK", LV_OBJ_FLAG_FLEX_IN_NEW_TRACK)
-        .value("LV_OBJ_FLAG_WIDGET_1", LV_OBJ_FLAG_WIDGET_1)
-        .value("LV_OBJ_FLAG_WIDGET_2", LV_OBJ_FLAG_WIDGET_2)
-        .value("LV_OBJ_FLAG_USER_1", LV_OBJ_FLAG_USER_1)
-        .value("LV_OBJ_FLAG_USER_2", LV_OBJ_FLAG_USER_2)
-        .value("LV_OBJ_FLAG_USER_3", LV_OBJ_FLAG_USER_3)
-        .value("LV_OBJ_FLAG_USER_4", LV_OBJ_FLAG_USER_4)
-        .export_values();
+        .value("HIDDEN", LV_OBJ_FLAG_HIDDEN)
+        .value("CLICKABLE", LV_OBJ_FLAG_CLICKABLE)
+        .value("CLICK_FOCUSABLE", LV_OBJ_FLAG_CLICK_FOCUSABLE)
+        .value("CHECKABLE", LV_OBJ_FLAG_CHECKABLE)
+        .value("SCROLLABLE", LV_OBJ_FLAG_SCROLLABLE)
+        .value("SCROLL_ELASTIC", LV_OBJ_FLAG_SCROLL_ELASTIC)
+        .value("SCROLL_MOMENTUM", LV_OBJ_FLAG_SCROLL_MOMENTUM)
+        .value("SCROLL_ONE", LV_OBJ_FLAG_SCROLL_ONE)
+        .value("SCROLL_CHAIN_HOR", LV_OBJ_FLAG_SCROLL_CHAIN_HOR)
+        .value("SCROLL_CHAIN_VER", LV_OBJ_FLAG_SCROLL_CHAIN_VER)
+        .value("SCROLL_CHAIN", LV_OBJ_FLAG_SCROLL_CHAIN)
+        .value("SCROLL_ON_FOCUS", LV_OBJ_FLAG_SCROLL_ON_FOCUS)
+        .value("SCROLL_WITH_ARROW", LV_OBJ_FLAG_SCROLL_WITH_ARROW)
+        .value("SNAPPABLE", LV_OBJ_FLAG_SNAPPABLE)
+        .value("PRESS_LOCK", LV_OBJ_FLAG_PRESS_LOCK)
+        .value("EVENT_BUBBLE", LV_OBJ_FLAG_EVENT_BUBBLE)
+        .value("GESTURE_BUBBLE", LV_OBJ_FLAG_GESTURE_BUBBLE)
+        .value("ADV_HITTEST", LV_OBJ_FLAG_ADV_HITTEST)
+        .value("IGNORE_LAYOUT", LV_OBJ_FLAG_IGNORE_LAYOUT)
+        .value("FLOATING", LV_OBJ_FLAG_FLOATING)
+        .value("SEND_DRAW_TASK_EVENTS", LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS)
+        .value("OVERFLOW_VISIBLE", LV_OBJ_FLAG_OVERFLOW_VISIBLE)
+        .value("EVENT_TRICKLE", LV_OBJ_FLAG_EVENT_TRICKLE)
+        .value("STATE_TRICKLE", LV_OBJ_FLAG_STATE_TRICKLE)
+        .value("LAYOUT_1", LV_OBJ_FLAG_LAYOUT_1)
+        .value("LAYOUT_2", LV_OBJ_FLAG_LAYOUT_2)
+        .value("FLEX_IN_NEW_TRACK", LV_OBJ_FLAG_FLEX_IN_NEW_TRACK)
+        .value("WIDGET_1", LV_OBJ_FLAG_WIDGET_1)
+        .value("WIDGET_2", LV_OBJ_FLAG_WIDGET_2)
+        .value("USER_1", LV_OBJ_FLAG_USER_1)
+        .value("USER_2", LV_OBJ_FLAG_USER_2)
+        .value("USER_3", LV_OBJ_FLAG_USER_3)
+        .value("USER_4", LV_OBJ_FLAG_USER_4)
+;
 
-    py::enum_<lv_subject_type_t>(m, "SUBJECT_TYPE")
-        .value("LV_SUBJECT_TYPE_INVALID", LV_SUBJECT_TYPE_INVALID)
-        .value("LV_SUBJECT_TYPE_NONE", LV_SUBJECT_TYPE_NONE)
-        .value("LV_SUBJECT_TYPE_INT", LV_SUBJECT_TYPE_INT)
-        .value("LV_SUBJECT_TYPE_FLOAT", LV_SUBJECT_TYPE_FLOAT)
-        .value("LV_SUBJECT_TYPE_POINTER", LV_SUBJECT_TYPE_POINTER)
-        .value("LV_SUBJECT_TYPE_COLOR", LV_SUBJECT_TYPE_COLOR)
-        .value("LV_SUBJECT_TYPE_GROUP", LV_SUBJECT_TYPE_GROUP)
-        .value("LV_SUBJECT_TYPE_STRING", LV_SUBJECT_TYPE_STRING)
-        .export_values();
+    py::enum_<lv_subject_type_t>(m, "SUBJECT")
+        .value("INVALID", LV_SUBJECT_TYPE_INVALID)
+        .value("NONE", LV_SUBJECT_TYPE_NONE)
+        .value("INT", LV_SUBJECT_TYPE_INT)
+        .value("FLOAT", LV_SUBJECT_TYPE_FLOAT)
+        .value("POINTER", LV_SUBJECT_TYPE_POINTER)
+        .value("COLOR", LV_SUBJECT_TYPE_COLOR)
+        .value("GROUP", LV_SUBJECT_TYPE_GROUP)
+        .value("STRING", LV_SUBJECT_TYPE_STRING)
+;
 
     py::enum_<lv_vector_fill_t>(m, "VECTOR_FILL")
-        .value("LV_VECTOR_FILL_NONZERO", LV_VECTOR_FILL_NONZERO)
-        .value("LV_VECTOR_FILL_EVENODD", LV_VECTOR_FILL_EVENODD)
-        .export_values();
+        .value("NONZERO", LV_VECTOR_FILL_NONZERO)
+        .value("EVENODD", LV_VECTOR_FILL_EVENODD)
+;
 
     py::enum_<lv_vector_stroke_cap_t>(m, "VECTOR_STROKE_CAP")
-        .value("LV_VECTOR_STROKE_CAP_BUTT", LV_VECTOR_STROKE_CAP_BUTT)
-        .value("LV_VECTOR_STROKE_CAP_SQUARE", LV_VECTOR_STROKE_CAP_SQUARE)
-        .value("LV_VECTOR_STROKE_CAP_ROUND", LV_VECTOR_STROKE_CAP_ROUND)
-        .export_values();
+        .value("BUTT", LV_VECTOR_STROKE_CAP_BUTT)
+        .value("SQUARE", LV_VECTOR_STROKE_CAP_SQUARE)
+        .value("ROUND", LV_VECTOR_STROKE_CAP_ROUND)
+;
 
     py::enum_<lv_vector_stroke_join_t>(m, "VECTOR_STROKE_JOIN")
-        .value("LV_VECTOR_STROKE_JOIN_MITER", LV_VECTOR_STROKE_JOIN_MITER)
-        .value("LV_VECTOR_STROKE_JOIN_BEVEL", LV_VECTOR_STROKE_JOIN_BEVEL)
-        .value("LV_VECTOR_STROKE_JOIN_ROUND", LV_VECTOR_STROKE_JOIN_ROUND)
-        .export_values();
+        .value("MITER", LV_VECTOR_STROKE_JOIN_MITER)
+        .value("BEVEL", LV_VECTOR_STROKE_JOIN_BEVEL)
+        .value("ROUND", LV_VECTOR_STROKE_JOIN_ROUND)
+;
 
     py::enum_<lv_vector_path_quality_t>(m, "VECTOR_PATH_QUALITY")
-        .value("LV_VECTOR_PATH_QUALITY_MEDIUM", LV_VECTOR_PATH_QUALITY_MEDIUM)
-        .value("LV_VECTOR_PATH_QUALITY_HIGH", LV_VECTOR_PATH_QUALITY_HIGH)
-        .value("LV_VECTOR_PATH_QUALITY_LOW", LV_VECTOR_PATH_QUALITY_LOW)
-        .export_values();
+        .value("MEDIUM", LV_VECTOR_PATH_QUALITY_MEDIUM)
+        .value("HIGH", LV_VECTOR_PATH_QUALITY_HIGH)
+        .value("LOW", LV_VECTOR_PATH_QUALITY_LOW)
+;
 
     py::enum_<lv_vector_blend_t>(m, "VECTOR_BLEND")
-        .value("LV_VECTOR_BLEND_SRC_OVER", LV_VECTOR_BLEND_SRC_OVER)
-        .value("LV_VECTOR_BLEND_SRC_IN", LV_VECTOR_BLEND_SRC_IN)
-        .value("LV_VECTOR_BLEND_DST_OVER", LV_VECTOR_BLEND_DST_OVER)
-        .value("LV_VECTOR_BLEND_DST_IN", LV_VECTOR_BLEND_DST_IN)
-        .value("LV_VECTOR_BLEND_SCREEN", LV_VECTOR_BLEND_SCREEN)
-        .value("LV_VECTOR_BLEND_MULTIPLY", LV_VECTOR_BLEND_MULTIPLY)
-        .value("LV_VECTOR_BLEND_NONE", LV_VECTOR_BLEND_NONE)
-        .value("LV_VECTOR_BLEND_ADDITIVE", LV_VECTOR_BLEND_ADDITIVE)
-        .value("LV_VECTOR_BLEND_SUBTRACTIVE", LV_VECTOR_BLEND_SUBTRACTIVE)
-        .export_values();
+        .value("OVER", LV_VECTOR_BLEND_SRC_OVER)
+        .value("IN", LV_VECTOR_BLEND_SRC_IN)
+        .value("DST_OVER", LV_VECTOR_BLEND_DST_OVER)
+        .value("DST_IN", LV_VECTOR_BLEND_DST_IN)
+        .value("SCREEN", LV_VECTOR_BLEND_SCREEN)
+        .value("MULTIPLY", LV_VECTOR_BLEND_MULTIPLY)
+        .value("NONE", LV_VECTOR_BLEND_NONE)
+        .value("ADDITIVE", LV_VECTOR_BLEND_ADDITIVE)
+        .value("SUBTRACTIVE", LV_VECTOR_BLEND_SUBTRACTIVE)
+;
 
     py::enum_<lv_vector_path_op_t>(m, "VECTOR_PATH_OP")
-        .value("LV_VECTOR_PATH_OP_MOVE_TO", LV_VECTOR_PATH_OP_MOVE_TO)
-        .value("LV_VECTOR_PATH_OP_LINE_TO", LV_VECTOR_PATH_OP_LINE_TO)
-        .value("LV_VECTOR_PATH_OP_QUAD_TO", LV_VECTOR_PATH_OP_QUAD_TO)
-        .value("LV_VECTOR_PATH_OP_CUBIC_TO", LV_VECTOR_PATH_OP_CUBIC_TO)
-        .value("LV_VECTOR_PATH_OP_CLOSE", LV_VECTOR_PATH_OP_CLOSE)
-        .export_values();
+        .value("MOVE_TO", LV_VECTOR_PATH_OP_MOVE_TO)
+        .value("LINE_TO", LV_VECTOR_PATH_OP_LINE_TO)
+        .value("QUAD_TO", LV_VECTOR_PATH_OP_QUAD_TO)
+        .value("CUBIC_TO", LV_VECTOR_PATH_OP_CUBIC_TO)
+        .value("CLOSE", LV_VECTOR_PATH_OP_CLOSE)
+;
 
     py::enum_<lv_vector_draw_style_t>(m, "VECTOR_DRAW_STYLE")
-        .value("LV_VECTOR_DRAW_STYLE_SOLID", LV_VECTOR_DRAW_STYLE_SOLID)
-        .value("LV_VECTOR_DRAW_STYLE_PATTERN", LV_VECTOR_DRAW_STYLE_PATTERN)
-        .value("LV_VECTOR_DRAW_STYLE_GRADIENT", LV_VECTOR_DRAW_STYLE_GRADIENT)
-        .export_values();
+        .value("SOLID", LV_VECTOR_DRAW_STYLE_SOLID)
+        .value("PATTERN", LV_VECTOR_DRAW_STYLE_PATTERN)
+        .value("GRADIENT", LV_VECTOR_DRAW_STYLE_GRADIENT)
+;
 
     py::enum_<lv_vector_gradient_spread_t>(m, "VECTOR_GRADIENT_SPREAD")
-        .value("LV_VECTOR_GRADIENT_SPREAD_PAD", LV_VECTOR_GRADIENT_SPREAD_PAD)
-        .value("LV_VECTOR_GRADIENT_SPREAD_REPEAT", LV_VECTOR_GRADIENT_SPREAD_REPEAT)
-        .value("LV_VECTOR_GRADIENT_SPREAD_REFLECT", LV_VECTOR_GRADIENT_SPREAD_REFLECT)
-        .export_values();
+        .value("PAD", LV_VECTOR_GRADIENT_SPREAD_PAD)
+        .value("REPEAT", LV_VECTOR_GRADIENT_SPREAD_REPEAT)
+        .value("REFLECT", LV_VECTOR_GRADIENT_SPREAD_REFLECT)
+;
 
     py::enum_<lv_vector_gradient_style_t>(m, "VECTOR_GRADIENT_STYLE")
-        .value("LV_VECTOR_GRADIENT_STYLE_LINEAR", LV_VECTOR_GRADIENT_STYLE_LINEAR)
-        .value("LV_VECTOR_GRADIENT_STYLE_RADIAL", LV_VECTOR_GRADIENT_STYLE_RADIAL)
-        .export_values();
+        .value("LINEAR", LV_VECTOR_GRADIENT_STYLE_LINEAR)
+        .value("RADIAL", LV_VECTOR_GRADIENT_STYLE_RADIAL)
+;
 
     py::enum_<lv_vector_fill_units_t>(m, "VECTOR_FILL_UNITS")
-        .value("LV_VECTOR_FILL_UNITS_OBJECT_BOUNDING_BOX", LV_VECTOR_FILL_UNITS_OBJECT_BOUNDING_BOX)
-        .value("LV_VECTOR_FILL_UNITS_USER_SPACE_ON_USE", LV_VECTOR_FILL_UNITS_USER_SPACE_ON_USE)
-        .export_values();
+        .value("OBJECT_BOUNDING_BOX", LV_VECTOR_FILL_UNITS_OBJECT_BOUNDING_BOX)
+        .value("USER_SPACE_ON_USE", LV_VECTOR_FILL_UNITS_USER_SPACE_ON_USE)
+;
 
-    py::enum_<lv_evdev_type_t>(m, "EVDEV_TYPE")
-        .value("LV_EVDEV_TYPE_REL", LV_EVDEV_TYPE_REL)
-        .value("LV_EVDEV_TYPE_ABS", LV_EVDEV_TYPE_ABS)
-        .value("LV_EVDEV_TYPE_KEY", LV_EVDEV_TYPE_KEY)
-        .export_values();
+    py::enum_<lv_evdev_type_t>(m, "EVDEV")
+        .value("REL", LV_EVDEV_TYPE_REL)
+        .value("ABS", LV_EVDEV_TYPE_ABS)
+        .value("KEY", LV_EVDEV_TYPE_KEY)
+;
 
-    py::enum_<lv_font_fmt_txt_cmap_type_t>(m, "FONT_FMT_TXT_CMAP_TYPE")
-        .value("LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL", LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL)
-        .value("LV_FONT_FMT_TXT_CMAP_SPARSE_FULL", LV_FONT_FMT_TXT_CMAP_SPARSE_FULL)
-        .value("LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY", LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY)
-        .value("LV_FONT_FMT_TXT_CMAP_SPARSE_TINY", LV_FONT_FMT_TXT_CMAP_SPARSE_TINY)
-        .export_values();
+    py::enum_<lv_font_fmt_txt_cmap_type_t>(m, "FONT_FMT_TXT_CMAP")
+        .value("FORMAT0_FULL", LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL)
+        .value("SPARSE_FULL", LV_FONT_FMT_TXT_CMAP_SPARSE_FULL)
+        .value("FORMAT0_TINY", LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY)
+        .value("SPARSE_TINY", LV_FONT_FMT_TXT_CMAP_SPARSE_TINY)
+;
 
     py::enum_<lv_font_fmt_txt_bitmap_format_t>(m, "FONT_FMT_TXT_BITMAP_FORMAT")
-        .value("LV_FONT_FMT_TXT_PLAIN", LV_FONT_FMT_TXT_PLAIN)
-        .value("LV_FONT_FMT_TXT_COMPRESSED", LV_FONT_FMT_TXT_COMPRESSED)
-        .value("LV_FONT_FMT_TXT_COMPRESSED_NO_PREFILTER", LV_FONT_FMT_TXT_COMPRESSED_NO_PREFILTER)
-        .export_values();
+        .value("FONT_FMT_TXT_PLAIN", LV_FONT_FMT_TXT_PLAIN)
+        .value("FONT_FMT_TXT_COMPRESSED", LV_FONT_FMT_TXT_COMPRESSED)
+        .value("FONT_FMT_TXT_COMPRESSED_NO_PREFILTER", LV_FONT_FMT_TXT_COMPRESSED_NO_PREFILTER)
+;
+
+    py::enum_<lv_freetype_font_style_t>(m, "FREETYPE_FONT_STYLE")
+        .value("NORMAL", LV_FREETYPE_FONT_STYLE_NORMAL)
+        .value("ITALIC", LV_FREETYPE_FONT_STYLE_ITALIC)
+        .value("BOLD", LV_FREETYPE_FONT_STYLE_BOLD)
+;
+
+    py::enum_<lv_freetype_font_render_mode_t>(m, "FREETYPE_FONT_RENDER")
+        .value("BITMAP", LV_FREETYPE_FONT_RENDER_MODE_BITMAP)
+        .value("OUTLINE", LV_FREETYPE_FONT_RENDER_MODE_OUTLINE)
+;
+
+    py::enum_<lv_freetype_outline_type_t>(m, "FREETYPE_OUTLINE")
+        .value("END", LV_FREETYPE_OUTLINE_END)
+        .value("MOVE_TO", LV_FREETYPE_OUTLINE_MOVE_TO)
+        .value("LINE_TO", LV_FREETYPE_OUTLINE_LINE_TO)
+        .value("CUBIC_TO", LV_FREETYPE_OUTLINE_CUBIC_TO)
+        .value("CONIC_TO", LV_FREETYPE_OUTLINE_CONIC_TO)
+;
 
     /* Enum _lv_tree_walk_mode_t (no C type found, emitting as constants) */
-    m.attr("LV_TREE_WALK_PRE_ORDER") = (int)LV_TREE_WALK_PRE_ORDER;
-    m.attr("LV_TREE_WALK_POST_ORDER") = (int)LV_TREE_WALK_POST_ORDER;
+    m.attr("TREE_WALK_PRE_ORDER") = (int)LV_TREE_WALK_PRE_ORDER;
+    m.attr("TREE_WALK_POST_ORDER") = (int)LV_TREE_WALK_POST_ORDER;
 
     py::enum_<lv_image_align_t>(m, "IMAGE_ALIGN")
-        .value("LV_IMAGE_ALIGN_DEFAULT", LV_IMAGE_ALIGN_DEFAULT)
-        .value("LV_IMAGE_ALIGN_TOP_LEFT", LV_IMAGE_ALIGN_TOP_LEFT)
-        .value("LV_IMAGE_ALIGN_TOP_MID", LV_IMAGE_ALIGN_TOP_MID)
-        .value("LV_IMAGE_ALIGN_TOP_RIGHT", LV_IMAGE_ALIGN_TOP_RIGHT)
-        .value("LV_IMAGE_ALIGN_BOTTOM_LEFT", LV_IMAGE_ALIGN_BOTTOM_LEFT)
-        .value("LV_IMAGE_ALIGN_BOTTOM_MID", LV_IMAGE_ALIGN_BOTTOM_MID)
-        .value("LV_IMAGE_ALIGN_BOTTOM_RIGHT", LV_IMAGE_ALIGN_BOTTOM_RIGHT)
-        .value("LV_IMAGE_ALIGN_LEFT_MID", LV_IMAGE_ALIGN_LEFT_MID)
-        .value("LV_IMAGE_ALIGN_RIGHT_MID", LV_IMAGE_ALIGN_RIGHT_MID)
-        .value("LV_IMAGE_ALIGN_CENTER", LV_IMAGE_ALIGN_CENTER)
+        .value("DEFAULT", LV_IMAGE_ALIGN_DEFAULT)
+        .value("TOP_LEFT", LV_IMAGE_ALIGN_TOP_LEFT)
+        .value("TOP_MID", LV_IMAGE_ALIGN_TOP_MID)
+        .value("TOP_RIGHT", LV_IMAGE_ALIGN_TOP_RIGHT)
+        .value("BOTTOM_LEFT", LV_IMAGE_ALIGN_BOTTOM_LEFT)
+        .value("BOTTOM_MID", LV_IMAGE_ALIGN_BOTTOM_MID)
+        .value("BOTTOM_RIGHT", LV_IMAGE_ALIGN_BOTTOM_RIGHT)
+        .value("LEFT_MID", LV_IMAGE_ALIGN_LEFT_MID)
+        .value("RIGHT_MID", LV_IMAGE_ALIGN_RIGHT_MID)
+        .value("CENTER", LV_IMAGE_ALIGN_CENTER)
         .value("_LV_IMAGE_ALIGN_AUTO_TRANSFORM", _LV_IMAGE_ALIGN_AUTO_TRANSFORM)
-        .value("LV_IMAGE_ALIGN_STRETCH", LV_IMAGE_ALIGN_STRETCH)
-        .value("LV_IMAGE_ALIGN_TILE", LV_IMAGE_ALIGN_TILE)
-        .value("LV_IMAGE_ALIGN_CONTAIN", LV_IMAGE_ALIGN_CONTAIN)
-        .value("LV_IMAGE_ALIGN_CONTAIN_DOWNSCALE", LV_IMAGE_ALIGN_CONTAIN_DOWNSCALE)
-        .value("LV_IMAGE_ALIGN_COVER", LV_IMAGE_ALIGN_COVER)
-        .export_values();
+        .value("STRETCH", LV_IMAGE_ALIGN_STRETCH)
+        .value("TILE", LV_IMAGE_ALIGN_TILE)
+        .value("CONTAIN", LV_IMAGE_ALIGN_CONTAIN)
+        .value("CONTAIN_DOWNSCALE", LV_IMAGE_ALIGN_CONTAIN_DOWNSCALE)
+        .value("COVER", LV_IMAGE_ALIGN_COVER)
+;
 
     py::enum_<lv_animimg_part_t>(m, "ANIMIMG_PART")
-        .value("LV_ANIM_IMAGE_PART_MAIN", LV_ANIM_IMAGE_PART_MAIN)
-        .export_values();
+        .value("ANIM_IMAGE_PART_MAIN", LV_ANIM_IMAGE_PART_MAIN)
+;
 
-    py::enum_<lv_arc_mode_t>(m, "ARC_MODE")
-        .value("LV_ARC_MODE_NORMAL", LV_ARC_MODE_NORMAL)
-        .value("LV_ARC_MODE_SYMMETRICAL", LV_ARC_MODE_SYMMETRICAL)
-        .value("LV_ARC_MODE_REVERSE", LV_ARC_MODE_REVERSE)
-        .export_values();
+    py::enum_<lv_arc_mode_t>(m, "ARC")
+        .value("NORMAL", LV_ARC_MODE_NORMAL)
+        .value("SYMMETRICAL", LV_ARC_MODE_SYMMETRICAL)
+        .value("REVERSE", LV_ARC_MODE_REVERSE)
+;
 
     py::enum_<lv_arclabel_dir_t>(m, "ARCLABEL_DIR")
-        .value("LV_ARCLABEL_DIR_CLOCKWISE", LV_ARCLABEL_DIR_CLOCKWISE)
-        .value("LV_ARCLABEL_DIR_COUNTER_CLOCKWISE", LV_ARCLABEL_DIR_COUNTER_CLOCKWISE)
-        .export_values();
+        .value("CLOCKWISE", LV_ARCLABEL_DIR_CLOCKWISE)
+        .value("COUNTER_CLOCKWISE", LV_ARCLABEL_DIR_COUNTER_CLOCKWISE)
+;
 
     py::enum_<lv_arclabel_text_align_t>(m, "ARCLABEL_TEXT_ALIGN")
-        .value("LV_ARCLABEL_TEXT_ALIGN_DEFAULT", LV_ARCLABEL_TEXT_ALIGN_DEFAULT)
-        .value("LV_ARCLABEL_TEXT_ALIGN_LEADING", LV_ARCLABEL_TEXT_ALIGN_LEADING)
-        .value("LV_ARCLABEL_TEXT_ALIGN_CENTER", LV_ARCLABEL_TEXT_ALIGN_CENTER)
-        .value("LV_ARCLABEL_TEXT_ALIGN_TRAILING", LV_ARCLABEL_TEXT_ALIGN_TRAILING)
-        .export_values();
+        .value("DEFAULT", LV_ARCLABEL_TEXT_ALIGN_DEFAULT)
+        .value("LEADING", LV_ARCLABEL_TEXT_ALIGN_LEADING)
+        .value("CENTER", LV_ARCLABEL_TEXT_ALIGN_CENTER)
+        .value("TRAILING", LV_ARCLABEL_TEXT_ALIGN_TRAILING)
+;
 
     py::enum_<lv_arclabel_overflow_t>(m, "ARCLABEL_OVERFLOW")
-        .value("LV_ARCLABEL_OVERFLOW_VISIBLE", LV_ARCLABEL_OVERFLOW_VISIBLE)
-        .value("LV_ARCLABEL_OVERFLOW_ELLIPSIS", LV_ARCLABEL_OVERFLOW_ELLIPSIS)
-        .value("LV_ARCLABEL_OVERFLOW_CLIP", LV_ARCLABEL_OVERFLOW_CLIP)
-        .export_values();
+        .value("VISIBLE", LV_ARCLABEL_OVERFLOW_VISIBLE)
+        .value("ELLIPSIS", LV_ARCLABEL_OVERFLOW_ELLIPSIS)
+        .value("CLIP", LV_ARCLABEL_OVERFLOW_CLIP)
+;
 
-    py::enum_<lv_label_long_mode_t>(m, "LABEL_LONG_MODE")
-        .value("LV_LABEL_LONG_MODE_WRAP", LV_LABEL_LONG_MODE_WRAP)
-        .value("LV_LABEL_LONG_MODE_DOTS", LV_LABEL_LONG_MODE_DOTS)
-        .value("LV_LABEL_LONG_MODE_SCROLL", LV_LABEL_LONG_MODE_SCROLL)
-        .value("LV_LABEL_LONG_MODE_SCROLL_CIRCULAR", LV_LABEL_LONG_MODE_SCROLL_CIRCULAR)
-        .value("LV_LABEL_LONG_MODE_CLIP", LV_LABEL_LONG_MODE_CLIP)
-        .export_values();
+    py::enum_<lv_label_long_mode_t>(m, "LABEL_LONG")
+        .value("WRAP", LV_LABEL_LONG_MODE_WRAP)
+        .value("DOTS", LV_LABEL_LONG_MODE_DOTS)
+        .value("SCROLL", LV_LABEL_LONG_MODE_SCROLL)
+        .value("SCROLL_CIRCULAR", LV_LABEL_LONG_MODE_SCROLL_CIRCULAR)
+        .value("CLIP", LV_LABEL_LONG_MODE_CLIP)
+;
 
-    py::enum_<lv_bar_mode_t>(m, "BAR_MODE")
-        .value("LV_BAR_MODE_NORMAL", LV_BAR_MODE_NORMAL)
-        .value("LV_BAR_MODE_SYMMETRICAL", LV_BAR_MODE_SYMMETRICAL)
-        .value("LV_BAR_MODE_RANGE", LV_BAR_MODE_RANGE)
-        .export_values();
+    py::enum_<lv_bar_mode_t>(m, "BAR")
+        .value("NORMAL", LV_BAR_MODE_NORMAL)
+        .value("SYMMETRICAL", LV_BAR_MODE_SYMMETRICAL)
+        .value("RANGE", LV_BAR_MODE_RANGE)
+;
 
     py::enum_<lv_bar_orientation_t>(m, "BAR_ORIENTATION")
-        .value("LV_BAR_ORIENTATION_AUTO", LV_BAR_ORIENTATION_AUTO)
-        .value("LV_BAR_ORIENTATION_HORIZONTAL", LV_BAR_ORIENTATION_HORIZONTAL)
-        .value("LV_BAR_ORIENTATION_VERTICAL", LV_BAR_ORIENTATION_VERTICAL)
-        .export_values();
+        .value("AUTO", LV_BAR_ORIENTATION_AUTO)
+        .value("HORIZONTAL", LV_BAR_ORIENTATION_HORIZONTAL)
+        .value("VERTICAL", LV_BAR_ORIENTATION_VERTICAL)
+;
 
-    py::enum_<lv_barcode_encoding_t>(m, "BARCODE_ENCODING")
-        .value("LV_BARCODE_ENCODING_CODE128_GS1", LV_BARCODE_ENCODING_CODE128_GS1)
-        .value("LV_BARCODE_ENCODING_CODE128_RAW", LV_BARCODE_ENCODING_CODE128_RAW)
-        .export_values();
+    py::enum_<lv_barcode_encoding_t>(m, "BARCODE")
+        .value("CODE128_GS1", LV_BARCODE_ENCODING_CODE128_GS1)
+        .value("CODE128_RAW", LV_BARCODE_ENCODING_CODE128_RAW)
+;
 
     py::enum_<lv_buttonmatrix_ctrl_t>(m, "BUTTONMATRIX_CTRL")
-        .value("LV_BUTTONMATRIX_CTRL_NONE", LV_BUTTONMATRIX_CTRL_NONE)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_1", LV_BUTTONMATRIX_CTRL_WIDTH_1)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_2", LV_BUTTONMATRIX_CTRL_WIDTH_2)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_3", LV_BUTTONMATRIX_CTRL_WIDTH_3)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_4", LV_BUTTONMATRIX_CTRL_WIDTH_4)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_5", LV_BUTTONMATRIX_CTRL_WIDTH_5)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_6", LV_BUTTONMATRIX_CTRL_WIDTH_6)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_7", LV_BUTTONMATRIX_CTRL_WIDTH_7)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_8", LV_BUTTONMATRIX_CTRL_WIDTH_8)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_9", LV_BUTTONMATRIX_CTRL_WIDTH_9)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_10", LV_BUTTONMATRIX_CTRL_WIDTH_10)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_11", LV_BUTTONMATRIX_CTRL_WIDTH_11)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_12", LV_BUTTONMATRIX_CTRL_WIDTH_12)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_13", LV_BUTTONMATRIX_CTRL_WIDTH_13)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_14", LV_BUTTONMATRIX_CTRL_WIDTH_14)
-        .value("LV_BUTTONMATRIX_CTRL_WIDTH_15", LV_BUTTONMATRIX_CTRL_WIDTH_15)
-        .value("LV_BUTTONMATRIX_CTRL_HIDDEN", LV_BUTTONMATRIX_CTRL_HIDDEN)
-        .value("LV_BUTTONMATRIX_CTRL_NO_REPEAT", LV_BUTTONMATRIX_CTRL_NO_REPEAT)
-        .value("LV_BUTTONMATRIX_CTRL_DISABLED", LV_BUTTONMATRIX_CTRL_DISABLED)
-        .value("LV_BUTTONMATRIX_CTRL_CHECKABLE", LV_BUTTONMATRIX_CTRL_CHECKABLE)
-        .value("LV_BUTTONMATRIX_CTRL_CHECKED", LV_BUTTONMATRIX_CTRL_CHECKED)
-        .value("LV_BUTTONMATRIX_CTRL_CLICK_TRIG", LV_BUTTONMATRIX_CTRL_CLICK_TRIG)
-        .value("LV_BUTTONMATRIX_CTRL_POPOVER", LV_BUTTONMATRIX_CTRL_POPOVER)
-        .value("LV_BUTTONMATRIX_CTRL_RECOLOR", LV_BUTTONMATRIX_CTRL_RECOLOR)
-        .value("LV_BUTTONMATRIX_CTRL_RESERVED_1", LV_BUTTONMATRIX_CTRL_RESERVED_1)
-        .value("LV_BUTTONMATRIX_CTRL_RESERVED_2", LV_BUTTONMATRIX_CTRL_RESERVED_2)
-        .value("LV_BUTTONMATRIX_CTRL_CUSTOM_1", LV_BUTTONMATRIX_CTRL_CUSTOM_1)
-        .value("LV_BUTTONMATRIX_CTRL_CUSTOM_2", LV_BUTTONMATRIX_CTRL_CUSTOM_2)
-        .export_values();
+        .value("NONE", LV_BUTTONMATRIX_CTRL_NONE)
+        .value("WIDTH_1", LV_BUTTONMATRIX_CTRL_WIDTH_1)
+        .value("WIDTH_2", LV_BUTTONMATRIX_CTRL_WIDTH_2)
+        .value("WIDTH_3", LV_BUTTONMATRIX_CTRL_WIDTH_3)
+        .value("WIDTH_4", LV_BUTTONMATRIX_CTRL_WIDTH_4)
+        .value("WIDTH_5", LV_BUTTONMATRIX_CTRL_WIDTH_5)
+        .value("WIDTH_6", LV_BUTTONMATRIX_CTRL_WIDTH_6)
+        .value("WIDTH_7", LV_BUTTONMATRIX_CTRL_WIDTH_7)
+        .value("WIDTH_8", LV_BUTTONMATRIX_CTRL_WIDTH_8)
+        .value("WIDTH_9", LV_BUTTONMATRIX_CTRL_WIDTH_9)
+        .value("WIDTH_10", LV_BUTTONMATRIX_CTRL_WIDTH_10)
+        .value("WIDTH_11", LV_BUTTONMATRIX_CTRL_WIDTH_11)
+        .value("WIDTH_12", LV_BUTTONMATRIX_CTRL_WIDTH_12)
+        .value("WIDTH_13", LV_BUTTONMATRIX_CTRL_WIDTH_13)
+        .value("WIDTH_14", LV_BUTTONMATRIX_CTRL_WIDTH_14)
+        .value("WIDTH_15", LV_BUTTONMATRIX_CTRL_WIDTH_15)
+        .value("HIDDEN", LV_BUTTONMATRIX_CTRL_HIDDEN)
+        .value("NO_REPEAT", LV_BUTTONMATRIX_CTRL_NO_REPEAT)
+        .value("DISABLED", LV_BUTTONMATRIX_CTRL_DISABLED)
+        .value("CHECKABLE", LV_BUTTONMATRIX_CTRL_CHECKABLE)
+        .value("CHECKED", LV_BUTTONMATRIX_CTRL_CHECKED)
+        .value("CLICK_TRIG", LV_BUTTONMATRIX_CTRL_CLICK_TRIG)
+        .value("POPOVER", LV_BUTTONMATRIX_CTRL_POPOVER)
+        .value("RECOLOR", LV_BUTTONMATRIX_CTRL_RECOLOR)
+        .value("RESERVED_1", LV_BUTTONMATRIX_CTRL_RESERVED_1)
+        .value("RESERVED_2", LV_BUTTONMATRIX_CTRL_RESERVED_2)
+        .value("CUSTOM_1", LV_BUTTONMATRIX_CTRL_CUSTOM_1)
+        .value("CUSTOM_2", LV_BUTTONMATRIX_CTRL_CUSTOM_2)
+;
 
-    py::enum_<lv_chart_type_t>(m, "CHART_TYPE")
-        .value("LV_CHART_TYPE_NONE", LV_CHART_TYPE_NONE)
-        .value("LV_CHART_TYPE_LINE", LV_CHART_TYPE_LINE)
-        .value("LV_CHART_TYPE_CURVE", LV_CHART_TYPE_CURVE)
-        .value("LV_CHART_TYPE_BAR", LV_CHART_TYPE_BAR)
-        .value("LV_CHART_TYPE_STACKED", LV_CHART_TYPE_STACKED)
-        .value("LV_CHART_TYPE_SCATTER", LV_CHART_TYPE_SCATTER)
-        .export_values();
+    py::enum_<lv_chart_type_t>(m, "CHART")
+        .value("NONE", LV_CHART_TYPE_NONE)
+        .value("LINE", LV_CHART_TYPE_LINE)
+        .value("CURVE", LV_CHART_TYPE_CURVE)
+        .value("BAR", LV_CHART_TYPE_BAR)
+        .value("STACKED", LV_CHART_TYPE_STACKED)
+        .value("SCATTER", LV_CHART_TYPE_SCATTER)
+;
 
-    py::enum_<lv_chart_update_mode_t>(m, "CHART_UPDATE_MODE")
-        .value("LV_CHART_UPDATE_MODE_SHIFT", LV_CHART_UPDATE_MODE_SHIFT)
-        .value("LV_CHART_UPDATE_MODE_CIRCULAR", LV_CHART_UPDATE_MODE_CIRCULAR)
-        .export_values();
+    py::enum_<lv_chart_update_mode_t>(m, "CHART_UPDATE")
+        .value("SHIFT", LV_CHART_UPDATE_MODE_SHIFT)
+        .value("CIRCULAR", LV_CHART_UPDATE_MODE_CIRCULAR)
+;
 
     py::enum_<lv_chart_axis_t>(m, "CHART_AXIS")
-        .value("LV_CHART_AXIS_PRIMARY_Y", LV_CHART_AXIS_PRIMARY_Y)
-        .value("LV_CHART_AXIS_SECONDARY_Y", LV_CHART_AXIS_SECONDARY_Y)
-        .value("LV_CHART_AXIS_PRIMARY_X", LV_CHART_AXIS_PRIMARY_X)
-        .value("LV_CHART_AXIS_SECONDARY_X", LV_CHART_AXIS_SECONDARY_X)
-        .value("LV_CHART_AXIS_LAST", LV_CHART_AXIS_LAST)
-        .export_values();
+        .value("PRIMARY_Y", LV_CHART_AXIS_PRIMARY_Y)
+        .value("SECONDARY_Y", LV_CHART_AXIS_SECONDARY_Y)
+        .value("PRIMARY_X", LV_CHART_AXIS_PRIMARY_X)
+        .value("SECONDARY_X", LV_CHART_AXIS_SECONDARY_X)
+        .value("LAST", LV_CHART_AXIS_LAST)
+;
 
     py::enum_<lv_imagebutton_state_t>(m, "IMAGEBUTTON_STATE")
-        .value("LV_IMAGEBUTTON_STATE_RELEASED", LV_IMAGEBUTTON_STATE_RELEASED)
-        .value("LV_IMAGEBUTTON_STATE_PRESSED", LV_IMAGEBUTTON_STATE_PRESSED)
-        .value("LV_IMAGEBUTTON_STATE_DISABLED", LV_IMAGEBUTTON_STATE_DISABLED)
-        .value("LV_IMAGEBUTTON_STATE_CHECKED_RELEASED", LV_IMAGEBUTTON_STATE_CHECKED_RELEASED)
-        .value("LV_IMAGEBUTTON_STATE_CHECKED_PRESSED", LV_IMAGEBUTTON_STATE_CHECKED_PRESSED)
-        .value("LV_IMAGEBUTTON_STATE_CHECKED_DISABLED", LV_IMAGEBUTTON_STATE_CHECKED_DISABLED)
-        .value("LV_IMAGEBUTTON_STATE_NUM", LV_IMAGEBUTTON_STATE_NUM)
-        .export_values();
+        .value("RELEASED", LV_IMAGEBUTTON_STATE_RELEASED)
+        .value("PRESSED", LV_IMAGEBUTTON_STATE_PRESSED)
+        .value("DISABLED", LV_IMAGEBUTTON_STATE_DISABLED)
+        .value("CHECKED_RELEASED", LV_IMAGEBUTTON_STATE_CHECKED_RELEASED)
+        .value("CHECKED_PRESSED", LV_IMAGEBUTTON_STATE_CHECKED_PRESSED)
+        .value("CHECKED_DISABLED", LV_IMAGEBUTTON_STATE_CHECKED_DISABLED)
+        .value("NUM", LV_IMAGEBUTTON_STATE_NUM)
+;
 
-    py::enum_<lv_keyboard_mode_t>(m, "KEYBOARD_MODE")
-        .value("LV_KEYBOARD_MODE_TEXT_LOWER", LV_KEYBOARD_MODE_TEXT_LOWER)
-        .value("LV_KEYBOARD_MODE_TEXT_UPPER", LV_KEYBOARD_MODE_TEXT_UPPER)
-        .value("LV_KEYBOARD_MODE_SPECIAL", LV_KEYBOARD_MODE_SPECIAL)
-        .value("LV_KEYBOARD_MODE_NUMBER", LV_KEYBOARD_MODE_NUMBER)
-        .value("LV_KEYBOARD_MODE_USER_1", LV_KEYBOARD_MODE_USER_1)
-        .value("LV_KEYBOARD_MODE_USER_2", LV_KEYBOARD_MODE_USER_2)
-        .value("LV_KEYBOARD_MODE_USER_3", LV_KEYBOARD_MODE_USER_3)
-        .value("LV_KEYBOARD_MODE_USER_4", LV_KEYBOARD_MODE_USER_4)
-        .export_values();
+    py::enum_<lv_keyboard_mode_t>(m, "KEYBOARD")
+        .value("TEXT_LOWER", LV_KEYBOARD_MODE_TEXT_LOWER)
+        .value("TEXT_UPPER", LV_KEYBOARD_MODE_TEXT_UPPER)
+        .value("SPECIAL", LV_KEYBOARD_MODE_SPECIAL)
+        .value("NUMBER", LV_KEYBOARD_MODE_NUMBER)
+        .value("USER_1", LV_KEYBOARD_MODE_USER_1)
+        .value("USER_2", LV_KEYBOARD_MODE_USER_2)
+        .value("USER_3", LV_KEYBOARD_MODE_USER_3)
+        .value("USER_4", LV_KEYBOARD_MODE_USER_4)
+;
 
     py::enum_<lv_menu_mode_header_t>(m, "MENU_MODE_HEADER")
-        .value("LV_MENU_HEADER_TOP_FIXED", LV_MENU_HEADER_TOP_FIXED)
-        .value("LV_MENU_HEADER_TOP_UNFIXED", LV_MENU_HEADER_TOP_UNFIXED)
-        .value("LV_MENU_HEADER_BOTTOM_FIXED", LV_MENU_HEADER_BOTTOM_FIXED)
-        .export_values();
+        .value("MENU_HEADER_TOP_FIXED", LV_MENU_HEADER_TOP_FIXED)
+        .value("MENU_HEADER_TOP_UNFIXED", LV_MENU_HEADER_TOP_UNFIXED)
+        .value("MENU_HEADER_BOTTOM_FIXED", LV_MENU_HEADER_BOTTOM_FIXED)
+;
 
     py::enum_<lv_menu_mode_root_back_button_t>(m, "MENU_MODE_ROOT_BACK_BUTTON")
-        .value("LV_MENU_ROOT_BACK_BUTTON_DISABLED", LV_MENU_ROOT_BACK_BUTTON_DISABLED)
-        .value("LV_MENU_ROOT_BACK_BUTTON_ENABLED", LV_MENU_ROOT_BACK_BUTTON_ENABLED)
-        .export_values();
+        .value("MENU_ROOT_BACK_BUTTON_DISABLED", LV_MENU_ROOT_BACK_BUTTON_DISABLED)
+        .value("MENU_ROOT_BACK_BUTTON_ENABLED", LV_MENU_ROOT_BACK_BUTTON_ENABLED)
+;
 
-    py::enum_<lv_roller_mode_t>(m, "ROLLER_MODE")
-        .value("LV_ROLLER_MODE_NORMAL", LV_ROLLER_MODE_NORMAL)
-        .value("LV_ROLLER_MODE_INFINITE", LV_ROLLER_MODE_INFINITE)
-        .export_values();
+    py::enum_<lv_roller_mode_t>(m, "ROLLER")
+        .value("NORMAL", LV_ROLLER_MODE_NORMAL)
+        .value("INFINITE", LV_ROLLER_MODE_INFINITE)
+;
 
-    py::enum_<lv_scale_mode_t>(m, "SCALE_MODE")
-        .value("LV_SCALE_MODE_HORIZONTAL_TOP", LV_SCALE_MODE_HORIZONTAL_TOP)
-        .value("LV_SCALE_MODE_HORIZONTAL_BOTTOM", LV_SCALE_MODE_HORIZONTAL_BOTTOM)
-        .value("LV_SCALE_MODE_VERTICAL_LEFT", LV_SCALE_MODE_VERTICAL_LEFT)
-        .value("LV_SCALE_MODE_VERTICAL_RIGHT", LV_SCALE_MODE_VERTICAL_RIGHT)
-        .value("LV_SCALE_MODE_ROUND_INNER", LV_SCALE_MODE_ROUND_INNER)
-        .value("LV_SCALE_MODE_ROUND_OUTER", LV_SCALE_MODE_ROUND_OUTER)
-        .value("LV_SCALE_MODE_LAST", LV_SCALE_MODE_LAST)
-        .export_values();
+    py::enum_<lv_scale_mode_t>(m, "SCALE")
+        .value("HORIZONTAL_TOP", LV_SCALE_MODE_HORIZONTAL_TOP)
+        .value("HORIZONTAL_BOTTOM", LV_SCALE_MODE_HORIZONTAL_BOTTOM)
+        .value("VERTICAL_LEFT", LV_SCALE_MODE_VERTICAL_LEFT)
+        .value("VERTICAL_RIGHT", LV_SCALE_MODE_VERTICAL_RIGHT)
+        .value("ROUND_INNER", LV_SCALE_MODE_ROUND_INNER)
+        .value("ROUND_OUTER", LV_SCALE_MODE_ROUND_OUTER)
+        .value("LAST", LV_SCALE_MODE_LAST)
+;
 
-    py::enum_<lv_slider_mode_t>(m, "SLIDER_MODE")
-        .value("LV_SLIDER_MODE_NORMAL", LV_SLIDER_MODE_NORMAL)
-        .value("LV_SLIDER_MODE_SYMMETRICAL", LV_SLIDER_MODE_SYMMETRICAL)
-        .value("LV_SLIDER_MODE_RANGE", LV_SLIDER_MODE_RANGE)
-        .export_values();
+    py::enum_<lv_slider_mode_t>(m, "SLIDER")
+        .value("NORMAL", LV_SLIDER_MODE_NORMAL)
+        .value("SYMMETRICAL", LV_SLIDER_MODE_SYMMETRICAL)
+        .value("RANGE", LV_SLIDER_MODE_RANGE)
+;
 
     py::enum_<lv_slider_orientation_t>(m, "SLIDER_ORIENTATION")
-        .value("LV_SLIDER_ORIENTATION_AUTO", LV_SLIDER_ORIENTATION_AUTO)
-        .value("LV_SLIDER_ORIENTATION_HORIZONTAL", LV_SLIDER_ORIENTATION_HORIZONTAL)
-        .value("LV_SLIDER_ORIENTATION_VERTICAL", LV_SLIDER_ORIENTATION_VERTICAL)
-        .export_values();
+        .value("AUTO", LV_SLIDER_ORIENTATION_AUTO)
+        .value("HORIZONTAL", LV_SLIDER_ORIENTATION_HORIZONTAL)
+        .value("VERTICAL", LV_SLIDER_ORIENTATION_VERTICAL)
+;
 
     py::enum_<lv_span_overflow_t>(m, "SPAN_OVERFLOW")
-        .value("LV_SPAN_OVERFLOW_CLIP", LV_SPAN_OVERFLOW_CLIP)
-        .value("LV_SPAN_OVERFLOW_ELLIPSIS", LV_SPAN_OVERFLOW_ELLIPSIS)
-        .value("LV_SPAN_OVERFLOW_LAST", LV_SPAN_OVERFLOW_LAST)
-        .export_values();
+        .value("CLIP", LV_SPAN_OVERFLOW_CLIP)
+        .value("ELLIPSIS", LV_SPAN_OVERFLOW_ELLIPSIS)
+        .value("LAST", LV_SPAN_OVERFLOW_LAST)
+;
 
-    py::enum_<lv_span_mode_t>(m, "SPAN_MODE")
-        .value("LV_SPAN_MODE_FIXED", LV_SPAN_MODE_FIXED)
-        .value("LV_SPAN_MODE_EXPAND", LV_SPAN_MODE_EXPAND)
-        .value("LV_SPAN_MODE_BREAK", LV_SPAN_MODE_BREAK)
-        .value("LV_SPAN_MODE_LAST", LV_SPAN_MODE_LAST)
-        .export_values();
+    py::enum_<lv_span_mode_t>(m, "SPAN")
+        .value("FIXED", LV_SPAN_MODE_FIXED)
+        .value("EXPAND", LV_SPAN_MODE_EXPAND)
+        .value("BREAK", LV_SPAN_MODE_BREAK)
+        .value("LAST", LV_SPAN_MODE_LAST)
+;
 
     py::enum_<lv_switch_orientation_t>(m, "SWITCH_ORIENTATION")
-        .value("LV_SWITCH_ORIENTATION_AUTO", LV_SWITCH_ORIENTATION_AUTO)
-        .value("LV_SWITCH_ORIENTATION_HORIZONTAL", LV_SWITCH_ORIENTATION_HORIZONTAL)
-        .value("LV_SWITCH_ORIENTATION_VERTICAL", LV_SWITCH_ORIENTATION_VERTICAL)
-        .export_values();
+        .value("AUTO", LV_SWITCH_ORIENTATION_AUTO)
+        .value("HORIZONTAL", LV_SWITCH_ORIENTATION_HORIZONTAL)
+        .value("VERTICAL", LV_SWITCH_ORIENTATION_VERTICAL)
+;
 
     py::enum_<lv_table_cell_ctrl_t>(m, "TABLE_CELL_CTRL")
-        .value("LV_TABLE_CELL_CTRL_NONE", LV_TABLE_CELL_CTRL_NONE)
-        .value("LV_TABLE_CELL_CTRL_MERGE_RIGHT", LV_TABLE_CELL_CTRL_MERGE_RIGHT)
-        .value("LV_TABLE_CELL_CTRL_TEXT_CROP", LV_TABLE_CELL_CTRL_TEXT_CROP)
-        .value("LV_TABLE_CELL_CTRL_CUSTOM_1", LV_TABLE_CELL_CTRL_CUSTOM_1)
-        .value("LV_TABLE_CELL_CTRL_CUSTOM_2", LV_TABLE_CELL_CTRL_CUSTOM_2)
-        .value("LV_TABLE_CELL_CTRL_CUSTOM_3", LV_TABLE_CELL_CTRL_CUSTOM_3)
-        .value("LV_TABLE_CELL_CTRL_CUSTOM_4", LV_TABLE_CELL_CTRL_CUSTOM_4)
-        .export_values();
+        .value("NONE", LV_TABLE_CELL_CTRL_NONE)
+        .value("MERGE_RIGHT", LV_TABLE_CELL_CTRL_MERGE_RIGHT)
+        .value("TEXT_CROP", LV_TABLE_CELL_CTRL_TEXT_CROP)
+        .value("CUSTOM_1", LV_TABLE_CELL_CTRL_CUSTOM_1)
+        .value("CUSTOM_2", LV_TABLE_CELL_CTRL_CUSTOM_2)
+        .value("CUSTOM_3", LV_TABLE_CELL_CTRL_CUSTOM_3)
+        .value("CUSTOM_4", LV_TABLE_CELL_CTRL_CUSTOM_4)
+;
+
+    /*
+     * Export non-conflicting enum values into module namespace
+     * (conflicting values are only accessible via their enum type)
+     */
+    m.attr("OUT_TOP_LEFT") = (int)LV_ALIGN_OUT_TOP_LEFT;
+    m.attr("OUT_TOP_MID") = (int)LV_ALIGN_OUT_TOP_MID;
+    m.attr("OUT_TOP_RIGHT") = (int)LV_ALIGN_OUT_TOP_RIGHT;
+    m.attr("OUT_BOTTOM_LEFT") = (int)LV_ALIGN_OUT_BOTTOM_LEFT;
+    m.attr("OUT_BOTTOM_MID") = (int)LV_ALIGN_OUT_BOTTOM_MID;
+    m.attr("OUT_BOTTOM_RIGHT") = (int)LV_ALIGN_OUT_BOTTOM_RIGHT;
+    m.attr("OUT_LEFT_TOP") = (int)LV_ALIGN_OUT_LEFT_TOP;
+    m.attr("OUT_LEFT_MID") = (int)LV_ALIGN_OUT_LEFT_MID;
+    m.attr("OUT_LEFT_BOTTOM") = (int)LV_ALIGN_OUT_LEFT_BOTTOM;
+    m.attr("OUT_RIGHT_TOP") = (int)LV_ALIGN_OUT_RIGHT_TOP;
+    m.attr("OUT_RIGHT_MID") = (int)LV_ALIGN_OUT_RIGHT_MID;
+    m.attr("OUT_RIGHT_BOTTOM") = (int)LV_ALIGN_OUT_RIGHT_BOTTOM;
+    m.attr("PRESSING") = (int)LV_EVENT_PRESSING;
+    m.attr("PRESS_LOST") = (int)LV_EVENT_PRESS_LOST;
+    m.attr("SHORT_CLICKED") = (int)LV_EVENT_SHORT_CLICKED;
+    m.attr("SINGLE_CLICKED") = (int)LV_EVENT_SINGLE_CLICKED;
+    m.attr("DOUBLE_CLICKED") = (int)LV_EVENT_DOUBLE_CLICKED;
+    m.attr("TRIPLE_CLICKED") = (int)LV_EVENT_TRIPLE_CLICKED;
+    m.attr("LONG_PRESSED") = (int)LV_EVENT_LONG_PRESSED;
+    m.attr("LONG_PRESSED_REPEAT") = (int)LV_EVENT_LONG_PRESSED_REPEAT;
+    m.attr("CLICKED") = (int)LV_EVENT_CLICKED;
+    m.attr("SCROLL_BEGIN") = (int)LV_EVENT_SCROLL_BEGIN;
+    m.attr("SCROLL_THROW_BEGIN") = (int)LV_EVENT_SCROLL_THROW_BEGIN;
+    m.attr("SCROLL_END") = (int)LV_EVENT_SCROLL_END;
+    m.attr("GESTURE") = (int)LV_EVENT_GESTURE;
+    m.attr("ROTARY") = (int)LV_EVENT_ROTARY;
+    m.attr("DEFOCUSED") = (int)LV_EVENT_DEFOCUSED;
+    m.attr("LEAVE") = (int)LV_EVENT_LEAVE;
+    m.attr("HIT_TEST") = (int)LV_EVENT_HIT_TEST;
+    m.attr("INDEV_RESET") = (int)LV_EVENT_INDEV_RESET;
+    m.attr("HOVER_OVER") = (int)LV_EVENT_HOVER_OVER;
+    m.attr("HOVER_LEAVE") = (int)LV_EVENT_HOVER_LEAVE;
+    m.attr("COVER_CHECK") = (int)LV_EVENT_COVER_CHECK;
+    m.attr("REFR_EXT_DRAW_SIZE") = (int)LV_EVENT_REFR_EXT_DRAW_SIZE;
+    m.attr("DRAW_MAIN_BEGIN") = (int)LV_EVENT_DRAW_MAIN_BEGIN;
+    m.attr("DRAW_MAIN") = (int)LV_EVENT_DRAW_MAIN;
+    m.attr("DRAW_MAIN_END") = (int)LV_EVENT_DRAW_MAIN_END;
+    m.attr("DRAW_POST_BEGIN") = (int)LV_EVENT_DRAW_POST_BEGIN;
+    m.attr("DRAW_POST") = (int)LV_EVENT_DRAW_POST;
+    m.attr("DRAW_POST_END") = (int)LV_EVENT_DRAW_POST_END;
+    m.attr("DRAW_TASK_ADDED") = (int)LV_EVENT_DRAW_TASK_ADDED;
+    m.attr("VALUE_CHANGED") = (int)LV_EVENT_VALUE_CHANGED;
+    m.attr("INSERT") = (int)LV_EVENT_INSERT;
+    m.attr("REFRESH") = (int)LV_EVENT_REFRESH;
+    m.attr("READY") = (int)LV_EVENT_READY;
+    m.attr("CANCEL") = (int)LV_EVENT_CANCEL;
+    m.attr("STATE_CHANGED") = (int)LV_EVENT_STATE_CHANGED;
+    m.attr("CREATE") = (int)LV_EVENT_CREATE;
+    m.attr("DELETE") = (int)LV_EVENT_DELETE;
+    m.attr("CHILD_CHANGED") = (int)LV_EVENT_CHILD_CHANGED;
+    m.attr("CHILD_CREATED") = (int)LV_EVENT_CHILD_CREATED;
+    m.attr("CHILD_DELETED") = (int)LV_EVENT_CHILD_DELETED;
+    m.attr("SCREEN_UNLOAD_START") = (int)LV_EVENT_SCREEN_UNLOAD_START;
+    m.attr("SCREEN_LOAD_START") = (int)LV_EVENT_SCREEN_LOAD_START;
+    m.attr("SCREEN_LOADED") = (int)LV_EVENT_SCREEN_LOADED;
+    m.attr("SCREEN_UNLOADED") = (int)LV_EVENT_SCREEN_UNLOADED;
+    m.attr("SIZE_CHANGED") = (int)LV_EVENT_SIZE_CHANGED;
+    m.attr("STYLE_CHANGED") = (int)LV_EVENT_STYLE_CHANGED;
+    m.attr("LAYOUT_CHANGED") = (int)LV_EVENT_LAYOUT_CHANGED;
+    m.attr("GET_SELF_SIZE") = (int)LV_EVENT_GET_SELF_SIZE;
+    m.attr("INVALIDATE_AREA") = (int)LV_EVENT_INVALIDATE_AREA;
+    m.attr("RESOLUTION_CHANGED") = (int)LV_EVENT_RESOLUTION_CHANGED;
+    m.attr("COLOR_FORMAT_CHANGED") = (int)LV_EVENT_COLOR_FORMAT_CHANGED;
+    m.attr("REFR_REQUEST") = (int)LV_EVENT_REFR_REQUEST;
+    m.attr("REFR_START") = (int)LV_EVENT_REFR_START;
+    m.attr("REFR_READY") = (int)LV_EVENT_REFR_READY;
+    m.attr("RENDER_START") = (int)LV_EVENT_RENDER_START;
+    m.attr("RENDER_READY") = (int)LV_EVENT_RENDER_READY;
+    m.attr("FLUSH_START") = (int)LV_EVENT_FLUSH_START;
+    m.attr("FLUSH_FINISH") = (int)LV_EVENT_FLUSH_FINISH;
+    m.attr("FLUSH_WAIT_START") = (int)LV_EVENT_FLUSH_WAIT_START;
+    m.attr("FLUSH_WAIT_FINISH") = (int)LV_EVENT_FLUSH_WAIT_FINISH;
+    m.attr("SYNC_START") = (int)LV_EVENT_SYNC_START;
+    m.attr("SYNC_FINISH") = (int)LV_EVENT_SYNC_FINISH;
+    m.attr("SYNC_WAIT_START") = (int)LV_EVENT_SYNC_WAIT_START;
+    m.attr("SYNC_WAIT_FINISH") = (int)LV_EVENT_SYNC_WAIT_FINISH;
+    m.attr("UPDATE_LAYOUT_COMPLETED") = (int)LV_EVENT_UPDATE_LAYOUT_COMPLETED;
+    m.attr("VSYNC") = (int)LV_EVENT_VSYNC;
+    m.attr("VSYNC_REQUEST") = (int)LV_EVENT_VSYNC_REQUEST;
+    m.attr("PREPROCESS") = (int)LV_EVENT_PREPROCESS;
+    m.attr("MARKED_DELETING") = (int)LV_EVENT_MARKED_DELETING;
+    m.attr("UP") = (int)LV_KEY_UP;
+    m.attr("DOWN") = (int)LV_KEY_DOWN;
+    m.attr("ESC") = (int)LV_KEY_ESC;
+    m.attr("DEL") = (int)LV_KEY_DEL;
+    m.attr("BACKSPACE") = (int)LV_KEY_BACKSPACE;
+    m.attr("ENTER") = (int)LV_KEY_ENTER;
+    m.attr("HOME") = (int)LV_KEY_HOME;
+    m.attr("RAW") = (int)LV_COLOR_FORMAT_RAW;
+    m.attr("RAW_ALPHA") = (int)LV_COLOR_FORMAT_RAW_ALPHA;
+    m.attr("L8") = (int)LV_COLOR_FORMAT_L8;
+    m.attr("I1") = (int)LV_COLOR_FORMAT_I1;
+    m.attr("I2") = (int)LV_COLOR_FORMAT_I2;
+    m.attr("I4") = (int)LV_COLOR_FORMAT_I4;
+    m.attr("I8") = (int)LV_COLOR_FORMAT_I8;
+    m.attr("RGB565") = (int)LV_COLOR_FORMAT_RGB565;
+    m.attr("ARGB8565") = (int)LV_COLOR_FORMAT_ARGB8565;
+    m.attr("RGB565A8") = (int)LV_COLOR_FORMAT_RGB565A8;
+    m.attr("AL88") = (int)LV_COLOR_FORMAT_AL88;
+    m.attr("RGB565_SWAPPED") = (int)LV_COLOR_FORMAT_RGB565_SWAPPED;
+    m.attr("RGB888") = (int)LV_COLOR_FORMAT_RGB888;
+    m.attr("ARGB8888") = (int)LV_COLOR_FORMAT_ARGB8888;
+    m.attr("XRGB8888") = (int)LV_COLOR_FORMAT_XRGB8888;
+    m.attr("ARGB8888_PREMULTIPLIED") = (int)LV_COLOR_FORMAT_ARGB8888_PREMULTIPLIED;
+    m.attr("ARGB1555") = (int)LV_COLOR_FORMAT_ARGB1555;
+    m.attr("ARGB4444") = (int)LV_COLOR_FORMAT_ARGB4444;
+    m.attr("ARGB2222") = (int)LV_COLOR_FORMAT_ARGB2222;
+    m.attr("YUV_START") = (int)LV_COLOR_FORMAT_YUV_START;
+    m.attr("I420") = (int)LV_COLOR_FORMAT_I420;
+    m.attr("I422") = (int)LV_COLOR_FORMAT_I422;
+    m.attr("I444") = (int)LV_COLOR_FORMAT_I444;
+    m.attr("I400") = (int)LV_COLOR_FORMAT_I400;
+    m.attr("NV21") = (int)LV_COLOR_FORMAT_NV21;
+    m.attr("NV12") = (int)LV_COLOR_FORMAT_NV12;
+    m.attr("YUY2") = (int)LV_COLOR_FORMAT_YUY2;
+    m.attr("UYVY") = (int)LV_COLOR_FORMAT_UYVY;
+    m.attr("YUV_END") = (int)LV_COLOR_FORMAT_YUV_END;
+    m.attr("PROPRIETARY_START") = (int)LV_COLOR_FORMAT_PROPRIETARY_START;
+    m.attr("NEMA_TSC_START") = (int)LV_COLOR_FORMAT_NEMA_TSC_START;
+    m.attr("NEMA_TSC4") = (int)LV_COLOR_FORMAT_NEMA_TSC4;
+    m.attr("NEMA_TSC6") = (int)LV_COLOR_FORMAT_NEMA_TSC6;
+    m.attr("NEMA_TSC6A") = (int)LV_COLOR_FORMAT_NEMA_TSC6A;
+    m.attr("NEMA_TSC6AP") = (int)LV_COLOR_FORMAT_NEMA_TSC6AP;
+    m.attr("NEMA_TSC12") = (int)LV_COLOR_FORMAT_NEMA_TSC12;
+    m.attr("NEMA_TSC12A") = (int)LV_COLOR_FORMAT_NEMA_TSC12A;
+    m.attr("NEMA_TSC_END") = (int)LV_COLOR_FORMAT_NEMA_TSC_END;
+    m.attr("NATIVE") = (int)LV_COLOR_FORMAT_NATIVE;
+    m.attr("NATIVE_WITH_ALPHA") = (int)LV_COLOR_FORMAT_NATIVE_WITH_ALPHA;
+    m.attr("RED") = (int)LV_PALETTE_RED;
+    m.attr("PINK") = (int)LV_PALETTE_PINK;
+    m.attr("PURPLE") = (int)LV_PALETTE_PURPLE;
+    m.attr("DEEP_PURPLE") = (int)LV_PALETTE_DEEP_PURPLE;
+    m.attr("INDIGO") = (int)LV_PALETTE_INDIGO;
+    m.attr("BLUE") = (int)LV_PALETTE_BLUE;
+    m.attr("LIGHT_BLUE") = (int)LV_PALETTE_LIGHT_BLUE;
+    m.attr("CYAN") = (int)LV_PALETTE_CYAN;
+    m.attr("TEAL") = (int)LV_PALETTE_TEAL;
+    m.attr("GREEN") = (int)LV_PALETTE_GREEN;
+    m.attr("LIGHT_GREEN") = (int)LV_PALETTE_LIGHT_GREEN;
+    m.attr("LIME") = (int)LV_PALETTE_LIME;
+    m.attr("YELLOW") = (int)LV_PALETTE_YELLOW;
+    m.attr("AMBER") = (int)LV_PALETTE_AMBER;
+    m.attr("ORANGE") = (int)LV_PALETTE_ORANGE;
+    m.attr("DEEP_ORANGE") = (int)LV_PALETTE_DEEP_ORANGE;
+    m.attr("BROWN") = (int)LV_PALETTE_BROWN;
+    m.attr("BLUE_GREY") = (int)LV_PALETTE_BLUE_GREY;
+    m.attr("GREY") = (int)LV_PALETTE_GREY;
+    m.attr("RLE") = (int)LV_IMAGE_COMPRESS_RLE;
+    m.attr("LZ4") = (int)LV_IMAGE_COMPRESS_LZ4;
+    m.attr("A3") = (int)LV_FONT_GLYPH_FORMAT_A3;
+    m.attr("SVG") = (int)LV_FONT_GLYPH_FORMAT_SVG;
+    m.attr("CUSTOM") = (int)LV_FONT_GLYPH_FORMAT_CUSTOM;
+    m.attr("BOTH") = (int)LV_FONT_SUBPX_BOTH;
+    m.attr("FIT") = (int)LV_TEXT_FLAG_FIT;
+    m.attr("BREAK_ALL") = (int)LV_TEXT_FLAG_BREAK_ALL;
+    m.attr("CAPITAL_BASELINE") = (int)LV_TEXT_LEADING_TRIM_CAPITAL_BASELINE;
+    m.attr("LOWER_BASELINE") = (int)LV_TEXT_LEADING_TRIM_LOWER_BASELINE;
+    m.attr("CAPITAL") = (int)LV_TEXT_LEADING_TRIM_CAPITAL;
+    m.attr("LOWER") = (int)LV_TEXT_LEADING_TRIM_LOWER;
+    m.attr("LTR") = (int)LV_BASE_DIR_LTR;
+    m.attr("RTL") = (int)LV_BASE_DIR_RTL;
+    m.attr("NEUTRAL") = (int)LV_BASE_DIR_NEUTRAL;
+    m.attr("WEAK") = (int)LV_BASE_DIR_WEAK;
+    m.attr("CONICAL") = (int)LV_GRAD_DIR_CONICAL;
+    m.attr("FLEX") = (int)LV_LAYOUT_FLEX;
+    m.attr("GRID") = (int)LV_LAYOUT_GRID;
+    m.attr("ROW") = (int)LV_FLEX_FLOW_ROW;
+    m.attr("COLUMN") = (int)LV_FLEX_FLOW_COLUMN;
+    m.attr("ROW_WRAP") = (int)LV_FLEX_FLOW_ROW_WRAP;
+    m.attr("ROW_REVERSE") = (int)LV_FLEX_FLOW_ROW_REVERSE;
+    m.attr("ROW_WRAP_REVERSE") = (int)LV_FLEX_FLOW_ROW_WRAP_REVERSE;
+    m.attr("COLUMN_WRAP") = (int)LV_FLEX_FLOW_COLUMN_WRAP;
+    m.attr("COLUMN_REVERSE") = (int)LV_FLEX_FLOW_COLUMN_REVERSE;
+    m.attr("COLUMN_WRAP_REVERSE") = (int)LV_FLEX_FLOW_COLUMN_WRAP_REVERSE;
+    m.attr("DIFFERENCE") = (int)LV_BLEND_MODE_DIFFERENCE;
+    m.attr("UNDERLINE") = (int)LV_TEXT_DECOR_UNDERLINE;
+    m.attr("STRIKETHROUGH") = (int)LV_TEXT_DECOR_STRIKETHROUGH;
+    m.attr("INTERNAL") = (int)LV_BORDER_SIDE_INTERNAL;
+    m.attr("SPEED") = (int)LV_BLUR_QUALITY_SPEED;
+    m.attr("PRECISION") = (int)LV_BLUR_QUALITY_PRECISION;
+    m.attr("NOT_FOUND") = (int)LV_STYLE_RES_NOT_FOUND;
+    m.attr("FOUND") = (int)LV_STYLE_RES_FOUND;
+    m.attr("_0") = (int)LV_DISPLAY_ROTATION_0;
+    m.attr("_90") = (int)LV_DISPLAY_ROTATION_90;
+    m.attr("_180") = (int)LV_DISPLAY_ROTATION_180;
+    m.attr("_270") = (int)LV_DISPLAY_ROTATION_270;
+    m.attr("PARTIAL") = (int)LV_DISPLAY_RENDER_MODE_PARTIAL;
+    m.attr("DIRECT") = (int)LV_DISPLAY_RENDER_MODE_DIRECT;
+    m.attr("OVER_LEFT") = (int)LV_SCREEN_LOAD_ANIM_OVER_LEFT;
+    m.attr("OVER_RIGHT") = (int)LV_SCREEN_LOAD_ANIM_OVER_RIGHT;
+    m.attr("OVER_TOP") = (int)LV_SCREEN_LOAD_ANIM_OVER_TOP;
+    m.attr("OVER_BOTTOM") = (int)LV_SCREEN_LOAD_ANIM_OVER_BOTTOM;
+    m.attr("MOVE_LEFT") = (int)LV_SCREEN_LOAD_ANIM_MOVE_LEFT;
+    m.attr("MOVE_RIGHT") = (int)LV_SCREEN_LOAD_ANIM_MOVE_RIGHT;
+    m.attr("MOVE_TOP") = (int)LV_SCREEN_LOAD_ANIM_MOVE_TOP;
+    m.attr("MOVE_BOTTOM") = (int)LV_SCREEN_LOAD_ANIM_MOVE_BOTTOM;
+    m.attr("FADE_IN") = (int)LV_SCREEN_LOAD_ANIM_FADE_IN;
+    m.attr("FADE_ON") = (int)LV_SCREEN_LOAD_ANIM_FADE_ON;
+    m.attr("FADE_OUT") = (int)LV_SCREEN_LOAD_ANIM_FADE_OUT;
+    m.attr("OUT_LEFT") = (int)LV_SCREEN_LOAD_ANIM_OUT_LEFT;
+    m.attr("OUT_RIGHT") = (int)LV_SCREEN_LOAD_ANIM_OUT_RIGHT;
+    m.attr("OUT_TOP") = (int)LV_SCREEN_LOAD_ANIM_OUT_TOP;
+    m.attr("OUT_BOTTOM") = (int)LV_SCREEN_LOAD_ANIM_OUT_BOTTOM;
+    m.attr("SKIP_CHILDREN") = (int)LV_OBJ_TREE_WALK_SKIP_CHILDREN;
+    m.attr("RECURSIVE") = (int)LV_OBJ_POINT_TRANSFORM_FLAG_RECURSIVE;
+    m.attr("INVERSE") = (int)LV_OBJ_POINT_TRANSFORM_FLAG_INVERSE;
+    m.attr("INVERSE_RECURSIVE") = (int)LV_OBJ_POINT_TRANSFORM_FLAG_INVERSE_RECURSIVE;
+    m.attr("OFF") = (int)LV_SCROLLBAR_MODE_OFF;
+    m.attr("ON") = (int)LV_SCROLLBAR_MODE_ON;
+    m.attr("ACTIVE") = (int)LV_SCROLLBAR_MODE_ACTIVE;
+    m.attr("ALT") = (int)LV_STATE_ALT;
+    m.attr("FOCUS_KEY") = (int)LV_STATE_FOCUS_KEY;
+    m.attr("EDITED") = (int)LV_STATE_EDITED;
+    m.attr("HOVERED") = (int)LV_STATE_HOVERED;
+    m.attr("SCROLLED") = (int)LV_STATE_SCROLLED;
+    m.attr("MAIN") = (int)LV_PART_MAIN;
+    m.attr("INDICATOR") = (int)LV_PART_INDICATOR;
+    m.attr("KNOB") = (int)LV_PART_KNOB;
+    m.attr("SELECTED") = (int)LV_PART_SELECTED;
+    m.attr("ITEMS") = (int)LV_PART_ITEMS;
+    m.attr("CURSOR") = (int)LV_PART_CURSOR;
+    m.attr("CUSTOM_FIRST") = (int)LV_PART_CUSTOM_FIRST;
+    m.attr("SAME") = (int)LV_STYLE_STATE_CMP_SAME;
+    m.attr("DIFF_REDRAW") = (int)LV_STYLE_STATE_CMP_DIFF_REDRAW;
+    m.attr("DIFF_DRAW_PAD") = (int)LV_STYLE_STATE_CMP_DIFF_DRAW_PAD;
+    m.attr("DIFF_LAYOUT") = (int)LV_STYLE_STATE_CMP_DIFF_LAYOUT;
+    m.attr("FILL") = (int)LV_DRAW_TASK_TYPE_FILL;
+    m.attr("BORDER") = (int)LV_DRAW_TASK_TYPE_BORDER;
+    m.attr("BOX_SHADOW") = (int)LV_DRAW_TASK_TYPE_BOX_SHADOW;
+    m.attr("LETTER") = (int)LV_DRAW_TASK_TYPE_LETTER;
+    m.attr("LABEL") = (int)LV_DRAW_TASK_TYPE_LABEL;
+    m.attr("TRIANGLE") = (int)LV_DRAW_TASK_TYPE_TRIANGLE;
+    m.attr("MASK_RECTANGLE") = (int)LV_DRAW_TASK_TYPE_MASK_RECTANGLE;
+    m.attr("MASK_BITMAP") = (int)LV_DRAW_TASK_TYPE_MASK_BITMAP;
+    m.attr("BLUR") = (int)LV_DRAW_TASK_TYPE_BLUR;
+    m.attr("BLOCKED") = (int)LV_DRAW_TASK_STATE_BLOCKED;
+    m.attr("WAITING") = (int)LV_DRAW_TASK_STATE_WAITING;
+    m.attr("QUEUED") = (int)LV_DRAW_TASK_STATE_QUEUED;
+    m.attr("IN_PROGRESS") = (int)LV_DRAW_TASK_STATE_IN_PROGRESS;
+    m.attr("FINISHED") = (int)LV_DRAW_TASK_STATE_FINISHED;
+    m.attr("HW_ERR") = (int)LV_FS_RES_HW_ERR;
+    m.attr("FS_ERR") = (int)LV_FS_RES_FS_ERR;
+    m.attr("NOT_EX") = (int)LV_FS_RES_NOT_EX;
+    m.attr("LOCKED") = (int)LV_FS_RES_LOCKED;
+    m.attr("DENIED") = (int)LV_FS_RES_DENIED;
+    m.attr("BUSY") = (int)LV_FS_RES_BUSY;
+    m.attr("TOUT") = (int)LV_FS_RES_TOUT;
+    m.attr("NOT_IMP") = (int)LV_FS_RES_NOT_IMP;
+    m.attr("OUT_OF_MEM") = (int)LV_FS_RES_OUT_OF_MEM;
+    m.attr("INV_PARAM") = (int)LV_FS_RES_INV_PARAM;
+    m.attr("DRIVE_LETTER_ALREADY_USED") = (int)LV_FS_RES_DRIVE_LETTER_ALREADY_USED;
+    m.attr("WR") = (int)LV_FS_MODE_WR;
+    m.attr("RD") = (int)LV_FS_MODE_RD;
+    m.attr("FS_SEEK_SET") = (int)LV_FS_SEEK_SET;
+    m.attr("FS_SEEK_CUR") = (int)LV_FS_SEEK_CUR;
+    m.attr("FS_SEEK_END") = (int)LV_FS_SEEK_END;
+    m.attr("VARIABLE") = (int)LV_IMAGE_SRC_VARIABLE;
+    m.attr("FILE") = (int)LV_IMAGE_SRC_FILE;
+    m.attr("SYMBOL") = (int)LV_IMAGE_SRC_SYMBOL;
+    m.attr("SIMPLE") = (int)LV_LAYER_TYPE_SIMPLE;
+    m.attr("TRANSFORM") = (int)LV_LAYER_TYPE_TRANSFORM;
+    m.attr("KEYPAD") = (int)LV_INDEV_TYPE_KEYPAD;
+    m.attr("BUTTON") = (int)LV_INDEV_TYPE_BUTTON;
+    m.attr("ENCODER") = (int)LV_INDEV_TYPE_ENCODER;
+    m.attr("TIMER") = (int)LV_INDEV_MODE_TIMER;
+    m.attr("PINCH") = (int)LV_INDEV_GESTURE_PINCH;
+    m.attr("SWIPE") = (int)LV_INDEV_GESTURE_SWIPE;
+    m.attr("ROTATE") = (int)LV_INDEV_GESTURE_ROTATE;
+    m.attr("TWO_FINGERS_SWIPE") = (int)LV_INDEV_GESTURE_TWO_FINGERS_SWIPE;
+    m.attr("CNT") = (int)LV_INDEV_GESTURE_CNT;
+    m.attr("NOT_COVER") = (int)LV_COVER_RES_NOT_COVER;
+    m.attr("MASKED") = (int)LV_COVER_RES_MASKED;
+    m.attr("CLICKABLE") = (int)LV_OBJ_FLAG_CLICKABLE;
+    m.attr("CLICK_FOCUSABLE") = (int)LV_OBJ_FLAG_CLICK_FOCUSABLE;
+    m.attr("SCROLLABLE") = (int)LV_OBJ_FLAG_SCROLLABLE;
+    m.attr("SCROLL_ELASTIC") = (int)LV_OBJ_FLAG_SCROLL_ELASTIC;
+    m.attr("SCROLL_MOMENTUM") = (int)LV_OBJ_FLAG_SCROLL_MOMENTUM;
+    m.attr("SCROLL_ONE") = (int)LV_OBJ_FLAG_SCROLL_ONE;
+    m.attr("SCROLL_CHAIN_HOR") = (int)LV_OBJ_FLAG_SCROLL_CHAIN_HOR;
+    m.attr("SCROLL_CHAIN_VER") = (int)LV_OBJ_FLAG_SCROLL_CHAIN_VER;
+    m.attr("SCROLL_CHAIN") = (int)LV_OBJ_FLAG_SCROLL_CHAIN;
+    m.attr("SCROLL_ON_FOCUS") = (int)LV_OBJ_FLAG_SCROLL_ON_FOCUS;
+    m.attr("SCROLL_WITH_ARROW") = (int)LV_OBJ_FLAG_SCROLL_WITH_ARROW;
+    m.attr("SNAPPABLE") = (int)LV_OBJ_FLAG_SNAPPABLE;
+    m.attr("PRESS_LOCK") = (int)LV_OBJ_FLAG_PRESS_LOCK;
+    m.attr("EVENT_BUBBLE") = (int)LV_OBJ_FLAG_EVENT_BUBBLE;
+    m.attr("GESTURE_BUBBLE") = (int)LV_OBJ_FLAG_GESTURE_BUBBLE;
+    m.attr("ADV_HITTEST") = (int)LV_OBJ_FLAG_ADV_HITTEST;
+    m.attr("IGNORE_LAYOUT") = (int)LV_OBJ_FLAG_IGNORE_LAYOUT;
+    m.attr("FLOATING") = (int)LV_OBJ_FLAG_FLOATING;
+    m.attr("SEND_DRAW_TASK_EVENTS") = (int)LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS;
+    m.attr("OVERFLOW_VISIBLE") = (int)LV_OBJ_FLAG_OVERFLOW_VISIBLE;
+    m.attr("EVENT_TRICKLE") = (int)LV_OBJ_FLAG_EVENT_TRICKLE;
+    m.attr("STATE_TRICKLE") = (int)LV_OBJ_FLAG_STATE_TRICKLE;
+    m.attr("LAYOUT_1") = (int)LV_OBJ_FLAG_LAYOUT_1;
+    m.attr("LAYOUT_2") = (int)LV_OBJ_FLAG_LAYOUT_2;
+    m.attr("FLEX_IN_NEW_TRACK") = (int)LV_OBJ_FLAG_FLEX_IN_NEW_TRACK;
+    m.attr("WIDGET_1") = (int)LV_OBJ_FLAG_WIDGET_1;
+    m.attr("WIDGET_2") = (int)LV_OBJ_FLAG_WIDGET_2;
+    m.attr("INT") = (int)LV_SUBJECT_TYPE_INT;
+    m.attr("FLOAT") = (int)LV_SUBJECT_TYPE_FLOAT;
+    m.attr("COLOR") = (int)LV_SUBJECT_TYPE_COLOR;
+    m.attr("STRING") = (int)LV_SUBJECT_TYPE_STRING;
+    m.attr("NONZERO") = (int)LV_VECTOR_FILL_NONZERO;
+    m.attr("EVENODD") = (int)LV_VECTOR_FILL_EVENODD;
+    m.attr("BUTT") = (int)LV_VECTOR_STROKE_CAP_BUTT;
+    m.attr("SQUARE") = (int)LV_VECTOR_STROKE_CAP_SQUARE;
+    m.attr("MITER") = (int)LV_VECTOR_STROKE_JOIN_MITER;
+    m.attr("BEVEL") = (int)LV_VECTOR_STROKE_JOIN_BEVEL;
+    m.attr("MEDIUM") = (int)LV_VECTOR_PATH_QUALITY_MEDIUM;
+    m.attr("HIGH") = (int)LV_VECTOR_PATH_QUALITY_HIGH;
+    m.attr("LOW") = (int)LV_VECTOR_PATH_QUALITY_LOW;
+    m.attr("OVER") = (int)LV_VECTOR_BLEND_SRC_OVER;
+    m.attr("IN") = (int)LV_VECTOR_BLEND_SRC_IN;
+    m.attr("DST_OVER") = (int)LV_VECTOR_BLEND_DST_OVER;
+    m.attr("DST_IN") = (int)LV_VECTOR_BLEND_DST_IN;
+    m.attr("QUAD_TO") = (int)LV_VECTOR_PATH_OP_QUAD_TO;
+    m.attr("CLOSE") = (int)LV_VECTOR_PATH_OP_CLOSE;
+    m.attr("SOLID") = (int)LV_VECTOR_DRAW_STYLE_SOLID;
+    m.attr("PATTERN") = (int)LV_VECTOR_DRAW_STYLE_PATTERN;
+    m.attr("GRADIENT") = (int)LV_VECTOR_DRAW_STYLE_GRADIENT;
+    m.attr("OBJECT_BOUNDING_BOX") = (int)LV_VECTOR_FILL_UNITS_OBJECT_BOUNDING_BOX;
+    m.attr("USER_SPACE_ON_USE") = (int)LV_VECTOR_FILL_UNITS_USER_SPACE_ON_USE;
+    m.attr("REL") = (int)LV_EVDEV_TYPE_REL;
+    m.attr("ABS") = (int)LV_EVDEV_TYPE_ABS;
+    m.attr("FORMAT0_FULL") = (int)LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL;
+    m.attr("SPARSE_FULL") = (int)LV_FONT_FMT_TXT_CMAP_SPARSE_FULL;
+    m.attr("FORMAT0_TINY") = (int)LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY;
+    m.attr("SPARSE_TINY") = (int)LV_FONT_FMT_TXT_CMAP_SPARSE_TINY;
+    m.attr("FONT_FMT_TXT_PLAIN") = (int)LV_FONT_FMT_TXT_PLAIN;
+    m.attr("FONT_FMT_TXT_COMPRESSED") = (int)LV_FONT_FMT_TXT_COMPRESSED;
+    m.attr("FONT_FMT_TXT_COMPRESSED_NO_PREFILTER") = (int)LV_FONT_FMT_TXT_COMPRESSED_NO_PREFILTER;
+    m.attr("ITALIC") = (int)LV_FREETYPE_FONT_STYLE_ITALIC;
+    m.attr("BOLD") = (int)LV_FREETYPE_FONT_STYLE_BOLD;
+    m.attr("BITMAP") = (int)LV_FREETYPE_FONT_RENDER_MODE_BITMAP;
+    m.attr("OUTLINE") = (int)LV_FREETYPE_FONT_RENDER_MODE_OUTLINE;
+    m.attr("CONIC_TO") = (int)LV_FREETYPE_OUTLINE_CONIC_TO;
+    m.attr("_LV_IMAGE_ALIGN_AUTO_TRANSFORM") = (int)_LV_IMAGE_ALIGN_AUTO_TRANSFORM;
+    m.attr("TILE") = (int)LV_IMAGE_ALIGN_TILE;
+    m.attr("CONTAIN") = (int)LV_IMAGE_ALIGN_CONTAIN;
+    m.attr("CONTAIN_DOWNSCALE") = (int)LV_IMAGE_ALIGN_CONTAIN_DOWNSCALE;
+    m.attr("ANIM_IMAGE_PART_MAIN") = (int)LV_ANIM_IMAGE_PART_MAIN;
+    m.attr("REVERSE") = (int)LV_ARC_MODE_REVERSE;
+    m.attr("CLOCKWISE") = (int)LV_ARCLABEL_DIR_CLOCKWISE;
+    m.attr("COUNTER_CLOCKWISE") = (int)LV_ARCLABEL_DIR_COUNTER_CLOCKWISE;
+    m.attr("LEADING") = (int)LV_ARCLABEL_TEXT_ALIGN_LEADING;
+    m.attr("TRAILING") = (int)LV_ARCLABEL_TEXT_ALIGN_TRAILING;
+    m.attr("VISIBLE") = (int)LV_ARCLABEL_OVERFLOW_VISIBLE;
+    m.attr("WRAP") = (int)LV_LABEL_LONG_MODE_WRAP;
+    m.attr("DOTS") = (int)LV_LABEL_LONG_MODE_DOTS;
+    m.attr("SCROLL_CIRCULAR") = (int)LV_LABEL_LONG_MODE_SCROLL_CIRCULAR;
+    m.attr("CODE128_GS1") = (int)LV_BARCODE_ENCODING_CODE128_GS1;
+    m.attr("CODE128_RAW") = (int)LV_BARCODE_ENCODING_CODE128_RAW;
+    m.attr("WIDTH_1") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_1;
+    m.attr("WIDTH_2") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_2;
+    m.attr("WIDTH_3") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_3;
+    m.attr("WIDTH_4") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_4;
+    m.attr("WIDTH_5") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_5;
+    m.attr("WIDTH_6") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_6;
+    m.attr("WIDTH_7") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_7;
+    m.attr("WIDTH_8") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_8;
+    m.attr("WIDTH_9") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_9;
+    m.attr("WIDTH_10") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_10;
+    m.attr("WIDTH_11") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_11;
+    m.attr("WIDTH_12") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_12;
+    m.attr("WIDTH_13") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_13;
+    m.attr("WIDTH_14") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_14;
+    m.attr("WIDTH_15") = (int)LV_BUTTONMATRIX_CTRL_WIDTH_15;
+    m.attr("NO_REPEAT") = (int)LV_BUTTONMATRIX_CTRL_NO_REPEAT;
+    m.attr("CLICK_TRIG") = (int)LV_BUTTONMATRIX_CTRL_CLICK_TRIG;
+    m.attr("POPOVER") = (int)LV_BUTTONMATRIX_CTRL_POPOVER;
+    m.attr("RESERVED_1") = (int)LV_BUTTONMATRIX_CTRL_RESERVED_1;
+    m.attr("RESERVED_2") = (int)LV_BUTTONMATRIX_CTRL_RESERVED_2;
+    m.attr("CURVE") = (int)LV_CHART_TYPE_CURVE;
+    m.attr("STACKED") = (int)LV_CHART_TYPE_STACKED;
+    m.attr("SCATTER") = (int)LV_CHART_TYPE_SCATTER;
+    m.attr("SHIFT") = (int)LV_CHART_UPDATE_MODE_SHIFT;
+    m.attr("CIRCULAR") = (int)LV_CHART_UPDATE_MODE_CIRCULAR;
+    m.attr("PRIMARY_Y") = (int)LV_CHART_AXIS_PRIMARY_Y;
+    m.attr("SECONDARY_Y") = (int)LV_CHART_AXIS_SECONDARY_Y;
+    m.attr("PRIMARY_X") = (int)LV_CHART_AXIS_PRIMARY_X;
+    m.attr("SECONDARY_X") = (int)LV_CHART_AXIS_SECONDARY_X;
+    m.attr("CHECKED_RELEASED") = (int)LV_IMAGEBUTTON_STATE_CHECKED_RELEASED;
+    m.attr("CHECKED_PRESSED") = (int)LV_IMAGEBUTTON_STATE_CHECKED_PRESSED;
+    m.attr("CHECKED_DISABLED") = (int)LV_IMAGEBUTTON_STATE_CHECKED_DISABLED;
+    m.attr("NUM") = (int)LV_IMAGEBUTTON_STATE_NUM;
+    m.attr("TEXT_LOWER") = (int)LV_KEYBOARD_MODE_TEXT_LOWER;
+    m.attr("TEXT_UPPER") = (int)LV_KEYBOARD_MODE_TEXT_UPPER;
+    m.attr("SPECIAL") = (int)LV_KEYBOARD_MODE_SPECIAL;
+    m.attr("NUMBER") = (int)LV_KEYBOARD_MODE_NUMBER;
+    m.attr("MENU_HEADER_TOP_FIXED") = (int)LV_MENU_HEADER_TOP_FIXED;
+    m.attr("MENU_HEADER_TOP_UNFIXED") = (int)LV_MENU_HEADER_TOP_UNFIXED;
+    m.attr("MENU_HEADER_BOTTOM_FIXED") = (int)LV_MENU_HEADER_BOTTOM_FIXED;
+    m.attr("MENU_ROOT_BACK_BUTTON_DISABLED") = (int)LV_MENU_ROOT_BACK_BUTTON_DISABLED;
+    m.attr("MENU_ROOT_BACK_BUTTON_ENABLED") = (int)LV_MENU_ROOT_BACK_BUTTON_ENABLED;
+    m.attr("INFINITE") = (int)LV_ROLLER_MODE_INFINITE;
+    m.attr("HORIZONTAL_TOP") = (int)LV_SCALE_MODE_HORIZONTAL_TOP;
+    m.attr("HORIZONTAL_BOTTOM") = (int)LV_SCALE_MODE_HORIZONTAL_BOTTOM;
+    m.attr("VERTICAL_LEFT") = (int)LV_SCALE_MODE_VERTICAL_LEFT;
+    m.attr("VERTICAL_RIGHT") = (int)LV_SCALE_MODE_VERTICAL_RIGHT;
+    m.attr("ROUND_INNER") = (int)LV_SCALE_MODE_ROUND_INNER;
+    m.attr("ROUND_OUTER") = (int)LV_SCALE_MODE_ROUND_OUTER;
+    m.attr("FIXED") = (int)LV_SPAN_MODE_FIXED;
+    m.attr("BREAK") = (int)LV_SPAN_MODE_BREAK;
+    m.attr("MERGE_RIGHT") = (int)LV_TABLE_CELL_CTRL_MERGE_RIGHT;
+    m.attr("TEXT_CROP") = (int)LV_TABLE_CELL_CTRL_TEXT_CROP;
+    m.attr("CUSTOM_3") = (int)LV_TABLE_CELL_CTRL_CUSTOM_3;
+    m.attr("CUSTOM_4") = (int)LV_TABLE_CELL_CTRL_CUSTOM_4;
 
     /* Module-level functions */
     m.def("init", &lv_init, "Initialize LVGL library");
@@ -1202,12 +1635,11 @@ PYBIND11_MODULE(_lvgl, m) {
     m.def("demo_benchmark", []() { lv_demo_benchmark(); }, "Run LVGL benchmark demo");
 
     /* Base Object class */
-    auto obj_cls = py::class_<LvObjWrapper>(m, "Obj");
+    auto obj_cls = py::class_<LvObjWrapper>(m, "Obj", py::dynamic_attr());
     obj_cls.def(py::init<>());
-    obj_cls.def_static("create", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        lv_obj_t *p = parent ? parent->get() : nullptr;
-        return new LvObjWrapper(lv_obj_create(p));
-    }, py::arg("parent") = py::none());
+    obj_cls.def("_keep_parent", [](LvObjWrapper &self, py::object parent) {
+        self.keep_parent(parent);
+    }, py::arg("parent"));
     obj_cls.def("set_flex_flow", [](LvObjWrapper &self, lv_flex_flow_t flow) { lv_obj_set_flex_flow(self.get(), flow); return; }
         , py::arg("flow"));
     obj_cls.def("set_flex_align", [](LvObjWrapper &self, lv_flex_align_t main_place, lv_flex_align_t cross_place, lv_flex_align_t track_cross_place) { lv_obj_set_flex_align(self.get(), main_place, cross_place, track_cross_place); return; }
@@ -1230,13 +1662,25 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("obj2"));
     obj_cls.def("move_to_index", [](LvObjWrapper &self, int32_t index) { lv_obj_move_to_index(self.get(), index); return; }
         , py::arg("index"));
-    obj_cls.def("get_screen", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_obj_get_screen(self.get())); }
+    obj_cls.def("get_screen", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_obj_get_screen(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_parent", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_obj_get_parent(self.get())); }
+    obj_cls.def("get_parent", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_obj_get_parent(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_child", [](LvObjWrapper &self, int32_t idx) -> LvObjWrapper* { return new LvObjWrapper(lv_obj_get_child(self.get(), idx)); }
+    obj_cls.def("get_child", [](LvObjWrapper &self, int32_t idx) -> LvObjWrapper* {
+        lv_obj_t *result = lv_obj_get_child(self.get(), idx);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("idx"));
-    obj_cls.def("get_sibling", [](LvObjWrapper &self, int32_t idx) -> LvObjWrapper* { return new LvObjWrapper(lv_obj_get_sibling(self.get(), idx)); }
+    obj_cls.def("get_sibling", [](LvObjWrapper &self, int32_t idx) -> LvObjWrapper* {
+        lv_obj_t *result = lv_obj_get_sibling(self.get(), idx);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("idx"));
     obj_cls.def("get_child_count", [](LvObjWrapper &self) -> uint32_t { return lv_obj_get_child_count(self.get()); }
         );
@@ -1246,7 +1690,10 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("name"));
     obj_cls.def("get_name", [](LvObjWrapper &self) -> const char * { return lv_obj_get_name(self.get()); }
         );
-    obj_cls.def("find_by_name", [](LvObjWrapper &self, const char * name) -> LvObjWrapper* { return new LvObjWrapper(lv_obj_find_by_name(self.get(), name)); }
+    obj_cls.def("find_by_name", [](LvObjWrapper &self, const char * name) -> LvObjWrapper* {
+        lv_obj_t *result = lv_obj_find_by_name(self.get(), name);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("name"));
     obj_cls.def("get_index", [](LvObjWrapper &self) -> int32_t { return lv_obj_get_index(self.get()); }
         );
@@ -1425,7 +1872,7 @@ PYBIND11_MODULE(_lvgl, m) {
     obj_cls.def("readjust_scroll", [](LvObjWrapper &self, bool anim_en) { lv_obj_readjust_scroll(self.get(), anim_en); return; }
         , py::arg("anim_en"));
     obj_cls.def("remove_theme", [](LvObjWrapper &self, uint32_t selector) { lv_obj_remove_theme(self.get(), selector); return; }
-        , py::arg("selector"));
+        , py::arg("selector") = 0);
     obj_cls.def("remove_style_all", [](LvObjWrapper &self) { lv_obj_remove_style_all(self.get()); return; }
         );
     obj_cls.def("refresh_style", [](LvObjWrapper &self, lv_part_t part, uint32_t prop) { lv_obj_refresh_style(self.get(), part, prop); return; }
@@ -1433,9 +1880,9 @@ PYBIND11_MODULE(_lvgl, m) {
     obj_cls.def("get_style_prop", [](LvObjWrapper &self, lv_part_t part, uint32_t prop) -> lv_style_value_t { return lv_obj_get_style_prop(self.get(), part, prop); }
         , py::arg("part"), py::arg("prop"));
     obj_cls.def("has_style_prop", [](LvObjWrapper &self, uint32_t selector, uint32_t prop) -> bool { return lv_obj_has_style_prop(self.get(), selector, prop); }
-        , py::arg("selector"), py::arg("prop"));
+        , py::arg("selector") = 0, py::arg("prop"));
     obj_cls.def("remove_local_style_prop", [](LvObjWrapper &self, uint32_t prop, uint32_t selector) -> bool { return lv_obj_remove_local_style_prop(self.get(), prop, selector); }
-        , py::arg("prop"), py::arg("selector"));
+        , py::arg("prop"), py::arg("selector") = 0);
     obj_cls.def("fade_in", [](LvObjWrapper &self, uint32_t time, uint32_t delay) { lv_obj_fade_in(self.get(), time, delay); return; }
         , py::arg("time"), py::arg("delay"));
     obj_cls.def("fade_out", [](LvObjWrapper &self, uint32_t time, uint32_t delay) { lv_obj_fade_out(self.get(), time, delay); return; }
@@ -1707,271 +2154,271 @@ PYBIND11_MODULE(_lvgl, m) {
     obj_cls.def("get_style_grid_cell_row_span", [](LvObjWrapper &self, lv_part_t part) -> int32_t { return lv_obj_get_style_grid_cell_row_span(self.get(), part); }
         , py::arg("part"));
     obj_cls.def("set_style_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_min_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_min_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_max_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_max_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_height", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_height(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_min_height", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_min_height(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_max_height", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_max_height(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_length", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_length(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_x", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_x(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_y", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_y(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_align", [](LvObjWrapper &self, lv_align_t value, uint32_t selector) { lv_obj_set_style_align(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_height", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_height(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_translate_x", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_translate_x(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_translate_y", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_translate_y(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_translate_radial", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_translate_radial(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_scale_x", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_scale_x(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_scale_y", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_scale_y(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_rotation", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_rotation(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_pivot_x", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_pivot_x(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_pivot_y", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_pivot_y(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_skew_x", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_skew_x(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_skew_y", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_skew_y(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_top", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_top(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_bottom", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_bottom(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_left", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_left(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_right", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_right(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_row", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_row(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_column", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_column(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_radial", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_radial(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_margin_top", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_margin_top(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_margin_bottom", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_margin_bottom(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_margin_left", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_margin_left(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_margin_right", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_margin_right(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_bg_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_bg_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_grad_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_bg_grad_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_grad_dir", [](LvObjWrapper &self, lv_grad_dir_t value, uint32_t selector) { lv_obj_set_style_bg_grad_dir(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_main_stop", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_bg_main_stop(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_grad_stop", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_bg_grad_stop(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_main_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_bg_main_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_grad_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_bg_grad_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_image_src", [](LvObjWrapper &self, const char * value, uint32_t selector) { lv_obj_set_style_bg_image_src(self.get(), (const void *)value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_image_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_bg_image_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_image_recolor", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_bg_image_recolor(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_image_recolor_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_bg_image_recolor_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bg_image_tiled", [](LvObjWrapper &self, bool value, uint32_t selector) { lv_obj_set_style_bg_image_tiled(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_border_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_border_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_border_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_border_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_border_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_border_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_border_side", [](LvObjWrapper &self, lv_border_side_t value, uint32_t selector) { lv_obj_set_style_border_side(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_border_post", [](LvObjWrapper &self, bool value, uint32_t selector) { lv_obj_set_style_border_post(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_outline_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_outline_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_outline_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_outline_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_outline_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_outline_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_outline_pad", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_outline_pad(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_shadow_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_shadow_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_shadow_offset_x", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_shadow_offset_x(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_shadow_offset_y", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_shadow_offset_y(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_shadow_spread", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_shadow_spread(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_shadow_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_shadow_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_shadow_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_shadow_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_image_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_image_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_image_recolor", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_image_recolor(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_image_recolor_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_image_recolor_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_line_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_line_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_line_dash_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_line_dash_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_line_dash_gap", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_line_dash_gap(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_line_rounded", [](LvObjWrapper &self, bool value, uint32_t selector) { lv_obj_set_style_line_rounded(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_line_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_line_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_line_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_line_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_arc_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_arc_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_arc_rounded", [](LvObjWrapper &self, bool value, uint32_t selector) { lv_obj_set_style_arc_rounded(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_arc_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_arc_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_arc_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_arc_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_arc_image_src", [](LvObjWrapper &self, const char * value, uint32_t selector) { lv_obj_set_style_arc_image_src(self.get(), (const void *)value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_text_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_text_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_font", [](LvObjWrapper &self, const lv_font_t * value, uint32_t selector) { lv_obj_set_style_text_font(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_letter_space", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_text_letter_space(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_line_space", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_text_line_space(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_decor", [](LvObjWrapper &self, lv_text_decor_t value, uint32_t selector) { lv_obj_set_style_text_decor(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_align", [](LvObjWrapper &self, lv_text_align_t value, uint32_t selector) { lv_obj_set_style_text_align(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_outline_stroke_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_text_outline_stroke_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_outline_stroke_width", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_text_outline_stroke_width(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_outline_stroke_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_text_outline_stroke_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_text_leading_trim", [](LvObjWrapper &self, lv_text_leading_trim_t value, uint32_t selector) { lv_obj_set_style_text_leading_trim(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_blur_radius", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_blur_radius(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_blur_backdrop", [](LvObjWrapper &self, bool value, uint32_t selector) { lv_obj_set_style_blur_backdrop(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_blur_quality", [](LvObjWrapper &self, lv_blur_quality_t value, uint32_t selector) { lv_obj_set_style_blur_quality(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_drop_shadow_radius", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_drop_shadow_radius(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_drop_shadow_offset_x", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_drop_shadow_offset_x(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_drop_shadow_offset_y", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_drop_shadow_offset_y(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_drop_shadow_color", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_drop_shadow_color(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_drop_shadow_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_drop_shadow_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_drop_shadow_quality", [](LvObjWrapper &self, lv_blur_quality_t value, uint32_t selector) { lv_obj_set_style_drop_shadow_quality(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_radius", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_radius(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_radial_offset", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_radial_offset(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_clip_corner", [](LvObjWrapper &self, bool value, uint32_t selector) { lv_obj_set_style_clip_corner(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_opa_layered", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_opa_layered(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_color_filter_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_color_filter_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_recolor", [](LvObjWrapper &self, lv_color_t value, uint32_t selector) { lv_obj_set_style_recolor(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_recolor_opa", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_recolor_opa(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_anim_duration", [](LvObjWrapper &self, uint32_t value, uint32_t selector) { lv_obj_set_style_anim_duration(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_blend_mode", [](LvObjWrapper &self, lv_blend_mode_t value, uint32_t selector) { lv_obj_set_style_blend_mode(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_layout", [](LvObjWrapper &self, uint16_t value, uint32_t selector) { lv_obj_set_style_layout(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_base_dir", [](LvObjWrapper &self, lv_base_dir_t value, uint32_t selector) { lv_obj_set_style_base_dir(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_bitmap_mask_src", [](LvObjWrapper &self, const char * value, uint32_t selector) { lv_obj_set_style_bitmap_mask_src(self.get(), (const void *)value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_rotary_sensitivity", [](LvObjWrapper &self, uint32_t value, uint32_t selector) { lv_obj_set_style_rotary_sensitivity(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_flex_flow", [](LvObjWrapper &self, lv_flex_flow_t value, uint32_t selector) { lv_obj_set_style_flex_flow(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_flex_main_place", [](LvObjWrapper &self, lv_flex_align_t value, uint32_t selector) { lv_obj_set_style_flex_main_place(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_flex_cross_place", [](LvObjWrapper &self, lv_flex_align_t value, uint32_t selector) { lv_obj_set_style_flex_cross_place(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_flex_track_place", [](LvObjWrapper &self, lv_flex_align_t value, uint32_t selector) { lv_obj_set_style_flex_track_place(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_flex_grow", [](LvObjWrapper &self, uint8_t value, uint32_t selector) { lv_obj_set_style_flex_grow(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_column_dsc_array", [](LvObjWrapper &self, const int32_t * value, uint32_t selector) { lv_obj_set_style_grid_column_dsc_array(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_column_align", [](LvObjWrapper &self, lv_grid_align_t value, uint32_t selector) { lv_obj_set_style_grid_column_align(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_row_dsc_array", [](LvObjWrapper &self, const int32_t * value, uint32_t selector) { lv_obj_set_style_grid_row_dsc_array(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_row_align", [](LvObjWrapper &self, lv_grid_align_t value, uint32_t selector) { lv_obj_set_style_grid_row_align(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_cell_column_pos", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_grid_cell_column_pos(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_cell_x_align", [](LvObjWrapper &self, lv_grid_align_t value, uint32_t selector) { lv_obj_set_style_grid_cell_x_align(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_cell_column_span", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_grid_cell_column_span(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_cell_row_pos", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_grid_cell_row_pos(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_cell_y_align", [](LvObjWrapper &self, lv_grid_align_t value, uint32_t selector) { lv_obj_set_style_grid_cell_y_align(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_grid_cell_row_span", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_grid_cell_row_span(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_all", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_all(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_hor", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_hor(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_ver", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_ver(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_margin_all", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_margin_all(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_margin_hor", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_margin_hor(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_margin_ver", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_margin_ver(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_pad_gap", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_pad_gap(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("set_style_size", [](LvObjWrapper &self, int32_t width, int32_t height, uint32_t selector) { lv_obj_set_style_size(self.get(), width, height, selector); return; }
-        , py::arg("width"), py::arg("height"), py::arg("selector"));
+        , py::arg("width"), py::arg("height"), py::arg("selector") = 0);
     obj_cls.def("set_style_transform_scale", [](LvObjWrapper &self, int32_t value, uint32_t selector) { lv_obj_set_style_transform_scale(self.get(), value, selector); return; }
-        , py::arg("value"), py::arg("selector"));
+        , py::arg("value"), py::arg("selector") = 0);
     obj_cls.def("get_style_space_left", [](LvObjWrapper &self, lv_part_t part) -> int32_t { return lv_obj_get_style_space_left(self.get(), part); }
         , py::arg("part"));
     obj_cls.def("get_style_space_right", [](LvObjWrapper &self, lv_part_t part) -> int32_t { return lv_obj_get_style_space_right(self.get(), part); }
@@ -2012,7 +2459,10 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("index"));
     obj_cls.def("remove_event_cb_with_user_data", [](LvObjWrapper &self, lv_event_cb_t event_cb, void * user_data) -> uint32_t { return lv_obj_remove_event_cb_with_user_data(self.get(), event_cb, user_data); }
         , py::arg("event_cb"), py::arg("user_data"));
-    obj_cls.def("obj", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_obj_create(self.get())); }
+    obj_cls.def("obj", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_obj_create(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
     obj_cls.def("add_flag", [](LvObjWrapper &self, lv_obj_flag_t f) { lv_obj_add_flag(self.get(), f); return; }
         , py::arg("f"));
@@ -2062,92 +2512,173 @@ PYBIND11_MODULE(_lvgl, m) {
     }, py::arg("screen"));
 
     /* Widget factory functions */
-    m.def("Animimg", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_animimg_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Animimg", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_animimg_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Arc", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_arc_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Arc", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_arc_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Bar", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_bar_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Bar", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_bar_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Button", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_button_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Button", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_button_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Canvas", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_canvas_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Canvas", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_canvas_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Chart", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_chart_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Chart", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_chart_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Checkbox", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_checkbox_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Checkbox", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_checkbox_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Dropdown", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_dropdown_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Dropdown", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_dropdown_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Image", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_image_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Image", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_image_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Keyboard", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_keyboard_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Keyboard", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_keyboard_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Label", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_label_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Label", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_label_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Led", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_led_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Led", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_led_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Line", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_line_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Line", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_line_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("List", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_list_create(parent ? parent->get() : lv_screen_active()));
+    m.def("List", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_list_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Menu", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_menu_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Menu", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_menu_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Msgbox", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_msgbox_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Msgbox", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_msgbox_create(_parent ? _parent->get() : NULL));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Roller", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_roller_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Roller", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_roller_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Scale", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_scale_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Scale", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_scale_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Slider", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_slider_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Slider", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_slider_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Spinbox", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_spinbox_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Spinbox", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_spinbox_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Spinner", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_spinner_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Spinner", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_spinner_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Switch", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_switch_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Switch", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_switch_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Table", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_table_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Table", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_table_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Tabview", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_tabview_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Tabview", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_tabview_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Textarea", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_textarea_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Textarea", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_textarea_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Tileview", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_tileview_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Tileview", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_tileview_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
-    m.def("Win", [](LvObjWrapper *parent) -> LvObjWrapper* {
-        return new LvObjWrapper(lv_win_create(parent ? parent->get() : lv_screen_active()));
+    m.def("Win", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_win_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
     }, py::arg("parent") = py::none());
 
     /* Widget-specific methods on Obj */
     obj_cls.def("start", [](LvObjWrapper &self) { lv_animimg_start(self.get()); return; }
         );
-    obj_cls.def("animimg_delete_obj", [](LvObjWrapper &self) -> bool { return lv_animimg_delete(self.get()); }
+    obj_cls.def("delete_obj", [](LvObjWrapper &self) -> bool { return lv_animimg_delete(self.get()); }
         );
     obj_cls.def("set_duration", [](LvObjWrapper &self, uint32_t duration) { lv_animimg_set_duration(self.get(), duration); return; }
         , py::arg("duration"));
@@ -2179,17 +2710,17 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("end"));
     obj_cls.def("set_bg_angles", [](LvObjWrapper &self, lv_value_precise_t start, lv_value_precise_t end) { lv_arc_set_bg_angles(self.get(), start, end); return; }
         , py::arg("start"), py::arg("end"));
-    obj_cls.def("set_rotation", [](LvObjWrapper &self, int32_t rotation) { lv_arc_set_rotation(self.get(), rotation); return; }
+    obj_cls.def("arc_set_rotation", [](LvObjWrapper &self, int32_t rotation) { lv_arc_set_rotation(self.get(), rotation); return; }
         , py::arg("rotation"));
-    obj_cls.def("set_mode", [](LvObjWrapper &self, lv_arc_mode_t type) { lv_arc_set_mode(self.get(), type); return; }
+    obj_cls.def("arc_set_mode", [](LvObjWrapper &self, lv_arc_mode_t type) { lv_arc_set_mode(self.get(), type); return; }
         , py::arg("type"));
-    obj_cls.def("set_value", [](LvObjWrapper &self, int32_t value) { lv_arc_set_value(self.get(), value); return; }
+    obj_cls.def("arc_set_value", [](LvObjWrapper &self, int32_t value) { lv_arc_set_value(self.get(), value); return; }
         , py::arg("value"));
-    obj_cls.def("set_range", [](LvObjWrapper &self, int32_t min, int32_t max) { lv_arc_set_range(self.get(), min, max); return; }
+    obj_cls.def("arc_set_range", [](LvObjWrapper &self, int32_t min, int32_t max) { lv_arc_set_range(self.get(), min, max); return; }
         , py::arg("min"), py::arg("max"));
-    obj_cls.def("set_min_value", [](LvObjWrapper &self, int32_t min) { lv_arc_set_min_value(self.get(), min); return; }
+    obj_cls.def("arc_set_min_value", [](LvObjWrapper &self, int32_t min) { lv_arc_set_min_value(self.get(), min); return; }
         , py::arg("min"));
-    obj_cls.def("set_max_value", [](LvObjWrapper &self, int32_t max) { lv_arc_set_max_value(self.get(), max); return; }
+    obj_cls.def("arc_set_max_value", [](LvObjWrapper &self, int32_t max) { lv_arc_set_max_value(self.get(), max); return; }
         , py::arg("max"));
     obj_cls.def("set_change_rate", [](LvObjWrapper &self, uint32_t rate) { lv_arc_set_change_rate(self.get(), rate); return; }
         , py::arg("rate"));
@@ -2203,15 +2734,15 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("get_bg_angle_end", [](LvObjWrapper &self) -> lv_value_precise_t { return lv_arc_get_bg_angle_end(self.get()); }
         );
-    obj_cls.def("get_value", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_value(self.get()); }
+    obj_cls.def("arc_get_value", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_value(self.get()); }
         );
-    obj_cls.def("get_min_value", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_min_value(self.get()); }
+    obj_cls.def("arc_get_min_value", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_min_value(self.get()); }
         );
-    obj_cls.def("get_max_value", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_max_value(self.get()); }
+    obj_cls.def("arc_get_max_value", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_max_value(self.get()); }
         );
-    obj_cls.def("get_mode", [](LvObjWrapper &self) -> lv_arc_mode_t { return lv_arc_get_mode(self.get()); }
+    obj_cls.def("arc_get_mode", [](LvObjWrapper &self) -> lv_arc_mode_t { return lv_arc_get_mode(self.get()); }
         );
-    obj_cls.def("get_rotation", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_rotation(self.get()); }
+    obj_cls.def("arc_get_rotation", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_rotation(self.get()); }
         );
     obj_cls.def("get_knob_offset", [](LvObjWrapper &self) -> int32_t { return lv_arc_get_knob_offset(self.get()); }
         );
@@ -2223,7 +2754,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("obj_to_rotate"), py::arg("r_offset"));
     obj_cls.def("bar_set_value", [](LvObjWrapper &self, int32_t value, bool anim) { lv_bar_set_value(self.get(), value, anim); return; }
         , py::arg("value"), py::arg("anim"));
-    obj_cls.def("set_start_value", [](LvObjWrapper &self, int32_t start_value, bool anim) { lv_bar_set_start_value(self.get(), start_value, anim); return; }
+    obj_cls.def("bar_set_start_value", [](LvObjWrapper &self, int32_t start_value, bool anim) { lv_bar_set_start_value(self.get(), start_value, anim); return; }
         , py::arg("start_value"), py::arg("anim"));
     obj_cls.def("bar_set_range", [](LvObjWrapper &self, int32_t min, int32_t max) { lv_bar_set_range(self.get(), min, max); return; }
         , py::arg("min"), py::arg("max"));
@@ -2233,7 +2764,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("max"));
     obj_cls.def("bar_set_mode", [](LvObjWrapper &self, lv_bar_mode_t mode) { lv_bar_set_mode(self.get(), mode); return; }
         , py::arg("mode"));
-    obj_cls.def("set_orientation", [](LvObjWrapper &self, lv_bar_orientation_t orientation) { lv_bar_set_orientation(self.get(), orientation); return; }
+    obj_cls.def("bar_set_orientation", [](LvObjWrapper &self, lv_bar_orientation_t orientation) { lv_bar_set_orientation(self.get(), orientation); return; }
         , py::arg("orientation"));
     obj_cls.def("bar_get_value", [](LvObjWrapper &self) -> int32_t { return lv_bar_get_value(self.get()); }
         );
@@ -2245,9 +2776,9 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("bar_get_mode", [](LvObjWrapper &self) -> lv_bar_mode_t { return lv_bar_get_mode(self.get()); }
         );
-    obj_cls.def("get_orientation", [](LvObjWrapper &self) -> lv_bar_orientation_t { return lv_bar_get_orientation(self.get()); }
+    obj_cls.def("bar_get_orientation", [](LvObjWrapper &self) -> lv_bar_orientation_t { return lv_bar_get_orientation(self.get()); }
         );
-    obj_cls.def("is_symmetrical", [](LvObjWrapper &self) -> bool { return lv_bar_is_symmetrical(self.get()); }
+    obj_cls.def("bar_is_symmetrical", [](LvObjWrapper &self) -> bool { return lv_bar_is_symmetrical(self.get()); }
         );
     obj_cls.def("set_buffer", [](LvObjWrapper &self, void * buf, int32_t w, int32_t h, lv_color_format_t cf) { lv_canvas_set_buffer(self.get(), buf, w, h, cf); return; }
         , py::arg("buf"), py::arg("w"), py::arg("h"), py::arg("cf"));
@@ -2285,7 +2816,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("cnt"));
     obj_cls.def("get_type", [](LvObjWrapper &self) -> lv_chart_type_t { return lv_chart_get_type(self.get()); }
         );
-    obj_cls.def("get_point_count", [](LvObjWrapper &self) -> uint32_t { return lv_chart_get_point_count(self.get()); }
+    obj_cls.def("chart_get_point_count", [](LvObjWrapper &self) -> uint32_t { return lv_chart_get_point_count(self.get()); }
         );
     obj_cls.def("get_update_mode", [](LvObjWrapper &self) -> lv_chart_update_mode_t { return lv_chart_get_update_mode(self.get()); }
         );
@@ -2297,17 +2828,17 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("get_first_point_center_offset", [](LvObjWrapper &self) -> int32_t { return lv_chart_get_first_point_center_offset(self.get()); }
         );
-    obj_cls.def("set_text", [](LvObjWrapper &self, const char * txt) { lv_checkbox_set_text(self.get(), txt); return; }
+    obj_cls.def("checkbox_set_text", [](LvObjWrapper &self, const char * txt) { lv_checkbox_set_text(self.get(), txt); return; }
         , py::arg("txt"));
-    obj_cls.def("set_text_static", [](LvObjWrapper &self, const char * txt) { lv_checkbox_set_text_static(self.get(), txt); return; }
+    obj_cls.def("checkbox_set_text_static", [](LvObjWrapper &self, const char * txt) { lv_checkbox_set_text_static(self.get(), txt); return; }
         , py::arg("txt"));
-    obj_cls.def("get_text", [](LvObjWrapper &self) -> const char * { return lv_checkbox_get_text(self.get()); }
+    obj_cls.def("checkbox_get_text", [](LvObjWrapper &self) -> const char * { return lv_checkbox_get_text(self.get()); }
         );
     obj_cls.def("dropdown_set_text", [](LvObjWrapper &self, const char * text) { lv_dropdown_set_text(self.get(), text); return; }
         , py::arg("text"));
     obj_cls.def("dropdown_set_text_static", [](LvObjWrapper &self, const char * text) { lv_dropdown_set_text_static(self.get(), text); return; }
         , py::arg("text"));
-    obj_cls.def("set_options", [](LvObjWrapper &self, const char * options) { lv_dropdown_set_options(self.get(), options); return; }
+    obj_cls.def("dropdown_set_options", [](LvObjWrapper &self, const char * options) { lv_dropdown_set_options(self.get(), options); return; }
         , py::arg("options"));
     obj_cls.def("set_options_static", [](LvObjWrapper &self, const char * options) { lv_dropdown_set_options_static(self.get(), options); return; }
         , py::arg("options"));
@@ -2315,7 +2846,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("option"), py::arg("pos"));
     obj_cls.def("clear_options", [](LvObjWrapper &self) { lv_dropdown_clear_options(self.get()); return; }
         );
-    obj_cls.def("set_selected", [](LvObjWrapper &self, uint32_t sel_opt) { lv_dropdown_set_selected(self.get(), sel_opt); return; }
+    obj_cls.def("dropdown_set_selected", [](LvObjWrapper &self, uint32_t sel_opt) { lv_dropdown_set_selected(self.get(), sel_opt); return; }
         , py::arg("sel_opt"));
     obj_cls.def("set_dir", [](LvObjWrapper &self, lv_dir_t dir) { lv_dropdown_set_dir(self.get(), dir); return; }
         , py::arg("dir"));
@@ -2323,15 +2854,18 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("symbol"));
     obj_cls.def("set_selected_highlight", [](LvObjWrapper &self, bool en) { lv_dropdown_set_selected_highlight(self.get(), en); return; }
         , py::arg("en"));
-    obj_cls.def("get_list", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_dropdown_get_list(self.get())); }
+    obj_cls.def("get_list", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_dropdown_get_list(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
     obj_cls.def("dropdown_get_text", [](LvObjWrapper &self) -> const char * { return lv_dropdown_get_text(self.get()); }
         );
-    obj_cls.def("get_options", [](LvObjWrapper &self) -> const char * { return lv_dropdown_get_options(self.get()); }
+    obj_cls.def("dropdown_get_options", [](LvObjWrapper &self) -> const char * { return lv_dropdown_get_options(self.get()); }
         );
-    obj_cls.def("get_selected", [](LvObjWrapper &self) -> uint32_t { return lv_dropdown_get_selected(self.get()); }
+    obj_cls.def("dropdown_get_selected", [](LvObjWrapper &self) -> uint32_t { return lv_dropdown_get_selected(self.get()); }
         );
-    obj_cls.def("get_option_count", [](LvObjWrapper &self) -> uint32_t { return lv_dropdown_get_option_count(self.get()); }
+    obj_cls.def("dropdown_get_option_count", [](LvObjWrapper &self) -> uint32_t { return lv_dropdown_get_option_count(self.get()); }
         );
     obj_cls.def("get_option_index", [](LvObjWrapper &self, const char * option) -> int32_t { return lv_dropdown_get_option_index(self.get(), option); }
         , py::arg("option"));
@@ -2343,7 +2877,7 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("open", [](LvObjWrapper &self) { lv_dropdown_open(self.get()); return; }
         );
-    obj_cls.def("close", [](LvObjWrapper &self) { lv_dropdown_close(self.get()); return; }
+    obj_cls.def("dropdown_close", [](LvObjWrapper &self) { lv_dropdown_close(self.get()); return; }
         );
     obj_cls.def("is_open", [](LvObjWrapper &self) -> bool { return lv_dropdown_is_open(self.get()); }
         );
@@ -2411,7 +2945,10 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("mode"));
     obj_cls.def("set_popovers", [](LvObjWrapper &self, bool en) { lv_keyboard_set_popovers(self.get(), en); return; }
         , py::arg("en"));
-    obj_cls.def("get_textarea", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_keyboard_get_textarea(self.get())); }
+    obj_cls.def("get_textarea", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_keyboard_get_textarea(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
     obj_cls.def("keyboard_get_mode", [](LvObjWrapper &self) -> lv_keyboard_mode_t { return lv_keyboard_get_mode(self.get()); }
         );
@@ -2419,7 +2956,7 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("get_selected_button", [](LvObjWrapper &self) -> uint32_t { return lv_keyboard_get_selected_button(self.get()); }
         );
-    obj_cls.def("get_button_text", [](LvObjWrapper &self, uint32_t btn_id) -> const char * { return lv_keyboard_get_button_text(self.get(), btn_id); }
+    obj_cls.def("keyboard_get_button_text", [](LvObjWrapper &self, uint32_t btn_id) -> const char * { return lv_keyboard_get_button_text(self.get(), btn_id); }
         , py::arg("btn_id"));
     obj_cls.def("label_set_text", [](LvObjWrapper &self, const char * text) { lv_label_set_text(self.get(), text); return; }
         , py::arg("text"));
@@ -2483,9 +3020,15 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("get_y_invert", [](LvObjWrapper &self) -> bool { return lv_line_get_y_invert(self.get()); }
         );
-    obj_cls.def("add_text", [](LvObjWrapper &self, const char * txt) -> LvObjWrapper* { return new LvObjWrapper(lv_list_add_text(self.get(), txt)); }
+    obj_cls.def("list_add_text", [](LvObjWrapper &self, const char * txt) -> LvObjWrapper* {
+        lv_obj_t *result = lv_list_add_text(self.get(), txt);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("txt"));
-    obj_cls.def("add_button", [](LvObjWrapper &self, const char * icon, const char * txt) -> LvObjWrapper* { return new LvObjWrapper(lv_list_add_button(self.get(), (const void *)icon, txt)); }
+    obj_cls.def("list_add_button", [](LvObjWrapper &self, const char * icon, const char * txt) -> LvObjWrapper* {
+        lv_obj_t *result = lv_list_add_button(self.get(), (const void *)icon, txt);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("icon"), py::arg("txt"));
     obj_cls.def("list_get_button_text", [](LvObjWrapper &self, LvObjWrapper & btn) -> const char * { return lv_list_get_button_text(self.get(), btn.get()); }
         , py::arg("btn"));
@@ -2505,17 +3048,35 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("mode"));
     obj_cls.def("set_load_page_event", [](LvObjWrapper &self, LvObjWrapper & obj, LvObjWrapper & page) { lv_menu_set_load_page_event(self.get(), obj.get(), page.get()); return; }
         , py::arg("obj"), py::arg("page"));
-    obj_cls.def("get_cur_main_page", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_menu_get_cur_main_page(self.get())); }
+    obj_cls.def("get_cur_main_page", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_menu_get_cur_main_page(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_cur_sidebar_page", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_menu_get_cur_sidebar_page(self.get())); }
+    obj_cls.def("get_cur_sidebar_page", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_menu_get_cur_sidebar_page(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_main_header", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_menu_get_main_header(self.get())); }
+    obj_cls.def("get_main_header", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_menu_get_main_header(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_main_header_back_button", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_menu_get_main_header_back_button(self.get())); }
+    obj_cls.def("get_main_header_back_button", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_menu_get_main_header_back_button(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_sidebar_header", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_menu_get_sidebar_header(self.get())); }
+    obj_cls.def("get_sidebar_header", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_menu_get_sidebar_header(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_sidebar_header_back_button", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_menu_get_sidebar_header_back_button(self.get())); }
+    obj_cls.def("get_sidebar_header_back_button", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_menu_get_sidebar_header_back_button(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
     obj_cls.def("back_button_is_root", [](LvObjWrapper &self, LvObjWrapper & obj) -> bool { return lv_menu_back_button_is_root(self.get(), obj.get()); }
         , py::arg("obj"));
@@ -2525,25 +3086,55 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("clear_history", [](LvObjWrapper &self) { lv_menu_clear_history(self.get()); return; }
         );
-    obj_cls.def("add_title", [](LvObjWrapper &self, const char * title) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_title(self.get(), title)); }
+    obj_cls.def("msgbox_add_title", [](LvObjWrapper &self, const char * title) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_add_title(self.get(), title);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("title"));
-    obj_cls.def("add_header_button", [](LvObjWrapper &self, const char * icon) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_header_button(self.get(), (const void *)icon)); }
+    obj_cls.def("add_header_button", [](LvObjWrapper &self, const char * icon) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_add_header_button(self.get(), (const void *)icon);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("icon"));
-    obj_cls.def("msgbox_add_text", [](LvObjWrapper &self, const char * text) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_text(self.get(), text)); }
+    obj_cls.def("msgbox_add_text", [](LvObjWrapper &self, const char * text) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_add_text(self.get(), text);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("text"));
-    obj_cls.def("add_text_fmt", [](LvObjWrapper &self, const char * fmt) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_text_fmt(self.get(), fmt)); }
+    obj_cls.def("add_text_fmt", [](LvObjWrapper &self, const char * fmt) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_add_text_fmt(self.get(), fmt);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("fmt"));
-    obj_cls.def("add_footer_button", [](LvObjWrapper &self, const char * text) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_footer_button(self.get(), text)); }
+    obj_cls.def("add_footer_button", [](LvObjWrapper &self, const char * text) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_add_footer_button(self.get(), text);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("text"));
-    obj_cls.def("add_close_button", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_add_close_button(self.get())); }
+    obj_cls.def("add_close_button", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_add_close_button(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_header", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_get_header(self.get())); }
+    obj_cls.def("msgbox_get_header", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_get_header(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_footer", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_get_footer(self.get())); }
+    obj_cls.def("get_footer", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_get_footer(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_content", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_get_content(self.get())); }
+    obj_cls.def("msgbox_get_content", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_get_content(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_title", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_msgbox_get_title(self.get())); }
+    obj_cls.def("get_title", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_msgbox_get_title(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
     obj_cls.def("msgbox_close", [](LvObjWrapper &self) { lv_msgbox_close(self.get()); return; }
         );
@@ -2653,7 +3244,7 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("min_value"));
     obj_cls.def("spinbox_set_max_value", [](LvObjWrapper &self, int32_t max_value) { lv_spinbox_set_max_value(self.get(), max_value); return; }
         , py::arg("max_value"));
-    obj_cls.def("set_cursor_pos", [](LvObjWrapper &self, uint32_t pos) { lv_spinbox_set_cursor_pos(self.get(), pos); return; }
+    obj_cls.def("spinbox_set_cursor_pos", [](LvObjWrapper &self, uint32_t pos) { lv_spinbox_set_cursor_pos(self.get(), pos); return; }
         , py::arg("pos"));
     obj_cls.def("set_digit_step_direction", [](LvObjWrapper &self, lv_dir_t direction) { lv_spinbox_set_digit_step_direction(self.get(), direction); return; }
         , py::arg("direction"));
@@ -2727,7 +3318,10 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("row"), py::arg("col"));
     obj_cls.def("get_cell_user_data", [](LvObjWrapper &self, uint16_t row, uint16_t col) -> void * { return lv_table_get_cell_user_data(self.get(), row, col); }
         , py::arg("row"), py::arg("col"));
-    obj_cls.def("add_tab", [](LvObjWrapper &self, const char * name) -> LvObjWrapper* { return new LvObjWrapper(lv_tabview_add_tab(self.get(), name)); }
+    obj_cls.def("add_tab", [](LvObjWrapper &self, const char * name) -> LvObjWrapper* {
+        lv_obj_t *result = lv_tabview_add_tab(self.get(), name);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("name"));
     obj_cls.def("set_tab_text", [](LvObjWrapper &self, uint32_t idx, const char * new_name) { lv_tabview_set_tab_text(self.get(), idx, new_name); return; }
         , py::arg("idx"), py::arg("new_name"));
@@ -2741,11 +3335,20 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("get_tab_active", [](LvObjWrapper &self) -> uint32_t { return lv_tabview_get_tab_active(self.get()); }
         );
-    obj_cls.def("get_tab_button", [](LvObjWrapper &self, int32_t idx) -> LvObjWrapper* { return new LvObjWrapper(lv_tabview_get_tab_button(self.get(), idx)); }
+    obj_cls.def("get_tab_button", [](LvObjWrapper &self, int32_t idx) -> LvObjWrapper* {
+        lv_obj_t *result = lv_tabview_get_tab_button(self.get(), idx);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("idx"));
-    obj_cls.def("tabview_get_content", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_tabview_get_content(self.get())); }
+    obj_cls.def("tabview_get_content", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_tabview_get_content(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("get_tab_bar", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_tabview_get_tab_bar(self.get())); }
+    obj_cls.def("get_tab_bar", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_tabview_get_tab_bar(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
     obj_cls.def("get_tab_bar_position", [](LvObjWrapper &self) -> lv_dir_t { return lv_tabview_get_tab_bar_position(self.get()); }
         );
@@ -2783,11 +3386,14 @@ PYBIND11_MODULE(_lvgl, m) {
         , py::arg("en"));
     obj_cls.def("set_password_show_time", [](LvObjWrapper &self, uint32_t time) { lv_textarea_set_password_show_time(self.get(), time); return; }
         , py::arg("time"));
-    obj_cls.def("textarea_set_align", [](LvObjWrapper &self, lv_text_align_t align) { lv_textarea_set_align(self.get(), align); return; }
+    obj_cls.def("set_align", [](LvObjWrapper &self, lv_text_align_t align) { lv_textarea_set_align(self.get(), align); return; }
         , py::arg("align"));
     obj_cls.def("get_placeholder_text", [](LvObjWrapper &self) -> const char * { return lv_textarea_get_placeholder_text(self.get()); }
         );
-    obj_cls.def("get_label", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_textarea_get_label(self.get())); }
+    obj_cls.def("get_label", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_textarea_get_label(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
     obj_cls.def("get_cursor_pos", [](LvObjWrapper &self) -> uint32_t { return lv_textarea_get_cursor_pos(self.get()); }
         );
@@ -2821,49 +3427,67 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("cursor_up", [](LvObjWrapper &self) { lv_textarea_cursor_up(self.get()); return; }
         );
-    obj_cls.def("add_tile", [](LvObjWrapper &self, uint8_t col_id, uint8_t row_id, lv_dir_t dir) -> LvObjWrapper* { return new LvObjWrapper(lv_tileview_add_tile(self.get(), col_id, row_id, dir)); }
+    obj_cls.def("add_tile", [](LvObjWrapper &self, uint8_t col_id, uint8_t row_id, lv_dir_t dir) -> LvObjWrapper* {
+        lv_obj_t *result = lv_tileview_add_tile(self.get(), col_id, row_id, dir);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("col_id"), py::arg("row_id"), py::arg("dir"));
     obj_cls.def("set_tile", [](LvObjWrapper &self, LvObjWrapper & tile_obj, bool anim_en) { lv_tileview_set_tile(self.get(), tile_obj.get(), anim_en); return; }
         , py::arg("tile_obj"), py::arg("anim_en"));
     obj_cls.def("set_tile_by_index", [](LvObjWrapper &self, uint32_t col_id, uint32_t row_id, bool anim_en) { lv_tileview_set_tile_by_index(self.get(), col_id, row_id, anim_en); return; }
         , py::arg("col_id"), py::arg("row_id"), py::arg("anim_en"));
-    obj_cls.def("get_tile_active", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_tileview_get_tile_active(self.get())); }
+    obj_cls.def("get_tile_active", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_tileview_get_tile_active(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("win_add_title", [](LvObjWrapper &self, const char * txt) -> LvObjWrapper* { return new LvObjWrapper(lv_win_add_title(self.get(), txt)); }
+    obj_cls.def("win_add_title", [](LvObjWrapper &self, const char * txt) -> LvObjWrapper* {
+        lv_obj_t *result = lv_win_add_title(self.get(), txt);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("txt"));
-    obj_cls.def("win_add_button", [](LvObjWrapper &self, const char * icon, int32_t btn_w) -> LvObjWrapper* { return new LvObjWrapper(lv_win_add_button(self.get(), (const void *)icon, btn_w)); }
+    obj_cls.def("win_add_button", [](LvObjWrapper &self, const char * icon, int32_t btn_w) -> LvObjWrapper* {
+        lv_obj_t *result = lv_win_add_button(self.get(), (const void *)icon, btn_w);
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         , py::arg("icon"), py::arg("btn_w"));
-    obj_cls.def("win_get_header", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_win_get_header(self.get())); }
+    obj_cls.def("win_get_header", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_win_get_header(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
-    obj_cls.def("win_get_content", [](LvObjWrapper &self) -> LvObjWrapper* { return new LvObjWrapper(lv_win_get_content(self.get())); }
+    obj_cls.def("win_get_content", [](LvObjWrapper &self) -> LvObjWrapper* {
+        lv_obj_t *result = lv_win_get_content(self.get());
+        return result ? new LvObjWrapper(result) : nullptr;
+    }
         );
 
     /* String overloads for icon/image source methods */
 
     /* Chart: manual bindings for series and data (series pointer stored as user_data) */
-    obj_cls.def("chart_set_point_count", [](LvObjWrapper &self, uint32_t cnt) {
+    obj_cls.def("set_point_count", [](LvObjWrapper &self, uint32_t cnt) {
         lv_chart_set_point_count(self.get(), cnt);
     }, py::arg("cnt"), "Set the number of points on a chart series");
-    obj_cls.def("chart_add_series", [](LvObjWrapper &self, lv_color_t color, lv_chart_axis_t axis) -> uintptr_t {
+    obj_cls.def("add_series", [](LvObjWrapper &self, lv_color_t color, lv_chart_axis_t axis) -> uintptr_t {
         lv_chart_series_t *ser = lv_chart_add_series(self.get(), color, axis);
         return reinterpret_cast<uintptr_t>(ser);
     }, py::arg("color"), py::arg("axis"), "Add a data series to chart, returns series handle as int");
-    obj_cls.def("chart_set_next_value", [](LvObjWrapper &self, uintptr_t series, int32_t value) {
+    obj_cls.def("set_next_value", [](LvObjWrapper &self, uintptr_t series, int32_t value) {
         lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
         lv_chart_set_next_value(self.get(), ser, value);
     }, py::arg("series"), py::arg("value"), "Set next value on a chart series");
-    obj_cls.def("chart_set_next_value2", [](LvObjWrapper &self, uintptr_t series, int32_t x_value, int32_t y_value) {
+    obj_cls.def("set_next_value2", [](LvObjWrapper &self, uintptr_t series, int32_t x_value, int32_t y_value) {
         lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
         lv_chart_set_next_value2(self.get(), ser, x_value, y_value);
     }, py::arg("series"), py::arg("x_value"), py::arg("y_value"), "Set next X/Y value on a chart series (scatter)");
-    obj_cls.def("chart_refresh", [](LvObjWrapper &self) {
+    obj_cls.def("refresh_chart", [](LvObjWrapper &self) {
         lv_chart_refresh(self.get());
     }, "Refresh chart after data change");
-    obj_cls.def("chart_set_series_color", [](LvObjWrapper &self, uintptr_t series, lv_color_t color) {
+    obj_cls.def("set_series_color", [](LvObjWrapper &self, uintptr_t series, lv_color_t color) {
         lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
         lv_chart_set_series_color(self.get(), ser, color);
     }, py::arg("series"), py::arg("color"), "Set series color");
-    obj_cls.def("chart_set_all_values", [](LvObjWrapper &self, uintptr_t series, int32_t value) {
+    obj_cls.def("set_all_values", [](LvObjWrapper &self, uintptr_t series, int32_t value) {
         lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
         lv_chart_set_all_values(self.get(), ser, value);
     }, py::arg("series"), py::arg("value"), "Set all values of a series to the same value");
@@ -2926,6 +3550,35 @@ PYBIND11_MODULE(_lvgl, m) {
     m.def("indev_create", []() -> LvIndevWrapper* {
         return new LvIndevWrapper(lv_indev_create());
     });
+
+    /* FreeType font support */
+#if LV_USE_FREETYPE
+    auto font_cls = py::class_<LvFontWrapper>(m, "Font", py::dynamic_attr());
+    font_cls.def(py::init<>());
+    font_cls.def("is_valid", &LvFontWrapper::is_valid);
+
+    m.def("freetype_font_create", [](const char *pathname,
+                                     lv_freetype_font_render_mode_t render_mode,
+                                     uint32_t size,
+                                     lv_freetype_font_style_t style) -> LvFontWrapper* {
+        lv_font_t *font = lv_freetype_font_create(pathname, render_mode, size, style);
+        if(!font) {
+            PyErr_SetString(PyExc_RuntimeError,
+                            "freetype_font_create failed - check font path");
+            throw py::error_already_set();
+        }
+        return new LvFontWrapper(font, true);
+    }, py::arg("pathname"), py::arg("render_mode"), py::arg("size"), py::arg("style"));
+
+    m.def("freetype_font_delete", [](LvFontWrapper &font) {
+        lv_freetype_font_delete(font.get());
+    });
+
+    /* LvFontWrapper overload for set_style_text_font */
+    obj_cls.def("set_style_text_font", [](LvObjWrapper &self, LvFontWrapper &font, uint32_t selector) {
+        lv_obj_set_style_text_font(self.get(), font.get(), selector); return;
+    }, py::arg("value"), py::arg("selector") = 0);
+#endif /* LV_USE_FREETYPE */
 
     /* Driver backend functions */
     m.def("driver_backends_register", []() { driver_backends_register(); },

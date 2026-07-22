@@ -141,74 +141,74 @@ def draw_detections(osd_img, boxes, scores, class_ids, colors,
 # ============================================================================
 # LVGL 线程
 # ============================================================================
-def lvgl_thread(v4l2, ui_data, stop, ready):
+def lvgl_thread(v4l2drm, ui_data, stop, ready):
     """LVGL 线程: 初始化驱动 + 创建 UI + 驱动 timer_handler。
 
     所有 lv_* 调用都在此线程内, 主线程只写 ui_data 字典。
     创建完 UI 后 set(ready), 主线程 wait(ready) 后继续。
     """
     # --- 初始化 LVGL 驱动 ---
-    lv.k230_init(v4l2, v4l2_drm_run_flag=1)
+    lv.init(v4l2drm, v4l2_drm_run_flag=1)
     print("[lvgl] initialized")
 
     # --- 创建 UI ---
     scr = lv.screen_active()
-    scr.set_style_bg_opa(lv.LV_OPA_TRANSP, 0)
+    scr.set_style_bg_opa(lv.OPA_TRANSP, lv.PART.MAIN)
 
     title = lv.Label(scr)
-    title.label_set_text("K230 YOLOv8 + LVGL")
-    title.set_style_bg_opa(lv.LV_OPA_60, 0)
-    title.set_style_bg_color(lv.color_black(), 0)
-    title.set_style_text_color(lv.color_white(), 0)
-    title.align(lv.ALIGN.LV_ALIGN_TOP_MID, 0, 8)
+    title.set_text("K230 YOLOv8 + LVGL")
+    title.set_style_bg_opa(lv.OPA_60, lv.PART.MAIN)
+    title.set_style_bg_color(lv.color_black(), lv.PART.MAIN)
+    title.set_style_text_color(lv.color_white(), lv.PART.MAIN)
+    title.align(lv.ALIGN.TOP_MID, 0, 8)
 
     fps_label = lv.Label(scr)
-    fps_label.label_set_text("FPS: --")
-    fps_label.set_style_bg_opa(lv.LV_OPA_60, 0)
-    fps_label.set_style_bg_color(lv.color_black(), 0)
-    fps_label.set_style_text_color(lv.color_make(0, 255, 0), 0)
-    fps_label.align(lv.ALIGN.LV_ALIGN_TOP_LEFT, 10, 40)
+    fps_label.set_text("FPS: --")
+    fps_label.set_style_bg_opa(lv.OPA_60, lv.PART.MAIN)
+    fps_label.set_style_bg_color(lv.color_black(), lv.PART.MAIN)
+    fps_label.set_style_text_color(lv.color_make(0, 255, 0), lv.PART.MAIN)
+    fps_label.align(lv.ALIGN.TOP_LEFT, 10, 40)
 
     count_label = lv.Label(scr)
-    count_label.label_set_text("Objects: 0")
-    count_label.set_style_bg_opa(lv.LV_OPA_60, 0)
-    count_label.set_style_bg_color(lv.color_black(), 0)
-    count_label.set_style_text_color(lv.color_make(255, 200, 0), 0)
-    count_label.align(lv.ALIGN.LV_ALIGN_TOP_LEFT, 10, 65)
+    count_label.set_text("Objects: 0")
+    count_label.set_style_bg_opa(lv.OPA_60, lv.PART.MAIN)
+    count_label.set_style_bg_color(lv.color_black(), lv.PART.MAIN)
+    count_label.set_style_text_color(lv.color_make(255, 200, 0), lv.PART.MAIN)
+    count_label.align(lv.ALIGN.TOP_LEFT, 10, 65)
 
     btn = lv.Button(scr)
     btn.set_size(100, 36)
-    btn.align(lv.ALIGN.LV_ALIGN_BOTTOM_MID, 0, -15)
+    btn.align(lv.ALIGN.BOTTOM_MID, 0, -15)
     btn_text = lv.Label(btn)
-    btn_text.label_set_text("Hide OSD")
+    btn_text.set_text("Hide OSD")
     btn_text.center()
 
     osd_visible = [True]
     def on_btn_click(event_code):
-        if event_code == int(lv.EVENT_CODE.LV_EVENT_CLICKED):
+        if event_code == lv.EVENT.CLICKED:
             if osd_visible[0]:
-                title.add_flag(lv.OBJ_FLAG.LV_OBJ_FLAG_HIDDEN)
-                fps_label.add_flag(lv.OBJ_FLAG.LV_OBJ_FLAG_HIDDEN)
-                count_label.add_flag(lv.OBJ_FLAG.LV_OBJ_FLAG_HIDDEN)
-                btn_text.label_set_text("Show OSD")
+                title.add_flag(lv.OBJ_FLAG.HIDDEN)
+                fps_label.add_flag(lv.OBJ_FLAG.HIDDEN)
+                count_label.add_flag(lv.OBJ_FLAG.HIDDEN)
+                btn_text.set_text("Show OSD")
                 osd_visible[0] = False
             else:
-                title.remove_flag(lv.OBJ_FLAG.LV_OBJ_FLAG_HIDDEN)
-                fps_label.remove_flag(lv.OBJ_FLAG.LV_OBJ_FLAG_HIDDEN)
-                count_label.remove_flag(lv.OBJ_FLAG.LV_OBJ_FLAG_HIDDEN)
-                btn_text.label_set_text("Hide OSD")
+                title.remove_flag(lv.OBJ_FLAG.HIDDEN)
+                fps_label.remove_flag(lv.OBJ_FLAG.HIDDEN)
+                count_label.remove_flag(lv.OBJ_FLAG.HIDDEN)
+                btn_text.set_text("Hide OSD")
                 osd_visible[0] = True
-    btn.add_event_cb(int(lv.EVENT_CODE.LV_EVENT_CLICKED), on_btn_click)
+    btn.add_event_cb(lv.EVENT.CLICKED, on_btn_click)
 
     ready.set()
 
     # --- timer_handler 循环 ---
     while not stop[0]:
         if ui_data['fps_new']:
-            fps_label.label_set_text(f"FPS: {ui_data['fps']}")
+            fps_label.set_text(f"FPS: {ui_data['fps']}")
             ui_data['fps_new'] = False
         if ui_data['count_new']:
-            count_label.label_set_text(f"Objects: {ui_data['count']}")
+            count_label.set_text(f"Objects: {ui_data['count']}")
             ui_data['count_new'] = False
         idle_ms = lv.timer_handler()
         if idle_ms > 0:
@@ -220,9 +220,9 @@ def lvgl_thread(v4l2, ui_data, stop, ready):
 # 初始化函数
 # ============================================================================
 def init_v4l2_drm():
-    """初始化 V4L2-DRM, 返回 (v4l2, display_w, display_h) 或 (None, 0, 0)"""
-    v4l2 = V4l2Drm(context_num=2, osd=True)
-    display_w, display_h = v4l2.drm_init(drm_id=0)
+    """初始化 V4L2-DRM, 返回 (v4l2drm, display_w, display_h) 或 (None, 0, 0)"""
+    v4l2drm = V4l2Drm(context_num=2, osd=True)
+    display_w, display_h = v4l2drm.drm_init(drm_id=0)
     if display_w < 0:
         print("Failed to initialize DRM display")
         return None, 0, 0
@@ -230,24 +230,24 @@ def init_v4l2_drm():
 
     rotation = ROTATION_0 if display_w > display_h else ROTATION_90
 
-    v4l2.set_context(
+    v4l2drm.set_context(
         index=0, device=1,
         width=max(display_w, display_h), height=min(display_w, display_h),
         format="NV12", display=True
     )
-    v4l2.set_context(
+    v4l2drm.set_context(
         index=1, device=2,
         width=SENSOR_2_AI_SIZE[0], height=SENSOR_2_AI_SIZE[1],
         format="BG3P", display=False
     )
-    v4l2.set_rotation(0, rotation)
-    v4l2.set_osd_format(DRM_FORMAT_ARGB8888)
+    v4l2drm.set_rotation(0, rotation)
+    v4l2drm.set_osd_format(DRM_FORMAT_ARGB8888)
 
-    if not v4l2.setup():
+    if not v4l2drm.setup():
         print("Error: V4L2-DRM setup failed!")
         return None, 0, 0
 
-    return v4l2, display_w, display_h
+    return v4l2drm, display_w, display_h
 
 
 def init_yolo(kmodel_path, display_w, display_h):
@@ -314,8 +314,8 @@ def main():
     print(f"Confidence: {confidence_thres}, IOU: {iou_thres}")
 
     # --- 初始化 V4L2-DRM ---
-    v4l2, display_w, display_h = init_v4l2_drm()
-    if v4l2 is None:
+    v4l2drm, display_w, display_h = init_v4l2_drm()
+    if v4l2drm is None:
         return -1
 
     # --- 初始化 YOLO ---
@@ -329,14 +329,14 @@ def main():
     ui_ready = threading.Event()
 
     t = threading.Thread(target=lvgl_thread,
-                         args=(v4l2, ui_data, lvgl_stop, ui_ready),
+                         args=(v4l2drm, ui_data, lvgl_stop, ui_ready),
                          daemon=True, name="lvgl")
     t.start()
     ui_ready.wait()
 
     # --- 启动显示 ---
-    v4l2.display_start()
-    v4l2.dump_start(index=1)
+    v4l2drm.display_start()
+    v4l2drm.dump_start(index=1)
 
     last_time = time.time()
     frame_count = 0
@@ -347,14 +347,14 @@ def main():
     while True:
         # --- AI 推理 ---
         with ScopedTiming("total", debug_mode):
-            if not v4l2.dump_frame(index=1, timeout_ms=1000):
+            if not v4l2drm.dump_frame(index=1, timeout_ms=1000):
                 continue
-            frame_nchw = v4l2.get_buffer_array(index=1)
+            frame_nchw = v4l2drm.get_buffer_array(index=1)
 
             with ScopedTiming("ai2d", debug_mode):
                 ai2d_input_tensor = nn.RuntimeTensor.from_numpy(frame_nchw)
                 ai2d.run(ai2d_input_tensor, kpu_input_tensor)
-                v4l2.dump_release(index=1)
+                v4l2drm.dump_release(index=1)
 
             with ScopedTiming("kpu", debug_mode):
                 kpu.run()
@@ -373,7 +373,7 @@ def main():
                 osd_img[:] = 0
                 draw_detections(osd_img, boxes, scores, class_ids,
                                 COLORS, CLASS_NAMES, ai_fps, scale_factor)
-                v4l2.osd_update(osd_img)
+                v4l2drm.osd_update(osd_img)
 
             # --- 通知 LVGL 线程更新标签 ---
             ui_data['fps'] = f"{ai_fps:.1f}"

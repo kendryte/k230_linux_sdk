@@ -1,3 +1,20 @@
+#!/usr/bin/env python3
+"""YOLOv8 目标检测 Demo (v4l2-drm + OSD)
+
+使用 K230 的 v4l2-drm 捕获摄像头画面并显示，同时通过 KPU 运行 YOLOv8 推理，
+将检测结果（边界框 + 类别名 + 置信度）绘制到 OSD 叠加层上。
+
+流程:
+    摄像头 → v4l2-drm 显示
+           → AI2D 预处理 (resize + pad) → KPU 推理 → 后处理 → OSD 绘制
+
+注意: 本示例不使用 LVGL，OSD 通过 numpy 数组直接绘制。
+      如需 LVGL 交互 UI 版本，请参考 lvgl/lvgl_yolo_demo.py。
+
+Usage:
+    python3 yolo_v4l2_drm.py
+"""
+
 import numpy as np
 import random
 import cv2
@@ -146,8 +163,8 @@ def detect():
         # -------------------------------
         # 一、初始化摄像头与显示
         # -------------------------------
-        v4l2 = V4l2Drm(context_num=2)
-        display_width, display_height = v4l2.drm_init()
+        v4l2drm = V4l2Drm(context_num=2)
+        display_width, display_height = v4l2drm.drm_init()
         print(f"INFO: display {display_width}x{display_height}")
         if display_width > display_height:
             rotation = ROTATION_0
@@ -155,29 +172,29 @@ def detect():
             rotation = ROTATION_90
 
         # Context 0: 摄像头直接显示 (NV12 格式)
-        v4l2.set_context(
+        v4l2drm.set_context(
             index=0, device=1,
             width=max(display_width, display_height), height=min(display_width, display_height),
             format="NV12", display=True
         )
 
         # Context 1: AI 推理输入 (BG3P 格式,hwc)
-        v4l2.set_context(
+        v4l2drm.set_context(
             index=1, device=2,
             width=SENSOR_2_AI_SIZE[0], height=SENSOR_2_AI_SIZE[1],
             format="BG3P", display=False
         )
 
-        v4l2.set_rotation(0, rotation)
+        v4l2drm.set_rotation(0, rotation)
 
-        v4l2.set_osd_format(DRM_FORMAT_ARGB8888)
+        v4l2drm.set_osd_format(DRM_FORMAT_ARGB8888)
 
-        if not v4l2.setup():
+        if not v4l2drm.setup():
             print("Error: V4L2-DRM setup failed!")
             return -1
 
-        v4l2.display_start()
-        v4l2.dump_start(index=1)
+        v4l2drm.display_start()
+        v4l2drm.dump_start(index=1)
 
         # -------------------------------
         # 二、初始化模型与 AI2D 预处理
@@ -240,16 +257,16 @@ def detect():
             with ScopedTiming("totoal ", debug_mode):
                 with ScopedTiming("dump_frame", debug_mode):
                     # 摄像头捕获
-                    if not v4l2.dump_frame(index=1, timeout_ms=1000):
+                    if not v4l2drm.dump_frame(index=1, timeout_ms=1000):
                         continue
                     # 获取图像数据,# 图像预处理：k230 BG3P出的就是,hwc
-                    frame_nchw = v4l2.get_buffer_array(index=1)
+                    frame_nchw = v4l2drm.get_buffer_array(index=1)
 
                 with ScopedTiming("ai2d", debug_mode):
                     # AI2D 预处理,执行 AI2D 预处理（resize + pad）
                     ai2d_input_tensor = nn.RuntimeTensor.from_numpy(frame_nchw)
                     ai2d.run(ai2d_input_tensor, kpu_input_tensor)
-                    v4l2.dump_release(index=1)
+                    v4l2drm.dump_release(index=1)
 
                 with ScopedTiming("kpu.run", debug_mode):
                     # 模型推理
@@ -274,7 +291,7 @@ def detect():
                                 COLORS, CLASS_NAMES, fps, scale_factor)
 
                 with ScopedTiming("osd draw", debug_mode):
-                    v4l2.osd_update(osd_img)
+                    v4l2drm.osd_update(osd_img)
                     pass
 
                 # FPS 计算
@@ -292,8 +309,8 @@ def detect():
         print("\nStopping...")
 
     # 清理资源
-    v4l2.dump_stop(index=1)
-    v4l2.display_stop()
+    v4l2drm.dump_stop(index=1)
+    v4l2drm.display_stop()
     print("Done!")
 
 

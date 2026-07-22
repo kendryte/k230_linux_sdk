@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
-"""Msgbox demo - message box with title, text and close button"""
-import os, time
+"""Msgbox demo - modal message box with close button and footer buttons"""
+
 import lvgl as lv
 
-lv.k230_init()
-scr = lv.screen_active()
+lv.init()
 
-msgbox = lv.Msgbox(scr)
-msgbox.add_title("Welcome")
-msgbox.add_text("This is a message box demo.")
-msgbox.add_close_button()
-msgbox.center()
+# Create a modal message box (parent=None → uses top layer)
+mbox = lv.Msgbox()
+mbox.add_title("Hello")
+mbox.add_text("This is a message box with two buttons.")
+mbox.add_close_button()
 
-try:
-    while True:
-        idle = lv.timer_handler()
-        time.sleep(idle / 1000.0)
-except KeyboardInterrupt:
-    os._exit(0)
+# Add footer buttons
+btn_apply = mbox.add_footer_button("Apply")
+btn_cancel = mbox.add_footer_button("Cancel")
+
+def on_footer_btn(event_code):
+    if event_code == lv.EVENT.CLICKED:
+        mbox.close_async()
+
+btn_apply.add_event_cb(lv.EVENT.CLICKED, on_footer_btn)
+btn_cancel.add_event_cb(lv.EVENT.CLICKED, on_footer_btn)
+
+lv.run()

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Table demo - simple data table"""
-import os, time
+
 import lvgl as lv
 
-lv.k230_init()
+lv.init()
 scr = lv.screen_active()
 
 table = lv.Table(scr)
@@ -22,9 +22,4 @@ table.set_cell_value(2, 1, "256MB")
 table.set_cell_value(3, 0, "Display")
 table.set_cell_value(3, 1, "800x480")
 
-try:
-    while True:
-        idle = lv.timer_handler()
-        time.sleep(idle / 1000.0)
-except KeyboardInterrupt:
-    os._exit(0)
+lv.run()

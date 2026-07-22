@@ -15,10 +15,10 @@ import time
 import subprocess
 import lvgl as lv
 
-# Short aliases for enum values (generated bindings use LV_ prefixed names)
+# Short aliases for enum values
 ALIGN = lv.ALIGN
-EVENT = lv.EVENT_CODE
-SCROLLBAR_MODE = lv.SCROLLBAR_MODE
+EVENT = lv.EVENT
+SCROLLBAR = lv.SCROLLBAR
 OBJ_FLAG = lv.OBJ_FLAG
 STATE = lv.STATE
 
@@ -112,26 +112,26 @@ def create_title_bar(parent):
     """创建顶部标题栏"""
     bar_h = max(40, int(SCR_H * 0.075))
 
-    title_cont = lv.Obj.create(parent)
+    title_cont = parent.obj()
     title_cont.set_size(SCR_W, bar_h)
-    title_cont.align(ALIGN.LV_ALIGN_TOP_MID, 0, 0)
-    title_cont.set_style_bg_color(C_TITLE_BG, 0)
-    title_cont.set_style_bg_opa(255, 0)
-    title_cont.set_style_border_width(0, 0)
-    title_cont.set_style_radius(0, 0)
-    title_cont.set_scrollbar_mode(SCROLLBAR_MODE.LV_SCROLLBAR_MODE_OFF)
+    title_cont.align(ALIGN.TOP_MID, 0, 0)
+    title_cont.set_style_bg_color(C_TITLE_BG, lv.PART.MAIN)
+    title_cont.set_style_bg_opa(255, lv.PART.MAIN)
+    title_cont.set_style_border_width(0, lv.PART.MAIN)
+    title_cont.set_style_radius(0, lv.PART.MAIN)
+    title_cont.set_scrollbar_mode(SCROLLBAR.OFF)
 
     title = lv.Label(title_cont)
-    title.label_set_text("K230 AI Demo Launcher")
-    title.set_style_text_color(C_WHITE, 0)
-    title.align(ALIGN.LV_ALIGN_CENTER, 0, 0)
+    title.set_text("K230 AI Demo Launcher")
+    title.set_style_text_color(C_WHITE, lv.PART.MAIN)
+    title.align(ALIGN.CENTER, 0, 0)
 
     # 小屏隐藏副标题
     if SCR_W >= 1024:
         subtitle = lv.Label(title_cont)
-        subtitle.label_set_text("CanMV K230 | Select a demo and press Start")
-        subtitle.set_style_text_color(C_LIGHT_BLUE, 0)
-        subtitle.align(ALIGN.LV_ALIGN_RIGHT_MID, -20, 0)
+        subtitle.set_text("CanMV K230 | Select a demo and press Start")
+        subtitle.set_style_text_color(C_LIGHT_BLUE, lv.PART.MAIN)
+        subtitle.align(ALIGN.RIGHT_MID, -20, 0)
 
 
 def create_demo_button(parent, demo, idx, col, row):
@@ -151,66 +151,66 @@ def create_demo_button(parent, demo, idx, col, row):
     y = title_h + margin + row * (card_h + gap)
 
     # 卡片容器
-    card = lv.Obj.create(parent)
+    card = parent.obj()
     card.set_size(card_w, card_h)
     card.set_pos(x, y)
-    card.set_style_bg_color(C_CARD_BG, 0)
-    card.set_style_bg_opa(255, 0)
+    card.set_style_bg_color(C_CARD_BG, lv.PART.MAIN)
+    card.set_style_bg_opa(255, lv.PART.MAIN)
     card.set_style_radius(max(6, int(min(SCR_W, SCR_H) * 0.01)), 0)
-    card.set_style_border_width(2, 0)
-    card.set_style_border_color(C_BORDER, 0)
-    card.set_style_shadow_width(max(4, int(SCR_H * 0.01)), 0)
-    card.set_style_shadow_color(C_BLACK, 0)
-    card.set_scrollbar_mode(SCROLLBAR_MODE.LV_SCROLLBAR_MODE_OFF)
-    card.add_flag(OBJ_FLAG.LV_OBJ_FLAG_CLICKABLE)
-    card.remove_flag(OBJ_FLAG.LV_OBJ_FLAG_SCROLLABLE)
+    card.set_style_border_width(2, lv.PART.MAIN)
+    card.set_style_border_color(C_BORDER, lv.PART.MAIN)
+    card.set_style_shadow_width(max(4, int(SCR_H * 0.01)), lv.PART.MAIN)
+    card.set_style_shadow_color(C_BLACK, lv.PART.MAIN)
+    card.set_scrollbar_mode(SCROLLBAR.OFF)
+    card.add_flag(OBJ_FLAG.CLICKABLE)
+    card.remove_flag(OBJ_FLAG.SCROLLABLE)
 
     # 左侧色条
     bar_w = max(3, int(SCR_W * 0.004))
-    color_bar = lv.Obj.create(card)
+    color_bar = card.obj()
     color_bar.set_size(bar_w, card_h - int(card_h * 0.15))
-    color_bar.align(ALIGN.LV_ALIGN_LEFT_MID, max(5, int(SCR_W * 0.006)), 0)
-    color_bar.set_style_bg_color(c(*demo["color"]), 0)
-    color_bar.set_style_bg_opa(255, 0)
-    color_bar.set_style_radius(max(1, bar_w // 2), 0)
-    color_bar.set_style_border_width(0, 0)
-    color_bar.set_scrollbar_mode(SCROLLBAR_MODE.LV_SCROLLBAR_MODE_OFF)
+    color_bar.align(ALIGN.LEFT_MID, max(5, int(SCR_W * 0.006)), 0)
+    color_bar.set_style_bg_color(c(*demo["color"]), lv.PART.MAIN)
+    color_bar.set_style_bg_opa(255, lv.PART.MAIN)
+    color_bar.set_style_radius(max(1, bar_w // 2), lv.PART.MAIN)
+    color_bar.set_style_border_width(0, lv.PART.MAIN)
+    color_bar.set_scrollbar_mode(SCROLLBAR.OFF)
 
     # Demo 名称
     name_label = lv.Label(card)
-    name_label.label_set_text(demo["name"])
-    name_label.set_style_text_color(C_WHITE, 0)
-    name_label.align(ALIGN.LV_ALIGN_TOP_LEFT, int(card_w * 0.08), int(card_h * 0.15))
+    name_label.set_text(demo["name"])
+    name_label.set_style_text_color(C_WHITE, lv.PART.MAIN)
+    name_label.align(ALIGN.TOP_LEFT, int(card_w * 0.08), int(card_h * 0.15))
 
     # Demo 英文描述 (小屏隐藏)
     if SCR_W >= 800:
         desc_label = lv.Label(card)
-        desc_label.label_set_text(demo["desc"])
-        desc_label.set_style_text_color(C_LIGHT_GREY, 0)
-        desc_label.align(ALIGN.LV_ALIGN_TOP_LEFT, int(card_w * 0.08), int(card_h * 0.4))
+        desc_label.set_text(demo["desc"])
+        desc_label.set_style_text_color(C_LIGHT_GREY, lv.PART.MAIN)
+        desc_label.align(ALIGN.TOP_LEFT, int(card_w * 0.08), int(card_h * 0.4))
 
     # 状态标签 (可用/未实现)
     status = lv.Label(card)
     if demo["script"]:
-        status.label_set_text("READY")
-        status.set_style_text_color(C_GREEN, 0)
+        status.set_text("READY")
+        status.set_style_text_color(C_GREEN, lv.PART.MAIN)
     else:
-        status.label_set_text("TODO")
-        status.set_style_text_color(C_GREY, 0)
-    status.align(ALIGN.LV_ALIGN_BOTTOM_LEFT, int(card_w * 0.08), -int(card_h * 0.1))
+        status.set_text("TODO")
+        status.set_style_text_color(C_GREY, lv.PART.MAIN)
+    status.align(ALIGN.BOTTOM_LEFT, int(card_w * 0.08), -int(card_h * 0.1))
 
     # 右侧箭头指示
     arrow = lv.Label(card)
-    arrow.label_set_text(">")
-    arrow.set_style_text_color(C_GREY, 0)
-    arrow.align(ALIGN.LV_ALIGN_RIGHT_MID, -int(card_w * 0.04), 0)
+    arrow.set_text(">")
+    arrow.set_style_text_color(C_GREY, lv.PART.MAIN)
+    arrow.align(ALIGN.RIGHT_MID, -int(card_w * 0.04), 0)
 
     # 点击事件
     def on_card_click(event_code):
-        if event_code == int(EVENT.LV_EVENT_CLICKED):
+        if event_code == EVENT.CLICKED:
             select_demo(idx)
 
-    card.add_event_cb(int(EVENT.LV_EVENT_CLICKED), on_card_click)
+    card.add_event_cb(EVENT.CLICKED, on_card_click)
 
     demo_buttons.append(card)
     return card
@@ -224,23 +224,23 @@ def select_demo(idx):
     # 更新所有按钮的选中/未选中样式
     for i, btn in enumerate(demo_buttons):
         if i == idx:
-            btn.set_style_border_color(c(*demo["color"]), 0)
-            btn.set_style_border_width(3, 0)
-            btn.set_style_bg_color(C_CARD_BG_SEL, 0)
+            btn.set_style_border_color(c(*demo["color"]), lv.PART.MAIN)
+            btn.set_style_border_width(3, lv.PART.MAIN)
+            btn.set_style_bg_color(C_CARD_BG_SEL, lv.PART.MAIN)
         else:
-            btn.set_style_border_color(C_BORDER, 0)
-            btn.set_style_border_width(2, 0)
-            btn.set_style_bg_color(C_CARD_BG, 0)
+            btn.set_style_border_color(C_BORDER, lv.PART.MAIN)
+            btn.set_style_border_width(2, lv.PART.MAIN)
+            btn.set_style_bg_color(C_CARD_BG, lv.PART.MAIN)
 
     # 更新底部状态栏
     if demo["script"]:
-        status_label.label_set_text("Selected: %s  (%s)" % (demo["name"], demo["desc"]))
-        status_label.set_style_text_color(C_WHITE, 0)
-        btn_launch.remove_state(STATE.LV_STATE_DISABLED)
+        status_label.set_text("Selected: %s  (%s)" % (demo["name"], demo["desc"]))
+        status_label.set_style_text_color(C_WHITE, lv.PART.MAIN)
+        btn_launch.remove_state(STATE.DISABLED)
     else:
-        status_label.label_set_text("Selected: %s  (Not implemented yet)" % demo["name"])
-        status_label.set_style_text_color(C_RED, 0)
-        btn_launch.add_state(STATE.LV_STATE_DISABLED)
+        status_label.set_text("Selected: %s  (Not implemented yet)" % demo["name"])
+        status_label.set_style_text_color(C_RED, lv.PART.MAIN)
+        btn_launch.add_state(STATE.DISABLED)
 
 
 def create_bottom_bar(parent):
@@ -252,59 +252,59 @@ def create_bottom_bar(parent):
     btn_h = max(30, int(SCR_H * 0.06))
     btn_gap = max(10, int(SCR_W * 0.015))
 
-    bar = lv.Obj.create(parent)
+    bar = parent.obj()
     bar.set_size(SCR_W, bar_h)
-    bar.align(ALIGN.LV_ALIGN_BOTTOM_MID, 0, 0)
-    bar.set_style_bg_color(C_BAR_BG, 0)
-    bar.set_style_bg_opa(255, 0)
-    bar.set_style_border_width(0, 0)
-    bar.set_style_radius(0, 0)
-    bar.set_scrollbar_mode(SCROLLBAR_MODE.LV_SCROLLBAR_MODE_OFF)
+    bar.align(ALIGN.BOTTOM_MID, 0, 0)
+    bar.set_style_bg_color(C_BAR_BG, lv.PART.MAIN)
+    bar.set_style_bg_opa(255, lv.PART.MAIN)
+    bar.set_style_border_width(0, lv.PART.MAIN)
+    bar.set_style_radius(0, lv.PART.MAIN)
+    bar.set_scrollbar_mode(SCROLLBAR.OFF)
 
     # 状态标签
     status_label = lv.Label(bar)
-    status_label.label_set_text("Selected: %s" % AI_DEMOS[0]["name"])
-    status_label.set_style_text_color(C_WHITE, 0)
-    status_label.align(ALIGN.LV_ALIGN_LEFT_MID, max(10, int(SCR_W * 0.02)), 0)
+    status_label.set_text("Selected: %s" % AI_DEMOS[0]["name"])
+    status_label.set_style_text_color(C_WHITE, lv.PART.MAIN)
+    status_label.align(ALIGN.LEFT_MID, max(10, int(SCR_W * 0.02)), 0)
 
     # 启动按钮
     btn_launch = lv.Button(bar)
     btn_launch.set_size(btn_w, btn_h)
-    btn_launch.align(ALIGN.LV_ALIGN_RIGHT_MID, -(btn_w + btn_gap * 2), 0)
-    btn_launch.set_style_bg_color(C_BTN_START, 0)
-    btn_launch.set_style_bg_opa(255, 0)
-    btn_launch.set_style_radius(max(4, int(btn_h * 0.18)), 0)
-    btn_launch.set_style_text_color(C_WHITE, 0)
+    btn_launch.align(ALIGN.RIGHT_MID, -(btn_w + btn_gap * 2), 0)
+    btn_launch.set_style_bg_color(C_BTN_START, lv.PART.MAIN)
+    btn_launch.set_style_bg_opa(255, lv.PART.MAIN)
+    btn_launch.set_style_radius(max(4, int(btn_h * 0.18)), lv.PART.MAIN)
+    btn_launch.set_style_text_color(C_WHITE, lv.PART.MAIN)
 
     lbl_launch = lv.Label(btn_launch)
-    lbl_launch.label_set_text("Start")
+    lbl_launch.set_text("Start")
     lbl_launch.center()
 
     def on_launch(event_code):
-        if event_code == int(EVENT.LV_EVENT_CLICKED):
+        if event_code == EVENT.CLICKED:
             launch_demo()
 
-    btn_launch.add_event_cb(int(EVENT.LV_EVENT_CLICKED), on_launch)
+    btn_launch.add_event_cb(EVENT.CLICKED, on_launch)
 
     # 退出按钮
     btn_exit = lv.Button(bar)
     btn_exit.set_size(btn_w, btn_h)
-    btn_exit.align(ALIGN.LV_ALIGN_RIGHT_MID, -btn_gap, 0)
-    btn_exit.set_style_bg_color(C_BTN_EXIT, 0)
-    btn_exit.set_style_bg_opa(255, 0)
-    btn_exit.set_style_radius(max(4, int(btn_h * 0.18)), 0)
-    btn_exit.set_style_text_color(C_WHITE, 0)
+    btn_exit.align(ALIGN.RIGHT_MID, -btn_gap, 0)
+    btn_exit.set_style_bg_color(C_BTN_EXIT, lv.PART.MAIN)
+    btn_exit.set_style_bg_opa(255, lv.PART.MAIN)
+    btn_exit.set_style_radius(max(4, int(btn_h * 0.18)), lv.PART.MAIN)
+    btn_exit.set_style_text_color(C_WHITE, lv.PART.MAIN)
 
     lbl_exit = lv.Label(btn_exit)
-    lbl_exit.label_set_text("Exit")
+    lbl_exit.set_text("Exit")
     lbl_exit.center()
 
     def on_exit(event_code):
-        if event_code == int(EVENT.LV_EVENT_CLICKED):
+        if event_code == EVENT.CLICKED:
             print("Exit pressed, quitting...")
             os._exit(0)
 
-    btn_exit.add_event_cb(int(EVENT.LV_EVENT_CLICKED), on_exit)
+    btn_exit.add_event_cb(EVENT.CLICKED, on_exit)
 
 
 def launch_demo():
@@ -319,8 +319,8 @@ def launch_demo():
 
     if not os.path.exists(script):
         print("Script not found: %s" % script)
-        status_label.label_set_text("Error: script not found!")
-        status_label.set_style_text_color(C_RED, 0)
+        status_label.set_text("Error: script not found!")
+        status_label.set_style_text_color(C_RED, lv.PART.MAIN)
         return
 
     # 组装启动命令
@@ -343,7 +343,7 @@ def main():
     global SCR_W, SCR_H
 
     # ---- LVGL 初始化 ----
-    lv.k230_init()
+    lv.init()
 
     # ---- 获取屏幕分辨率 ----
     disp = lv.display_get_default()
@@ -352,8 +352,8 @@ def main():
     print("Screen resolution: %dx%d" % (SCR_W, SCR_H))
 
     scr = lv.screen_active()
-    scr.set_style_bg_color(C_DARK_BG, 0)
-    scr.set_style_bg_opa(255, 0)
+    scr.set_style_bg_color(C_DARK_BG, lv.PART.MAIN)
+    scr.set_style_bg_opa(255, lv.PART.MAIN)
 
     # ---- 顶部标题栏 ----
     create_title_bar(scr)

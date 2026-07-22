@@ -41,8 +41,71 @@ public:
     // Enable implicit conversion for convenience
     operator lv_obj_t*() const { return obj_; }
 
+    // Keep a reference to the parent Python wrapper to prevent GC from
+    // collecting it while this child object is still alive. Without this,
+    // Python GC could collect the parent wrapper, but the LVGL object tree
+    // still references it → use-after-free crash.
+    void keep_parent(py::object parent) { parent_ref_ = parent; }
+    py::object get_parent_ref() const { return parent_ref_; }
+
 private:
     lv_obj_t *obj_;
+    bool owned_;
+    py::object parent_ref_;  // Prevents Python GC of parent while child lives
+};
+
+// ============================================================================
+// LvFontWrapper - wraps lv_font_t* for pybind11 (e.g. freetype fonts)
+// ============================================================================
+
+class LvFontWrapper {
+public:
+    LvFontWrapper() : font_(nullptr), owned_(false) {}
+    explicit LvFontWrapper(lv_font_t *font, bool owned = false)
+        : font_(font), owned_(owned) {}
+
+    ~LvFontWrapper() {
+        /* If this wrapper owns the font (e.g. created via freetype),
+         * delete it on destruction to avoid memory leaks. */
+#if LV_USE_FREETYPE
+        if(owned_ && font_) {
+            lv_freetype_font_delete(font_);
+        }
+#endif
+    }
+
+    // Non-copyable to avoid double-free
+    LvFontWrapper(const LvFontWrapper &) = delete;
+    LvFontWrapper & operator=(const LvFontWrapper &) = delete;
+
+    // Movable
+    LvFontWrapper(LvFontWrapper &&o) noexcept : font_(o.font_), owned_(o.owned_) {
+        o.font_ = nullptr;
+        o.owned_ = false;
+    }
+    LvFontWrapper & operator=(LvFontWrapper &&o) noexcept {
+        if(this != &o) {
+#if LV_USE_FREETYPE
+            if(owned_ && font_) lv_freetype_font_delete(font_);
+#endif
+            font_ = o.font_;
+            owned_ = o.owned_;
+            o.font_ = nullptr;
+            o.owned_ = false;
+        }
+        return *this;
+    }
+
+    lv_font_t *get() const { return font_; }
+    const lv_font_t *cget() const { return font_; }
+    bool is_valid() const { return font_ != nullptr; }
+    bool is_owned() const { return owned_; }
+
+    /** Implicit conversion for use with LVGL API that takes const lv_font_t* */
+    operator const lv_font_t*() const { return font_; }
+
+private:
+    lv_font_t *font_;
     bool owned_;
 };
 

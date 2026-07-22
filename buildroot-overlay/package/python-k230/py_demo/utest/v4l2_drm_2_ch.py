@@ -4,8 +4,8 @@ import cv2
 from k230_v4l2_drm import V4l2Drm, DRM_FORMAT_ARGB8888, ROTATION_0, ROTATION_90
 
 # 创建双路实例, 启用OSD
-v4l2 = V4l2Drm(context_num=2, osd=True)
-display_w, display_h = v4l2.drm_init()
+v4l2drm = V4l2Drm(context_num=2, osd=True)
+display_w, display_h = v4l2drm.drm_init()
 print(f"INFO: display {display_w}x{display_h}")
 
 # 根据显示方向自动选择旋转角度
@@ -15,31 +15,31 @@ else:
     rotation = ROTATION_90
 
 # Context 0: 摄像头1 → 显示 (NV12)
-v4l2.set_context(
+v4l2drm.set_context(
     index=0, device=1,
     width=max(display_w, display_h), height=min(display_w, display_h),
     format="NV12", display=True
 )
 
 # Context 1: 摄像头2 → AI推理输入 (BG3P格式, 不显示)
-v4l2.set_context(
+v4l2drm.set_context(
     index=1, device=2,
     width=1280, height=720,
     format="BG3P", display=False
 )
 
-v4l2.set_rotation(0, rotation)
+v4l2drm.set_rotation(0, rotation)
 
 # 配置OSD格式
-v4l2.set_osd_format(DRM_FORMAT_ARGB8888)
+v4l2drm.set_osd_format(DRM_FORMAT_ARGB8888)
 
 # 初始化流水线
-if not v4l2.setup():
+if not v4l2drm.setup():
     print("Error: V4L2-DRM setup failed!")
     exit(-1)
 
-v4l2.display_start()
-v4l2.dump_start(index=1)  # 启动AI路采集
+v4l2drm.display_start()
+v4l2drm.dump_start(index=1)  # 启动AI路采集
 
 try:
     frame_count = 0
@@ -48,14 +48,14 @@ try:
 
     while True:
         # 1. 采集AI路帧
-        if not v4l2.dump_frame(index=1, timeout_ms=1000):
+        if not v4l2drm.dump_frame(index=1, timeout_ms=1000):
             continue
 
         # 2. 获取帧数据 (BG3P格式: shape=(3, H, W))
-        frame = v4l2.get_buffer_array(index=1)
+        frame = v4l2drm.get_buffer_array(index=1)
 
         # 3. 释放帧缓冲区
-        v4l2.dump_release(index=1)
+        v4l2drm.dump_release(index=1)
 
         # 4. AI推理 (使用nncaseruntime等)
         # results = ai_inference(frame)
@@ -80,13 +80,13 @@ try:
                     cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0, 255), 2)
 
         # 8. 更新OSD显示
-        v4l2.osd_update(osd_img)
+        v4l2drm.osd_update(osd_img)
 
 except KeyboardInterrupt:
     print("\nStopping...")
 
-v4l2.dump_stop(index=1)
-v4l2.display_stop()
+v4l2drm.dump_stop(index=1)
+v4l2drm.display_stop()
 print("Done!")
 
 """
@@ -96,7 +96,7 @@ print("Done!")
 
 关键代码：
 buildroot-overlay/package/display/src/display.c  ：显示
-buildroot-overlay/package/vvcam/v4l2-drm/src/lib.c ：v4l2-->drm绑定库；
+buildroot-overlay/package/vvcam/v4l2-drm/src/lib.c ：v4l2drm-->drm绑定库；
 
 
 devmem  0x91301f10 32 0x400

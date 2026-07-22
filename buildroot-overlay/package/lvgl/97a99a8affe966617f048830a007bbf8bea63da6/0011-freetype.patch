@@ -1,0 +1,136 @@
+From f7d718e88744e08e0e3067e1f6465883ef3dfe69 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 21 Jul 2026 16:34:25 +0800
+Subject: [PATCH 11/11] freetype
+
+---
+ CMakeLists.txt   |  4 ++++
+ lv_conf.defaults |  6 ++++++
+ src/main.c       | 23 +++++++++++++++++++++--
+ src/main_k230.c  | 19 +++++++++++++++++++
+ 4 files changed, 50 insertions(+), 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ead4aed..de46d4e 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -457,3 +457,7 @@ add_custom_target(run COMMAND ${EXECUTABLE_OUTPUT_PATH}/lvglsim DEPENDS lvglsim)
+ install(TARGETS lvglsim  lvglsimk230
+     RUNTIME DESTINATION /root/app/
+ )
++
++# Install Chinese font files for FreeType (use Min version - 1.9MB vs 16MB)
++install(FILES ${CMAKE_SOURCE_DIR}/../common/kmodel/ai_poc/utils/SourceHanSansSC-Normal-Min.ttf
++    DESTINATION /usr/lib/fonts/)
+diff --git a/lv_conf.defaults b/lv_conf.defaults
+index 775db12..dc55d46 100644
+--- a/lv_conf.defaults
++++ b/lv_conf.defaults
+@@ -71,6 +71,12 @@ LV_USE_DEMO_FLEX_LAYOUT     0
+ # TTF decoder
+ LV_USE_TINY_TTF         1
+ 
++# FreeType (higher quality font rendering, requires libfreetype)
++LV_USE_FREETYPE         1
++LV_FREETYPE_USE_LVGL_PORT 0
++LV_FREETYPE_CACHE_FT_GLYPH_CNT 256
++LV_FREETYPE_CACHE_FT_GLYPH_L1 1
++
+ # Support using images as font in label or span widgets
+ LV_USE_IMGFONT          1
+ 
+diff --git a/src/main.c b/src/main.c
+index 83da6d2..e8ab0fb 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -25,6 +25,7 @@
+ 
+ #include "lvgl/lvgl.h"
+ #include "lvgl/demos/lv_demos.h"
++#include "lvgl/font/lv_freetype.h"
+ 
+ #include "src/lib/driver_backends.h"
+ #include "src/lib/simulator_util.h"
+@@ -150,6 +151,23 @@ static void configure_simulator(int argc, char ** argv)
+         }
+     }
+ }
++int test_font()
++{
++    lv_font_t * font_cn = lv_freetype_font_create(
++        "/usr/lib/fonts/SourceHanSansSC-Normal-Min.ttf",
++        LV_FREETYPE_FONT_RENDER_MODE_BITMAP,
++        24,
++        LV_FREETYPE_FONT_STYLE_NORMAL);
++
++    if(font_cn == NULL) {
++        LV_LOG_ERROR("Failed to create Chinese font");
++    } else {
++        // 使用
++        lv_obj_t * label = lv_label_create(lv_screen_active());
++        lv_obj_set_style_text_font(label, font_cn, 0);
++        lv_label_set_text(label, "你好，世界！");
++    }
++}
+ 
+ /**
+  * @brief entry point
+@@ -184,8 +202,9 @@ int main(int argc, char ** argv)
+ #endif
+ 
+     /*Create a Demo*/
+-    lv_demo_widgets();
+-    lv_demo_widgets_start_slideshow();
++    // lv_demo_widgets();
++    // lv_demo_widgets_start_slideshow();
++    test_font();
+ 
+     /* Enter the run loop of the selected backend */
+     driver_backends_run_loop();
+diff --git a/src/main_k230.c b/src/main_k230.c
+index 551f05c..c80965e 100644
+--- a/src/main_k230.c
++++ b/src/main_k230.c
+@@ -27,6 +27,7 @@
+ 
+ #include "lvgl/lvgl.h"
+ #include "lvgl/demos/lv_demos.h"
++#include "lvgl/font/lv_freetype.h"
+ 
+ #include "display.h"
+ #include "v4l2-drm.h"
+@@ -183,6 +184,23 @@ static void * v4l2_thread(void * arg)
+     v4l2_drm_run_v4l2_2_drm(&g_v4l2_ctx, 1, NULL);
+     return NULL;
+ }
++int test_font()
++{   //// 加载 24px 中文字体
++    lv_font_t * font_cn = lv_freetype_font_create(
++        "/usr/lib/fonts/SourceHanSansSC-Normal-Min.ttf",
++        LV_FREETYPE_FONT_RENDER_MODE_BITMAP,
++        24,
++        LV_FREETYPE_FONT_STYLE_NORMAL);
++
++    if(font_cn == NULL) {
++        LV_LOG_ERROR("Failed to create Chinese font");
++    } else {
++        // 使用
++        lv_obj_t * label = lv_label_create(lv_screen_active());
++        lv_obj_set_style_text_font(label, font_cn, 0);
++        lv_label_set_text(label, "你好，世界！");
++    }
++}
+ 
+ /**
+  * @brief entry point
+@@ -231,6 +249,7 @@ int main(int argc, char ** argv)
+     lv_obj_set_style_bg_color(label, lv_color_black(), 0);
+     lv_obj_set_style_text_color(label, lv_color_white(), 0);
+     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
++    test_font();
+ 
+     /* ---- 5. Start the v4l2-drm thread ---- */
+     v4l2_drm_run_v4l2_2_drm_need_run = true;
+-- 
+2.25.1
+

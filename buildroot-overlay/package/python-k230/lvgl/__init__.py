@@ -16,7 +16,7 @@ Example usage:
     disp = lv.display_create(800, 480)
 
     # Create a screen with a button
-    scr = lv.Obj.screen_active()
+    scr = lv.screen_active()
     btn = lv.Button(scr)
     btn.set_size(120, 50)
     btn.center()
@@ -25,10 +25,17 @@ Example usage:
     label.set_text("Hello!")
     label.center()
 
+    # Event handling with on() alias
+    def on_click(e):
+        print("Button clicked!")
+
+    btn.on(lv.EVENT.CLICKED, on_click)
+
+    # Style with named selector (no magic number)
+    btn.set_style_bg_color(lv.Color.red(), lv.PART.MAIN)
+
     # Main loop
-    while True:
-        lv.timer_handler()
-        time.sleep(0.01)
+    lv.run()  # or: while True: idle = lv.timer_handler(); time.sleep(idle / 1000.0)
 """
 
 from ._wrapper import *

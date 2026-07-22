@@ -12,13 +12,13 @@ Supported formats:
 
 Usage: Change the IMAGE_PATH below to point to an actual image file.
 """
-import os, time
+
 import lvgl as lv
 
 # >>> 修改为你的图片路径 (需要 'A:' 前缀) <<<
-IMAGE_PATH = "A:/root/app/face_detect/test.png"
+IMAGE_PATH = "A:/root/t/t.png"
 
-lv.k230_init()
+lv.init()
 scr = lv.screen_active()
 
 img = lv.Image(scr)
@@ -30,30 +30,25 @@ img.set_scale(256)
 
 # 旋转: 0.1度单位, 900=90.0°
 img.set_pivot(30, 30)
-img.image_set_rotation(0)
+img.set_rotation(0)
 
 info = lv.Label(scr)
-info.label_set_text("Image: %s" % IMAGE_PATH)
-info.set_style_text_color(lv.color(150, 150, 150), 0)
-info.align_to(img, lv.ALIGN.LV_ALIGN_OUT_BOTTOM_MID, 0, 10)
+info.set_text("Image: %s" % IMAGE_PATH)
+info.set_style_text_color(lv.color(150, 150, 150), lv.PART.MAIN)
+info.align_to(img, lv.ALIGN.OUT_BOTTOM_MID, 0, 10)
 
 angle = [0]
 def rotate_step(event_code):
-    if event_code == int(lv.EVENT_CODE.LV_EVENT_CLICKED):
+    if event_code == lv.EVENT.CLICKED:
         angle[0] = (angle[0] + 300) % 3600  # 每次旋转30度
-        img.image_set_rotation(angle[0])
+        img.set_rotation(angle[0])
 
 btn = lv.Button(scr)
 btn.set_size(100, 35)
-btn.align(lv.ALIGN.LV_ALIGN_BOTTOM_MID, 0, -20)
+btn.align(lv.ALIGN.BOTTOM_MID, 0, -20)
 btn_label = lv.Label(btn)
-btn_label.label_set_text("Rotate")
+btn_label.set_text("Rotate")
 btn_label.center()
-btn.add_event_cb(int(lv.EVENT_CODE.LV_EVENT_CLICKED), rotate_step)
+btn.add_event_cb(lv.EVENT.CLICKED, rotate_step)
 
-try:
-    while True:
-        idle = lv.timer_handler()
-        time.sleep(idle / 1000.0)
-except KeyboardInterrupt:
-    os._exit(0)
+lv.run()

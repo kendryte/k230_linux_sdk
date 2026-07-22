@@ -15,11 +15,26 @@ def color_from_hex(hex_value):
     """Create a color from a hex value (e.g., 0xFF0000 for red)."""
     return color_hex(hex_value)
 
-def run_loop():
-    """Enter the LVGL run loop."""
-    driver_backends_run_loop()
+def color_from_hex_str(hex_str):
+    """Create a color from a hex string (e.g., "#ff0000" or "#FF0000")."""
+    return color_hex(int(hex_str.lstrip('#'), 16))
 
-def k230_init(v4l2_drm=None, v4l2_drm_run_flag=0):
+import os as _os
+import time as _time
+
+def run():
+    """Enter the LVGL run loop (blocking).
+
+    Can be interrupted with Ctrl+C.
+    """
+    try:
+        while True:
+            idle = timer_handler()
+            _time.sleep(idle / 1000.0)
+    except KeyboardInterrupt:
+        _os._exit(0)
+
+def init(v4l2_drm=None, v4l2_drm_run_flag=0):
     """Initialize K230 display driver.
 
     When v4l2_drm is provided, uses the K230 v4l2-drm backend (DRM_V4L2_K230)
@@ -29,7 +44,7 @@ def k230_init(v4l2_drm=None, v4l2_drm_run_flag=0):
     Args:
         v4l2_drm: A V4l2Drm object (from k230_v4l2_drm module), or None
                   to use the default Linux DRM driver.
-        v4l2_drm_run_flag: Flag controlling v4l2-drm run behavior (default: 0).
+        v4l2_drm_run_flag: Reserved, currently unused (default: 0).
     """
     if v4l2_drm is not None:
         display_ptr = v4l2_drm.get_display_ptr()
@@ -37,6 +52,590 @@ def k230_init(v4l2_drm=None, v4l2_drm_run_flag=0):
         display_ptr = 0  # NULL pointer -> use default DRM backend
     return k230_driver_init(display_ptr, v4l2_drm_run_flag)
 
-# No __all__ — let all names from ._lvgl (enums, constants, functions,
-# widget factories like Label, Button, etc.) and the convenience functions
-# above pass through naturally via "from _wrapper import *".
+
+
+# --- Widget type tagging ---
+#
+# Wrap ALL factory functions to tag returned Obj instances with
+# their widget type. This allows short-name dispatch methods
+# (set_rotation, set_value, etc.) to call the correct prefixed
+# C++ method based on the widget type.
+
+try:
+    _orig_factory_Animimg = Animimg
+    def Animimg(parent=None):
+        obj = _orig_factory_Animimg(parent)
+        obj._widget_type = 'animimg'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Arc = Arc
+    def Arc(parent=None):
+        obj = _orig_factory_Arc(parent)
+        obj._widget_type = 'arc'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Bar = Bar
+    def Bar(parent=None):
+        obj = _orig_factory_Bar(parent)
+        obj._widget_type = 'bar'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Button = Button
+    def Button(parent=None):
+        obj = _orig_factory_Button(parent)
+        obj._widget_type = 'button'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Canvas = Canvas
+    def Canvas(parent=None):
+        obj = _orig_factory_Canvas(parent)
+        obj._widget_type = 'canvas'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Chart = Chart
+    def Chart(parent=None):
+        obj = _orig_factory_Chart(parent)
+        obj._widget_type = 'chart'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Checkbox = Checkbox
+    def Checkbox(parent=None):
+        obj = _orig_factory_Checkbox(parent)
+        obj._widget_type = 'checkbox'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Dropdown = Dropdown
+    def Dropdown(parent=None):
+        obj = _orig_factory_Dropdown(parent)
+        obj._widget_type = 'dropdown'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Image = Image
+    def Image(parent=None):
+        obj = _orig_factory_Image(parent)
+        obj._widget_type = 'image'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Keyboard = Keyboard
+    def Keyboard(parent=None):
+        obj = _orig_factory_Keyboard(parent)
+        obj._widget_type = 'keyboard'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Label = Label
+    def Label(parent=None):
+        obj = _orig_factory_Label(parent)
+        obj._widget_type = 'label'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Led = Led
+    def Led(parent=None):
+        obj = _orig_factory_Led(parent)
+        obj._widget_type = 'led'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Line = Line
+    def Line(parent=None):
+        obj = _orig_factory_Line(parent)
+        obj._widget_type = 'line'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_List = List
+    def List(parent=None):
+        obj = _orig_factory_List(parent)
+        obj._widget_type = 'list'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Menu = Menu
+    def Menu(parent=None):
+        obj = _orig_factory_Menu(parent)
+        obj._widget_type = 'menu'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Msgbox = Msgbox
+    def Msgbox(parent=None):
+        obj = _orig_factory_Msgbox(parent)
+        obj._widget_type = 'msgbox'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Roller = Roller
+    def Roller(parent=None):
+        obj = _orig_factory_Roller(parent)
+        obj._widget_type = 'roller'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Scale = Scale
+    def Scale(parent=None):
+        obj = _orig_factory_Scale(parent)
+        obj._widget_type = 'scale'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Slider = Slider
+    def Slider(parent=None):
+        obj = _orig_factory_Slider(parent)
+        obj._widget_type = 'slider'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Spinbox = Spinbox
+    def Spinbox(parent=None):
+        obj = _orig_factory_Spinbox(parent)
+        obj._widget_type = 'spinbox'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Spinner = Spinner
+    def Spinner(parent=None):
+        obj = _orig_factory_Spinner(parent)
+        obj._widget_type = 'spinner'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Switch = Switch
+    def Switch(parent=None):
+        obj = _orig_factory_Switch(parent)
+        obj._widget_type = 'switch'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Table = Table
+    def Table(parent=None):
+        obj = _orig_factory_Table(parent)
+        obj._widget_type = 'table'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Tabview = Tabview
+    def Tabview(parent=None):
+        obj = _orig_factory_Tabview(parent)
+        obj._widget_type = 'tabview'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Textarea = Textarea
+    def Textarea(parent=None):
+        obj = _orig_factory_Textarea(parent)
+        obj._widget_type = 'textarea'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Tileview = Tileview
+    def Tileview(parent=None):
+        obj = _orig_factory_Tileview(parent)
+        obj._widget_type = 'tileview'
+        return obj
+except NameError:
+    pass
+try:
+    _orig_factory_Win = Win
+    def Win(parent=None):
+        obj = _orig_factory_Win(parent)
+        obj._widget_type = 'win'
+        return obj
+except NameError:
+    pass
+
+
+# --- Short-name method aliases on Obj ---
+#
+# These methods dispatch to the correct prefixed C++ method based
+# on the _widget_type tag. For example, set_rotation() calls
+# image_set_rotation() or arc_set_rotation() depending on the widget.
+
+try:
+    def _add_button_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'list': return self.list_add_button(*args, **kwargs)
+        if _wt == 'win': return self.win_add_button(*args, **kwargs)
+        raise AttributeError("Obj has no 'add_button' for widget type %s" % _wt)
+    Obj.add_button = _add_button_dispatch
+except NameError:
+    pass
+try:
+    def _add_text_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'list': return self.list_add_text(*args, **kwargs)
+        if _wt == 'msgbox': return self.msgbox_add_text(*args, **kwargs)
+        if _wt == 'textarea': return self.textarea_add_text(*args, **kwargs)
+        raise AttributeError("Obj has no 'add_text' for widget type %s" % _wt)
+    Obj.add_text = _add_text_dispatch
+except NameError:
+    pass
+try:
+    def _add_title_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'msgbox': return self.msgbox_add_title(*args, **kwargs)
+        if _wt == 'win': return self.win_add_title(*args, **kwargs)
+        raise AttributeError("Obj has no 'add_title' for widget type %s" % _wt)
+    Obj.add_title = _add_title_dispatch
+except NameError:
+    pass
+try:
+    def _close_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'dropdown': return self.dropdown_close(*args, **kwargs)
+        if _wt == 'msgbox': return self.msgbox_close(*args, **kwargs)
+        raise AttributeError("Obj has no 'close' for widget type %s" % _wt)
+    Obj.close = _close_dispatch
+except NameError:
+    pass
+try:
+    def _get_button_text_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'keyboard': return self.keyboard_get_button_text(*args, **kwargs)
+        if _wt == 'list': return self.list_get_button_text(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_button_text' for widget type %s" % _wt)
+    Obj.get_button_text = _get_button_text_dispatch
+except NameError:
+    pass
+try:
+    def _get_content_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'msgbox': return self.msgbox_get_content(*args, **kwargs)
+        if _wt == 'tabview': return self.tabview_get_content(*args, **kwargs)
+        if _wt == 'win': return self.win_get_content(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_content' for widget type %s" % _wt)
+    Obj.get_content = _get_content_dispatch
+except NameError:
+    pass
+try:
+    def _get_header_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'msgbox': return self.msgbox_get_header(*args, **kwargs)
+        if _wt == 'win': return self.win_get_header(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_header' for widget type %s" % _wt)
+    Obj.get_header = _get_header_dispatch
+except NameError:
+    pass
+try:
+    def _get_max_value_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_get_max_value(*args, **kwargs)
+        if _wt == 'bar': return self.bar_get_max_value(*args, **kwargs)
+        if _wt == 'slider': return self.slider_get_max_value(*args, **kwargs)
+        if _wt == 'spinbox': return self.spinbox_get_max_value(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_max_value' for widget type %s" % _wt)
+    Obj.get_max_value = _get_max_value_dispatch
+except NameError:
+    pass
+try:
+    def _get_min_value_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_get_min_value(*args, **kwargs)
+        if _wt == 'bar': return self.bar_get_min_value(*args, **kwargs)
+        if _wt == 'slider': return self.slider_get_min_value(*args, **kwargs)
+        if _wt == 'spinbox': return self.spinbox_get_min_value(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_min_value' for widget type %s" % _wt)
+    Obj.get_min_value = _get_min_value_dispatch
+except NameError:
+    pass
+try:
+    def _get_mode_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_get_mode(*args, **kwargs)
+        if _wt == 'bar': return self.bar_get_mode(*args, **kwargs)
+        if _wt == 'keyboard': return self.keyboard_get_mode(*args, **kwargs)
+        if _wt == 'scale': return self.scale_get_mode(*args, **kwargs)
+        if _wt == 'slider': return self.slider_get_mode(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_mode' for widget type %s" % _wt)
+    Obj.get_mode = _get_mode_dispatch
+except NameError:
+    pass
+try:
+    def _get_option_count_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'dropdown': return self.dropdown_get_option_count(*args, **kwargs)
+        if _wt == 'roller': return self.roller_get_option_count(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_option_count' for widget type %s" % _wt)
+    Obj.get_option_count = _get_option_count_dispatch
+except NameError:
+    pass
+try:
+    def _get_options_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'dropdown': return self.dropdown_get_options(*args, **kwargs)
+        if _wt == 'roller': return self.roller_get_options(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_options' for widget type %s" % _wt)
+    Obj.get_options = _get_options_dispatch
+except NameError:
+    pass
+try:
+    def _get_orientation_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'bar': return self.bar_get_orientation(*args, **kwargs)
+        if _wt == 'slider': return self.slider_get_orientation(*args, **kwargs)
+        if _wt == 'switch': return self.switch_get_orientation(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_orientation' for widget type %s" % _wt)
+    Obj.get_orientation = _get_orientation_dispatch
+except NameError:
+    pass
+try:
+    def _get_point_count_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'chart': return self.chart_get_point_count(*args, **kwargs)
+        if _wt == 'line': return self.line_get_point_count(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_point_count' for widget type %s" % _wt)
+    Obj.get_point_count = _get_point_count_dispatch
+except NameError:
+    pass
+try:
+    def _get_rotation_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_get_rotation(*args, **kwargs)
+        if _wt == 'image': return self.image_get_rotation(*args, **kwargs)
+        if _wt == 'scale': return self.scale_get_rotation(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_rotation' for widget type %s" % _wt)
+    Obj.get_rotation = _get_rotation_dispatch
+except NameError:
+    pass
+try:
+    def _get_selected_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'dropdown': return self.dropdown_get_selected(*args, **kwargs)
+        if _wt == 'roller': return self.roller_get_selected(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_selected' for widget type %s" % _wt)
+    Obj.get_selected = _get_selected_dispatch
+except NameError:
+    pass
+try:
+    def _get_text_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'checkbox': return self.checkbox_get_text(*args, **kwargs)
+        if _wt == 'dropdown': return self.dropdown_get_text(*args, **kwargs)
+        if _wt == 'label': return self.label_get_text(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_text' for widget type %s" % _wt)
+    Obj.get_text = _get_text_dispatch
+except NameError:
+    pass
+try:
+    def _get_value_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_get_value(*args, **kwargs)
+        if _wt == 'bar': return self.bar_get_value(*args, **kwargs)
+        if _wt == 'slider': return self.slider_get_value(*args, **kwargs)
+        if _wt == 'spinbox': return self.spinbox_get_value(*args, **kwargs)
+        raise AttributeError("Obj has no 'get_value' for widget type %s" % _wt)
+    Obj.get_value = _get_value_dispatch
+except NameError:
+    pass
+try:
+    def _is_symmetrical_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'bar': return self.bar_is_symmetrical(*args, **kwargs)
+        if _wt == 'slider': return self.slider_is_symmetrical(*args, **kwargs)
+        raise AttributeError("Obj has no 'is_symmetrical' for widget type %s" % _wt)
+    Obj.is_symmetrical = _is_symmetrical_dispatch
+except NameError:
+    pass
+try:
+    def _set_cursor_pos_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'spinbox': return self.spinbox_set_cursor_pos(*args, **kwargs)
+        if _wt == 'textarea': return self.textarea_set_cursor_pos(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_cursor_pos' for widget type %s" % _wt)
+    Obj.set_cursor_pos = _set_cursor_pos_dispatch
+except NameError:
+    pass
+try:
+    def _set_max_value_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_set_max_value(*args, **kwargs)
+        if _wt == 'bar': return self.bar_set_max_value(*args, **kwargs)
+        if _wt == 'scale': return self.scale_set_max_value(*args, **kwargs)
+        if _wt == 'slider': return self.slider_set_max_value(*args, **kwargs)
+        if _wt == 'spinbox': return self.spinbox_set_max_value(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_max_value' for widget type %s" % _wt)
+    Obj.set_max_value = _set_max_value_dispatch
+except NameError:
+    pass
+try:
+    def _set_min_value_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_set_min_value(*args, **kwargs)
+        if _wt == 'bar': return self.bar_set_min_value(*args, **kwargs)
+        if _wt == 'scale': return self.scale_set_min_value(*args, **kwargs)
+        if _wt == 'slider': return self.slider_set_min_value(*args, **kwargs)
+        if _wt == 'spinbox': return self.spinbox_set_min_value(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_min_value' for widget type %s" % _wt)
+    Obj.set_min_value = _set_min_value_dispatch
+except NameError:
+    pass
+try:
+    def _set_mode_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_set_mode(*args, **kwargs)
+        if _wt == 'bar': return self.bar_set_mode(*args, **kwargs)
+        if _wt == 'keyboard': return self.keyboard_set_mode(*args, **kwargs)
+        if _wt == 'scale': return self.scale_set_mode(*args, **kwargs)
+        if _wt == 'slider': return self.slider_set_mode(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_mode' for widget type %s" % _wt)
+    Obj.set_mode = _set_mode_dispatch
+except NameError:
+    pass
+try:
+    def _set_options_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'dropdown': return self.dropdown_set_options(*args, **kwargs)
+        if _wt == 'roller': return self.roller_set_options(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_options' for widget type %s" % _wt)
+    Obj.set_options = _set_options_dispatch
+except NameError:
+    pass
+try:
+    def _set_orientation_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'bar': return self.bar_set_orientation(*args, **kwargs)
+        if _wt == 'slider': return self.slider_set_orientation(*args, **kwargs)
+        if _wt == 'switch': return self.switch_set_orientation(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_orientation' for widget type %s" % _wt)
+    Obj.set_orientation = _set_orientation_dispatch
+except NameError:
+    pass
+try:
+    def _set_range_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_set_range(*args, **kwargs)
+        if _wt == 'bar': return self.bar_set_range(*args, **kwargs)
+        if _wt == 'scale': return self.scale_set_range(*args, **kwargs)
+        if _wt == 'slider': return self.slider_set_range(*args, **kwargs)
+        if _wt == 'spinbox': return self.spinbox_set_range(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_range' for widget type %s" % _wt)
+    Obj.set_range = _set_range_dispatch
+except NameError:
+    pass
+try:
+    def _set_rotation_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_set_rotation(*args, **kwargs)
+        if _wt == 'image': return self.image_set_rotation(*args, **kwargs)
+        if _wt == 'scale': return self.scale_set_rotation(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_rotation' for widget type %s" % _wt)
+    Obj.set_rotation = _set_rotation_dispatch
+except NameError:
+    pass
+try:
+    def _set_selected_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'dropdown': return self.dropdown_set_selected(*args, **kwargs)
+        if _wt == 'roller': return self.roller_set_selected(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_selected' for widget type %s" % _wt)
+    Obj.set_selected = _set_selected_dispatch
+except NameError:
+    pass
+try:
+    def _set_start_value_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'bar': return self.bar_set_start_value(*args, **kwargs)
+        if _wt == 'slider': return self.slider_set_start_value(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_start_value' for widget type %s" % _wt)
+    Obj.set_start_value = _set_start_value_dispatch
+except NameError:
+    pass
+try:
+    def _set_text_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'checkbox': return self.checkbox_set_text(*args, **kwargs)
+        if _wt == 'dropdown': return self.dropdown_set_text(*args, **kwargs)
+        if _wt == 'label': return self.label_set_text(*args, **kwargs)
+        if _wt == 'textarea': return self.textarea_set_text(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_text' for widget type %s" % _wt)
+    Obj.set_text = _set_text_dispatch
+except NameError:
+    pass
+try:
+    def _set_text_static_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'checkbox': return self.checkbox_set_text_static(*args, **kwargs)
+        if _wt == 'dropdown': return self.dropdown_set_text_static(*args, **kwargs)
+        if _wt == 'label': return self.label_set_text_static(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_text_static' for widget type %s" % _wt)
+    Obj.set_text_static = _set_text_static_dispatch
+except NameError:
+    pass
+try:
+    def _set_value_dispatch(self, *args, **kwargs):
+        _wt = getattr(self, '_widget_type', None)
+        if _wt == 'arc': return self.arc_set_value(*args, **kwargs)
+        if _wt == 'bar': return self.bar_set_value(*args, **kwargs)
+        if _wt == 'slider': return self.slider_set_value(*args, **kwargs)
+        if _wt == 'spinbox': return self.spinbox_set_value(*args, **kwargs)
+        raise AttributeError("Obj has no 'set_value' for widget type %s" % _wt)
+    Obj.set_value = _set_value_dispatch
+except NameError:
+    pass
+
+
+# --- Color convenience class methods ---
+
+def _color_red():
+    """Create a pure red color."""
+    return color_make(255, 0, 0)
+
+def _color_green():
+    """Create a pure green color."""
+    return color_make(0, 255, 0)
+
+def _color_blue():
+    """Create a pure blue color."""
+    return color_make(0, 0, 255)
+
+def _color_white():
+    """Create a pure white color."""
+    return color_white()
+
+def _color_black():
+    """Create a pure black color."""
+    return color_black()
+
+try:
+    Color.red = staticmethod(_color_red)
+    Color.green = staticmethod(_color_green)
+    Color.blue = staticmethod(_color_blue)
+    Color.white = staticmethod(_color_white)
+    Color.black = staticmethod(_color_black)
+    Color.from_hex_str = staticmethod(color_from_hex_str)
+except NameError:
+    pass

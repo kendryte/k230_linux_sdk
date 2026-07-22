@@ -1,0 +1,77 @@
+From 8efce24a719de3e17ac401e7f1942cba0e45dfd5 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 21 Jul 2026 15:42:29 +0800
+Subject: [PATCH 10/11] dpi
+
+---
+ CMakeLists.txt                              | 10 +++++++---
+ lvgl/src/drivers/display/drm/lv_linux_drm.c | 12 +++++++++++-
+ 2 files changed, 18 insertions(+), 4 deletions(-)
+ mode change 100644 => 100755 CMakeLists.txt
+ mode change 100644 => 100755 lvgl/src/drivers/display/drm/lv_linux_drm.c
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+old mode 100644
+new mode 100755
+index 8068d09..ead4aed
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -419,16 +419,20 @@ if (CONFIG_LV_USE_LINUX_DRM)
+     target_link_libraries(lvgl_linux PUBLIC v4l2-drm drm display)
+ endif()
+ 
+-add_executable(lvglsim src/main_k230.c)
++add_executable(lvglsim src/main.c)
+ 
+ # Repeat lvgl_linux to resolve circular dependency with lvgl
+ # v4l2-drm and display are needed for the K230 combined camera+OSD backend
+ target_include_directories(lvglsim PRIVATE ${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS})
+-target_link_libraries(lvglsim lvgl_linux lvgl lvgl_demos lvgl_linux pthread v4l2-drm drm display)
++target_link_libraries(lvglsim lvgl_linux lvgl lvgl_demos lvgl_linux pthread v4l2-drm drm display lvgl_examples)
+ 
+ target_compile_options(lvgl_linux PRIVATE -mcpu=c908v -mabi=lp64d)
+ target_compile_options(lvgl PRIVATE -mcpu=c908v -mabi=lp64d)
+ target_compile_options(lvglsim PRIVATE -mcpu=c908v -mabi=lp64d)
++add_executable(lvglsimk230 src/main_k230.c)
++target_include_directories(lvglsimk230 PRIVATE ${DISPLAY_INCLUDE_DIRS} ${V4L2DRM_INCLUDE_DIRS})
++target_link_libraries(lvglsimk230 lvgl_linux lvgl lvgl_demos lvgl_linux pthread v4l2-drm drm display lvgl_examples)
++target_compile_options(lvglsimk230 PRIVATE -mcpu=c908v -mabi=lp64d)
+ 
+ if(WERROR)
+     target_compile_options(lvglsim PRIVATE -Werror)
+@@ -450,6 +454,6 @@ install(TARGETS lvgl_linux
+ )
+ 
+ add_custom_target(run COMMAND ${EXECUTABLE_OUTPUT_PATH}/lvglsim DEPENDS lvglsim)
+-install(TARGETS lvglsim
++install(TARGETS lvglsim  lvglsimk230
+     RUNTIME DESTINATION /root/app/
+ )
+diff --git a/lvgl/src/drivers/display/drm/lv_linux_drm.c b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+old mode 100644
+new mode 100755
+index 437c098..c838e94
+--- a/lvgl/src/drivers/display/drm/lv_linux_drm.c
++++ b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+@@ -243,7 +243,17 @@ lv_result_t lv_linux_drm_set_file(lv_display_t * disp, const char * file, int64_
+     lv_display_add_event_cb(disp, drm_dmabuf_set_active_buf, LV_EVENT_REFR_START, drm_dev);
+ 
+     if(width) {
+-        lv_display_set_dpi(disp, DIV_ROUND_UP(hor_res * 25400, width * 1000));
++        int32_t computed_dpi = DIV_ROUND_UP(hor_res * 25400, width * 1000);
++        /* Clamp to a sane minimum ¡ª some DRM drivers report an incorrect
++         * physical size, producing an absurdly low DPI (e.g. 26 on K230).
++         * That makes DPI-dependent widgets (msgbox header = DPI/3 ¡Ö 8px)
++         * far too small.  Anything below 80 is almost certainly wrong. */
++        if(computed_dpi < 80) {
++            LV_LOG_WARN("DRM physical width %dmm gives DPI %d (< 80); clamping to LV_DPI_DEF (%d)",
++                        width, computed_dpi, LV_DPI_DEF);
++            computed_dpi = LV_DPI_DEF;
++        }
++        lv_display_set_dpi(disp, computed_dpi);
+     }
+ 
+     LV_LOG_INFO("Resolution is set to %" LV_PRId32 "x%" LV_PRId32 " at %" LV_PRId32 "dpi",
+-- 
+2.25.1
+

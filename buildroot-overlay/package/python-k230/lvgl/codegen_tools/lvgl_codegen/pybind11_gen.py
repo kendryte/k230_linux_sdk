@@ -46,6 +46,7 @@ class Pybind11Generator:
         self._emit_color_type()
         self._emit_display_class()
         self._emit_indev_class()
+        self._emit_freetype_font()
         self._emit_driver_backends()
         self._emit_not_generated_list()
         self._emit_module_end()
@@ -81,6 +82,7 @@ class Pybind11Generator:
         self.emit('#include "lvgl/lvgl.h"')
         self.emit('#include "lvgl/driver_backends.h"')
         self.emit('#include "lvgl/demos/benchmark/lv_demo_benchmark.h"')
+        self.emit('#include "lvgl/font/lv_freetype.h"')
         self.emit('#include "lvgl_pybind_helpers.h"')
         self.emit("")
         self.emit("namespace py = pybind11;")
@@ -109,20 +111,75 @@ class Pybind11Generator:
         self.emit("     */")
         self.emit("")
 
+        # Pre-compute all enum Python names and all value names to detect collisions.
+        # pybind11's export_values() injects every value into the module namespace,
+        # which causes two kinds of collisions:
+        #   1. A value name matches an enum type name → "cannot initialize type X: already defined"
+        #   2. The same value name appears in multiple enums → the last one wins silently
+        #   3. Two different C enums map to the same Python name (e.g. lv_fs_res_t and
+        #      lv_fs_mode_t both → FS) → "cannot initialize type FS: already defined"
+        # Solution: don't use export_values(). For enum name collisions, keep the suffix.
+        all_enum_py_names_raw = []  # [(c_type, py_name_before_dedup), ...]
+        for enum_ir in self.ir.enums:
+            if not enum_ir.members:
+                continue
+            c_type = enum_ir.c_type
+            if c_type and c_type.startswith("lv_"):
+                py_name = self._enum_python_name(c_type)
+                all_enum_py_names_raw.append((c_type, py_name))
+
+        # Detect enum name collisions and deduplicate by keeping the suffix
+        from collections import Counter
+        enum_name_counts = Counter(py_name for _, py_name in all_enum_py_names_raw)
+        colliding_enum_names = {name for name, count in enum_name_counts.items() if count > 1}
+
+        # Build a mapping from c_type to final py_name (deduplicated)
+        enum_py_name_map: Dict[str, str] = {}
+        for c_type, py_name in all_enum_py_names_raw:
+            if py_name in colliding_enum_names:
+                # Keep the suffix: FS_RES instead of FS, FS_MODE instead of FS
+                if c_type.startswith("lv_") and c_type.endswith("_t"):
+                    enum_py_name_map[c_type] = c_type[3:-2].upper()
+                else:
+                    enum_py_name_map[c_type] = py_name
+            else:
+                enum_py_name_map[c_type] = py_name
+
+        all_enum_py_names = set(enum_py_name_map.values())
+        all_value_names = []  # (py_name, safe_name, member_c_name, enum_py_name)
+        for enum_ir in self.ir.enums:
+            if not enum_ir.members:
+                continue
+            c_type = enum_ir.c_type
+            if c_type and c_type.startswith("lv_"):
+                py_name = enum_py_name_map.get(c_type, self._enum_python_name(c_type))
+                for member in enum_ir.members:
+                    stripped = self._strip_enum_prefix(member.c_name, py_name)
+                    safe_name = self._sanitize(stripped)
+                    all_value_names.append((py_name, safe_name, member.c_name))
+
+        # Count value name occurrences to detect duplicates
+        from collections import Counter
+        value_name_counts = Counter(sn for _, sn, _ in all_value_names)
+        conflicting_values = {name for name, count in value_name_counts.items()
+                              if count > 1 or name in all_enum_py_names}
+
+        # First pass: emit enum types WITHOUT export_values()
         for enum_ir in self.ir.enums:
             if not enum_ir.members:
                 continue
 
-            # Derive Python name from C type
             c_type = enum_ir.c_type
-            py_name = self._enum_python_name(c_type)
+            py_name = enum_py_name_map.get(c_type, self._enum_python_name(c_type))
 
             if c_type and c_type.startswith("lv_"):
                 self.emit('    py::enum_<%s>(m, "%s")' % (c_type, py_name))
                 for member in enum_ir.members:
-                    safe_name = self._sanitize(member.python_name or member.c_name)
+                    stripped = self._strip_enum_prefix(member.c_name, py_name)
+                    safe_name = self._sanitize(stripped)
                     self.emit('        .value("%s", %s)' % (safe_name, member.c_name))
-                self.emit("        .export_values();")
+                # Do NOT call export_values() — we manually inject below
+                self.emit(";")
                 self.emit("")
             else:
                 # Check if this is the LVGL symbol ID enum
@@ -130,29 +187,115 @@ class Pybind11Generator:
                     m.c_name.startswith("LV_STR_SYMBOL_") for m in enum_ir.members
                 )
                 if is_symbol_enum:
-                    # Export as UTF-8 symbol strings (LV_SYMBOL_*) instead of int enum values
-                    # so they can be passed directly to icon APIs like add_button()
                     self.emit("    /* Enum %s - exported as UTF-8 symbol strings for use with icon APIs */" % c_type)
                     for member in enum_ir.members:
-                        safe_name = self._sanitize(member.c_name)
-                        # LV_STR_SYMBOL_FOO → LV_SYMBOL_FOO (the actual UTF-8 string macro)
+                        stripped = self._strip_enum_prefix(member.c_name, "STR")
+                        safe_name = self._sanitize(stripped)
                         symbol_macro = member.c_name.replace("LV_STR_SYMBOL_", "LV_SYMBOL_")
-                        self.emit('    m.attr("%s") = %s;' % (safe_name, symbol_macro))
+                        # Only export if no collision
+                        if safe_name not in conflicting_values:
+                            self.emit('    m.attr("%s") = %s;' % (safe_name, symbol_macro))
+                        else:
+                            self.emit('    /* %s skipped (name collision) — use SYMBOL.%s instead */' % (safe_name, safe_name))
                     self.emit("")
                 else:
                     # Emit as integer constants
                     self.emit("    /* Enum %s (no C type found, emitting as constants) */" % c_type)
                     for member in enum_ir.members:
-                        safe_name = self._sanitize(member.c_name)
-                        self.emit('    m.attr("%s") = (int)%s;' % (safe_name, member.c_name))
+                        stripped = self._strip_enum_prefix(member.c_name, py_name)
+                        safe_name = self._sanitize(stripped)
+                        if safe_name not in conflicting_values:
+                            self.emit('    m.attr("%s") = (int)%s;' % (safe_name, member.c_name))
+                        else:
+                            self.emit('    /* %s skipped (name collision) */' % safe_name)
                     self.emit("")
+
+        # Second pass: manually inject non-conflicting enum values into module namespace
+        # Values that clash with an enum type name or appear in multiple enums are
+        # only accessible via their enum type (e.g., lv.EVENT.KEY, lv.ALIGN.CENTER)
+        self.emit("    /*")
+        self.emit("     * Export non-conflicting enum values into module namespace")
+        self.emit("     * (conflicting values are only accessible via their enum type)")
+        self.emit("     */")
+        for py_name, safe_name, member_c_name in all_value_names:
+            if safe_name not in conflicting_values:
+                self.emit('    m.attr("%s") = (int)%s;' % (safe_name, member_c_name))
+        self.emit("")
+
+    @staticmethod
+    def _strip_enum_prefix(c_name: str, enum_py_name: str = "") -> str:
+        """Strip LV_ prefix and enum class name prefix from a C enum member name.
+
+        Examples:
+            LV_ALIGN_TOP_LEFT + ALIGN → TOP_LEFT
+            LV_EVENT_CLICKED + EVENT → CLICKED
+            LV_OBJ_FLAG_CLICKABLE + OBJ_FLAG → CLICKABLE
+            LV_ARC_MODE_NORMAL + ARC → NORMAL  (strips ARC_ then MODE_ via suffix)
+            LV_OPA_50 + OPA → 50
+            LV_STR_SYMBOL_AUDIO + SYMBOL → AUDIO
+        """
+        name = c_name
+        # Strip LV_ prefix
+        if name.startswith("LV_"):
+            name = name[3:]
+        # Strip enum class name prefix (e.g., ALIGN_ from ALIGN_TOP_LEFT)
+        if enum_py_name and name.startswith(enum_py_name + "_"):
+            name = name[len(enum_py_name) + 1:]
+        # If the py_name was derived by stripping a suffix (e.g., ARC_MODE → ARC),
+        # the remaining name still has the suffix part as prefix (e.g., MODE_NORMAL).
+        # Strip that suffix-derived prefix (MODE_) to get the clean value name (NORMAL).
+        if enum_py_name:
+            for suffix in Pybind11Generator.ENUM_NAME_SUFFIX_STRIP:
+                suffix_prefix = suffix + "_"  # e.g., _MODE_ → MODE_ (after prior strip)
+                # The suffix prefix is the part after the py_name: _MODE_ becomes MODE_
+                if suffix_prefix.startswith("_"):
+                    suffix_prefix = suffix_prefix[1:]  # _MODE_ → MODE_
+                if name.startswith(suffix_prefix):
+                    name = name[len(suffix_prefix):]
+                    break
+        return name
+
+    # Suffixes to strip from enum Python names for cleaner API.
+    # Only strip truly redundant suffixes that don't carry independent meaning.
+    # Keep suffixes like _FLAG, _SIDE, _CTRL that are part of the enum's identity
+    # (per API review: OBJ_FLAG.CLICKABLE, BORDER_SIDE.FULL, etc.)
+    # IMPORTANT: Do NOT strip suffixes that would cause name collisions with
+    # other enums (e.g., _ORIENTATION on BAR_ORIENTATION → BAR collides with
+    # BAR_MODE → BAR; _EDITABLE/_GROUP_DEF on OBJ_CLASS_* → OBJ_CLASS collides).
+    ENUM_NAME_SUFFIX_STRIP = {
+        "_CODE": "",       # EVENT_CODE → EVENT
+        "_TYPE": "",       # CHART_TYPE → CHART, INDEV_TYPE → INDEV
+        "_MODE": "",       # ARC_MODE → ARC, BAR_MODE → BAR, SCROLLBAR_MODE → SCROLLBAR
+        "_RES": "",        # COVER_RES → COVER, FS_RES → FS
+        "_CMP": "",        # STYLE_STATE_CMP → STYLE_STATE
+        "_WALK_RES": "",   # OBJ_TREE_WALK_RES → OBJ_TREE_WALK
+        "_TRANSFORM_FLAG": "", # OBJ_POINT_TRANSFORM_FLAG → OBJ_POINT
+        "_REFOCUS_POLICY": "", # GROUP_REFOCUS_POLICY → GROUP
+        "_GESTURE_TYPE": "", # INDEV_GESTURE_TYPE → INDEV_GESTURE
+        "_LONG_MODE": "",  # LABEL_LONG_MODE → LABEL_LONG
+        "_ENCODING": "",   # BARCODE_ENCODING → BARCODE
+        # "_ORIENTATION": "",  # REMOVED: BAR_ORIENTATION → BAR collides with BAR_MODE → BAR
+        "_RENDER_MODE": "", # DISPLAY_RENDER_MODE → DISPLAY_RENDER
+        "_LOAD_ANIM": "",  # SCREEN_LOAD_ANIM → SCREEN_LOAD
+        "_COMPRESS": "",   # IMAGE_COMPRESS → IMAGE
+        "_SRC": "",        # IMAGE_SRC → IMAGE
+        "_INHERITABLE": "", # OBJ_CLASS_THEME_INHERITABLE → OBJ_CLASS_THEME
+        # "_EDITABLE": "",  # REMOVED: OBJ_CLASS_EDITABLE → OBJ_CLASS collides with OBJ_CLASS_GROUP_DEF
+        # "_GROUP_DEF": "", # REMOVED: OBJ_CLASS_GROUP_DEF → OBJ_CLASS collides with OBJ_CLASS_EDITABLE
+    }
 
     @staticmethod
     def _enum_python_name(c_type: str) -> str:
-        """Convert lv_align_t → ALIGN, lv_dir_t → DIR, etc."""
+        """Convert lv_align_t → ALIGN, lv_event_code_t → EVENT, etc."""
         if c_type.startswith("lv_") and c_type.endswith("_t"):
             name = c_type[3:-2]  # strip lv_ and _t
-            return name.upper()
+            name = name.upper()
+            # Strip common suffixes for cleaner names
+            for suffix, replacement in Pybind11Generator.ENUM_NAME_SUFFIX_STRIP.items():
+                if name.endswith(suffix):
+                    name = name[:-len(suffix)] + replacement
+                    break
+            return name
         return c_type
 
     # -----------------------------------------------------------------------
@@ -185,12 +328,12 @@ class Pybind11Generator:
 
     def _emit_obj_class(self):
         self.emit("    /* Base Object class */")
-        self.emit("    auto obj_cls = py::class_<LvObjWrapper>(m, \"Obj\");")
+        self.emit("    auto obj_cls = py::class_<LvObjWrapper>(m, \"Obj\", py::dynamic_attr());")
         self.emit("    obj_cls.def(py::init<>());")
-        self.emit('    obj_cls.def_static("create", [](LvObjWrapper *parent) -> LvObjWrapper* {')
-        self.emit("        lv_obj_t *p = parent ? parent->get() : nullptr;")
-        self.emit("        return new LvObjWrapper(lv_obj_create(p));")
-        self.emit('    }, py::arg("parent") = py::none());')
+        # Expose keep_parent for lifecycle management (called internally by factory functions)
+        self.emit('    obj_cls.def("_keep_parent", [](LvObjWrapper &self, py::object parent) {')
+        self.emit("        self.keep_parent(parent);")
+        self.emit("    }, py::arg(\"parent\"));")
 
         # Generate methods for base obj
         obj_methods = self.ir.get_widget_methods("obj")
@@ -247,7 +390,7 @@ class Pybind11Generator:
             if param.is_self:
                 # First param is parent (lv_obj_t*)
                 has_parent = True
-                lambda_params.append("LvObjWrapper *parent")
+                lambda_params.append("py::object parent_obj")
                 py_args.append('py::arg("parent") = py::none()')
                 continue
             if param.c_type == "void":
@@ -270,15 +413,30 @@ class Pybind11Generator:
             py_args.append('py::arg("%s")' % arg_name)
 
         if has_parent:
-            parent_arg = "parent ? parent->get() : lv_screen_active()"
-            all_call_args = ", ".join([parent_arg] + call_args)
+            all_call_args = ", ".join(["_parent_obj.cast<LvObjWrapper*>()->get()"] + call_args)
         else:
             all_call_args = ", ".join(call_args)
         lambda_params_str = ", ".join(lambda_params)
         py_args_str = ", ".join(py_args)
 
         self.emit('    m.def("%s", [](%s) -> LvObjWrapper* {' % (py_name, lambda_params_str))
-        self.emit("        return new LvObjWrapper(%s(%s));" % (ctor_func.name, all_call_args))
+        if has_parent:
+            # Special case: lv_msgbox_create(NULL) should create a backdrop on
+            # lv_layer_top() for modal behavior.  Passing lv_screen_active() instead
+            # would skip the backdrop and break the close button visibility.
+            if ctor_func.name in self.NULL_PARENT_WIDGETS:
+                self.emit("        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();")
+                self.emit("        LvObjWrapper *wrapper = new LvObjWrapper(%s(_parent ? _parent->get() : NULL%s));" % (ctor_func.name, ", " + ", ".join(call_args) if call_args else ""))
+            else:
+                self.emit("        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();")
+                self.emit("        LvObjWrapper *wrapper = new LvObjWrapper(%s(_parent ? _parent->get() : lv_screen_active()%s));" % (ctor_func.name, ", " + ", ".join(call_args) if call_args else ""))
+        else:
+            self.emit("        LvObjWrapper *wrapper = new LvObjWrapper(%s(%s));" % (ctor_func.name, all_call_args))
+        if has_parent:
+            # Keep parent Python reference to prevent GC from collecting parent
+            # while child is still alive (prevents use-after-free crash)
+            self.emit("        if (_parent) wrapper->keep_parent(parent_obj);")
+        self.emit("        return wrapper;")
         self.generated_funcs.add(ctor_func.name)
 
         if py_args_str:
@@ -307,6 +465,59 @@ class Pybind11Generator:
     def _emit_widget_methods(self):
         self.emit("    /* Widget-specific methods on Obj */")
 
+        # First pass: collect all python method names and detect collisions.
+        # When multiple widget types have methods that map to the same python
+        # name (e.g. lv_arc_set_rotation / lv_image_set_rotation → "set_rotation"),
+        # pybind11 will register all of them as overloads on the same Obj class.
+        # At call time pybind11 picks the first overload whose parameter types
+        # match, which means Image.set_rotation() would dispatch to
+        # lv_arc_set_rotation — a completely wrong C function that corrupts
+        # memory and crashes.  The fix: prefix colliding names with the widget
+        # type (e.g. image_set_rotation, arc_set_rotation).
+        method_name_owners: Dict[str, str] = {}  # python_name → widget_name
+
+        for widget_name, widget in sorted(self.ir.widgets.items()):
+            if widget_name == "obj":
+                continue
+            if widget_name not in self.OBJ_WIDGET_TYPES:
+                continue
+            for func in widget.methods:
+                if func.skip or func.name in self.generated_funcs:
+                    continue
+                if func.category == FuncCategory.CONSTRUCTOR:
+                    continue
+                py_name = self._sanitize(func.python_name)
+                if py_name == "delete":
+                    py_name = "delete_obj"
+                if py_name in method_name_owners and method_name_owners[py_name] != widget_name:
+                    # Collision detected — both owners will need a prefix
+                    pass
+                method_name_owners.setdefault(py_name, widget_name)
+
+        # Build the set of names that collide (owned by ≥2 different widgets)
+        from collections import Counter
+        owner_counts = Counter(method_name_owners.values())  # not useful here
+        # We need: for each py_name, count how many distinct widget_names claim it
+        name_to_widgets: Dict[str, Set[str]] = {}
+        for widget_name, widget in sorted(self.ir.widgets.items()):
+            if widget_name == "obj":
+                continue
+            if widget_name not in self.OBJ_WIDGET_TYPES:
+                continue
+            for func in widget.methods:
+                if func.skip or func.name in self.generated_funcs:
+                    continue
+                if func.category == FuncCategory.CONSTRUCTOR:
+                    continue
+                py_name = self._sanitize(func.python_name)
+                if py_name == "delete":
+                    py_name = "delete_obj"
+                name_to_widgets.setdefault(py_name, set()).add(widget_name)
+
+        colliding_names = {name for name, widgets in name_to_widgets.items()
+                           if len(widgets) > 1}
+
+        # Second pass: emit methods with prefixed names for collisions
         for widget_name, widget in sorted(self.ir.widgets.items()):
             if widget_name == "obj":
                 continue  # Already generated above
@@ -318,7 +529,9 @@ class Pybind11Generator:
                     continue
                 if func.category == FuncCategory.CONSTRUCTOR:
                     continue  # Factories already generated
-                self._emit_method(obj_cls_var="obj_cls", func=func, is_obj_method=True)
+                self._emit_method(obj_cls_var="obj_cls", func=func, is_obj_method=True,
+                                  widget_name=widget_name,
+                                  colliding_names=colliding_names)
 
         self.emit("")
 
@@ -326,7 +539,8 @@ class Pybind11Generator:
     # Method generation
     # -----------------------------------------------------------------------
 
-    def _emit_method(self, obj_cls_var: str, func: FunctionIR, is_obj_method: bool = False):
+    def _emit_method(self, obj_cls_var: str, func: FunctionIR, is_obj_method: bool = False,
+                     widget_name: str = "", colliding_names: Optional[Set[str]] = None):
         """Generate a single method binding."""
         if func.skip or func.name in self.generated_funcs:
             return
@@ -335,14 +549,10 @@ class Pybind11Generator:
         if method_name == "delete":
             method_name = "delete_obj"
 
-        # Handle method name collisions between widgets
-        if method_name in self.bound_method_names:
-            first_widget = self.bound_method_names[method_name]
-            if first_widget != (func.widget_name or "global"):
-                method_name = "%s_%s" % (func.widget_name, method_name)
-                if method_name in self.bound_method_names:
-                    return  # Still colliding, skip
-        self.bound_method_names[method_name] = func.widget_name or "global"
+        # If this python method name collides across widgets, prefix with widget name
+        # e.g. set_rotation (owned by arc, image, scale) → arc_set_rotation, image_set_rotation, scale_set_rotation
+        if colliding_names and method_name in colliding_names and widget_name:
+            method_name = "%s_%s" % (widget_name, method_name)
 
         # Build lambda body
         call_args = []
@@ -369,7 +579,12 @@ class Pybind11Generator:
             else:
                 call_args.append(arg_name)
             lambda_params.append("%s %s" % (cpp_type, arg_name))
-            py_args.append('py::arg("%s")' % arg_name)
+
+            # Add default value for style selector parameters (uint32_t selector → 0)
+            if arg_name == "selector" and cpp_type == "uint32_t":
+                py_args.append('py::arg("selector") = 0')
+            else:
+                py_args.append('py::arg("%s")' % arg_name)
 
         # Build call expression
         if is_obj_method:
@@ -394,8 +609,12 @@ class Pybind11Generator:
             self.emit('    %s.def("%s", [](%s) { %s(%s); return; }' % (
                 obj_cls_var, method_name, lambda_params_str, func.name, call_args_str))
         elif self._is_obj_ptr(return_type):
-            self.emit('    %s.def("%s", [](%s) -> LvObjWrapper* { return new LvObjWrapper(%s(%s)); }' % (
-                obj_cls_var, method_name, lambda_params_str, func.name, call_args_str))
+            # Return LvObjWrapper* with null check → Python None for NULL pointers
+            self.emit('    %s.def("%s", [](%s) -> LvObjWrapper* {' % (
+                obj_cls_var, method_name, lambda_params_str))
+            self.emit('        lv_obj_t *result = %s(%s);' % (func.name, call_args_str))
+            self.emit('        return result ? new LvObjWrapper(result) : nullptr;')
+            self.emit('    }')
         elif return_cpp and return_cpp.endswith("Wrapper &"):
             # Return wrapper reference → skip (can't return reference to temporary)
             # These are typically functions that return lv_display_t*, lv_indev_t* etc.
@@ -476,35 +695,35 @@ class Pybind11Generator:
         """
         self.emit("    /* Chart: manual bindings for series and data (series pointer stored as user_data) */")
 
-        self.emit('    obj_cls.def("chart_set_point_count", [](LvObjWrapper &self, uint32_t cnt) {')
+        self.emit('    obj_cls.def("set_point_count", [](LvObjWrapper &self, uint32_t cnt) {')
         self.emit("        lv_chart_set_point_count(self.get(), cnt);")
         self.emit('    }, py::arg("cnt"), "Set the number of points on a chart series");')
 
-        self.emit('    obj_cls.def("chart_add_series", [](LvObjWrapper &self, lv_color_t color, lv_chart_axis_t axis) -> uintptr_t {')
+        self.emit('    obj_cls.def("add_series", [](LvObjWrapper &self, lv_color_t color, lv_chart_axis_t axis) -> uintptr_t {')
         self.emit("        lv_chart_series_t *ser = lv_chart_add_series(self.get(), color, axis);")
         self.emit("        return reinterpret_cast<uintptr_t>(ser);")
         self.emit('    }, py::arg("color"), py::arg("axis"), "Add a data series to chart, returns series handle as int");')
 
-        self.emit('    obj_cls.def("chart_set_next_value", [](LvObjWrapper &self, uintptr_t series, int32_t value) {')
+        self.emit('    obj_cls.def("set_next_value", [](LvObjWrapper &self, uintptr_t series, int32_t value) {')
         self.emit("        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);")
         self.emit("        lv_chart_set_next_value(self.get(), ser, value);")
         self.emit('    }, py::arg("series"), py::arg("value"), "Set next value on a chart series");')
 
-        self.emit('    obj_cls.def("chart_set_next_value2", [](LvObjWrapper &self, uintptr_t series, int32_t x_value, int32_t y_value) {')
+        self.emit('    obj_cls.def("set_next_value2", [](LvObjWrapper &self, uintptr_t series, int32_t x_value, int32_t y_value) {')
         self.emit("        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);")
         self.emit("        lv_chart_set_next_value2(self.get(), ser, x_value, y_value);")
         self.emit('    }, py::arg("series"), py::arg("x_value"), py::arg("y_value"), "Set next X/Y value on a chart series (scatter)");')
 
-        self.emit('    obj_cls.def("chart_refresh", [](LvObjWrapper &self) {')
+        self.emit('    obj_cls.def("refresh_chart", [](LvObjWrapper &self) {')
         self.emit("        lv_chart_refresh(self.get());")
         self.emit('    }, "Refresh chart after data change");')
 
-        self.emit('    obj_cls.def("chart_set_series_color", [](LvObjWrapper &self, uintptr_t series, lv_color_t color) {')
+        self.emit('    obj_cls.def("set_series_color", [](LvObjWrapper &self, uintptr_t series, lv_color_t color) {')
         self.emit("        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);")
         self.emit("        lv_chart_set_series_color(self.get(), ser, color);")
         self.emit('    }, py::arg("series"), py::arg("color"), "Set series color");')
 
-        self.emit('    obj_cls.def("chart_set_all_values", [](LvObjWrapper &self, uintptr_t series, int32_t value) {')
+        self.emit('    obj_cls.def("set_all_values", [](LvObjWrapper &self, uintptr_t series, int32_t value) {')
         self.emit("        lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);")
         self.emit("        lv_chart_set_all_values(self.get(), ser, value);")
         self.emit('    }, py::arg("series"), py::arg("value"), "Set all values of a series to the same value");')
@@ -595,6 +814,46 @@ class Pybind11Generator:
         self.emit("")
 
     # -----------------------------------------------------------------------
+    # FreeType font support
+    # -----------------------------------------------------------------------
+
+    # Widgets whose create function should pass NULL (not lv_screen_active())
+    # when parent is None, so that LVGL creates a backdrop on lv_layer_top().
+    NULL_PARENT_WIDGETS = {"lv_msgbox_create"}
+
+    def _emit_freetype_font(self):
+        """Emit FreeType font bindings and LvFontWrapper overload for set_style_text_font."""
+        self.emit("    /* FreeType font support */")
+        self.emit("#if LV_USE_FREETYPE")
+        self.emit('    auto font_cls = py::class_<LvFontWrapper>(m, "Font", py::dynamic_attr());')
+        self.emit("    font_cls.def(py::init<>());")
+        self.emit('    font_cls.def("is_valid", &LvFontWrapper::is_valid);')
+        self.emit("")
+        self.emit('    m.def("freetype_font_create", [](const char *pathname,')
+        self.emit("                                     lv_freetype_font_render_mode_t render_mode,")
+        self.emit("                                     uint32_t size,")
+        self.emit("                                     lv_freetype_font_style_t style) -> LvFontWrapper* {")
+        self.emit("        lv_font_t *font = lv_freetype_font_create(pathname, render_mode, size, style);")
+        self.emit("        if(!font) {")
+        self.emit('            PyErr_SetString(PyExc_RuntimeError,')
+        self.emit('                            "freetype_font_create failed - check font path");')
+        self.emit("            throw py::error_already_set();")
+        self.emit("        }")
+        self.emit("        return new LvFontWrapper(font, true);")
+        self.emit('    }, py::arg("pathname"), py::arg("render_mode"), py::arg("size"), py::arg("style"));')
+        self.emit("")
+        self.emit('    m.def("freetype_font_delete", [](LvFontWrapper &font) {')
+        self.emit("        lv_freetype_font_delete(font.get());")
+        self.emit("    });")
+        self.emit("")
+        self.emit("    /* LvFontWrapper overload for set_style_text_font */")
+        self.emit('    obj_cls.def("set_style_text_font", [](LvObjWrapper &self, LvFontWrapper &font, uint32_t selector) {')
+        self.emit("        lv_obj_set_style_text_font(self.get(), font.get(), selector); return;")
+        self.emit('    }, py::arg("value"), py::arg("selector") = 0);')
+        self.emit("#endif /* LV_USE_FREETYPE */")
+        self.emit("")
+
+    # -----------------------------------------------------------------------
     # Font helpers
     # -----------------------------------------------------------------------
 
@@ -681,4 +940,8 @@ class Pybind11Generator:
         if name in PYTHON_KEYWORDS:
             name = "_%s" % name
         name = name.strip().replace(" ", "_").replace("*", "_ptr")
+        # Python identifiers cannot start with a digit; prepend enum class prefix
+        # This handles cases like LV_OPA_50 → "50" → "OPA_50"
+        if name and name[0].isdigit():
+            name = "_" + name
         return name

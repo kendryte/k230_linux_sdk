@@ -871,8 +871,8 @@ def main():
         # ===============================
         # 二、初始化 V4L2-DRM 和摄像头
         # ===============================
-        v4l2 = V4l2Drm(context_num=2)
-        display_w, display_h = v4l2.drm_init()
+        v4l2drm = V4l2Drm(context_num=2)
+        display_w, display_h = v4l2drm.drm_init()
         print(f"Display: {display_w}x{display_h}")
 
         # 自动检测屏幕旋转方向
@@ -882,28 +882,28 @@ def main():
             rotation = ROTATION_90
 
         # Context 0: 摄像头直接显示 (NV12 格式)
-        v4l2.set_context(
+        v4l2drm.set_context(
             index=0, device=1,
             width=max(display_w, display_h), height=min(display_w, display_h),
             format="NV12", display=True
         )
 
         # Context 1: AI 推理输入 (BG3P 格式, hwc)
-        v4l2.set_context(
+        v4l2drm.set_context(
             index=1, device=2,
             width=SENSOR_WIDTH, height=SENSOR_HEIGHT,
             format="BG3P", display=False
         )
 
-        v4l2.set_rotation(0, rotation)
-        v4l2.set_osd_format(DRM_FORMAT_ARGB8888)
+        v4l2drm.set_rotation(0, rotation)
+        v4l2drm.set_osd_format(DRM_FORMAT_ARGB8888)
 
-        if not v4l2.setup():
+        if not v4l2drm.setup():
             print("Error: V4L2-DRM setup failed!")
             return -1
 
-        v4l2.display_start()
-        v4l2.dump_start(1)
+        v4l2drm.display_start()
+        v4l2drm.dump_start(1)
 
         # ===============================
         # 三、初始化人脸检测模型
@@ -941,9 +941,9 @@ def main():
         while True:
             with ScopedTiming("total", enable_profile):
                 # 摄像头捕获
-                if not v4l2.dump_frame(index=1, timeout_ms=1000):
+                if not v4l2drm.dump_frame(index=1, timeout_ms=1000):
                     continue
-                frame_nchw = v4l2.get_buffer_array(1)
+                frame_nchw = v4l2drm.get_buffer_array(1)
 
                 # AI 预处理
                 with ScopedTiming("pre_process", enable_profile):
@@ -953,7 +953,7 @@ def main():
                 with ScopedTiming("inference", enable_profile):
                     fd.inference()
 
-                v4l2.dump_release(1)
+                v4l2drm.dump_release(1)
 
                 # 后处理 (无需子计时, post_process 内部已优化)
                 with ScopedTiming("post_process", enable_profile):
@@ -965,7 +965,7 @@ def main():
                     FaceDetection.draw_result(osd_img, faces, scale_factor)
                     cv2.putText(osd_img, f"FPS: {ai_fps:.1f}", (10, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0, 255), 2)
-                    v4l2.osd_update(osd_img)
+                    v4l2drm.osd_update(osd_img)
 
                 # FPS 计算
                 frame_count += 1
@@ -981,8 +981,8 @@ def main():
         print("\nStopping...")
 
     # 清理资源
-    v4l2.dump_stop(1)
-    v4l2.display_stop()
+    v4l2drm.dump_stop(1)
+    v4l2drm.display_stop()
     print("Done!")
     return 0
 

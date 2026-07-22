@@ -3,16 +3,13 @@ IR → Python Wrapper Code Generator
 
 Generates a Python wrapper module (_wrapper.py) that:
 - Re-exports all raw pybind11 bindings from _lvgl
-- Adds convenience functions (color, run_loop, k230_driver_init, etc.)
-
-Widget classes are NOT generated here because the raw pybind11 bindings
-already provide factory functions (lv.Label(parent), lv.Button(parent), etc.)
-that return Obj instances with all methods. Adding wrapper classes with the
-same names would shadow these factory functions and break usage.
+- Tags widget instances with their type for method dispatch
+- Adds short-name method aliases on Obj that dispatch by type tag
+- Adds convenience functions (color, run, init, etc.)
 """
 
 from __future__ import print_function
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from lvgl_ir.schema import (
     ModuleIR, FunctionIR, WidgetIR, FuncCategory,
@@ -22,6 +19,17 @@ from lvgl_ir.schema import (
 class PythonWrapperGenerator:
     """Generates Python wrapper code from ModuleIR."""
 
+    # All LVGL widget types — all factory functions get type-tagged
+    ALL_WIDGET_TYPES = {
+        "obj", "image", "animimg", "arc", "arclabel", "label", "bar",
+        "canvas", "barcode", "button", "buttonmatrix", "calendar",
+        "chart", "checkbox", "dropdown", "imagebutton", "keyboard",
+        "led", "line", "list", "lottie", "menu", "menu_page",
+        "menu_cont", "menu_section", "menu_separator", "msgbox",
+        "qrcode", "roller", "scale", "slider", "spangroup", "textarea",
+        "spinbox", "spinner", "switch", "table", "tabview", "tileview", "win",
+    }
+
     def __init__(self, module_ir: ModuleIR):
         self.ir = module_ir
         self.output_lines: List[str] = []
@@ -30,6 +38,9 @@ class PythonWrapperGenerator:
         """Generate the complete Python wrapper module."""
         self._emit_header()
         self._emit_convenience_functions()
+        self._emit_widget_type_tagging()
+        self._emit_short_method_aliases()
+        self._emit_color_helpers()
 
         return "\n".join(self.output_lines)
 
@@ -65,11 +76,26 @@ class PythonWrapperGenerator:
         self.emit('    """Create a color from a hex value (e.g., 0xFF0000 for red)."""')
         self.emit("    return color_hex(hex_value)")
         self.emit("")
-        self.emit("def run_loop():")
-        self.emit('    """Enter the LVGL run loop."""')
-        self.emit("    driver_backends_run_loop()")
+        self.emit("def color_from_hex_str(hex_str):")
+        self.emit('    """Create a color from a hex string (e.g., "#ff0000" or "#FF0000")."""')
+        self.emit("    return color_hex(int(hex_str.lstrip('#'), 16))")
         self.emit("")
-        self.emit("def k230_init(v4l2_drm=None, v4l2_drm_run_flag=0):")
+        self.emit("import os as _os")
+        self.emit("import time as _time")
+        self.emit("")
+        self.emit("def run():")
+        self.emit('    """Enter the LVGL run loop (blocking).')
+        self.emit("")
+        self.emit("    Can be interrupted with Ctrl+C.")
+        self.emit('    """')
+        self.emit("    try:")
+        self.emit("        while True:")
+        self.emit("            idle = timer_handler()")
+        self.emit("            _time.sleep(idle / 1000.0)")
+        self.emit("    except KeyboardInterrupt:")
+        self.emit("        _os._exit(0)")
+        self.emit("")
+        self.emit("def init(v4l2_drm=None, v4l2_drm_run_flag=0):")
         self.emit('    """Initialize K230 display driver.')
         self.emit("")
         self.emit("    When v4l2_drm is provided, uses the K230 v4l2-drm backend (DRM_V4L2_K230)")
@@ -79,7 +105,7 @@ class PythonWrapperGenerator:
         self.emit("    Args:")
         self.emit("        v4l2_drm: A V4l2Drm object (from k230_v4l2_drm module), or None")
         self.emit("                  to use the default Linux DRM driver.")
-        self.emit("        v4l2_drm_run_flag: Flag controlling v4l2-drm run behavior (default: 0).")
+        self.emit("        v4l2_drm_run_flag: Reserved, currently unused (default: 0).")
         self.emit('    """')
         self.emit("    if v4l2_drm is not None:")
         self.emit("        display_ptr = v4l2_drm.get_display_ptr()")
@@ -87,6 +113,160 @@ class PythonWrapperGenerator:
         self.emit("        display_ptr = 0  # NULL pointer -> use default DRM backend")
         self.emit("    return k230_driver_init(display_ptr, v4l2_drm_run_flag)")
         self.emit("")
-        self.emit("# No __all__ — let all names from ._lvgl (enums, constants, functions,")
-        self.emit("# widget factories like Label, Button, etc.) and the convenience functions")
-        self.emit('# above pass through naturally via "from _wrapper import *".')
+
+    # -----------------------------------------------------------------------
+    # Type tagging & short method aliases
+    # -----------------------------------------------------------------------
+
+    def _detect_method_collisions(self) -> Set[str]:
+        """Detect python method names that collide across widgets."""
+        name_to_widgets: Dict[str, Set[str]] = {}
+        for widget_name, widget in sorted(self.ir.widgets.items()):
+            if widget_name == "obj":
+                continue
+            if widget_name not in self.ALL_WIDGET_TYPES:
+                continue
+            for func in widget.methods:
+                if func.skip or func.category == FuncCategory.CONSTRUCTOR:
+                    continue
+                py_name = func.python_name
+                if py_name == "delete":
+                    py_name = "delete_obj"
+                name_to_widgets.setdefault(py_name, set()).add(widget_name)
+        return {name for name, widgets in name_to_widgets.items()
+                if len(widgets) > 1}
+
+    def _collect_prefixed_methods(self) -> Dict[str, List[Tuple[str, str]]]:
+        """Collect methods that were prefixed in the C++ layer due to collisions."""
+        colliding_names = self._detect_method_collisions()
+        result: Dict[str, List[Tuple[str, str]]] = {}
+
+        for widget_name, widget in sorted(self.ir.widgets.items()):
+            if widget_name == "obj":
+                continue
+            if widget_name not in self.ALL_WIDGET_TYPES:
+                continue
+            prefixed = []
+            for func in widget.methods:
+                if func.skip or func.category == FuncCategory.CONSTRUCTOR:
+                    continue
+                py_name = func.python_name
+                if py_name == "delete":
+                    py_name = "delete_obj"
+                if py_name in colliding_names:
+                    prefixed_name = "%s_%s" % (widget_name, py_name)
+                    prefixed.append((prefixed_name, py_name))
+            if prefixed:
+                result[widget_name] = prefixed
+        return result
+
+    def _emit_widget_type_tagging(self):
+        """Wrap ALL widget factory functions to tag returned Obj with widget type.
+
+        Every widget gets tagged (not just those with conflicting methods)
+        because short-name dispatch methods need the type tag to work correctly.
+        """
+        self.emit("")
+        self.emit("")
+        self.emit("# --- Widget type tagging ---")
+        self.emit("#")
+        self.emit("# Wrap ALL factory functions to tag returned Obj instances with")
+        self.emit("# their widget type. This allows short-name dispatch methods")
+        self.emit("# (set_rotation, set_value, etc.) to call the correct prefixed")
+        self.emit("# C++ method based on the widget type.")
+        self.emit("")
+
+        for widget_name, widget in sorted(self.ir.widgets.items()):
+            if widget_name == "obj":
+                continue
+            if widget_name not in self.ALL_WIDGET_TYPES:
+                continue
+            # Only wrap if there's a factory function for this widget
+            py_name = widget_name[0].upper() + widget_name[1:]
+            # Check that the factory function exists (has create_func)
+            if not widget.create_func:
+                continue
+            self.emit("try:")
+            self.emit("    _orig_factory_%s = %s" % (py_name, py_name))
+            self.emit("    def %s(parent=None):" % py_name)
+            self.emit("        obj = _orig_factory_%s(parent)" % py_name)
+            self.emit("        obj._widget_type = '%s'" % widget_name)
+            self.emit("        return obj")
+            self.emit("except NameError:")
+            self.emit("    pass")
+
+    def _emit_short_method_aliases(self):
+        """Add short-name methods on Obj that dispatch by _widget_type."""
+        prefixed_methods = self._collect_prefixed_methods()
+        if not prefixed_methods:
+            return
+
+        # Build: short_name -> {widget_name: prefixed_name}
+        short_name_map: Dict[str, Dict[str, str]] = {}
+        for widget_name, methods in sorted(prefixed_methods.items()):
+            for prefixed_name, short_name in methods:
+                short_name_map.setdefault(short_name, {})[widget_name] = prefixed_name
+
+        self.emit("")
+        self.emit("")
+        self.emit("# --- Short-name method aliases on Obj ---")
+        self.emit("#")
+        self.emit("# These methods dispatch to the correct prefixed C++ method based")
+        self.emit("# on the _widget_type tag. For example, set_rotation() calls")
+        self.emit("# image_set_rotation() or arc_set_rotation() depending on the widget.")
+        self.emit("")
+
+        for short_name, widget_map in sorted(short_name_map.items()):
+            self.emit("try:")
+            if len(widget_map) == 1:
+                widget_name, prefixed_name = list(widget_map.items())[0]
+                self.emit("    def _%s_dispatch(self, *args, **kwargs):" % short_name)
+                self.emit("        return self.%s(*args, **kwargs)" % prefixed_name)
+            else:
+                self.emit("    def _%s_dispatch(self, *args, **kwargs):" % short_name)
+                self.emit("        _wt = getattr(self, '_widget_type', None)")
+                for widget_name, prefixed_name in sorted(widget_map.items()):
+                    self.emit("        if _wt == '%s': return self.%s(*args, **kwargs)" % (widget_name, prefixed_name))
+                self.emit("        raise AttributeError(\"Obj has no '%s' for widget type %%s\" %% _wt)" % short_name)
+            self.emit("    Obj.%s = _%s_dispatch" % (short_name, short_name))
+            self.emit("except NameError:")
+            self.emit("    pass")
+
+    # -----------------------------------------------------------------------
+    # Obj method extensions & Color helpers
+    # -----------------------------------------------------------------------
+
+    def _emit_color_helpers(self):
+        self.emit("")
+        self.emit("")
+        self.emit("# --- Color convenience class methods ---")
+        self.emit("")
+        self.emit("def _color_red():")
+        self.emit('    """Create a pure red color."""')
+        self.emit("    return color_make(255, 0, 0)")
+        self.emit("")
+        self.emit("def _color_green():")
+        self.emit('    """Create a pure green color."""')
+        self.emit("    return color_make(0, 255, 0)")
+        self.emit("")
+        self.emit("def _color_blue():")
+        self.emit('    """Create a pure blue color."""')
+        self.emit("    return color_make(0, 0, 255)")
+        self.emit("")
+        self.emit("def _color_white():")
+        self.emit('    """Create a pure white color."""')
+        self.emit("    return color_white()")
+        self.emit("")
+        self.emit("def _color_black():")
+        self.emit('    """Create a pure black color."""')
+        self.emit("    return color_black()")
+        self.emit("")
+        self.emit("try:")
+        self.emit("    Color.red = staticmethod(_color_red)")
+        self.emit("    Color.green = staticmethod(_color_green)")
+        self.emit("    Color.blue = staticmethod(_color_blue)")
+        self.emit("    Color.white = staticmethod(_color_white)")
+        self.emit("    Color.black = staticmethod(_color_black)")
+        self.emit("    Color.from_hex_str = staticmethod(color_from_hex_str)")
+        self.emit("except NameError:")
+        self.emit("    pass")
