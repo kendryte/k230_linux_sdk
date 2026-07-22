@@ -269,4 +269,25 @@ inline uint32_t py_timer_handler() {
     return time_till_next;  // Re-acquire GIL automatically on return
 }
 
+// ============================================================================
+// Animimg set_src helper - accepts Python list of file path strings
+// ============================================================================
+
+inline void py_animimg_set_src(lv_obj_t *obj, py::list sources) {
+    size_t n = sources.size();
+    // Allocate a C array of const void* pointers. The pointers and the
+    // duplicated strings are intentionally leaked — LVGL stores the pointer
+    // array internally and references it during animation. For typical usage
+    // (set_src called once, script runs until process exit), the OS reclaims
+    // the memory on exit.
+    const void **c_arr = new const void*[n];
+    for (size_t i = 0; i < n; i++) {
+        std::string path = sources[i].cast<std::string>();
+        char *c_str = new char[path.size() + 1];
+        std::strcpy(c_str, path.c_str());
+        c_arr[i] = c_str;
+    }
+    lv_animimg_set_src(obj, c_arr, n);
+}
+
 #endif // LVGL_PYBIND_HELPERS_H

@@ -42,6 +42,10 @@ class Pybind11Generator:
         self._emit_widget_methods()
         self._emit_string_overloads()
         self._emit_chart_manual_bindings()
+        self._emit_canvas_manual_bindings()
+        self._emit_line_manual_bindings()
+        self._emit_menu_manual_bindings()
+        self._emit_animimg_manual_bindings()
         self._emit_event_callbacks()
         self._emit_color_type()
         self._emit_display_class()
@@ -308,9 +312,6 @@ class Pybind11Generator:
         self.emit('    m.def("deinit", &lv_deinit, "Deinitialize LVGL library");')
         self.emit('    m.def("is_initialized", &lv_is_initialized, "Check if LVGL is initialized");')
         self.emit('    m.def("timer_handler", &py_timer_handler, "Call LVGL timer handler");')
-        self.emit('    m.def("task_handler", &py_timer_handler, "Alias for timer_handler");')
-        self.emit('    m.def("tick_get", &lv_tick_get, "Get elapsed milliseconds");')
-        self.emit('    m.def("tick_inc", &lv_tick_inc, "Update tick value", py::arg("ms"));')
         self.emit("")
         self.emit("    /* Version info */")
         self.emit("    m.def(\"version_major\", []() { return lv_version_major(); });")
@@ -728,6 +729,99 @@ class Pybind11Generator:
         self.emit("        lv_chart_set_all_values(self.get(), ser, value);")
         self.emit('    }, py::arg("series"), py::arg("value"), "Set all values of a series to the same value");')
 
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Canvas manual bindings (void* buf as uintptr_t)
+    # -----------------------------------------------------------------------
+
+    def _emit_canvas_manual_bindings(self):
+        """Emit manual binding for canvas.set_buffer which takes a void* buf.
+
+        The C API lv_canvas_set_buffer(obj, void *buf, int32_t w, int32_t h, lv_color_format_t cf)
+        has a void* parameter that pybind11 maps to capsule, which is unusable from Python.
+        We accept buf as uintptr_t (Python int) instead, so users can pass buf.ctypes.data.
+        """
+        self.emit("    /* Canvas: manual binding for set_buffer (void* buf as uintptr_t) */")
+        self.emit('    obj_cls.def("set_buffer", [](LvObjWrapper &self, uintptr_t buf, int32_t w, int32_t h, lv_color_format_t cf) {')
+        self.emit("        lv_canvas_set_buffer(self.get(), reinterpret_cast<void*>(buf), w, h, cf);")
+        self.emit('    }, py::arg("buf"), py::arg("w"), py::arg("h"), py::arg("cf"), "Set canvas buffer from memory address (use buf.ctypes.data)");')
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Line manual bindings (set_points takes C array, not auto-generatable)
+    # -----------------------------------------------------------------------
+
+    def _emit_line_manual_bindings(self):
+        """Emit manual binding for line.set_points which takes a Python list of (x, y) tuples.
+
+        The C API lv_line_set_points(obj, const lv_point_precise_t points[], uint32_t point_num)
+        takes a C array which cannot be auto-wrapped. We accept py::list and convert.
+        """
+        self.emit("    /* Line: manual binding for set_points (C array param) */")
+        self.emit('    obj_cls.def("set_points", [](LvObjWrapper &self, py::list points) {')
+        self.emit("        size_t n = points.size();")
+        self.emit("        auto *arr = new lv_point_precise_t[n];")
+        self.emit("        for (size_t i = 0; i < n; i++) {")
+        self.emit("            py::tuple pt = points[i].cast<py::tuple>();")
+        self.emit("            arr[i].x = pt[0].cast<lv_value_precise_t>();")
+        self.emit("            arr[i].y = pt[1].cast<lv_value_precise_t>();")
+        self.emit("        }")
+        self.emit("        lv_line_set_points(self.get(), arr, (uint32_t)n);")
+        self.emit("        delete[] arr;")
+        self.emit('    }, py::arg("points"), "Set line points from list of (x, y) tuples");')
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Menu manual bindings (page/cont/section creation)
+    # -----------------------------------------------------------------------
+
+    def _emit_menu_manual_bindings(self):
+        """Emit manual bindings for menu sub-object creation.
+
+        lv_menu_page_create(menu, title), lv_menu_cont_create(parent),
+        and lv_menu_section_create(parent) return lv_obj_t* but are not
+        standard widget constructors, so the auto-generator doesn't create
+        factory functions for them. We add them manually.
+        """
+        self.emit("    /* Menu: manual bindings for page/cont/section creation */")
+        # MenuPage factory
+        self.emit('    m.def("MenuPage", [](py::object menu_obj, const char * title) -> LvObjWrapper* {')
+        self.emit("        LvObjWrapper *_menu = menu_obj.is_none() ? nullptr : menu_obj.cast<LvObjWrapper*>();")
+        self.emit("        LvObjWrapper *wrapper = new LvObjWrapper(lv_menu_page_create(_menu ? _menu->get() : lv_screen_active(), title));")
+        self.emit("        if (_menu) wrapper->keep_parent(menu_obj);")
+        self.emit('        return wrapper;')
+        self.emit('    }, py::arg("menu"), py::arg("title") = "");')
+        # MenuCont factory
+        self.emit('    m.def("MenuCont", [](py::object parent_obj) -> LvObjWrapper* {')
+        self.emit("        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();")
+        self.emit("        LvObjWrapper *wrapper = new LvObjWrapper(lv_menu_cont_create(_parent ? _parent->get() : lv_screen_active()));")
+        self.emit("        if (_parent) wrapper->keep_parent(parent_obj);")
+        self.emit('        return wrapper;')
+        self.emit('    }, py::arg("parent") = py::none());')
+        # MenuSection factory
+        self.emit('    m.def("MenuSection", [](py::object parent_obj) -> LvObjWrapper* {')
+        self.emit("        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();")
+        self.emit("        LvObjWrapper *wrapper = new LvObjWrapper(lv_menu_section_create(_parent ? _parent->get() : lv_screen_active()));")
+        self.emit("        if (_parent) wrapper->keep_parent(parent_obj);")
+        self.emit('        return wrapper;')
+        self.emit('    }, py::arg("parent") = py::none());')
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Animimg manual bindings (set_src takes C array, not auto-generatable)
+    # -----------------------------------------------------------------------
+
+    def _emit_animimg_manual_bindings(self):
+        """Emit manual binding for animimg.set_src which takes a Python list of paths.
+
+        The C API lv_animimg_set_src(obj, const void *dsc[], size_t num) takes
+        a C array which cannot be auto-wrapped. We use a helper that accepts
+        py::list and converts to the required C array.
+        """
+        self.emit("    /* Animimg: manual binding for set_src (C array param) */")
+        self.emit('    obj_cls.def("set_src", [](LvObjWrapper &self, py::list sources) { py_animimg_set_src(self.get(), sources); return; }')
+        self.emit('        , py::arg("sources"), "Set image source array from list of file paths");')
         self.emit("")
 
     # -----------------------------------------------------------------------

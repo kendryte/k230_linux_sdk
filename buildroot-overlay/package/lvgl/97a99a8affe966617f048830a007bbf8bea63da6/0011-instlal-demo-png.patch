@@ -1,0 +1,28 @@
+From 79c92f06fa16df4e6c526b74e8b1f97f6e84d2e9 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 22 Jul 2026 16:38:48 +0800
+Subject: [PATCH] instlal demo png
+
+---
+ CMakeLists.txt | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index de46d4e..7876044 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -461,3 +461,11 @@ install(TARGETS lvglsim  lvglsimk230
+ # Install Chinese font files for FreeType (use Min version - 1.9MB vs 16MB)
+ install(FILES ${CMAKE_SOURCE_DIR}/../common/kmodel/ai_poc/utils/SourceHanSansSC-Normal-Min.ttf
+     DESTINATION /usr/lib/fonts/)
++
++
++# Install animation image assets
++install(FILES
++    ${CMAKE_SOURCE_DIR}/lvgl/examples/assets/animimg001.png
++    ${CMAKE_SOURCE_DIR}/lvgl/examples/assets/animimg002.png
++    ${CMAKE_SOURCE_DIR}/lvgl/examples/assets/animimg003.png
++    DESTINATION /root/py_demo/lvgl/assets/)
+-- 
+2.25.1
+

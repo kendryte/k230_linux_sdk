@@ -1621,9 +1621,6 @@ PYBIND11_MODULE(_lvgl, m) {
     m.def("deinit", &lv_deinit, "Deinitialize LVGL library");
     m.def("is_initialized", &lv_is_initialized, "Check if LVGL is initialized");
     m.def("timer_handler", &py_timer_handler, "Call LVGL timer handler");
-    m.def("task_handler", &py_timer_handler, "Alias for timer_handler");
-    m.def("tick_get", &lv_tick_get, "Get elapsed milliseconds");
-    m.def("tick_inc", &lv_tick_inc, "Update tick value", py::arg("ms"));
 
     /* Version info */
     m.def("version_major", []() { return lv_version_major(); });
@@ -2602,6 +2599,25 @@ PYBIND11_MODULE(_lvgl, m) {
         if (_parent) wrapper->keep_parent(parent_obj);
         return wrapper;
     }, py::arg("parent") = py::none());
+    /* Menu: manual bindings for page/cont/section creation */
+    m.def("MenuPage", [](py::object menu_obj, const char * title) -> LvObjWrapper* {
+        LvObjWrapper *_menu = menu_obj.is_none() ? nullptr : menu_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_menu_page_create(_menu ? _menu->get() : lv_screen_active(), title));
+        if (_menu) wrapper->keep_parent(menu_obj);
+        return wrapper;
+    }, py::arg("menu"), py::arg("title") = "");
+    m.def("MenuCont", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_menu_cont_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
+    }, py::arg("parent") = py::none());
+    m.def("MenuSection", [](py::object parent_obj) -> LvObjWrapper* {
+        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
+        LvObjWrapper *wrapper = new LvObjWrapper(lv_menu_section_create(_parent ? _parent->get() : lv_screen_active()));
+        if (_parent) wrapper->keep_parent(parent_obj);
+        return wrapper;
+    }, py::arg("parent") = py::none());
     m.def("Msgbox", [](py::object parent_obj) -> LvObjWrapper* {
         LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();
         LvObjWrapper *wrapper = new LvObjWrapper(lv_msgbox_create(_parent ? _parent->get() : NULL));
@@ -2780,8 +2796,20 @@ PYBIND11_MODULE(_lvgl, m) {
         );
     obj_cls.def("bar_is_symmetrical", [](LvObjWrapper &self) -> bool { return lv_bar_is_symmetrical(self.get()); }
         );
-    obj_cls.def("set_buffer", [](LvObjWrapper &self, void * buf, int32_t w, int32_t h, lv_color_format_t cf) { lv_canvas_set_buffer(self.get(), buf, w, h, cf); return; }
+    obj_cls.def("set_buffer", [](LvObjWrapper &self, uintptr_t buf, int32_t w, int32_t h, lv_color_format_t cf) { lv_canvas_set_buffer(self.get(), reinterpret_cast<void*>(buf), w, h, cf); return; }
         , py::arg("buf"), py::arg("w"), py::arg("h"), py::arg("cf"));
+    /* Line: manual binding for set_points (C array param) */
+    obj_cls.def("set_points", [](LvObjWrapper &self, py::list points) {
+        size_t n = points.size();
+        auto *arr = new lv_point_precise_t[n];
+        for (size_t i = 0; i < n; i++) {
+            py::tuple pt = points[i].cast<py::tuple>();
+            arr[i].x = pt[0].cast<lv_value_precise_t>();
+            arr[i].y = pt[1].cast<lv_value_precise_t>();
+        }
+        lv_line_set_points(self.get(), arr, (uint32_t)n);
+        delete[] arr;
+    }, py::arg("points"), "Set line points from list of (x, y) tuples");
     obj_cls.def("set_draw_buf", [](LvObjWrapper &self, lv_draw_buf_t * draw_buf) { lv_canvas_set_draw_buf(self.get(), draw_buf); return; }
         , py::arg("draw_buf"));
     obj_cls.def("set_px", [](LvObjWrapper &self, int32_t x, int32_t y, lv_color_t color, uint8_t opa) { lv_canvas_set_px(self.get(), x, y, color, opa); return; }
@@ -3491,6 +3519,10 @@ PYBIND11_MODULE(_lvgl, m) {
         lv_chart_series_t *ser = reinterpret_cast<lv_chart_series_t*>(series);
         lv_chart_set_all_values(self.get(), ser, value);
     }, py::arg("series"), py::arg("value"), "Set all values of a series to the same value");
+
+    /* Animimg: manual binding for set_src (C array param) */
+    obj_cls.def("set_src", [](LvObjWrapper &self, py::list sources) { py_animimg_set_src(self.get(), sources); return; }
+        , py::arg("sources"), "Set image source array from list of file paths");
 
     /* Event callback support */
     obj_cls.def("add_event_cb", [](LvObjWrapper &self, int filter, py::function callback) {

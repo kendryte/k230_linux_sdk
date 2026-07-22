@@ -16,7 +16,7 @@ Usage: Change the IMAGE_PATH below to point to an actual image file.
 import lvgl as lv
 
 # >>> 修改为你的图片路径 (需要 'A:' 前缀) <<<
-IMAGE_PATH = "A:/root/t/t.png"
+IMAGE_PATH = "A:/root/py_demo/lvgl/assets/animimg001.png"
 
 lv.init()
 scr = lv.screen_active()

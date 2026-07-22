@@ -67,6 +67,8 @@ SKIP_FUNCTIONS: Set[str] = {
     "lv_obj_style_get_selector_state",   # takes selector, not obj
     "lv_obj_style_get_selector_part",    # takes selector, not obj
     "lv_canvas_buf_size",                # static calc, no obj param
+    "lv_canvas_set_buffer",              # void* buf param, manual binding with uintptr_t
+    "lv_line_set_points",                # const lv_point_precise_t[] param, manual binding from list
     "lv_image_src_get_type",             # takes const void*, no obj
 
     # Functions that return/write through non-obj double pointers
@@ -168,8 +170,7 @@ SKIP_FUNCTIONS: Set[str] = {
 
 FORCE_MODULE_LEVEL: Set[str] = {
     "lv_init", "lv_deinit", "lv_is_initialized",
-    "lv_timer_handler", "lv_task_handler",
-    "lv_tick_get", "lv_tick_inc",
+    "lv_timer_handler",
     "lv_version_major", "lv_version_minor",
     "lv_version_patch", "lv_version_info",
     "lv_display_create", "lv_display_get_default",

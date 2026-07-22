@@ -606,36 +606,3 @@ try:
     Obj.set_value = _set_value_dispatch
 except NameError:
     pass
-
-
-# --- Color convenience class methods ---
-
-def _color_red():
-    """Create a pure red color."""
-    return color_make(255, 0, 0)
-
-def _color_green():
-    """Create a pure green color."""
-    return color_make(0, 255, 0)
-
-def _color_blue():
-    """Create a pure blue color."""
-    return color_make(0, 0, 255)
-
-def _color_white():
-    """Create a pure white color."""
-    return color_white()
-
-def _color_black():
-    """Create a pure black color."""
-    return color_black()
-
-try:
-    Color.red = staticmethod(_color_red)
-    Color.green = staticmethod(_color_green)
-    Color.blue = staticmethod(_color_blue)
-    Color.white = staticmethod(_color_white)
-    Color.black = staticmethod(_color_black)
-    Color.from_hex_str = staticmethod(color_from_hex_str)
-except NameError:
-    pass
