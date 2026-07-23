@@ -1,0 +1,40 @@
+From bf68d395f605dd42ddfc5e9fb7d76eb2eceba807 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Thu, 23 Jul 2026 16:31:09 +0800
+Subject: [PATCH] dts: add lckfb dts symlink and fix lt9611 HDMI detect
+
+---
+ arch/riscv/boot/dts/canaan/k230-canmv-lckfb.dts | 1 +
+ drivers/gpu/drm/bridge/lontium-lt9611.c         | 4 ++--
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+ create mode 120000 arch/riscv/boot/dts/canaan/k230-canmv-lckfb.dts
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb.dts
+new file mode 120000
+index 000000000..92252cecf
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb.dts
+@@ -0,0 +1 @@
++k230-canmv-v3.dts
+\ No newline at end of file
+diff --git a/drivers/gpu/drm/bridge/lontium-lt9611.c b/drivers/gpu/drm/bridge/lontium-lt9611.c
+index db2e4d36a..bba140830 100644
+--- a/drivers/gpu/drm/bridge/lontium-lt9611.c
++++ b/drivers/gpu/drm/bridge/lontium-lt9611.c
+@@ -626,11 +626,11 @@ lt9611_connector_detect(struct drm_connector *connector, bool force)
+ 	int connected = 0;
+ 
+ 	regmap_read(lt9611->regmap, 0x825e, &reg_val);
+-	connected  = (reg_val & BIT(2));
++	connected  = (reg_val & (BIT(2) | BIT(0)));
+ 
+ 	lt9611->status = connected ?  connector_status_connected :
+ 				connector_status_disconnected;
+-	printk("lt9611_connect_detect %d\n", lt9611->status);
++	printk("lt9611_connect_detect %d reg_val=0x%x\n", lt9611->status, reg_val);
+ 	return lt9611->status;
+ }
+ 
+-- 
+2.25.1
+
