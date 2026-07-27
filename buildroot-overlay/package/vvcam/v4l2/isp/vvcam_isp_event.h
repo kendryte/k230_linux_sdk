@@ -67,7 +67,23 @@ enum vvcam_isp_vevent_id {
     VVCAM_ISP_EVENT_S_CTRL,
     VVCAM_ISP_EVENT_G_CTRL,
     VVCAM_ISP_EVENT_S_SELECTION,
+    VVCAM_ISP_EVENT_SCENE_CONFIG,
+    VVCAM_ISP_EVENT_SENSOR_TARGET,
     VVCAM_ISP_EVENT_MAX,
+};
+
+struct vvcam_isp_sensor_target {
+    uint32_t enable;
+    uint32_t width;
+    uint32_t height;
+    uint32_t fps;
+};
+
+#define VVCAM_ISP_SCENE_CALIB_DIR_MAX 128
+
+struct vvcam_isp_scene_config {
+    char calib_dir[VVCAM_ISP_SCENE_CALIB_DIR_MAX];
+    uint32_t mode;
 };
 
 struct vvcam_isp_plane {
@@ -125,6 +141,10 @@ int vvcam_isp_s_stream_event(struct vvcam_isp_dev *isp_dev, int pad, uint32_t st
 int vvcam_isp_s_ctrl_event(struct vvcam_isp_dev *isp_dev, int pad, struct v4l2_ctrl *ctrl);
 int vvcam_isp_g_ctrl_event(struct vvcam_isp_dev *isp_dev, int pad, struct v4l2_ctrl *ctrl);
 int vvcam_isp_s_selection_event(struct vvcam_isp_dev *isp_dev, int pad, struct vvcam_isp_crop_size *crop_size);
+int vvcam_isp_scene_config_event(struct vvcam_isp_dev *isp_dev,
+				 const struct vvcam_isp_scene_config *cfg);
+int vvcam_isp_sensor_target_event(struct vvcam_isp_dev *isp_dev, int pad,
+				 const struct vvcam_isp_sensor_target *cfg);
 
 
 #endif

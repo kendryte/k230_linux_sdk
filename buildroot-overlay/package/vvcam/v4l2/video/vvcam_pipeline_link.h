@@ -111,6 +111,7 @@ static struct vvcam_v4l2_link pipeline1[] = {
     },
 };
 
+#if 0 
 static struct vvcam_v4l2_link mcm_pipeline0[] = {
     {
         .local_is_video = true,
@@ -169,7 +170,91 @@ static struct vvcam_v4l2_link mcm_pipeline0[] = {
         .remote_pad = 19,
     },
 };
+#else
 
+/*
+mcm pipeline0 , grouped by CSI (MP / SP1 / SP2)
+
+        video     pad
+csi0:   1/2/3  -> 1 / 2 / 3
+csi1:   4/5/6  -> 6 / 7 / 8
+csi2:   7/8/9  -> 11 / 12 / 13
+
+*/
+static struct vvcam_v4l2_link mcm_pipeline0[] = {
+
+    // csi0: MP / SP1 / SP2
+    {
+        .local_is_video = true,
+        .video_index = 0,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 1,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 1,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 2,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 2,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 3,
+    },
+
+    // csi1: MP / SP1 / SP2
+    {
+        .local_is_video = true,
+        .video_index = 3,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 6,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 4,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 7,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 5,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 8,
+    },
+
+    // csi2: MP / SP1 / SP2
+    {
+        .local_is_video = true,
+        .video_index = 6,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 11,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 7,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 12,
+    },
+    {
+        .local_is_video = true,
+        .video_index = 8,
+        .local_pad = 0,
+        .remote_subdev = &g_vvcam_isp_subdev[0],
+        .remote_pad = 13,
+    },
+
+};
+
+#endif
 static struct vvcam_v4l2_link mcm_pipeline1[] = {
     {
         .local_is_video = true,

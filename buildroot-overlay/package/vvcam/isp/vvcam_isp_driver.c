@@ -63,11 +63,37 @@
 #include <linux/poll.h>
 #include <linux/slab.h>
 #include <linux/mm.h>
+#include <linux/clk.h>
+#include <linux/delay.h>
+#include <linux/debugfs.h>
+#include <linux/of.h>
+#include <linux/sched.h>
+#include <linux/timer.h>
+#include <linux/mm.h>
+#include <linux/list.h>
+#include <linux/wait.h>
+#include <linux/fs.h>
+#include <linux/device.h>
+#include <linux/pagemap.h>
+#include <linux/version.h>
+#include <linux/vmalloc.h>
+#include <linux/mman.h>
+#include <linux/mm_types.h>
+#include <linux/of_platform.h>
+#include <linux/of_gpio.h>
+#include <linux/of_irq.h>
+#include <linux/of_address.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-buf.h>
+#include <linux/reset.h>
+#include <linux/plic.h>
 
 #include "vvcam_isp_driver.h"
 #include "vvcam_isp.h"
 #include "vvcam_event.h"
 #include "vvcam_isp_procfs.h"
+
+
 
 extern void vvcam_isp_irq_stat_tasklet(unsigned long);
 
@@ -84,6 +110,42 @@ static irqreturn_t vvcam_isp_mi_irq_handler(int irq, void *isp_dev)
 static irqreturn_t vvcam_isp_fe_irq_handler(int irq, void *isp_dev)
 {
     return vvcam_isp_fe_irq_process(isp_dev);
+}
+
+#define VVCAM_ISP_IRQ_PRIO_FE  3
+#define VVCAM_ISP_IRQ_PRIO_ISP 2
+#define VVCAM_ISP_IRQ_PRIO_MI  1
+
+static int vvcam_isp_set_irq_priorities(struct device *dev,
+					struct vvcam_isp_dev *isp_dev)
+{
+	int ret;
+
+	ret = plic_set_irq_priority(isp_dev->fe_irq, VVCAM_ISP_IRQ_PRIO_FE);
+	if (ret) {
+		dev_err(dev, "failed to set fe irq %d priority: %d\n",
+			isp_dev->fe_irq, ret);
+		return ret;
+	}
+
+	ret = plic_set_irq_priority(isp_dev->isp_irq, VVCAM_ISP_IRQ_PRIO_ISP);
+	if (ret) {
+		dev_err(dev, "failed to set isp irq %d priority: %d\n",
+			isp_dev->isp_irq, ret);
+		return ret;
+	}
+
+	ret = plic_set_irq_priority(isp_dev->mi_irq, VVCAM_ISP_IRQ_PRIO_MI);
+	if (ret) {
+		dev_err(dev, "failed to set mi irq %d priority: %d\n",
+			isp_dev->mi_irq, ret);
+		return ret;
+	}
+
+	dev_info(dev, "irq priorities set: fe=%d, isp=%d, mi=%d\n",
+		 VVCAM_ISP_IRQ_PRIO_FE, VVCAM_ISP_IRQ_PRIO_ISP,
+		 VVCAM_ISP_IRQ_PRIO_MI);
+	return 0;
 }
 
 static int vvcam_isp_open(struct inode *inode, struct file *file)
@@ -138,6 +200,30 @@ static int vvcam_isp_release(struct inode *inode, struct file *file)
     return 0;
 }
 
+static void isp_fe_start(struct vvcam_isp_dev *dev, isp_fe_buffer_t *fe_buf)
+{
+    uint32_t reg = 0;
+    // printk("fe_buf->cmd_num_max is %x fe_buf->cmd_dma_addr is %x fe_buf->mcm_bus_id is %x \n", fe_buf->cmd_num_max, fe_buf->cmd_dma_addr, fe_buf->mcm_bus_id);
+
+    if (fe_buf->dev_id < VVCAM_ISP_MAX_DEV_ID)
+        dev->cur_dev_id = fe_buf->dev_id;
+    else
+        dev->cur_dev_id = 0;
+
+    if (dev->pde)
+        vvcam_isp_proc_fe_start(dev->pde, dev->cur_dev_id);
+
+    // flush_cache_all();
+
+    writel(0, dev->base + 0x3D60);//ISP_REG_FE_CTRL
+    writel(fe_buf->mcm_bus_id , dev->base + 0x0000160c);//MI_MCM_BUS_ID
+    writel(1, dev->base + 0x3D6C);//ISP_REG_FE_IMSC
+    writel(fe_buf->cmd_dma_addr, dev->base + 0x3D68);//ISP_REG_FE_DMA_AD
+    writel(fe_buf->cmd_num_max, dev->base + 0x00003D64);//ISP_REG_FE_DMA_AD
+    writel(1, dev->base + 0x3D60);//ISP_REG_FE_CTRL
+    writel(fe_buf->cmd_num_max | 0x00010000, dev->base + 0x00003D64);//ISP_REG_FE_DMA_START
+}
+
 static long vvcam_isp_ioctl(struct file *file,
                         unsigned int cmd, unsigned long arg)
 {
@@ -148,6 +234,8 @@ static long vvcam_isp_ioctl(struct file *file,
     vvcam_subscription_t sub;
     vvcam_event_t event;
     int ret = 0;
+    uint32_t irq_close;
+    isp_fe_buffer_t fe_buf;
 
     isp_fh = file->private_data;
     isp_dev = isp_fh->isp_dev;
@@ -195,6 +283,45 @@ static long vvcam_isp_ioctl(struct file *file,
             break;
         ret = copy_to_user((void __user *)arg, &event, sizeof(event));
         break;
+     case VVCAM_ISP_CLOSE_IRQ :
+        
+        ret = copy_from_user(&irq_close, (void __user *)arg, sizeof(irq_close));
+        if (ret)
+            break;
+
+        printk("irq is %d \n", irq_close);
+        if(irq_close == 0)
+        {
+            // disable_irq_nosync(isp_dev->mi_irq);
+            // disable_irq_nosync(isp_dev->isp_irq);   
+            // disable_irq_nosync(isp_dev->fe_irq);
+
+            disable_irq(isp_dev->mi_irq);
+            disable_irq(isp_dev->isp_irq);   
+
+        }
+        else {
+            udelay(500);
+            // enable_irq(isp_dev->mi_irq);
+            // enable_irq(isp_dev->isp_irq);
+        }
+        break;
+    
+    case VVCAM_ISP_FE_START :
+
+        // printk("VVCAM_ISP_FE_START -------------------- \n");
+        ret = copy_from_user(&fe_buf, (void __user *)arg, sizeof(fe_buf));
+        if (ret)
+            break;
+        disable_irq(isp_dev->mi_irq);
+        disable_irq(isp_dev->isp_irq);   
+        disable_irq(isp_dev->fe_irq);  
+        isp_fe_start(isp_dev, &fe_buf);
+        enable_irq(isp_dev->fe_irq);
+        enable_irq(isp_dev->mi_irq);
+        enable_irq(isp_dev->isp_irq);
+        break;
+
     default:
         ret = -EINVAL;
         break;
@@ -241,6 +368,7 @@ static int vvcam_isp_parse_params(struct vvcam_isp_dev *isp_dev,
                         struct platform_device *pdev)
 {
     struct resource *res;
+    int ret;
 
     res =  platform_get_resource(pdev, IORESOURCE_MEM, 0);
     if (!res) {
@@ -276,9 +404,13 @@ static int vvcam_isp_parse_params(struct vvcam_isp_dev *isp_dev,
     if (isp_dev->fe_irq < 0) {
 		dev_err(&pdev->dev, "can't get fe irq resource\n");
 		return -ENXIO;
-	} else {
+    } else {
         dev_info(&pdev->dev, "fe irq: %d\n", isp_dev->fe_irq);
     }
+
+    ret = vvcam_isp_set_irq_priorities(&pdev->dev, isp_dev);
+    if (ret)
+        return ret;
 
     isp_dev->reset = devm_reset_control_get(&pdev->dev, NULL);
     if (IS_ERR(isp_dev->reset)) {

@@ -93,4 +93,7 @@ struct vvcam_mmz {
 
 int vvcam_mmz_create(void *allocator, struct device *dev,
             const unsigned long phys_addr, const unsigned long size);
+int vvcam_mmz_cache_sync(struct vvcam_mmz *mmz, struct file *file,
+            unsigned long paddr, unsigned long size,
+            enum dma_data_direction dir);
 #endif

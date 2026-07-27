@@ -72,4 +72,7 @@ struct vvcam_cma {
 };
 
 int vvcam_cma_create(void *allocator, struct device *dev);
+int vvcam_cma_cache_sync(struct vvcam_cma *cma, struct file *file,
+            unsigned long paddr, unsigned long size,
+            enum dma_data_direction dir);
 #endif

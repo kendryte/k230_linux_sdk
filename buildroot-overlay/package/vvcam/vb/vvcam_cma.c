@@ -96,12 +96,12 @@ int vvcam_cma_create(void *allocator, struct device *dev)
         return -ENOMEM;
     cma->dev = dev;
     
-    if (!dev->dma_mask)
-        dev->dma_mask = &dev->coherent_dma_mask;
-    ret = dma_set_coherent_mask(dev, DMA_BIT_MASK(32));
-    if (ret) {
-        return ret;
-    }
+    // if (!dev->dma_mask)
+    //     dev->dma_mask = &dev->coherent_dma_mask;
+    // ret = dma_set_coherent_mask(dev, DMA_BIT_MASK(32));
+    // if (ret) {
+    //     return ret;
+    // }
 
     INIT_LIST_HEAD(&cma->buf_list);
 
@@ -130,12 +130,14 @@ int vvcam_cma_alloc(struct file *file,
     if (!cma_buf)
         return -ENOMEM;
 
-    cma_buf->virt_addr =
-        dma_alloc_coherent(cma->dev, mcm_size, &(cma_buf->phys_addr), GFP_KERNEL);
+    
+    cma_buf->virt_addr = dma_alloc_coherent(cma->dev, mcm_size, &(cma_buf->phys_addr), GFP_KERNEL | GFP_DMA);
+    
     if (!cma_buf->virt_addr) {
         vvcam_free_cma_buf_attr(cma, cma_buf);
         return -ENOMEM;
     }
+
     cma_buf->size = mcm_size;
     strncpy(cma_buf->name, name, sizeof(cma_buf->name));
     cma_buf->private = file;
@@ -148,13 +150,22 @@ int vvcam_cma_alloc(struct file *file,
     return 0;
 }
 
+
+static const struct vm_operations_struct mmap_mem_ops = {
+#ifdef CONFIG_HAVE_IOREMAP_PROT
+	.access = generic_access_phys
+#endif
+};
+
+
 static int vvcam_cma_mmap(struct file *file, struct vm_area_struct *vma)
 {
+    struct device *dev = file->private_data;
     unsigned long size = 0;
     struct vvcam_vb_dev *vb_dev;
     struct vvcam_cma *cma;
     struct vvcam_cma_buf *cma_buf = NULL;
-
+#if 1
     vb_dev = file->private_data;
     cma = vb_dev->allocator.mm_dev;
 
@@ -175,9 +186,41 @@ static int vvcam_cma_mmap(struct file *file, struct vm_area_struct *vma)
     if (!cma_buf)
         return -EAGAIN;
 
-    vma->vm_pgoff = 0;
-    return dma_mmap_coherent(cma->dev, vma, cma_buf->virt_addr,
-            cma_buf->phys_addr, size);
+    // vma->vm_pgoff = 0;
+
+    // printk("vvcam_cma_mmap vma->vm_start is %lx vma->vm_end is %lx vma->vm_pgoff is %lx \n",
+    //         vma->vm_start, vma->vm_end, vma->vm_pgoff);
+
+    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+
+    vma->vm_ops = &mmap_mem_ops;
+    
+
+    // return dma_mmap_coherent(dev, vma, cma_buf->virt_addr,
+    //         cma_buf->phys_addr, size);
+
+    if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff, size,
+			    vma->vm_page_prot)) {
+		return -EAGAIN;
+	}
+
+    return  0;
+#else 
+
+    printk("vvcam_cma_mmap vma->vm_start is %lx vma->vm_end is %lx vma->vm_pgoff is %lx \n",
+            vma->vm_start, vma->vm_end, vma->vm_pgoff);
+
+    // 设置页保护标志（非缓存模式）
+    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+
+    // 将物理地址映射到用户虚拟地址
+    ret = dma_mmap_coherent(dev, vma, cma_buf->virt_addr, dma_handle);
+    if (ret)
+        return ret;
+
+    return 0;
+
+#endif 
 }
 
 static int vvcam_cma_free(struct file *file, unsigned long paddr)
@@ -204,6 +247,9 @@ static int vvcam_cma_free(struct file *file, unsigned long paddr)
     list_del(&cma_buf->list);
     dma_free_coherent(cma->dev, cma_buf->size,
                 cma_buf->virt_addr, cma_buf->phys_addr);
+
+    printk("size is %ld cma_buf->phys_addr is %llx \n",cma_buf->size, cma_buf->phys_addr);
+
     vvcam_free_cma_buf_attr(cma, cma_buf);
 
     return 0;
@@ -233,4 +279,44 @@ int vvcam_cma_free_all(struct file *file)
     }
 
     return 0;
+}
+
+int vvcam_cma_cache_sync(struct vvcam_cma *cma, struct file *file,
+            unsigned long paddr, unsigned long size,
+            enum dma_data_direction dir)
+{
+    struct vvcam_cma_buf *buf;
+    unsigned long offset;
+
+    if (!cma || !file || !paddr || !size)
+        return -EINVAL;
+
+    if (paddr + size < paddr)
+        return -EINVAL;
+
+    list_for_each_entry(buf, &cma->buf_list, list) {
+        unsigned long buf_end;
+
+        if (buf->private != file)
+            continue;
+
+        buf_end = buf->phys_addr + buf->size;
+        if (paddr < buf->phys_addr || paddr >= buf_end)
+            continue;
+
+        offset = paddr - buf->phys_addr;
+        if (size > buf->size - offset)
+            return -EINVAL;
+
+        if (dir == DMA_TO_DEVICE)
+            dma_sync_single_for_device(cma->dev, buf->phys_addr + offset,
+                           size, DMA_TO_DEVICE);
+        else
+            dma_sync_single_for_cpu(cma->dev, buf->phys_addr + offset,
+                          size, DMA_FROM_DEVICE);
+
+        return 0;
+    }
+
+    return -ENOENT;
 }

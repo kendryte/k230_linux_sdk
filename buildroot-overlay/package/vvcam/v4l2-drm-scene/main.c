@@ -30,11 +30,7 @@
 // Scene 配置结构
 struct scene_config {
     char name[32];
-    char scene_path[128];
-    char sensor[32];
-    char xml_file[64];
-    char manu_json_file[64];
-    char auto_json_file[32];
+    char calib_dir[128];
     uint32_t mode;
 };
 
@@ -142,21 +138,9 @@ static int parse_scene_config(const char* filename, struct scene_context* ctx) {
                 end--;
             }
             
-            if (strstr(key, "scene_path")) {
-                strncpy(ctx->scenes[current_scene].scene_path, value, 
-                       sizeof(ctx->scenes[current_scene].scene_path) - 1);
-            } else if (strstr(key, "sensor") && !strstr(key, "name")) {
-                strncpy(ctx->scenes[current_scene].sensor, value, 
-                       sizeof(ctx->scenes[current_scene].sensor) - 1);
-            } else if (strstr(key, "xml_file")) {
-                strncpy(ctx->scenes[current_scene].xml_file, value, 
-                       sizeof(ctx->scenes[current_scene].xml_file) - 1);
-            } else if (strstr(key, "manu_json_file")) {
-                strncpy(ctx->scenes[current_scene].manu_json_file, value, 
-                       sizeof(ctx->scenes[current_scene].manu_json_file) - 1);
-            } else if (strstr(key, "auto_json_file")) {
-                strncpy(ctx->scenes[current_scene].auto_json_file, value, 
-                       sizeof(ctx->scenes[current_scene].auto_json_file) - 1);
+            if (strstr(key, "calib_dir")) {
+                strncpy(ctx->scenes[current_scene].calib_dir, value, 
+                       sizeof(ctx->scenes[current_scene].calib_dir) - 1);
             } else if (strstr(key, "mode") && !strstr(key, "name")) {
                 ctx->scenes[current_scene].mode = atoi(value);
             }
@@ -170,11 +154,11 @@ static int parse_scene_config(const char* filename, struct scene_context* ctx) {
 static void print_available_scenes(struct scene_context* ctx) {
     printf("\nAvailable scenes (%d):\n", ctx->num_scenes);
     for (int i = 0; i < ctx->num_scenes && i < MAX_SCENES; i++) {
-        printf("  [%d] %s: sensor=%s, xml=%s\n", 
+        printf("  [%d] %s: calib_dir=%s, mode=%u\n", 
                i + 1, 
                ctx->scenes[i].name[0] ? ctx->scenes[i].name : "unnamed",
-               ctx->scenes[i].sensor,
-               ctx->scenes[i].xml_file);
+               ctx->scenes[i].calib_dir,
+               ctx->scenes[i].mode);
     }
     printf("\n");
 }
@@ -361,37 +345,21 @@ static int stop_capturing(struct scene_context* ctx) {
     return 0;
 }
 
-// 应用 scene 配置
+// 应用 scene 配置：经 VIDIOC_S_EXT_CTRLS 下发，内核转发 V4L2 私有事件给 isp_media_server
 static int apply_scene_config_ctrls(struct scene_context* ctx, struct scene_config* cfg) {
     struct v4l2_ext_controls ctrls = {0};
-    struct v4l2_ext_control ctrl[6] = {0};
+    struct v4l2_ext_control ctrl[2] = {0};
     int ret;
     
     ctrl[0].id = MY_CID_BASE + 0;
-    ctrl[0].size = strlen(cfg->scene_path) + 1;
-    ctrl[0].string = cfg->scene_path;
+    ctrl[0].size = strlen(cfg->calib_dir) + 1;
+    ctrl[0].string = cfg->calib_dir;
     
     ctrl[1].id = MY_CID_BASE + 1;
-    ctrl[1].size = strlen(cfg->sensor) + 1;
-    ctrl[1].string = cfg->sensor;
-    
-    ctrl[2].id = MY_CID_BASE + 2;
-    ctrl[2].size = strlen(cfg->xml_file) + 1;
-    ctrl[2].string = cfg->xml_file;
-    
-    ctrl[3].id = MY_CID_BASE + 3;
-    ctrl[3].size = strlen(cfg->manu_json_file) + 1;
-    ctrl[3].string = cfg->manu_json_file;
-    
-    ctrl[4].id = MY_CID_BASE + 4;
-    ctrl[4].size = strlen(cfg->auto_json_file) + 1;
-    ctrl[4].string = cfg->auto_json_file;
-    
-    ctrl[5].id = MY_CID_BASE + 5;
-    ctrl[5].value = cfg->mode;
+    ctrl[1].value = cfg->mode;
     
     ctrls.ctrl_class = V4L2_CTRL_CLASS_USER;
-    ctrls.count = 6;
+    ctrls.count = 2;
     ctrls.controls = ctrl;
     
     ret = xioctl(ctx->video_fd, VIDIOC_S_EXT_CTRLS, &ctrls);
@@ -406,46 +374,27 @@ static int apply_scene_config_ctrls(struct scene_context* ctx, struct scene_conf
 // 获取当前 scene 配置
 static int get_scene_config(struct scene_context* ctx, struct scene_config* cfg) {
     struct v4l2_ext_controls ctrls = {0};
-    struct v4l2_ext_control ctrl[6] = {0};
+    struct v4l2_ext_control ctrl[2] = {0};
     int i;
     
     ctrl[0].id = MY_CID_BASE + 0;
-    ctrl[0].size = sizeof(cfg->scene_path);
-    ctrl[0].string = cfg->scene_path;
+    ctrl[0].size = sizeof(cfg->calib_dir);
+    ctrl[0].string = cfg->calib_dir;
     
     ctrl[1].id = MY_CID_BASE + 1;
-    ctrl[1].size = sizeof(cfg->sensor);
-    ctrl[1].string = cfg->sensor;
-    
-    ctrl[2].id = MY_CID_BASE + 2;
-    ctrl[2].size = sizeof(cfg->xml_file);
-    ctrl[2].string = cfg->xml_file;
-    
-    ctrl[3].id = MY_CID_BASE + 3;
-    ctrl[3].size = sizeof(cfg->manu_json_file);
-    ctrl[3].string = cfg->manu_json_file;
-    
-    ctrl[4].id = MY_CID_BASE + 4;
-    ctrl[4].size = sizeof(cfg->auto_json_file);
-    ctrl[4].string = cfg->auto_json_file;
-    
-    ctrl[5].id = MY_CID_BASE + 5;
-    ctrl[5].value = 0;
+    ctrl[1].value = 0;
     
     ctrls.ctrl_class = V4L2_CTRL_CLASS_USER;
-    ctrls.count = 6;
+    ctrls.count = 2;
     ctrls.controls = ctrl;
     
     if (xioctl(ctx->video_fd, VIDIOC_G_EXT_CTRLS, &ctrls) < 0) {
         return -1;
     }
     
-    for (i = 0; i < 6; i++) {
-        switch (ctrl[i].id) {
-            case MY_CID_BASE + 5:
-                cfg->mode = ctrl[i].value;
-                break;
-        }
+    for (i = 0; i < 2; i++) {
+        if (ctrl[i].id == MY_CID_BASE + 1)
+            cfg->mode = ctrl[i].value;
     }
     
     return 0;
@@ -454,11 +403,7 @@ static int get_scene_config(struct scene_context* ctx, struct scene_config* cfg)
 // 打印当前 scene 配置
 static void print_current_scene(struct scene_config* cfg) {
     printf("\n=== Current Scene Configuration ===\n");
-    printf("  Scene Path:      %s\n", cfg->scene_path);
-    printf("  Sensor:          %s\n", cfg->sensor);
-    printf("  XML File:        %s\n", cfg->xml_file);
-    printf("  Manual JSON:     %s\n", cfg->manu_json_file);
-    printf("  Auto JSON:       %s\n", cfg->auto_json_file);
+    printf("  Calib Dir:       %s\n", cfg->calib_dir);
     printf("  Mode:            %u\n", cfg->mode);
     printf("====================================\n");
 }

@@ -73,20 +73,12 @@ make
     "scenes": [
         {
             "name": "day",
-            "scene_path": "/etc/vvcam",
-            "sensor": "ov5647",
-            "xml_file": "ov5647_day.xml",
-            "manu_json_file": "ov5647_day.manual.json",
-            "auto_json_file": "ov5647_day.auto.json",
+            "calib_dir": "/etc/vvcam/day",
             "mode": 0
         },
         {
             "name": "night",
-            "scene_path": "/etc/vvcam",
-            "sensor": "ov5647",
-            "xml_file": "ov5647_night.xml",
-            "manu_json_file": "ov5647_night.manual.json",
-            "auto_json_file": "ov5647_night.auto.json",
+            "calib_dir": "/etc/vvcam/night",
             "mode": 0
         }
     ]
@@ -97,24 +89,23 @@ make
 > 多行字符串 / 注释 / 嵌套对象（数组除外）。`scene_config_example.json` 里的
 > 格式可以直接作为模板。
 
+> **校准文件路径由 `isp_media_server` 根据 sensor 名 + 分辨率自动拼接**，
+> 命名规则为 `{calib_dir}/{sensor}-{W}x{H}.xml`（及对应的 `_manual.json` /
+> `_auto.json`）。sensor 名来自设备树，不在 scene JSON 里配置。
+
 ### 字段说明
 
 | 字段               | 说明                                                           | 必需 |
 |--------------------|----------------------------------------------------------------|------|
 | `name`             | Scene 显示名（仅用于日志）                                     | ✅   |
-| `scene_path`       | Scene 资源目录，XML / JSON 都在此目录下                        | ✅   |
-| `sensor`           | sensor 驱动名（对应 `libvvcam` 里的 sensor plug-in 名字）     | ✅   |
-| `xml_file`         | ISP 校准 XML（libcam_engine 读取）                             | ✅   |
-| `manu_json_file`   | 手动调优 JSON                                                  | ✅   |
-| `auto_json_file`   | 自动调优 JSON                                                  | ✅   |
+| `calib_dir`        | 校准文件目录（如 `/etc/vvcam/day`）；空字符串表示使用 daemon 默认 `/etc/vvcam` | ✅   |
 | `mode`             | Sensor 模式索引（传给 sensor 驱动的 mode 选择）                | ❌（默认 0） |
 
-> 字段最大长度（超出会被截断）：`name` 31、`scene_path` 127、`sensor` 31、
-> `xml_file` 63、`manu_json_file` 63、`auto_json_file` 31。
+> 字段最大长度（超出会被截断）：`name` 31、`calib_dir` 127。
 
 ### 样例文件
 
-参考仓库里的 `scene_config_example.json`，包含 day / night / indoor 三个 scene。
+参考仓库里的 `scene_config_example.json`，包含 day / night 两个 scene。
 
 ## ⚠️ 限制与约束
 
@@ -177,9 +168,8 @@ scene_handler()：置 scene_change_requested=true, target_scene_index=N
 主循环检测到请求
     ↓
 apply_scene_config_ctrls()
-    └─ VIDIOC_S_EXT_CTRLS  (自定义 CID: MY_CID_BASE=0x00980900 + 0..5)
-       └─ 0: scene_path   1: sensor        2: xml_file
-          3: manu_json    4: auto_json     5: mode
+    └─ VIDIOC_S_EXT_CTRLS  (自定义 CID: MY_CID_BASE=0x00980900 + 0..1)
+       └─ 0: calib_dir   1: mode
     ↓
 sleep(1)   # 等 isp_media_server 处理 disconnect / connect 事件
     ↓
@@ -212,17 +202,12 @@ demo 使用标准 `VIDIOC_S_EXT_CTRLS` + 一组自定义 private CID 下发 scen
 
 | Control ID               | 类型 / size     | 含义                    |
 |--------------------------|-----------------|-------------------------|
-| `MY_CID_BASE + 0` (0x00980900) | string          | `scene_path`            |
-| `MY_CID_BASE + 1` (0x00980901) | string          | `sensor` 驱动名         |
-| `MY_CID_BASE + 2` (0x00980902) | string          | `xml_file`              |
-| `MY_CID_BASE + 3` (0x00980903) | string          | `manu_json_file`        |
-| `MY_CID_BASE + 4` (0x00980904) | string          | `auto_json_file`        |
-| `MY_CID_BASE + 5` (0x00980905) | integer         | `mode`（sensor mode）   |
+| `MY_CID_BASE + 0` (0x00980900) | string          | `calib_dir`（校准目录，空则用 daemon 默认） |
+| `MY_CID_BASE + 1` (0x00980901) | integer         | `mode`（sensor mode，同步到 procfs）   |
 
-- `S_EXT_CTRLS`：6 个 control 一次性下发，驱动侧会把这组配置写到
-  `/proc/vsi/isp_subdev<N>`，下一次 `CREATE_PIPELINE` 时 daemon 读取并传
-  给 libcam_engine。
-- `G_EXT_CTRLS`：同样 6 个 control，读回当前生效值（对应 `g` 热键）。
+- `S_EXT_CTRLS`：内核保存 `calib_dir`/`mode` 供 G_EXT_CTRLS，并通过 `VVCAM_ISP_EVENT_SCENE_CONFIG` 通知 daemon
+- `G_EXT_CTRLS`：读回当前 scene 配置（对应 `g` 热键）
+- procfs **不** 显示 `calib_base`；daemon 按 `{calib_dir}/{sensor}-{W}x{H}.*` 拼接并加载
 
 ## 使用示例
 
@@ -235,9 +220,9 @@ v4l2-drm-scene: device=0, width=640, height=480
 Loading scene config: /etc/vvcam/scene_config.json
 
 Available scenes (3):
-  [1] day: sensor=ov5647, xml=ov5647_day.xml
-  [2] night: sensor=ov5647, xml=ov5647_night.xml
-  [3] indoor: sensor=ov5647, xml=ov5647_indoor.xml
+  [1] day: calib_dir=/etc/vvcam/day, mode=0
+  [2] night: calib_dir=/etc/vvcam/night, mode=0
+  [3] default: calib_dir=/etc/vvcam/default, mode=0
 
 Press 1-3 to switch scenes, 'g' to get config, 'q' to quit
 Running...
@@ -276,11 +261,7 @@ FPS: 30.00
 Getting current scene config...
 
 === Current Scene Configuration ===
-  Scene Path:      /etc/vvcam
-  Sensor:          ov5647
-  XML File:        ov5647_night.xml
-  Manual JSON:     ov5647_night.manual.json
-  Auto JSON:       ov5647_night.auto.json
+  Calib Dir:       /etc/vvcam/night
   Mode:            0
 ====================================
 ```
@@ -353,7 +334,7 @@ main.c
 │   └── stop_capturing()           STREAMOFF
 │
 ├── Scene 切换
-│   ├── apply_scene_config_ctrls() VIDIOC_S_EXT_CTRLS 下发 6 个 private CID
+│   ├── apply_scene_config_ctrls() VIDIOC_S_EXT_CTRLS 下发 2 个 private CID
 │   ├── get_scene_config()         VIDIOC_G_EXT_CTRLS 读回
 │   ├── print_current_scene()
 │   ├── full_cleanup()             STREAMOFF + close + release DRM
@@ -386,17 +367,17 @@ main.c
 1. **Scene 数量**：最多 10 个（但只有 1~9 数字键可触发切换，所以可用热键切换的上限是 9 个）。
 2. **切换时间**：完整 close+reopen 路径，黑屏数百 ms 到 1 秒量级，本 demo 不做优化。
 3. **分辨率**：必须是 sensor 支持的模式之一；demo 运行过程中不支持改分辨率。
-4. **配置文件路径**：`scene_path` + `xml_file` / `manu_json_file` / `auto_json_file`
-   在目标文件系统上都必须真实存在，否则 `libcam_engine` 加载会失败（日志在
-   `/tmp/isp.err.log`）。
+4. **配置文件路径**：每条 scene 的 `calib_dir` 目录下需存在
+   `{sensor}-{W}x{H}.xml` / `_manual.json` / `_auto.json`（sensor 来自设备树），
+   否则 daemon 加载会失败（日志在 `/tmp/isp.err.log`）。
 5. **模块开关一致性**：再次强调——只改参数，不改启用模块集合。
 
 ## 故障排除
 
 ### Scene 切换失败 / 黑屏不恢复
 
-1. 确认 JSON 里每条 scene 的 `scene_path` / `xml_file` / `manu_json_file` /
-   `auto_json_file` 都指向实际存在的文件（`ls /etc/vvcam/ov5647_*.xml`）。
+1. 确认 JSON 里每条 scene 的 `calib_dir` 下存在对应分辨率的校准文件
+   （如 `ls /etc/vvcam/day/gc2093-1920x1080.*`）。
 2. 确认 `isp_media_server` 在跑：`ps -ef | grep isp_media_server`；如果不在，
    查 `/tmp/isp.err.log`。
 3. 确认 ISP 相关内核模块都已加载：`lsmod | egrep 'vvcam|nonai2d'`。
@@ -424,19 +405,18 @@ ls -l /dev/dri/card*
 
 ```bash
 dmesg | grep -E 'vvcam|isp'
-cat /proc/vsi/isp_subdev0          # 当前生效的 sensor/xml/json
+cat /proc/vsi/isp_subdev0          # sensor / mode / i2c_bus（无 calib_base）
 cat /tmp/isp.err.log               # daemon 的 stderr
 ```
 
 ## 调试技巧
 
-- **当前 scene**：按 `g` 读回 daemon/driver 侧实际生效的 `sensor` / `xml` /
-  `manu_json` / `auto_json` / `mode`。
+- **当前 scene**：按 `g` 读回 `calib_dir` / `mode`（G_EXT_CTRLS）；daemon 日志可见实际加载的 xml/json 路径
 - **FPS**：程序运行时在 stderr 输出。
 - **对比模块集合**：
   ```bash
-  diff <(grep -oE 'Module\w+[^>]*enable="[01]"' /etc/vvcam/ov5647_day.xml | sort) \
-       <(grep -oE 'Module\w+[^>]*enable="[01]"' /etc/vvcam/ov5647_night.xml | sort)
+  diff <(grep -oE 'Module\w+[^>]*enable="[01]"' /etc/vvcam/day/gc2093-1920x1080.xml | sort) \
+       <(grep -oE 'Module\w+[^>]*enable="[01]"' /etc/vvcam/night/gc2093-1920x1080.xml | sort)
   ```
   输出应为空——任意一行 `enable` 字段不同就意味着踩到上面那条限制。
 

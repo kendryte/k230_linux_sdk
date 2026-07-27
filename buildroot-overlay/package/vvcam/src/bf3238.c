@@ -17,6 +17,8 @@
 
 #define BF3238_REG_CHIP_ID_H                                0xf0
 #define BF3238_REG_CHIP_ID_L                                0xf1
+#define BF3238_CHIP_ID_REG                                  0xfc
+#define BF3238_CHIP_ID                                      0x3238
 
 #define BF3238_REG_MIPI_CTRL00                              0x4800
 #define BF3238_REG_FRAME_OFF_NUMBER                         0x4202
@@ -81,6 +83,7 @@ struct bf3238_ctx {
     uint8_t orient_base_r00;
 };
 
+
 static int read_reg(struct bf3238_ctx* ctx, uint16_t addr, uint8_t* value) {
     struct i2c_msg msg[2];
     struct i2c_rdwr_ioctl_data data;
@@ -143,7 +146,84 @@ static int open_i2c(struct bf3238_ctx* sensor) {
     return 0;
 }
 
-static int init(void** ctx) {
+static void bf3238_close_i2c(struct bf3238_ctx *sensor)
+{
+    if (sensor && sensor->i2c >= 0) {
+        close(sensor->i2c);
+        sensor->i2c = -1;
+    }
+}
+
+static int bf3238_open_i2c_bus(struct bf3238_ctx *sensor, uint8_t i2c_bus)
+{
+    char i2c_dev[32];
+
+    if (sensor->i2c >= 0)
+        return 0;
+
+    snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%u", i2c_bus);
+    sensor->i2c = open(i2c_dev, O_RDWR);
+    if (sensor->i2c < 0) {
+        perror(i2c_dev);
+        return -1;
+    }
+    if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS) < 0) {
+        perror("bf3238 i2c slave");
+        bf3238_close_i2c(sensor);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int bf3238_read_chip_id(struct bf3238_ctx *sensor, uint32_t *chip_id)
+{
+    uint8_t id_h = 0;
+    uint8_t id_l = 0;
+    uint32_t id;
+
+    if (read_reg(sensor, BF3238_CHIP_ID_REG, &id_h))
+        return -1;
+    if (read_reg(sensor, BF3238_CHIP_ID_REG + 1, &id_l))
+        return -1;
+
+    id = ((uint32_t)id_h << 8) | id_l;
+    if (chip_id)
+        *chip_id = id;
+    if (id == BF3238_CHIP_ID)
+        return 0;
+
+    fprintf(stderr, "bf3238: chip id mismatch 0x%04x (expect 0x%04x)\n",
+        id, BF3238_CHIP_ID);
+    return -1;
+}
+
+static int probe(uint8_t i2c_bus, uint32_t *chip_id)
+{
+    struct bf3238_ctx sensor;
+    uint32_t id = 0;
+
+    memset(&sensor, 0, sizeof(sensor));
+    sensor.i2c = -1;
+
+    if (bf3238_open_i2c_bus(&sensor, i2c_bus))
+        return -1;
+    if (bf3238_read_chip_id(&sensor, &id) != 0) {
+        fprintf(stderr, "bf3238: read chip id failed on i2c-%u\n", i2c_bus);
+        bf3238_close_i2c(&sensor);
+        return -1;
+    }
+    bf3238_close_i2c(&sensor);
+
+    if (chip_id)
+        *chip_id = id;
+
+    fprintf(stderr, "bf3238: probe ok, chip id 0x%04x, i2c addr 0x%02x\n",
+        id, I2C_SLAVE_ADDRESS);
+    return 0;
+}
+
+static int init(void** ctx, uint8_t i2c_bus) {
     struct bf3238_ctx* sensor = calloc(1, sizeof(struct bf3238_ctx));
     sensor->i2c = -1;
     sensor->hflip = false;
@@ -225,6 +305,62 @@ static struct reg_list bf3238_1920x1080_30fps[] = {
     { 0, 0x00 }
 };
 
+static struct reg_list bf3238_1280x960_30fps[] = {
+    {0xf2, 0x01},
+    {0xf2, 0x00},
+    {0xf3, 0x00},
+    {0xf3, 0x00},
+    {0xf3, 0x00},
+    {0x00, 0x41},
+    {0x03, 0x20},
+    {0x0b, 0x4c},
+    {0x0c, 0x04},
+    {0x0F, 0x48},
+    {0x15, 0x4b},
+    {0x16, 0x63},
+    {0x19, 0x4e},
+    {0x1b, 0x7a},
+    {0x1d, 0x7a},
+    {0x25, 0x88},
+    {0x26, 0x48},
+    {0x27, 0x86},
+    {0x28, 0x44},
+    {0x2a, 0x7c},
+    {0x2B, 0x7a},
+    {0x2E, 0x06},
+    {0x2F, 0x53},
+    {0xe0, 0x00},
+    {0xe1, 0xef},
+    {0xe2, 0x47},
+    {0xe3, 0x43},
+    {0xe7, 0x2B},
+    {0xe8, 0x69},
+    {0xe9, 0x0b},
+    {0xea, 0xb7},
+    {0xeb, 0x04},
+    {0xe4, 0x7a},
+    {0x7d, 0x0e},
+    {0xc9, 0x80},
+    {0xca, 0x50},
+    {0xcb, 0x30},
+    {0xcc, 0x00},
+    {0xcd, 0x00},
+    {0xce, 0x00},
+    {0xcf, 0xc0},
+    {0x30, 0x01},
+    {0x4d, 0x00},
+    {0x59, 0x10},
+    {0x5a, 0x10},
+    {0x5b, 0x10},
+    {0x5c, 0x10},
+    {0x5e, 0x22},
+    {0x6a, 0x1f},
+    {0x6b, 0x04},
+    {0x6c, 0x20},
+    {0x6f, 0x10},
+    { 0, 0x00 }
+};
+
 static struct bf3238_mode modes[] = {
     {
         .mode = {
@@ -271,6 +407,52 @@ static struct bf3238_mode modes[] = {
             }
         },
         .regs = bf3238_1920x1080_30fps
+    },
+    {
+        .mode = {
+            .clk = 24000000,
+            .width = 1280,
+            .height = 960,
+            .lanes = VVCAM_SENSOR_1LANE,
+            .freq = VVCAM_SENSOR_1200M,
+            .bayer = VVCAM_BAYER_PAT_BGGR,
+            .bit_width = 10,
+            .ae_info = {
+                .frame_length = 1125,
+                .cur_frame_length = 1125,
+                .one_line_exp_time = 0.000028,
+                .gain_accuracy = 1024,
+                .min_gain = 1.0,
+                .max_gain = 16.0,
+                .int_time_delay_frame = 2,
+                .gain_delay_frame = 2,
+                .color_type = 0,
+                .integration_time_increment = 0.000028,
+                .gain_increment = (1.0f/64.0f),
+                .max_long_integraion_line = 1125 - 8,
+                .min_long_integraion_line = 1,
+                .max_integraion_line = 1125 - 8,
+                .min_integraion_line = 1,
+                .max_long_integraion_time = 0.000028 * (1125 - 8),
+                .min_long_integraion_time = 0.000028 * 1,
+                .max_integraion_time = 0.000028 * (1125 - 8),
+                .min_integraion_time = 0.000028 * 1,
+                .cur_long_integration_time = 0.0,
+                .cur_integration_time = 0.0,
+                .cur_long_again = 0.0,
+                .cur_long_dgain = 0.0,
+                .cur_again = 0.0,
+                .cur_dgain = 0.0,
+                .a_gain.min = 1.0,
+                .a_gain.max = 15,
+                .a_gain.step = (1.0f/128.0f),
+                .d_gain.max = 1.0,
+                .d_gain.min = 1.0,
+                .d_gain.step = (1.0f/1024.0f),
+                .cur_fps = 30,
+            }
+        },
+        .regs = bf3238_1280x960_30fps
     }
 };
 
@@ -355,12 +537,11 @@ static int bf3238_apply_orient(struct bf3238_ctx *sensor)
 }
 
 static int enum_mode(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode) {
-    if (index == 0) {
-        memcpy(mode, &modes[0].mode, sizeof(struct vvcam_sensor_mode));
-        return 0;
-    } else {
+    if (index >= modes_len) {
         return -1;
     }
+    memcpy(mode, &modes[index].mode, sizeof(struct vvcam_sensor_mode));
+    return 0;
 }
 
 static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
@@ -590,6 +771,7 @@ struct vvcam_sensor vvcam_bf3238 = {
         .get_vflip = get_vflip,
         .set_analog_gain = set_analog_gain,
         .set_digital_gain = set_digital_gain,
-        .set_int_time = set_int_time
+        .set_int_time = set_int_time,
+        .probe = probe,
     }
 };

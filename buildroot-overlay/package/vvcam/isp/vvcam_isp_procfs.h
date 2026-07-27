@@ -54,8 +54,17 @@
 #ifndef __VVCAM_ISP_PROCFS_H__
 #define __VVCAM_ISP_PROCFS_H__
 
+#include "vvcam_isp_driver.h"
+
 int vvcam_isp_procfs_register(struct vvcam_isp_dev *isp_dev,
                             unsigned long *pde);
 void vvcam_isp_procfs_unregister(unsigned long pde);
+
+void vvcam_isp_proc_irq_inc(unsigned long pde, uint8_t dev_id,
+                enum vvcam_isp_irq_stat_type type);
+void vvcam_isp_proc_fe_start(unsigned long pde, uint8_t dev_id);
+void vvcam_isp_proc_fe_cmdbuf(unsigned long pde, uint8_t dev_id);
+void vvcam_isp_proc_fe_ctl_mis_cleared(unsigned long pde, uint8_t dev_id);
+void vvcam_isp_add_frames_count(unsigned long pde, uint8_t dev_id, uint8_t chn);
 
 #endif

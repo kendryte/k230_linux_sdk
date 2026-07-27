@@ -1096,6 +1096,8 @@ static int vvcam_video_vb2_buf_prepare(struct vb2_buffer *vb)
 
         vb2_set_plane_payload(vb, 0, buf->planes[0].size);
 
+        // printk("buf->planes[0].dma_addr is %x buf->planes[0].size is %d \n", (unsigned int)buf->planes[0].dma_addr, buf->planes[0].size);
+
     } else if (format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
         buf->num_planes = format->fmt.pix_mp.num_planes;
         buf->sequence   = vb->index;

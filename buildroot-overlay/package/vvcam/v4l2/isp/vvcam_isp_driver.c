@@ -53,6 +53,7 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/platform_device.h>
+#include <linux/of.h>
 #include <linux/of_reserved_mem.h>
 #include <linux/of_graph.h>
 #include <linux/vmalloc.h>
@@ -60,8 +61,6 @@
 #include <linux/slab.h>
 #include <linux/pm_runtime.h>
 #include <linux/uaccess.h>
-#include <linux/namei.h>
-#include <linux/fs.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-event.h>
 #include <media/v4l2-fh.h>
@@ -72,10 +71,12 @@
 #include <media/v4l2-mediabus.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-subdev.h>
+// #include <sys/types.h>
 
 #include "linux/dev_printk.h"
 #include "media/v4l2-async.h"
 #include "vvcam_v4l2_common.h"
+#include "vvcam_sensor_dt.h"
 #include "vvcam_isp_driver.h"
 #include "vvcam_isp_event.h"
 #include "vvcam_isp_ctrl.h"
@@ -84,39 +85,52 @@
 #include "vvcam_isp_platform.h"
 #endif
 
-#define MY_CID_BASE 0x00980900 
+#define MY_CID_BASE 0x00980900
+#define MY_CID_SENSOR_ENABLE (MY_CID_BASE + 2)
+#define MY_CID_SENSOR_WIDTH  (MY_CID_BASE + 3)
+#define MY_CID_SENSOR_HEIGHT (MY_CID_BASE + 4)
+#define MY_CID_SENSOR_FPS    (MY_CID_BASE + 5)
+
+static bool vvcam_isp_ctrls_is_sensor_target(struct v4l2_ext_controls *ctrls)
+{
+    unsigned int i;
+
+    for (i = 0; i < ctrls->count; i++) {
+        if (ctrls->controls[i].id >= MY_CID_SENSOR_ENABLE &&
+            ctrls->controls[i].id <= MY_CID_SENSOR_FPS)
+            return true;
+    }
+    return false;
+}
+
+static bool vvcam_isp_ctrls_is_scene_config(struct v4l2_ext_controls *ctrls)
+{
+    unsigned int i;
+
+    for (i = 0; i < ctrls->count; i++) {
+        if (ctrls->controls[i].id == MY_CID_BASE + 0 ||
+            ctrls->controls[i].id == MY_CID_BASE + 1)
+            return true;
+    }
+    return false;
+}
 #ifdef VVCAM_PLATFORM_REGISTER
 
+#define VVCAM_ISP_DEV0_DEFAULT_SENSOR        "ov13850"
+#define VVCAM_ISP_DEV0_DEFAULT_SENSOR_MODE   0
+#define VVCAM_ISP_DEV0_DEFAULT_SENSOR_I2C_BUS    0
 
-#ifdef  BR2_PACKAGE_VVCAM_DEF_SENSOR_OV5647
-#define VVCAM_ISP_DEFAULT_SENSOR        "ov5647"
-#define VVCAM_ISP_DEFAULT_SENSOR_MODE   0
-#define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/ov5647.xml"
-#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/ov5647.manual.json"
-#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/ov5647.auto.json"
-#elif defined BR2_PACKAGE_VVCAM_DEF_SENSOR_GC2093
-#define VVCAM_ISP_DEFAULT_SENSOR        "gc2093"
-#define VVCAM_ISP_DEFAULT_SENSOR_MODE   0
-#define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/gc2093-1920x1080.xml"
-#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/gc2093-1920x1080_manual.json"
-#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/gc2093-1920x1080_auto.json"
-#elif defined BR2_PACKAGE_VVCAM_DEF_SENSOR_GC2053
-#define VVCAM_ISP_DEFAULT_SENSOR        "gc2053"
-#define VVCAM_ISP_DEFAULT_SENSOR_MODE   0
-#define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/gc2093-1920x1080.xml"
-#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/gc2093-1920x1080_manual.json"
-#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/gc2093-1920x1080_auto.json"
+#define VVCAM_ISP_DEV1_DEFAULT_SENSOR        ""
+#define VVCAM_ISP_DEV1_DEFAULT_SENSOR_MODE   0
+#define VVCAM_ISP_DEV1_DEFAULT_SENSOR_I2C_BUS    0
 
-#elif defined BR2_PACKAGE_VVCAM_DEF_SENSOR_IMX335
-#define VVCAM_ISP_DEFAULT_SENSOR        "imx335"
-#define VVCAM_ISP_DEFAULT_SENSOR_MODE   0
-#define VVCAM_ISP_DEFAULT_SENSOR_XML    "/etc/vvcam/imx335-1920x1080.xml"
-#define VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON    "/etc/vvcam/imx335-1920x1080_manual.json"
-#define VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON    "/etc/vvcam/imx335-1920x1080_auto.json"
+#define VVCAM_ISP_DEV2_DEFAULT_SENSOR        ""
+#define VVCAM_ISP_DEV2_DEFAULT_SENSOR_MODE   0
+#define VVCAM_ISP_DEV2_DEFAULT_SENSOR_I2C_BUS    0
 
-#endif
-
-
+#define VVCAM_ISP_DEV3_DEFAULT_SENSOR        ""
+#define VVCAM_ISP_DEV3_DEFAULT_SENSOR_MODE   0
+#define VVCAM_ISP_DEV3_DEFAULT_SENSOR_I2C_BUS    0
 
 #endif
 
@@ -351,65 +365,25 @@ static int vvcam_isp_g_ext_ctrls(struct v4l2_subdev *sd, void *arg)
     struct v4l2_ext_controls *ctrls = pad_ext_ctrls->ext_controls;
     unsigned int i;
     bool is_scene_config = false;
-    int port = 0;
     
-    // 检查是否是 scene config 请求
-    for (i = 0; i < ctrls->count; i++) {
-        if (ctrls->controls[i].id >= MY_CID_BASE &&
-            ctrls->controls[i].id < MY_CID_BASE + 10) {
-            is_scene_config = true;
-            break;
-        }
+    if (vvcam_isp_ctrls_is_scene_config(ctrls)) {
+        is_scene_config = true;
     }
     
     // 如果是 scene config，读取当前配置
     if (is_scene_config) {
-        struct vvcam_isp_sensor_info *info = &isp_dev->sensor_info[port];
-        const char *last_slash;
-
         for (i = 0; i < ctrls->count; i++) {
             char kbuf[256];
             const char *src;
             size_t slen;
             u32 room;
 
-            /*
-             * For MY_CID_BASE + 0..4, `string` is the userspace buffer
-             * passed by the app and MUST be written via copy_to_user();
-             * writing it directly (strncpy/strcpy) faults on RISC-V with
-             * "kernel access to user memory without uaccess routines".
-             */
             switch (ctrls->controls[i].id) {
-                case MY_CID_BASE + 0:  // scene_path
-                    last_slash = strrchr(info->xml, '/');
-                    if (last_slash) {
-                        size_t path_len = last_slash - info->xml;
-                        if (path_len >= sizeof(kbuf))
-                            path_len = sizeof(kbuf) - 1;
-                        memcpy(kbuf, info->xml, path_len);
-                        kbuf[path_len] = '\0';
-                    } else {
-                        strscpy(kbuf, "/etc/vvcam", sizeof(kbuf));
-                    }
-                    src = kbuf;
+                case MY_CID_BASE + 0:  // calib_dir
+                    src = isp_dev->scene_calib_dir;
                     break;
-                case MY_CID_BASE + 1:  // sensor
-                    src = info->sensor;
-                    break;
-                case MY_CID_BASE + 2:  // xml_file
-                    last_slash = strrchr(info->xml, '/');
-                    src = last_slash ? last_slash + 1 : info->xml;
-                    break;
-                case MY_CID_BASE + 3:  // manu_json_file
-                    last_slash = strrchr(info->manu_json, '/');
-                    src = last_slash ? last_slash + 1 : info->manu_json;
-                    break;
-                case MY_CID_BASE + 4:  // auto_json_file
-                    last_slash = strrchr(info->auto_json, '/');
-                    src = last_slash ? last_slash + 1 : info->auto_json;
-                    break;
-                case MY_CID_BASE + 5:  // mode
-                    ctrls->controls[i].value = info->mode;
+                case MY_CID_BASE + 1:  // mode
+                    ctrls->controls[i].value = isp_dev->scene_mode;
                     continue;
                 default:
                     continue;
@@ -419,7 +393,6 @@ static int vvcam_isp_g_ext_ctrls(struct v4l2_subdev *sd, void *arg)
                 continue;
             room = ctrls->controls[i].size;
             if (room == 0) {
-                /* Tell the caller how big a buffer it needs to provide. */
                 ctrls->controls[i].size = strlen(src) + 1;
                 ctrls->error_idx = i;
                 return -ENOSPC;
@@ -435,8 +408,9 @@ static int vvcam_isp_g_ext_ctrls(struct v4l2_subdev *sd, void *arg)
             ctrls->controls[i].size = slen + 1;
         }
 
-        dev_info(isp_dev->dev, "vvcam_isp: scene get - sensor:%s, xml:%s\n",
-                 info->sensor, info->xml);
+        dev_info(isp_dev->dev, "vvcam_isp: scene get - calib_dir:%s, mode:%u\n",
+                 isp_dev->scene_calib_dir[0] ? isp_dev->scene_calib_dir : "(empty)",
+                 isp_dev->scene_mode);
 
         return 0;
     }
@@ -457,150 +431,95 @@ static int vvcam_isp_s_ext_ctrls(struct v4l2_subdev *sd, void *arg)
     struct vvcam_pad_ext_controls *pad_ext_ctrls = (struct vvcam_pad_ext_controls *)arg;
     struct v4l2_ext_controls *ctrls = pad_ext_ctrls->ext_controls;
     unsigned int i;
-    bool is_scene_config = false;
-    char scene_path[128] = {0};
-    char sensor[32] = {0};
-    char xml_file[64] = {0};
-    char manu_json_file[64] = {0};
-    char auto_json_file[32] = {0};
-    int port;
-    u32 mode = 0;
-    long ret_copy;
-    
-    
-    // 检查是否是 scene config 请求
-    for (i = 0; i < ctrls->count; i++) {
-        dev_info(isp_dev->dev, "  ctrl[%u]: id=0x%x\n", i, ctrls->controls[i].id);
-        if (ctrls->controls[i].id >= MY_CID_BASE &&
-            ctrls->controls[i].id < MY_CID_BASE + 10) {
-            is_scene_config = true;
-            break;
-        }
-    }
-    
-    // 如果是 scene config，解析并应用
-    if (is_scene_config) {
-        
-        // 解析控件数据 - 使用 strncpy_from_user 安全复制
+    int ret;
+
+    if (vvcam_isp_ctrls_is_sensor_target(ctrls)) {
+        struct vvcam_isp_sensor_target target;
+
+        memset(&target, 0, sizeof(target));
         for (i = 0; i < ctrls->count; i++) {
             switch (ctrls->controls[i].id) {
-                case MY_CID_BASE + 0:  // scene_path
+            case MY_CID_SENSOR_ENABLE:
+                target.enable = ctrls->controls[i].value;
+                break;
+            case MY_CID_SENSOR_WIDTH:
+                target.width = ctrls->controls[i].value;
+                break;
+            case MY_CID_SENSOR_HEIGHT:
+                target.height = ctrls->controls[i].value;
+                break;
+            case MY_CID_SENSOR_FPS:
+                target.fps = ctrls->controls[i].value;
+                break;
+            default:
+                break;
+            }
+        }
+
+        ret = vvcam_isp_sensor_target_event(isp_dev, pad_ext_ctrls->pad,
+                            &target);
+        if (ret) {
+            dev_err(isp_dev->dev,
+                "vvcam_isp: sensor target event failed (%d)\n", ret);
+            return ret;
+        }
+        return 0;
+    }
+
+    if (vvcam_isp_ctrls_is_scene_config(ctrls)) {
+        struct vvcam_isp_scene_config scene_cfg;
+        char calib_dir[VVCAM_ISP_SCENE_CALIB_DIR_MAX] = {0};
+        int port;
+        u32 mode = 0;
+        long ret_copy;
+
+        for (i = 0; i < ctrls->count; i++) {
+            switch (ctrls->controls[i].id) {
+                case MY_CID_BASE + 0:  // calib_dir
                     if (ctrls->controls[i].string) {
-                        ret_copy = strncpy_from_user(scene_path, 
-                                    ctrls->controls[i].string, 
-                                    sizeof(scene_path) - 1);
+                        ret_copy = strncpy_from_user(calib_dir,
+                                    ctrls->controls[i].string,
+                                    sizeof(calib_dir) - 1);
                         if (ret_copy > 0) {
-                            dev_info(isp_dev->dev, "  scene_path=%s\n", scene_path);
+                            dev_info(isp_dev->dev, "  calib_dir=%s\n", calib_dir);
                         }
                     }
                     break;
-                case MY_CID_BASE + 1:  // sensor
-                    if (ctrls->controls[i].string) {
-                        ret_copy = strncpy_from_user(sensor, 
-                                    ctrls->controls[i].string, 
-                                    sizeof(sensor) - 1);
-                        if (ret_copy > 0) {
-                            dev_info(isp_dev->dev, "  sensor=%s\n", sensor);
-                        }
-                    }
-                    break;
-                case MY_CID_BASE + 2:  // xml_file
-                    if (ctrls->controls[i].string) {
-                        ret_copy = strncpy_from_user(xml_file, 
-                                    ctrls->controls[i].string, 
-                                    sizeof(xml_file) - 1);
-                        if (ret_copy > 0) {
-                            dev_info(isp_dev->dev, "  xml_file=%s\n", xml_file);
-                        }
-                    }
-                    break;
-                case MY_CID_BASE + 3:  // manu_json_file
-                    if (ctrls->controls[i].string) {
-                        ret_copy = strncpy_from_user(manu_json_file, 
-                                    ctrls->controls[i].string, 
-                                    sizeof(manu_json_file) - 1);
-                        if (ret_copy > 0) {
-                            dev_info(isp_dev->dev, "  manu_json_file=%s\n", manu_json_file);
-                        }
-                    }
-                    break;
-                case MY_CID_BASE + 4:  // auto_json_file
-                    if (ctrls->controls[i].string) {
-                        ret_copy = strncpy_from_user(auto_json_file, 
-                                    ctrls->controls[i].string, 
-                                    sizeof(auto_json_file) - 1);
-                        if (ret_copy > 0) {
-                            dev_info(isp_dev->dev, "  auto_json_file=%s\n", auto_json_file);
-                        }
-                    }
-                    break;
-                case MY_CID_BASE + 5:  // mode
+                case MY_CID_BASE + 1:  // mode
                     mode = ctrls->controls[i].value;
                     dev_info(isp_dev->dev, "  mode=%u\n", mode);
                     break;
             }
         }
-        
-        /*
-         * Validate every path before touching sensor_info[]: the isp_media
-         * daemon will try to open all three files during STREAMON and fail
-         * the event with EINVAL if any is missing, and by that point we'd
-         * already have blown away the previous (good) config so every
-         * subsequent STREAMON would keep failing until userspace pushes a
-         * valid scene. Checking here keeps the old config intact on error
-         * and gives the app a precise errno at S_EXT_CTRLS time.
-         */
-        {
-            char xml_path[sizeof(isp_dev->sensor_info[0].xml)];
-            char manu_path[sizeof(isp_dev->sensor_info[0].manu_json)];
-            char auto_path[sizeof(isp_dev->sensor_info[0].auto_json)];
-            const char *missing = NULL;
-            struct path p;
-            int rc;
 
-            snprintf(xml_path,  sizeof(xml_path),  "%s/%s", scene_path, xml_file);
-            snprintf(manu_path, sizeof(manu_path), "%s/%s", scene_path, manu_json_file);
-            snprintf(auto_path, sizeof(auto_path), "%s/%s", scene_path, auto_json_file);
+        strscpy(isp_dev->scene_calib_dir, calib_dir,
+                sizeof(isp_dev->scene_calib_dir));
+        isp_dev->scene_mode = mode;
 
-            rc = kern_path(xml_path,  LOOKUP_FOLLOW, &p);
-            if (rc) { missing = xml_path; goto scene_enoent; }
-            path_put(&p);
-            rc = kern_path(manu_path, LOOKUP_FOLLOW, &p);
-            if (rc) { missing = manu_path; goto scene_enoent; }
-            path_put(&p);
-            rc = kern_path(auto_path, LOOKUP_FOLLOW, &p);
-            if (rc) { missing = auto_path; goto scene_enoent; }
-            path_put(&p);
+        for (port = 0; port < VVCAM_ISP_PORT_NR; port++)
+            isp_dev->sensor_info[port].mode = mode;
 
-            for (port = 0; port < VVCAM_ISP_PORT_NR; port++) {
-                strscpy(isp_dev->sensor_info[port].sensor, sensor,
-                        sizeof(isp_dev->sensor_info[port].sensor));
-                strscpy(isp_dev->sensor_info[port].xml, xml_path,
-                        sizeof(isp_dev->sensor_info[port].xml));
-                strscpy(isp_dev->sensor_info[port].manu_json, manu_path,
-                        sizeof(isp_dev->sensor_info[port].manu_json));
-                strscpy(isp_dev->sensor_info[port].auto_json, auto_path,
-                        sizeof(isp_dev->sensor_info[port].auto_json));
-                isp_dev->sensor_info[port].mode = mode;
-            }
-            dev_info(isp_dev->dev,
-                "vvcam_isp: scene set OK - sensor=%s xml=%s manu=%s auto=%s mode=%u\n",
-                sensor, xml_path, manu_path, auto_path, mode);
-            return 0;
+        memset(&scene_cfg, 0, sizeof(scene_cfg));
+        strscpy(scene_cfg.calib_dir, calib_dir, sizeof(scene_cfg.calib_dir));
+        scene_cfg.mode = mode;
 
-        scene_enoent:
+        ret = vvcam_isp_scene_config_event(isp_dev, &scene_cfg);
+        if (ret) {
             dev_err(isp_dev->dev,
-                "vvcam_isp: scene rejected, file not found: %s (err=%d). "
-                "Previous config kept; check scene_path/xml_file in your JSON.\n",
-                missing, rc);
-            return rc;
+                "vvcam_isp: scene event to daemon failed (%d)\n", ret);
+            return ret;
         }
+
+        dev_info(isp_dev->dev,
+            "vvcam_isp: scene set OK - calib_dir=%s mode=%u\n",
+            calib_dir[0] ? calib_dir : "(empty, use daemon default)", mode);
+        return 0;
     }
     
     // 否则使用标准 control handler 处理
     mutex_lock(&isp_dev->ctrl_lock);
     isp_dev->ctrl_pad = pad_ext_ctrls->pad;
-    int ret = v4l2_s_ext_ctrls(NULL, &isp_dev->ctrl_handler, sd->devnode,
+    ret = v4l2_s_ext_ctrls(NULL, &isp_dev->ctrl_handler, sd->devnode,
                                sd->v4l2_dev->mdev, ctrls);
     mutex_unlock(&isp_dev->ctrl_lock);
     
@@ -1096,32 +1015,68 @@ static int vvcam_isp_pads_init(struct vvcam_isp_dev *isp_dev)
 static int vvcam_isp_parse_params(struct vvcam_isp_dev *isp_dev,
                         struct platform_device *pdev)
 {
-
 #ifdef VVCAM_PLATFORM_REGISTER
-    int port = 0;
+    int i;
+    int sensor_count = 0;
+
     isp_dev->id  = pdev->id;
-    /*
-     * strncpy(dst, src, strlen(src)) deliberately drops the NUL terminator.
-     * It has worked so far only because sensor_info[] sits in a kzalloc'd
-     * parent and is therefore pre-zeroed on first use, but it leaves the
-     * trailing byte uninitialised on any subsequent re-parse - and any
-     * later strlen() / strscpy()-of-this read walks into the next field.
-     * strscpy is both safe and bounded by the actual destination size.
-     */
-    for (port = 0; port < VVCAM_ISP_PORT_NR; port++) {
-        strscpy(isp_dev->sensor_info[port].sensor, VVCAM_ISP_DEFAULT_SENSOR,
-                sizeof(isp_dev->sensor_info[port].sensor));
-        strscpy(isp_dev->sensor_info[port].xml, VVCAM_ISP_DEFAULT_SENSOR_XML,
-                sizeof(isp_dev->sensor_info[port].xml));
-        isp_dev->sensor_info[port].mode = VVCAM_ISP_DEFAULT_SENSOR_MODE;
-        strscpy(isp_dev->sensor_info[port].manu_json, VVCAM_ISP_DEFAULT_SENSOR_MANU_JSON,
-                sizeof(isp_dev->sensor_info[port].manu_json));
-        strscpy(isp_dev->sensor_info[port].auto_json, VVCAM_ISP_DEFAULT_SENSOR_AUTO_JSON,
-                sizeof(isp_dev->sensor_info[port].auto_json));
+
+    for (i = 0; i < MAX_SENSORS; i++) {
+        if (isp_dev->sensors[i].name[0] == '\0')
+            break;
+        isp_dev->sensor_info[i].mode = isp_dev->sensors[i].mode;
+        isp_dev->sensor_info[i].i2c_bus = isp_dev->sensors[i].i2c_bus;
+        strncpy(isp_dev->sensor_info[i].sensor, isp_dev->sensors[i].name,
+            sizeof(isp_dev->sensor_info[i].sensor) - 1);
+        isp_dev->sensor_info[i].sensor[sizeof(isp_dev->sensor_info[i].sensor) - 1] = '\0';
+        sensor_count++;
     }
+
+    isp_dev->scene_calib_dir[0] = '\0';
+    isp_dev->scene_mode = 0;
+
+    /* port3 is not an MCM camera slot; keep empty default for unused port */
+    isp_dev->sensor_info[3].mode = VVCAM_ISP_DEV3_DEFAULT_SENSOR_MODE;
+    isp_dev->sensor_info[3].i2c_bus = VVCAM_ISP_DEV3_DEFAULT_SENSOR_I2C_BUS;
+    strncpy(isp_dev->sensor_info[3].sensor, VVCAM_ISP_DEV3_DEFAULT_SENSOR,
+        sizeof(isp_dev->sensor_info[3].sensor) - 1);
+    isp_dev->sensor_info[3].sensor[sizeof(isp_dev->sensor_info[3].sensor) - 1] = '\0';
+
+    dev_info(&pdev->dev, "parsed %d sensor(s) from DT\n", sensor_count);
 #else
+    int port = 0;
+    static const char *default_sensor[VVCAM_ISP_PORT_NR] = {
+        VVCAM_ISP_DEV0_DEFAULT_SENSOR,
+        VVCAM_ISP_DEV1_DEFAULT_SENSOR,
+        VVCAM_ISP_DEV2_DEFAULT_SENSOR,
+        VVCAM_ISP_DEV3_DEFAULT_SENSOR,
+    };
+    static const uint32_t default_mode[VVCAM_ISP_PORT_NR] = {
+        VVCAM_ISP_DEV0_DEFAULT_SENSOR_MODE,
+        VVCAM_ISP_DEV1_DEFAULT_SENSOR_MODE,
+        VVCAM_ISP_DEV2_DEFAULT_SENSOR_MODE,
+        VVCAM_ISP_DEV3_DEFAULT_SENSOR_MODE,
+    };
+    static const uint32_t default_i2c_bus[VVCAM_ISP_PORT_NR] = {
+        VVCAM_ISP_DEV0_DEFAULT_SENSOR_I2C_BUS,
+        VVCAM_ISP_DEV1_DEFAULT_SENSOR_I2C_BUS,
+        VVCAM_ISP_DEV2_DEFAULT_SENSOR_I2C_BUS,
+        VVCAM_ISP_DEV3_DEFAULT_SENSOR_I2C_BUS,
+    };
+
     fwnode_property_read_u32(of_fwnode_handle(pdev->dev.of_node),
 			"id", &isp_dev->id);
+
+    for (port = 0; port < VVCAM_ISP_PORT_NR; port++) {
+        strncpy(isp_dev->sensor_info[port].sensor, default_sensor[port],
+            sizeof(isp_dev->sensor_info[port].sensor) - 1);
+        isp_dev->sensor_info[port].sensor[sizeof(isp_dev->sensor_info[port].sensor) - 1] = '\0';
+        isp_dev->sensor_info[port].mode = default_mode[port];
+        isp_dev->sensor_info[port].i2c_bus = default_i2c_bus[port];
+    }
+
+    isp_dev->scene_calib_dir[0] = '\0';
+    isp_dev->scene_mode = 0;
 #endif
     return 0;
 }
@@ -1131,6 +1086,81 @@ struct v4l2_subdev *g_vvcam_isp_subdev[VVCAM_ISP_DEV_MAX] = {NULL};
 EXPORT_SYMBOL_GPL(g_vvcam_isp_subdev);
 #endif
 
+static int parse_sensor_dt(struct device *dev, struct device_node *np,
+			   struct sensor_config *cfg, int index)
+{
+    char prop_name[64];
+    const char *string_value;
+    uint32_t u32_value;
+
+    memset(cfg, 0, sizeof(*cfg));
+
+    snprintf(prop_name, sizeof(prop_name), "dev%d-sensor-name", index);
+    if (of_property_read_string(np, prop_name, &string_value)) {
+        dev_err(dev, "parse_sensor_dt: port %d missing %s\n", index, prop_name);
+        return -EINVAL;
+    }
+
+    strscpy(cfg->name, string_value, sizeof(cfg->name));
+
+    snprintf(prop_name, sizeof(prop_name), "dev%d-sensor-mode", index);
+    if (of_property_read_u32(np, prop_name, &u32_value)) {
+        dev_err(dev, "parse_sensor_dt: port %d missing %s (sensor=%s)\n",
+            index, prop_name, cfg->name);
+        return -EINVAL;
+    }
+
+    cfg->mode = u32_value;
+
+    snprintf(prop_name, sizeof(prop_name), "dev%d-sensor-i2c-bus", index);
+    if (of_property_read_u32(np, prop_name, &u32_value)) {
+        dev_err(dev, "parse_sensor_dt: port %d missing %s (sensor=%s mode=%u)\n",
+            index, prop_name, cfg->name, cfg->mode);
+        return -EINVAL;
+    }
+
+    cfg->i2c_bus = u32_value;
+
+    dev_info(dev, "parse_sensor_dt: port %d sensor=%s mode=%u i2c_bus=%u\n",
+         index, cfg->name, cfg->mode, cfg->i2c_bus);
+
+    return 0;
+}
+
+static int vvcam_isp_load_sensors_from_dt(struct device *dev,
+					  struct vvcam_isp_dev *isp_dev)
+{
+    struct device_node *np;
+    int sensor_count;
+    int i;
+    int ret;
+
+    np = vvcam_find_v4l2isp_node();
+    if (!np) {
+        dev_err(dev, "no verisilicon,isp-v4l2 node for sensor config\n");
+        return -ENODEV;
+    }
+
+    sensor_count = vvcam_count_sensors_from_dt(np);
+    if (sensor_count < 0) {
+        dev_err(dev, "invalid sensor config: need continuous dev0..devN-sensor-name\n");
+        of_node_put(np);
+        return sensor_count;
+    }
+
+    memset(isp_dev->sensors, 0, sizeof(isp_dev->sensors));
+    for (i = 0; i < sensor_count; i++) {
+        ret = parse_sensor_dt(dev, np, &isp_dev->sensors[i], i);
+        if (ret) {
+            of_node_put(np);
+            return ret;
+        }
+    }
+
+    of_node_put(np);
+    return sensor_count;
+}
+
 static int vvcam_isp_probe(struct platform_device *pdev)
 {
     struct device *dev = &pdev->dev;
@@ -1138,6 +1168,13 @@ static int vvcam_isp_probe(struct platform_device *pdev)
     int ret;
 
     dev_info(dev, "%s\n", __func__);
+
+    /*
+     * DT node (compatible=verisilicon,isp-v4l2) only carries sensor props.
+     * Real ISP subdev + IRQs come from the platform-registered device.
+     */
+    if (pdev->dev.of_node)
+        return 0;
 
     isp_dev = devm_kzalloc(&pdev->dev,
 		        sizeof(struct vvcam_isp_dev), GFP_KERNEL);
@@ -1148,6 +1185,12 @@ static int vvcam_isp_probe(struct platform_device *pdev)
     mutex_init(&isp_dev->ctrl_lock);
     isp_dev->dev = &pdev->dev;
     platform_set_drvdata(pdev, isp_dev);
+
+    ret = vvcam_isp_load_sensors_from_dt(dev, isp_dev);
+    if (ret < 0) {
+        dev_err(dev, "failed to load sensors from DT (%d)\n", ret);
+        return ret;
+    }
 
     ret = vvcam_isp_parse_params(isp_dev, pdev);
     if (ret) {
@@ -1233,6 +1276,8 @@ static int vvcam_isp_remove(struct platform_device *pdev)
     struct vvcam_isp_dev *isp_dev;
 
     isp_dev = platform_get_drvdata(pdev);
+    if (!isp_dev)
+        return 0;
 
     vvcam_isp_procfs_unregister(isp_dev->pde);
     v4l2_async_unregister_subdev(&isp_dev->sd);

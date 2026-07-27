@@ -86,6 +86,35 @@ struct rw_cmd {
     struct list_head list;
 };
 
+struct vvcam_isp_dev_stat {
+    uint32_t isp_irq_cnt;
+    uint32_t mi_irq_cnt;
+    uint32_t fe_irq_cnt;
+    uint32_t isp_irq_fe_ctrl_cmdbuf_cnt;
+    uint32_t fe_start_cnt;
+    uint32_t fe_irq_ctl_mis_cleared_cnt;
+
+    uint32_t isp_frame_in_cnt;
+    uint32_t isp_frame_out_cnt;
+
+    uint32_t miv2_mis_cnt;
+    uint32_t miv2_mis1_cnt;
+    uint32_t miv2_mis2_cnt;
+    uint32_t miv2_mis3_cnt;
+
+    uint32_t mp_frame_total_cnt;
+    uint32_t sp1_frame_total_cnt;
+    uint32_t sp2_frame_total_cnt;
+
+    uint32_t mcm_rdma_frame_cnt;
+    uint32_t mcm_raw0_frame_cnt;
+    uint32_t mcm_raw1_frame_cnt;
+    uint32_t mcm_raw2_frame_cnt;
+
+    uint32_t input_frames_count;
+    uint32_t output_frames_count[VVCAM_ISP_MAX_DEV_ID];
+};
+
 struct vvcam_isp_irq_stat {
     uint32_t isp_frame_in_cnt;
     uint32_t isp_frame_out_cnt;
@@ -119,7 +148,8 @@ struct vvcam_isp_irq_stat {
 struct vvcam_isp_status {
     int8_t flags;
     int8_t type;
-    struct vvcam_isp_irq_stat  stat;
+    struct vvcam_isp_irq_stat stat;
+    struct vvcam_isp_dev_stat dev_stat[VVCAM_ISP_MAX_DEV_ID];
     struct list_head cmd_list;
 };
 
@@ -130,12 +160,95 @@ struct vvcam_isp_procfs {
     struct vvcam_isp_status status;
 };
 
+static struct vvcam_isp_procfs *vvcam_isp_proc_from_pde(unsigned long pde)
+{
+    return (struct vvcam_isp_procfs *)pde;
+}
+
+void vvcam_isp_proc_irq_inc(unsigned long pde, uint8_t dev_id,
+                enum vvcam_isp_irq_stat_type type)
+{
+    struct vvcam_isp_procfs *isp_proc;
+    struct vvcam_isp_dev_stat *ds;
+
+    if (!pde || dev_id >= VVCAM_ISP_MAX_DEV_ID)
+        return;
+
+    isp_proc = vvcam_isp_proc_from_pde(pde);
+    ds = &isp_proc->status.dev_stat[dev_id];
+
+    switch (type) {
+    case VVCAM_ISP_IRQ_STAT_ISP:
+        ds->isp_irq_cnt++;
+        break;
+    case VVCAM_ISP_IRQ_STAT_MI:
+        ds->mi_irq_cnt++;
+        break;
+    case VVCAM_ISP_IRQ_STAT_FE:
+        ds->fe_irq_cnt++;
+        break;
+    default:
+        break;
+    }
+}
+
+void vvcam_isp_proc_fe_start(unsigned long pde, uint8_t dev_id)
+{
+    struct vvcam_isp_procfs *isp_proc;
+
+    if (!pde || dev_id >= VVCAM_ISP_MAX_DEV_ID)
+        return;
+
+    isp_proc = vvcam_isp_proc_from_pde(pde);
+    isp_proc->status.dev_stat[dev_id].fe_start_cnt++;
+}
+
+void vvcam_isp_proc_fe_cmdbuf(unsigned long pde, uint8_t dev_id)
+{
+    struct vvcam_isp_procfs *isp_proc;
+
+    if (!pde || dev_id >= VVCAM_ISP_MAX_DEV_ID)
+        return;
+
+    isp_proc = vvcam_isp_proc_from_pde(pde);
+    isp_proc->status.dev_stat[dev_id].isp_irq_fe_ctrl_cmdbuf_cnt++;
+}
+
+void vvcam_isp_proc_fe_ctl_mis_cleared(unsigned long pde, uint8_t dev_id)
+{
+    struct vvcam_isp_procfs *isp_proc;
+
+    if (!pde || dev_id >= VVCAM_ISP_MAX_DEV_ID)
+        return;
+
+    isp_proc = vvcam_isp_proc_from_pde(pde);
+    isp_proc->status.dev_stat[dev_id].fe_irq_ctl_mis_cleared_cnt++;
+}
+
+void vvcam_isp_add_frames_count(unsigned long pde, uint8_t dev_id, uint8_t chn)
+{
+    struct vvcam_isp_procfs *isp_proc;
+
+    if (!pde || dev_id >= VVCAM_ISP_MAX_DEV_ID || chn >= VVCAM_ISP_MAX_DEV_ID)
+        return;
+
+    isp_proc = vvcam_isp_proc_from_pde(pde);
+    isp_proc->status.dev_stat[dev_id].output_frames_count[chn]++;
+}
+
 void vvcam_isp_proc_stat(unsigned long pde,
                     const uint32_t *irq_mis, const int len)
 {
-    struct vvcam_isp_procfs *isp_proc = (struct vvcam_isp_procfs*)pde;
+    struct vvcam_isp_procfs *isp_proc = vvcam_isp_proc_from_pde(pde);
     struct vvcam_isp_irq_stat *stat = &isp_proc->status.stat;
+    struct vvcam_isp_dev *isp_dev = isp_proc->isp_dev;
+    struct vvcam_isp_dev_stat *ds;
+    uint8_t cur_dev = isp_dev->cur_dev_id;
     int eid = 0;
+
+    if (cur_dev >= VVCAM_ISP_MAX_DEV_ID)
+        cur_dev = 0;
+    ds = &isp_proc->status.dev_stat[cur_dev];
 
     //mutex_lock(&isp_proc->lock);
     for (eid = 0; eid < len; eid++) {
@@ -145,55 +258,74 @@ void vvcam_isp_proc_stat(unsigned long pde,
         switch (eid)
         {
         case VVCAM_EID_ISP_MIS:
-            if (irq_mis[eid] & ISP_MIS_FRAME_IN_MASK)
+            if (irq_mis[eid] & ISP_MIS_FRAME_IN_MASK) {
                 stat->isp_frame_in_cnt++;
+                ds->isp_frame_in_cnt++;
+                ds->input_frames_count++;
+            }
 
-            if (irq_mis[eid] & ISP_MIS_FRAME_OUT_MASK)
+            if (irq_mis[eid] & ISP_MIS_FRAME_OUT_MASK) {
                 stat->isp_frame_out_cnt++;
+                ds->isp_frame_out_cnt++;
+            }
 
             break;
 
         case VVCAM_EID_MIV2_MIS:
-            /* reserve */
+            ds->miv2_mis_cnt++;
             break;
 
         case VVCAM_EID_MIV2_MIS1:
-            /* reserve */
+            ds->miv2_mis1_cnt++;
             break;
 
         case VVCAM_EID_MIV2_MIS2:
-            /* reserve */
+            ds->miv2_mis2_cnt++;
             break;
 
         case VVCAM_EID_MIV2_MIS3:
-            /* reserve */
+            ds->miv2_mis3_cnt++;
             break;
 
         case VVCAM_EID_RDMA_MIS:
-            if (irq_mis[eid] & MIV2_MIS_MCM_RAW_RADY_MASK)
+            if (irq_mis[eid] & MIV2_MIS_MCM_RAW_RADY_MASK) {
                 stat->mcm_rdma_frame_cnt++;
+                ds->mcm_rdma_frame_cnt++;
+            }
 
-            if (irq_mis[eid] & MIV2_MIS_MP_FRAME_END_MASK)
+            if (irq_mis[eid] & MIV2_MIS_MP_FRAME_END_MASK) {
                 stat->mp_frame_out_cnt++;
+                ds->mp_frame_total_cnt++;
+                ds->output_frames_count[0]++;
+            }
 
-            if (irq_mis[eid] & MIV2_MIS_SP_FRAME_END_MASK)
+            if (irq_mis[eid] & MIV2_MIS_SP_FRAME_END_MASK) {
                 stat->sp_frame_out_cnt++;
+                ds->sp1_frame_total_cnt++;
+                ds->output_frames_count[1]++;
+            }
 
-            if (irq_mis[eid] & MIV2_MIS_SP2_FRAME_END_MASK)
+            if (irq_mis[eid] & MIV2_MIS_SP2_FRAME_END_MASK) {
                 stat->sp2_frame_out_cnt++;
+                ds->sp2_frame_total_cnt++;
+                ds->output_frames_count[2]++;
+            }
 
             break;
 
         case VVCAM_EID_MCM_WR_RAW0_MIS:
             stat->mcm_raw0_frame_cnt++;
+            isp_proc->status.dev_stat[0].mcm_raw0_frame_cnt++;
             break;
 
         case VVCAM_EID_MCM_WR_RAW1_MIS:
             stat->mcm_raw1_frame_cnt++;
+            isp_proc->status.dev_stat[1].mcm_raw1_frame_cnt++;
             break;
 
         case VVCAM_EID_MCM_WR_G2_RAW0_MIS:
             stat->mcm_g2_raw0_frame_cnt++;
+            isp_proc->status.dev_stat[2].mcm_raw2_frame_cnt++;
             break;
 
         case VVCAM_EID_MCM_WR_G2_RAW1_MIS:
@@ -244,6 +376,83 @@ void vvcam_isp_proc_stat(unsigned long pde,
     //mutex_unlock(&isp_proc->lock);
 }
 
+
+static void vvcam_isp_procfs_status_show(struct seq_file *sfile,
+                    struct vvcam_isp_status *status)
+{
+    uint8_t dev_id;
+
+    seq_printf(sfile,
+        "----------------------------------ISP STATUS INFO----------------------------------\n");
+    seq_printf(sfile, "%-16s%-16s%-16s%-16s\n",
+        "ISP-DEV", "ISP-Interrups", "MI-Interrups", "FE-Interrups");
+    for (dev_id = 0; dev_id < VVCAM_ISP_MAX_DEV_ID; dev_id++) {
+        seq_printf(sfile, "%-16d%-16u%-16u%-16u\n", dev_id,
+            status->dev_stat[dev_id].isp_irq_cnt,
+            status->dev_stat[dev_id].mi_irq_cnt,
+            status->dev_stat[dev_id].fe_irq_cnt);
+    }
+
+    seq_printf(sfile, "\n%-16s%-16s%-16s%-16s%-16s\n",
+        "ISP-DEV", "MCMW0-Interrups", "MCMW1-Interrups",
+        "MCMW2-Interrups", "RDMA-Interrups");
+    for (dev_id = 0; dev_id < VVCAM_ISP_MAX_DEV_ID; dev_id++) {
+        seq_printf(sfile, "%-16d%-16u%-16u%-16u%-16u\n", dev_id,
+            status->dev_stat[dev_id].mcm_raw0_frame_cnt,
+            status->dev_stat[dev_id].mcm_raw1_frame_cnt,
+            status->dev_stat[dev_id].mcm_raw2_frame_cnt,
+            status->dev_stat[dev_id].mcm_rdma_frame_cnt);
+    }
+
+    seq_printf(sfile, "\n%-16s%-16s%-16s%-16s%-16s\n",
+        "ISP-DEV", "MP-Interrups", "SP1-Interrups",
+        "SP2-Interrups", "ISP-OUT-Interrups");
+    for (dev_id = 0; dev_id < VVCAM_ISP_MAX_DEV_ID; dev_id++) {
+        seq_printf(sfile, "%-16d%-16u%-16u%-16u%-16u\n", dev_id,
+            status->dev_stat[dev_id].mp_frame_total_cnt,
+            status->dev_stat[dev_id].sp1_frame_total_cnt,
+            status->dev_stat[dev_id].sp2_frame_total_cnt,
+            status->dev_stat[dev_id].isp_frame_out_cnt);
+    }
+
+    seq_printf(sfile, "\n%-16s%-16s%-16s%-16s%-16s\n",
+        "ISP-DEV", "MIS-Interrups", "MIS1-Interrups",
+        "MIS2-Interrups", "MIS3-Interrups");
+    for (dev_id = 0; dev_id < VVCAM_ISP_MAX_DEV_ID; dev_id++) {
+        seq_printf(sfile, "%-16d%-16u%-16u%-16u%-16u\n", dev_id,
+            status->dev_stat[dev_id].miv2_mis_cnt,
+            status->dev_stat[dev_id].miv2_mis1_cnt,
+            status->dev_stat[dev_id].miv2_mis2_cnt,
+            status->dev_stat[dev_id].miv2_mis3_cnt);
+    }
+
+    seq_printf(sfile, "\n%-16s%-16s%-16s%-16s%-16s\n",
+        "ISP-DEV", "Input-Frames", "Output0-Frames",
+        "Output1-Frames", "Output2-Frames");
+    for (dev_id = 0; dev_id < VVCAM_ISP_MAX_DEV_ID; dev_id++) {
+        seq_printf(sfile, "%-16d%-16u%-16u%-16u%-16u\n", dev_id,
+            status->dev_stat[dev_id].input_frames_count,
+            status->dev_stat[dev_id].output_frames_count[0],
+            status->dev_stat[dev_id].output_frames_count[1],
+            status->dev_stat[dev_id].output_frames_count[2]);
+    }
+
+    seq_printf(sfile, "\n%-16s%-24s%-16s\n",
+        "ISP-DEV", "ISP-CmdBuf-Interrups", "FE-Start-Count");
+    for (dev_id = 0; dev_id < VVCAM_ISP_MAX_DEV_ID; dev_id++) {
+        seq_printf(sfile, "%-16d%-24u%-16u\n", dev_id,
+            status->dev_stat[dev_id].isp_irq_fe_ctrl_cmdbuf_cnt,
+            status->dev_stat[dev_id].fe_start_cnt);
+    }
+
+    seq_printf(sfile, "\n%-16s%-24s\n", "ISP-DEV", "FE-CtlMis-Cleared");
+    for (dev_id = 0; dev_id < VVCAM_ISP_MAX_DEV_ID; dev_id++) {
+        seq_printf(sfile, "%-16d%-24u\n", dev_id,
+            status->dev_stat[dev_id].fe_irq_ctl_mis_cleared_cnt);
+    }
+
+    seq_printf(sfile, "\n");
+}
 
 static void release_cmd_list(struct list_head *cmd_list)
 {
@@ -329,6 +538,7 @@ static int vvcam_isp_procfs_info_show(struct seq_file *sfile, void *offset)
         status->flags = 0;
     } else {
         status->stat.end = ktime_get_ns();
+        vvcam_isp_procfs_status_show(sfile, status);
         seq_printf(sfile,
         "/***statistic for %s time(ns):%lld)***/\n",
         isp_dev->miscdev.name, status->stat.end - status->stat.start);
@@ -504,6 +714,7 @@ static int32_t vvcam_isp_proc_process(struct seq_file *sfile,
 
     if (status->type == PROC_CMD_CLEAR) {
         memset(&status->stat, 0, sizeof(status->stat));
+        memset(&status->dev_stat, 0, sizeof(status->dev_stat));
         status->stat.start = ktime_get_ns();
     } else {
         mutex_lock(&isp_proc->isp_dev->mlock);
@@ -684,6 +895,7 @@ int vvcam_isp_procfs_register(struct vvcam_isp_dev *isp_dev, unsigned long *pde)
 
     INIT_LIST_HEAD(&isp_proc->status.cmd_list);
     mutex_init(&(isp_proc->lock));
+    isp_proc->status.stat.start = ktime_get_ns();
 	return 0;
 }
 

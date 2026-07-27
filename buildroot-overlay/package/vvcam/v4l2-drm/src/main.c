@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+
 static void help(const char* argv0) {
     printf("Usage: %s -d 1 -w 480 -h 320\n", argv0);
     printf(
@@ -26,6 +27,9 @@ static void help(const char* argv0) {
         "\t--crop-height Crop height\n"
         "\t--hflip 0/1 Sensor horizontal mirror\n"
         "\t--vflip 0/1 Sensor vertical flip\n"
+        "\t--sw Sensor output width (with --sh and --sfps)\n"
+        "\t--sh Sensor output height\n"
+        "\t--sfps Sensor target fps\n"
         "\t--rotation N Rotation: 0=0°, 1=90°, 2=180°, 3=270°\n"
     );
 }
@@ -82,6 +86,24 @@ static int parse_cmd(int argc, char* argv[], struct v4l2_drm_context* context) {
             NULL,
             'r'
         },
+        {
+            "sw",
+            required_argument,
+            NULL,
+            256
+        },
+        {
+            "sh",
+            required_argument,
+            NULL,
+            257
+        },
+        {
+            "sfps",
+            required_argument,
+            NULL,
+            258
+        },
         {0, 0, 0, 0}
     };
 
@@ -111,6 +133,9 @@ static int parse_cmd(int argc, char* argv[], struct v4l2_drm_context* context) {
                     context[context_idx].display = false;
                 }
                 break;
+            case 'r':
+                context[context_idx].drm_rotation = atoi(optarg);
+                break;
             case 's':
                 // disable display
                 context[context_idx].display = false;
@@ -133,13 +158,34 @@ static int parse_cmd(int argc, char* argv[], struct v4l2_drm_context* context) {
             case 'v':
                 context[context_idx].vflip = (atoi(optarg) != 0) ? 1 : 0;
                 break;
-            case 'r':
-                context[context_idx].drm_rotation = atoi(optarg);
+            case 256:
+                context[context_idx].sensor_width = (uint32_t)atoi(optarg);
+                break;
+            case 257:
+                context[context_idx].sensor_height = (uint32_t)atoi(optarg);
+                break;
+            case 258:
+                context[context_idx].sensor_fps = (uint32_t)atoi(optarg);
                 break;
             default:
                 help(argv[0]);
                 return -1;
         }
+    }
+
+    bool sw_sensor_target = false;
+
+    for (int i = 0; i <= context_idx; i++) {
+        if (context[i].sensor_width && context[i].sensor_height &&
+            context[i].sensor_fps) {
+            context[i].sensor_target_valid = true;
+            sw_sensor_target = true;
+        }
+    }
+
+    if (sw_sensor_target && context_idx > 0) {
+        fprintf(stderr, "sensor target SW mode only supports one camera\n");
+        return -1;
     }
 
     return context_idx + 1;
@@ -214,6 +260,8 @@ int main(int argc, char* argv[]) {
         goto streamoff;
     }
     gettimeofday(&tv, NULL);
+
+    
 
     ret = v4l2_drm_run(context, num, handler);
 

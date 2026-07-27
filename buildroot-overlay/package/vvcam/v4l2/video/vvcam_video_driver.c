@@ -68,11 +68,20 @@
 #include <media/videobuf2-dma-contig.h>
 #include <media/v4l2-fwnode.h>
 
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
+#include <linux/of_graph.h>
+#include <linux/of_irq.h>
+#include <linux/string.h>
+#include <linux/moduleparam.h>
+
 #include "vvcam_video_driver.h"
 #include "vvcam_video_register.h"
 #ifdef VVCAM_PLATFORM_REGISTER
 #include "vvcam_video_platform.h"
 #include "vvcam_pipeline_link.h"
+#include "vvcam_sensor_dt.h"
 #endif
 
 #ifdef VVCAM_PLATFORM_REGISTER
@@ -369,23 +378,26 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 
 #else /* VVCAM_PLATFORM_REGISTER */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
-static struct v4l2_async_connection *
-vvcam_video_async_nf_add_fwnode_remote(struct v4l2_async_notifier *notif,
-				  struct fwnode_handle *endpoint,
-				  unsigned int asc_struct_size)
-{
-    struct v4l2_async_connection *asc;
-    struct fwnode_handle *remote;
+//static struct v4l2_async_connection *
+// vvcam_video_async_nf_add_fwnode_remote(struct v4l2_async_notifier *notif,
+// 				  struct fwnode_handle *endpoint,
+// 				  unsigned int asc_struct_size)
+// {
+//     struct v4l2_async_connection *asc;
+//     struct fwnode_handle *remote;
 
-    remote = fwnode_graph_get_remote_port_parent(endpoint);
-    if (!remote)
-	return ERR_PTR(-ENOTCONN);
+//     remote = fwnode_graph_get_remote_port_parent(endpoint);
+//     if (!remote)
+// 	return ERR_PTR(-ENOTCONN);
 
-    asc = __v4l2_async_nf_add_fwnode(notif, remote, asc_struct_size);
-    fwnode_handle_put(remote);
+//     asc = __v4l2_async_nf_add_fwnode(notif, remote, asc_struct_size);
+//     fwnode_handle_put(remote);
 
-    return asc;
-}
+//     return asc;
+// }
+
+#define VVCAM_REMOTE_MAX_DEV_NUM 5
+
 
 static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
 {
@@ -393,6 +405,11 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
     struct fwnode_handle *ep;
     struct v4l2_async_connection *asc;
     unsigned int port_id = 0;
+
+    struct fwnode_handle *remote;
+    struct fwnode_handle *remote_arr[VVCAM_REMOTE_MAX_DEV_NUM];
+    int i = 0;
+    int remote_dev_count = 0;
 
     vvcam_mdev->notifier.ops = &vvcam_video_async_nf_ops;
 
@@ -404,8 +421,14 @@ static int vvcam_video_async_register_subdev(struct vvcam_media_dev *vvcam_mdev)
         if (!ep)
             break;
 
-        asc = vvcam_video_async_nf_add_fwnode_remote(&vvcam_mdev->notifier,
-                ep, sizeof(struct v4l2_async_connection));
+        // asc = vvcam_video_async_nf_add_fwnode_remote(&vvcam_mdev->notifier,
+        //         ep, sizeof(struct v4l2_async_connection));
+
+        asc = v4l2_async_nf_add_fwnode_remote(&vvcam_mdev->notifier, ep, struct v4l2_async_connection);
+
+        remote = fwnode_graph_get_remote_port_parent(ep);
+
+        printk("-----------------of_fwnode_get_name is %s ----------1 \n", fwnode_get_name(remote));
 
         fwnode_handle_put(ep);
 
@@ -541,8 +564,27 @@ static int vvcam_video_parse_params(struct vvcam_media_dev *vvcam_mdev,
                 vvcam_mdev->pipeline_link = pipeline0;
                 vvcam_mdev->pipeline_link_size = ARRAY_SIZE(pipeline0);
             } else {
+                struct device_node *np;
+                int sensor_count;
+
+                np = vvcam_find_v4l2isp_node();
+                sensor_count = vvcam_count_sensors_from_dt(np);
+                if (np)
+                    of_node_put(np);
+                if (sensor_count < 0) {
+                    dev_err(&pdev->dev,
+                        "mcm: need continuous dev0..devN-sensor-name on v4l2isp (%d)\n",
+                        sensor_count);
+                    return sensor_count;
+                }
+
                 vvcam_mdev->pipeline_link = mcm_pipeline0;
-                vvcam_mdev->pipeline_link_size = ARRAY_SIZE(mcm_pipeline0);
+                vvcam_mdev->pipeline_link_size = sensor_count * 3;
+                if (vvcam_mdev->pipeline_link_size > ARRAY_SIZE(mcm_pipeline0))
+                    vvcam_mdev->pipeline_link_size = ARRAY_SIZE(mcm_pipeline0);
+                dev_info(&pdev->dev,
+                    "mcm: sensor_count=%d, register %d video nodes\n",
+                    sensor_count, vvcam_mdev->pipeline_link_size);
             }
             break;
         case 1:

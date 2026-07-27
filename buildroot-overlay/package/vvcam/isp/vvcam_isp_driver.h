@@ -63,6 +63,7 @@
 #include "vvcam_event.h"
 
 #define VVCAM_ISP_NAME "vvcam-isp"
+#define VVCAM_ISP_MAX_DEV_ID 3
 
 #define VVCAM_ISP_EVENT_ELEMS 10
 #define VVCAM_VI_EVENT_ELEMS 10
@@ -86,6 +87,13 @@ struct vvcam_isp_dev {
     struct tasklet_struct stat_tasklet;
     spinlock_t stat_lock;
     uint32_t refcnt;
+    uint8_t cur_dev_id;
+};
+
+enum vvcam_isp_irq_stat_type {
+    VVCAM_ISP_IRQ_STAT_ISP = 0,
+    VVCAM_ISP_IRQ_STAT_MI,
+    VVCAM_ISP_IRQ_STAT_FE,
 };
 
 struct vvcam_isp_fh {

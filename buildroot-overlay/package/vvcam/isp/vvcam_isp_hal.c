@@ -56,7 +56,10 @@
 #include <linux/spinlock.h>
 #include "vvcam_isp_driver.h"
 #include "vvcam_isp_hal.h"
+#include "vvcam_isp_procfs.h"
 #include <linux/jiffies.h>
+#include <linux/delay.h>
+
 
 extern void vvcam_isp_proc_stat(unsigned long pde,
                     const uint32_t *irq_mis, const int len);
@@ -121,8 +124,17 @@ irqreturn_t vvcam_isp_irq_process(struct vvcam_isp_dev *isp_dev)
 
     vvcam_event_t event;
 
+    if (isp_dev->pde)
+        vvcam_isp_proc_irq_inc(isp_dev->pde, isp_dev->cur_dev_id,
+                    VVCAM_ISP_IRQ_STAT_ISP);
+
     isp_fe_ctrl = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_CTL);
+
+    // printk("%s isp_fe_ctrl is %x \n", __func__, isp_fe_ctrl);
+
     if ((isp_fe_ctrl & ISP_FE_CFG_SEL_MASK) == ISP_FE_SEL_CMDBUF) {
+        if (isp_dev->pde)
+            vvcam_isp_proc_fe_cmdbuf(isp_dev->pde, isp_dev->cur_dev_id);
         return IRQ_HANDLED;
     }
 
@@ -162,6 +174,12 @@ uint64_t frame_timer = 0;
 uint32_t flag = 0;
 irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
 {
+    uint32_t isp_fe_mis = 0;
+
+    if (isp_dev->pde)
+        vvcam_isp_proc_irq_inc(isp_dev->pde, isp_dev->cur_dev_id,
+                    VVCAM_ISP_IRQ_STAT_MI);
+
     uint32_t miv1_mis  = 0;
     uint32_t miv2_mis  = 0;
     uint32_t miv2_mis1 = 0;
@@ -169,25 +187,31 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
     uint32_t miv2_mis3 = 0;
     uint32_t mi_mis_hdr1 = 0;
     uint32_t isp_fe_ctrl = 0;
+    uint32_t isp_fe_ctrl1 = 0;
     uint64_t timestamp;
     uint64_t rdcd_mi_mis = 0;
     vvcam_event_t event;
     bool irq = false;
 
     isp_fe_ctrl = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_CTL);
+    isp_fe_ctrl1 = isp_fe_ctrl;
+
     if ((isp_fe_ctrl & ISP_FE_CFG_SEL_MASK) == ISP_FE_SEL_CMDBUF) {
         return IRQ_HANDLED;
     }
 
-    /*
-     * Same "always ack, drop events if refcnt==0" discipline as
-     * vvcam_isp_irq_process(): see the comment there for the rationale.
-     * Here we read/clear every MI* source first, then decide whether
-     * to queue events.
-     */
+
+    if (isp_fe_mis) {
+        event.type = VVCAM_EVENT_IRQ_TYPE;
+        event.id   = VVCAM_EID_FE_MIS;
+        event.irqevent.irq_value = isp_fe_mis;
+        vvcam_event_queue(&isp_dev->event_dev, &event);
+    }
+
+
     miv2_mis = vvcam_isp_hal_read_reg(isp_dev->base, MIV2_MIS);
     if (miv2_mis) {
-        //printk("miv2 mis 0x%08x\n", miv2_mis);
+        // printk("miv2 mis 0x%08x\n", miv2_mis);
         vvcam_isp_hal_write_reg(isp_dev->base, MIV2_ICR, miv2_mis);
         irq = true;
     }
@@ -237,21 +261,6 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
         miv2_mis &= ~MIV2_MIS_MCM_RAW_RADY_MASK;
         vvcam_event_queue(&isp_dev->event_dev, &event);
         isp_dev->irq_mis[VVCAM_EID_RDMA_MIS] = event.irqevent.irq_value;
-
-        // if (miv2_mis & MIV2_MIS_MP_FRAME_END_MASK) {
-        //     if(flag == 0)
-        //     {
-        //         flag = 1;
-        //         frame_timer = ktime_get();
-        //         cut = 0;
-        //     }
-        //     cut = cut + 1;
-        //     if(cut == 100)
-        //     {
-        //         printk("timer is %lld \n", (ktime_to_ns(ktime_sub(ktime_get(),frame_timer))) / 100);
-        //         flag = 0;
-        //     }
-        // }
     }
 
     if (miv2_mis & MIV2_MIS_JPD_FRAME_END_MASK) {
@@ -380,65 +389,59 @@ irqreturn_t vvcam_isp_mi_irq_process(struct vvcam_isp_dev *isp_dev)
         return IRQ_HANDLED;
     }
 
-    return IRQ_NONE;
+    return IRQ_HANDLED ;//IRQ_NONE;
 }
 
 irqreturn_t vvcam_isp_fe_irq_process(struct vvcam_isp_dev *isp_dev)
 {
     uint32_t isp_fe_mis = 0;
-    uint32_t isp_fe_batch_mode_mis = 0;
     uint32_t isp_fe_ctrl = 0;
+    uint32_t isp_fe_ctrl1 = 0;
     vvcam_event_t event;
     uint64_t timestamp;
     bool irq = false;
 
-    /*
-     * Same clear-and-drop discipline as vvcam_isp_irq_process(): even if
-     * refcnt==0 we must ack the hardware so the level-triggered PLIC line
-     * goes back down, otherwise the IRQ is declared spurious and disabled.
-     */
-    isp_fe_mis = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_MIS);
-    if (isp_fe_mis) {
-        vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_ICR, isp_fe_mis);
+    if (!isp_dev->refcnt)
+        return IRQ_NONE;
 
-        isp_fe_ctrl = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_CTL);
-        if ((isp_fe_ctrl & ISP_FE_CFG_SEL_MASK) == ISP_FE_SEL_CMDBUF) {
+    if (isp_dev->pde)
+        vvcam_isp_proc_irq_inc(isp_dev->pde, isp_dev->cur_dev_id,
+                    VVCAM_ISP_IRQ_STAT_FE);
+
+    isp_fe_ctrl = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_CTL);
+    isp_fe_ctrl1 = isp_fe_ctrl;
+
+    isp_fe_mis = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_MIS);
+    if (isp_fe_mis  & ISP_FE_CFG_SEL_MASK) {
+            vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_ICR, isp_fe_mis);
             isp_fe_ctrl &= ~(ISP_FE_CFG_SEL_MASK | ISP_FE_AHB_WRITE_MASK);
             isp_fe_ctrl |= (ISP_FE_SEL_AHBBUF) << ISP_FE_CFG_SEL_SHIFT;
             isp_fe_ctrl |= (ISP_FE_AHB_WR_ENABLE) << ISP_FE_AHB_WRITE_SHIFT;
             vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_CTL, isp_fe_ctrl);
 
-        }
+        // }
         irq = true;
+    } else {
+        if (isp_dev->pde)
+            vvcam_isp_proc_fe_ctl_mis_cleared(isp_dev->pde,
+                        isp_dev->cur_dev_id);
+        return IRQ_HANDLED;
     }
 
-    isp_fe_batch_mode_mis = vvcam_isp_hal_read_reg(isp_dev->base, ISP_FE_BATCH_MODE_MIS);
-    if (isp_fe_batch_mode_mis) {
-        vvcam_isp_hal_write_reg(isp_dev->base, ISP_FE_BATCH_MODE_ICR, isp_fe_batch_mode_mis);
-        irq = true;
-    }
+    // printk("%s isp_fe_ctrl is %x isp_fe_mis is %x \n", __func__, isp_fe_ctrl, isp_fe_mis);
 
     if (!isp_dev->refcnt)
         return irq ? IRQ_HANDLED : IRQ_NONE;
 
     timestamp = ktime_get_ns();
 
-    if (isp_fe_mis) {
+    if (isp_fe_mis && (isp_fe_ctrl1 & ISP_FE_CFG_SEL_MASK)) {
         event.type = VVCAM_EVENT_IRQ_TYPE;
         event.id   = VVCAM_EID_FE_MIS;
         event.timestamp = timestamp;
         event.irqevent.irq_value = isp_fe_mis;
         vvcam_event_queue(&isp_dev->event_dev, &event);
         isp_dev->irq_mis[VVCAM_EID_FE_MIS] = isp_fe_mis;
-    }
-
-    if (isp_fe_batch_mode_mis) {
-        event.type = VVCAM_EVENT_IRQ_TYPE;
-        event.id   = VVCAM_EID_FE_BATCH_MODE_MIS;
-        event.timestamp = timestamp;
-        event.irqevent.irq_value = isp_fe_batch_mode_mis;
-        vvcam_event_queue(&isp_dev->event_dev, &event);
-        isp_dev->irq_mis[VVCAM_EID_FE_BATCH_MODE_MIS] = isp_fe_batch_mode_mis;
     }
 
     if (irq) {

@@ -127,7 +127,7 @@
     },
     {
       "classname": "AGamma64",
-      "enable": false,
+      "enable": true,
       "tables": [
         {
           "curve": [
@@ -229,7 +229,7 @@
     },
     {
       "classname": "ALscv2",
-      "enable": false,
+      "enable": true,
       "damping": 0.5,
       "interMode": 2,
       "tables": [

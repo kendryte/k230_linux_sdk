@@ -26,6 +26,7 @@ define VVCAM_BUILD_DEB
 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libdisplay.so,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 	$(call COPYFILE ,$(@D)/isp_media_server_debian,$(@D)/deb/usr/bin/)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/v4l2-drm           ,$(@D)/deb/usr/bin/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/v4l2-drm-three-camera ,$(@D)/deb/usr/bin/)
 	$(call COPYFILE ,$(TARGET_DIR)/lib/modules/6.6.36/updates/,$(@D)/deb/usr/lib/modules/6.6.36/)
 	$(call COPYFILE ,$(BR2_ROOTFS_OVERLAY)/etc/init.d/S41adb_mtp ,$(@D)/deb/etc/vvcam/)
 	$(call COPYFILE ,$(BR2_ROOTFS_OVERLAY)/etc/umtprd,$(@D)/deb/etc/)

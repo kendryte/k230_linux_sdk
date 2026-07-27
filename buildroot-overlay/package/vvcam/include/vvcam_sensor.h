@@ -147,7 +147,7 @@ struct vvcam_sensor_mode {
 };
 
 struct vvcam_sensor_ctrl {
-    int (*init)(void** ctx);
+    int (*init)(void** ctx, uint8_t i2c_bus);
     void (*deinit)(void* ctx);
     int (*enum_mode)(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode);
     int (*get_mode)(void* ctx, struct vvcam_sensor_mode* mode);
@@ -160,6 +160,7 @@ struct vvcam_sensor_ctrl {
     int (*set_analog_gain)(void* ctx, float gain);
     int (*set_digital_gain)(void* ctx, float gain);
     int (*set_int_time)(void* ctx, float time);
+    int (*probe)(uint8_t i2c_bus, uint32_t *chip_id);
 };
 
 struct vvcam_sensor {
@@ -169,5 +170,7 @@ struct vvcam_sensor {
 
 void vvcam_sensor_add(struct vvcam_sensor* sensor);
 void vvcam_sensor_init(void);
+int vvcam_sensor_find_mode_by_size_fps(struct vvcam_sensor *sensor, void *ctx,
+    uint16_t width, uint16_t height, uint32_t fps);
 
 #endif

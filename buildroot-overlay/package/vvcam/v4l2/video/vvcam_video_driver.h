@@ -105,6 +105,7 @@ struct vvcam_video_dev {
 	struct v4l2_format format;
 	uint32_t pipeline;
 	struct vvcam_video_event_shm event_shm;
+	int sensor_num;
 };
 
 struct vvcam_media_dev {

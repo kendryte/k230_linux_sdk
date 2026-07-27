@@ -72,6 +72,7 @@
 #define VVCAM_ISP_HEIGHT_MIN 16
 
 #define VVCAM_ISP_PORT_NR  4
+#define VVCAM_ISP_SCENE_CALIB_DIR_MAX 128
 enum vvcam_isp_port_pad_e {
 	VVCAM_ISP_PORT_PAD_SINK = 0,
 	VVCAM_ISP_PORT_PAD_SOURCE_MP,
@@ -109,10 +110,17 @@ struct vvcam_isp_event_shm {
 struct vvcam_isp_sensor_info {
 	char sensor[32];
 	uint8_t mode;
-	char xml[64];
-	char manu_json[128];
-	char auto_json[128];
+	uint8_t i2c_bus;
 };
+
+#define MAX_SENSORS 3
+
+struct sensor_config {
+    char name[256];
+    uint32_t mode;
+    uint32_t i2c_bus;
+};
+
 
 struct vvcam_isp_dev {
     phys_addr_t paddr;
@@ -142,6 +150,10 @@ struct vvcam_isp_dev {
 	unsigned long pde;
 	struct vvcam_isp_sensor_info sensor_info[VVCAM_ISP_PORT_NR];
 
+	char scene_calib_dir[VVCAM_ISP_SCENE_CALIB_DIR_MAX];
+	uint32_t scene_mode;
+
+	struct sensor_config sensors[MAX_SENSORS];
 };
 
 #endif

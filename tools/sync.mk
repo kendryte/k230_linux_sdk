@@ -24,6 +24,17 @@ $(BR_SRC_DIR)/.download_extract:
 # $(error $(BR_OVERLAY_FS))
 $(BR_SRC_DIR)/.overlay_sync: $(BR_SRC_DIR)/.download_extract $(BR_OVERLAY_FS)
 	rsync -a  $(BR_OVERLAY_DIR)/ $(BR_SRC_DIR)/ --exclude "*-overlay"  --exclude "linux-6.6.22"
+	# Drop renamed/removed overlay linux *.patch left behind by rsync -a (no --delete).
+	# Do not touch stock *.patch.conditional files that only exist in Buildroot.
+	# Otherwise e.g. 0025-mcm + 0026-mcm both apply and patching fails.
+	@for f in $(BR_SRC_DIR)/linux/*.patch; do \
+		[ -e "$$f" ] || continue; \
+		bn=$$(basename "$$f"); \
+		if [ ! -e "$(BR_OVERLAY_DIR)/linux/$$bn" ]; then \
+			echo "sync: remove stale linux patch $$bn"; \
+			rm -f "$$f"; \
+		fi; \
+	done
 	@touch $@
 
 output/.uboot_overlay_sync:$(UBOOT_OVERLAY_FS)

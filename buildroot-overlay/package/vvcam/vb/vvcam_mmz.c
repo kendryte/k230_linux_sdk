@@ -62,6 +62,7 @@
 #include <linux/poll.h>
 #include <linux/slab.h>
 #include <linux/mm.h>
+#include <linux/dma-mapping.h>
 
 #include "vvcam_mmz.h"
 #include "vvcam_vb_driver.h"
@@ -372,7 +373,65 @@ int vvcam_mmz_free_all(struct file *file)
     return 0;
 }
 
+int vvcam_mmz_cache_sync(struct vvcam_mmz *mmz, struct file *file,
+            unsigned long paddr, unsigned long size,
+            enum dma_data_direction dir)
+{
+    struct vvcam_mmb *mmb;
+    unsigned long remaining;
+    unsigned long pa;
+    int found = 0;
 
+    if (!mmz || !file || !paddr || !size)
+        return -EINVAL;
 
+    if (paddr + size < paddr)
+        return -EINVAL;
 
+    list_for_each_entry(mmb, &mmz->mmb_list, list) {
+        unsigned long mmb_end;
+
+        if (mmb->private != file)
+            continue;
+
+        mmb_end = mmb->phys_addr + mmb->size;
+        if (paddr < mmb->phys_addr || paddr >= mmb_end)
+            continue;
+
+        if (paddr + size > mmb_end)
+            return -EINVAL;
+
+        found = 1;
+        break;
+    }
+
+    if (!found)
+        return -ENOENT;
+
+    remaining = size;
+    pa = paddr;
+
+    while (remaining) {
+        struct page *page = pfn_to_page(__phys_to_pfn(pa));
+        unsigned long pg_off = offset_in_page(pa);
+        size_t len = min(remaining, PAGE_SIZE - pg_off);
+        dma_addr_t dma;
+
+        dma = dma_map_page(mmz->dev, page, pg_off, len, dir);
+        if (dma_mapping_error(mmz->dev, dma))
+            return -EIO;
+
+        if (dir == DMA_TO_DEVICE)
+            dma_sync_single_for_device(mmz->dev, dma, len, DMA_TO_DEVICE);
+        else
+            dma_sync_single_for_cpu(mmz->dev, dma, len, DMA_FROM_DEVICE);
+
+        dma_unmap_page(mmz->dev, dma, len, dir);
+
+        pa += len;
+        remaining -= len;
+    }
+
+    return 0;
+}
 

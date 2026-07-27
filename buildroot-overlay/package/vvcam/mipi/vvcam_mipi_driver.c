@@ -205,9 +205,18 @@ static long vvcam_mipi_ioctl(struct file *file,
             break;
         // convert to k230 api
         convert_to_vi_attr(mipi_dev->dev, &mipi_cfg, &vi_attr);
+        /* Physical CSI from DT id; logical DVP/ISP port from node name mipi.N */
         vi_attr.csi_num = mipi_dev->id + 1;
-        vi_attr.dvp_port = VI_DVP_PORT0;
-        ret = kd_vi_bind_source(mipi_dev->id == 0 ? SOURCE_CSI0 : (mipi_dev->id == 1 ? SOURCE_CSI1 : SOURCE_CSI2), VI_DVP_PORT0);
+        if (mipi_dev->soft_id <= 2) {
+            vi_attr.dvp_port = (enum vi_dvp_port)mipi_dev->soft_id;
+        } else {
+            vi_attr.dvp_port = VI_DVP_PORT0;
+        }
+        dev_info(mipi_dev->dev, "bind SOURCE_CSI%d -> DVP_PORT%d (soft_id=%d)\n",
+                 mipi_dev->id, vi_attr.dvp_port, mipi_dev->soft_id);
+        ret = kd_vi_bind_source(mipi_dev->id == 0 ? SOURCE_CSI0 :
+                (mipi_dev->id == 1 ? SOURCE_CSI1 : SOURCE_CSI2),
+                vi_attr.dvp_port);
         if (ret) {
             dev_err(mipi_dev->dev, "kd_vi_bind_source error %d\n", ret);
             break;
@@ -252,6 +261,18 @@ static irqreturn_t vvcam_mipi_irq_handler(int irq, void *mipi_dev) {
     return IRQ_HANDLED;
 }
 
+static unsigned int vvcam_mipi_misc_id(struct platform_device *pdev, unsigned int hw_id)
+{
+    unsigned int misc_id = hw_id;
+
+    if (pdev->dev.of_node && pdev->dev.of_node->name) {
+        if (sscanf(pdev->dev.of_node->name, "mipi.%u", &misc_id) != 1)
+            misc_id = hw_id;
+    }
+
+    return misc_id;
+}
+
 static int vvcam_mipi_probe(struct platform_device *pdev)
 {
     int ret = 0;
@@ -261,10 +282,12 @@ static int vvcam_mipi_probe(struct platform_device *pdev)
     int lenp = 0;
     const unsigned int *id_p;
     unsigned int id;
+    unsigned int misc_id;
 
     id_p = of_get_property(pdev->dev.of_node, "id", &lenp);
     id = htonl(*id_p);
-    dev_info(&pdev->dev, "start probe %u", id);
+    misc_id = vvcam_mipi_misc_id(pdev, id);
+    dev_info(&pdev->dev, "start probe hw_id %u misc_id %u", id, misc_id);
 
     mipi_dev = devm_kzalloc(&pdev->dev,
                 sizeof(struct vvcam_mipi_dev), GFP_KERNEL);
@@ -313,7 +336,7 @@ static int vvcam_mipi_probe(struct platform_device *pdev)
         gpiod_set_value_cansleep(mipi_dev->reset_gpio, false);
         mdelay(100);
         gpiod_set_value_cansleep(mipi_dev->reset_gpio, true);
-        printk("reset gpio init successwwwwwwjx \n");
+        printk("sensor gpio%d reset success!!!! \n",mipi_dev->reset_gpio);
 
     }
 
@@ -325,6 +348,7 @@ static int vvcam_mipi_probe(struct platform_device *pdev)
 
     mipi_dev->dev = &pdev->dev;
     mipi_dev->id = id;
+    mipi_dev->soft_id = misc_id;
 
     // vvcam_mipi_default_cfg(mipi_dev);
     csi_device_init();
@@ -333,8 +357,8 @@ static int vvcam_mipi_probe(struct platform_device *pdev)
     miscdev_name = devm_kzalloc(&pdev->dev, 16, GFP_KERNEL);
     if (!miscdev_name)
         return -ENOMEM;
-    // FIXME:
-    snprintf(miscdev_name, 16, "vvcam-mipi.0");
+    // misc node index follows DT node (mipi.0 -> vvcam-mipi.0); hw id selects CSI block
+    snprintf(miscdev_name, 16, "vvcam-mipi.%d", misc_id);
 
     mipi_dev->miscdev.minor = MISC_DYNAMIC_MINOR;
     mipi_dev->miscdev.name  = miscdev_name;

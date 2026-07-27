@@ -67,6 +67,10 @@
 /* Lines per frame */
 #define IMX335_REG_LPFR 0x3030
 
+/* Chip ID (align RTOS imx335.c _sensor_read_chip_id_r) */
+#define IMX335_REG_CHIP_ID                                  0x0016
+#define IMX335_CHIP_ID                                      0x0355
+
 /* Chip ID */
 #define IMX335_REG_ID 0x3912
 #define IMX335_ID 0x00
@@ -553,13 +557,90 @@ static int open_i2c(struct imx335_ctx* sensor) {
     return 0;
 }
 
-static int init(void** ctx) {
+static void imx335_close_i2c(struct imx335_ctx *sensor)
+{
+    if (sensor && sensor->i2c >= 0) {
+        close(sensor->i2c);
+        sensor->i2c = -1;
+    }
+}
+
+static int imx335_open_i2c_bus(struct imx335_ctx *sensor, uint8_t i2c_bus)
+{
+    char i2c_dev[32];
+
+    if (sensor->i2c >= 0)
+        return 0;
+
+    snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%u", i2c_bus);
+    sensor->i2c = open(i2c_dev, O_RDWR);
+    if (sensor->i2c < 0) {
+        perror(i2c_dev);
+        return -1;
+    }
+    if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS_IMX335) < 0) {
+        perror("imx335 i2c slave");
+        imx335_close_i2c(sensor);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int imx335_read_chip_id(struct imx335_ctx *sensor, uint32_t *chip_id)
+{
+    uint8_t id_h = 0;
+    uint8_t id_l = 0;
+    uint32_t id;
+
+    if (read_reg(sensor, IMX335_REG_CHIP_ID, &id_h))
+        return -1;
+    if (read_reg(sensor, IMX335_REG_CHIP_ID + 1, &id_l))
+        return -1;
+
+    id = ((uint32_t)id_h << 8) | id_l;
+    if (chip_id)
+        *chip_id = id;
+    if (id == IMX335_CHIP_ID)
+        return 0;
+
+    fprintf(stderr, "imx335: chip id mismatch 0x%04x (expect 0x%04x)\n",
+        id, IMX335_CHIP_ID);
+    return -1;
+}
+
+static int probe(uint8_t i2c_bus, uint32_t *chip_id)
+{
+    struct imx335_ctx sensor;
+    uint32_t id = 0;
+
+    memset(&sensor, 0, sizeof(sensor));
+    sensor.i2c = -1;
+
+    if (imx335_open_i2c_bus(&sensor, i2c_bus))
+        return -1;
+    if (imx335_read_chip_id(&sensor, &id) != 0) {
+        fprintf(stderr, "imx335: read chip id failed on i2c-%u\n", i2c_bus);
+        imx335_close_i2c(&sensor);
+        return -1;
+    }
+    imx335_close_i2c(&sensor);
+
+    if (chip_id)
+        *chip_id = id;
+
+    fprintf(stderr, "imx335: probe ok, chip id 0x%04x, i2c addr 0x%02x\n",
+        id, I2C_SLAVE_ADDRESS_IMX335);
+    return 0;
+}
+
+static int init(void** ctx, uint8_t i2c_bus) {
     struct imx335_ctx* sensor = calloc(1, sizeof(struct imx335_ctx));
     sensor->i2c = -1;
     sensor->hflip = false;
     sensor->vflip = false;
     *ctx = sensor;
-
+    
     return 0;
 }
 
@@ -906,6 +987,7 @@ struct vvcam_sensor vvcam_imx335 = {
         .get_vflip = get_vflip,
         .set_analog_gain = set_analog_gain,
         .set_digital_gain = set_digital_gain,
-        .set_int_time = set_int_time
+        .set_int_time = set_int_time,
+        .probe = probe,
     }
 };

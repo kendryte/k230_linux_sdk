@@ -90,6 +90,15 @@ typedef struct {
     uint32_t value;
 } vvcam_isp_reg_t;
 
+
+typedef struct {
+    uint8_t  dev_id;
+    uint32_t cmd_num_max;
+    uint32_t cmd_dma_addr;
+    uint32_t mcm_bus_id;
+} isp_fe_buffer_t;
+
+
 #define VVCAM_ISP_IOC_MAGIC 'v'
 #define VVCAM_ISP_RESET             _IOW(VVCAM_ISP_IOC_MAGIC, 0x01, uint32_t)
 #define VVCAM_ISP_READ_REG          _IOWR(VVCAM_ISP_IOC_MAGIC, 0x02, vvcam_isp_reg_t)
@@ -97,5 +106,7 @@ typedef struct {
 #define VVCAM_ISP_SUBSCRIBE_EVENT   _IOW(VVCAM_ISP_IOC_MAGIC, 0x04, vvcam_subscription_t)
 #define VVCAM_ISP_UNSUBSCRIBE_EVENT _IOW(VVCAM_ISP_IOC_MAGIC, 0x05, vvcam_subscription_t)
 #define VVCAM_ISP_DQEVENT           _IOR(VVCAM_ISP_IOC_MAGIC, 0x06, vvcam_event_t)
+#define VVCAM_ISP_CLOSE_IRQ         _IOW(VVCAM_ISP_IOC_MAGIC, 0x07, uint32_t)
+#define VVCAM_ISP_FE_START          _IOW(VVCAM_ISP_IOC_MAGIC, 0x08, isp_fe_buffer_t)
 
 #endif

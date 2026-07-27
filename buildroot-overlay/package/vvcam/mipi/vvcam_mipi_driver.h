@@ -68,7 +68,8 @@ struct vvcam_mipi_dev {
 	void __iomem *csi_ctrl_reg;
     void __iomem *csi_mux_reg;
     #endif
-    int  id;
+    int  id;       /* physical CSI id from DT "id" */
+    int  soft_id;  /* logical slot from node name mipi.N */
     uint8_t bus_width;
     struct miscdevice miscdev;
     struct device *dev;

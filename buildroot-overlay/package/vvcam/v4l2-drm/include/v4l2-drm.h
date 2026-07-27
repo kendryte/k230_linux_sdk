@@ -51,6 +51,10 @@ struct v4l2_drm_context {
     enum drm_rotation drm_rotation;
     int8_t hflip;
     int8_t vflip;
+    uint32_t sensor_width;
+    uint32_t sensor_height;
+    uint32_t sensor_fps;
+    bool sensor_target_valid;
 };
 
 

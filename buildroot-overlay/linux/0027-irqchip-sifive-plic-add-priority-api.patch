@@ -1,0 +1,175 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Canaan K230 <dev@canaan.com>
+Date: Thu, 11 Jun 2026 00:00:00 +0800
+Subject: [PATCH] irqchip: sifive-plic: add per-source priority API
+
+Allow device drivers to set PLIC interrupt source priorities and preserve
+the configured values across mask/unmask and system suspend/resume.
+
+Signed-off-by: Canaan K230 <dev@canaan.com>
+---
+ drivers/irqchip/irq-sifive-plic.c | 83 +++++++++++++++++++++++++++----
+ include/linux/plic.h              |  9 ++++
+ 2 files changed, 83 insertions(+), 9 deletions(-)
+ create mode 100644 include/linux/plic.h
+diff --git a/drivers/irqchip/irq-sifive-plic.c b/drivers/irqchip/irq-sifive-plic.c
+--- a/drivers/irqchip/irq-sifive-plic.c
++++ b/drivers/irqchip/irq-sifive-plic.c
+@@ -18,6 +18,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/spinlock.h>
+ #include <linux/syscore_ops.h>
++#include <linux/plic.h>
+ #include <asm/smp.h>
+ 
+ /*
+@@ -36,8 +37,8 @@
+ 
+ /*
+  * Each interrupt source has a priority register associated with it.
+- * We always hardwire it to one in Linux.
+  */
++#define PLIC_DEFAULT_PRIORITY		1
+ #define PRIORITY_BASE			0
+ #define     PRIORITY_PER_ID		4
+ 
+@@ -69,6 +70,7 @@
+ 	void __iomem *regs;
+ 	unsigned long plic_quirks;
+ 	unsigned int nr_irqs;
++	u8 *prio;
+ 	unsigned long *prio_save;
+ };
+ 
+@@ -130,18 +132,25 @@
+ 	plic_irq_toggle(irq_data_get_effective_affinity_mask(d), d, 0);
+ }
+ 
++static void plic_hw_set_priority(struct plic_priv *priv, irq_hw_number_t hwirq,
++				 u8 priority)
++{
++	writel(priority, priv->regs + PRIORITY_BASE + hwirq * PRIORITY_PER_ID);
++}
++
+ static void plic_irq_unmask(struct irq_data *d)
+ {
+ 	struct plic_priv *priv = irq_data_get_irq_chip_data(d);
++	u8 priority = priv->prio[d->hwirq] ?: PLIC_DEFAULT_PRIORITY;
+ 
+-	writel(1, priv->regs + PRIORITY_BASE + d->hwirq * PRIORITY_PER_ID);
++	plic_hw_set_priority(priv, d->hwirq, priority);
+ }
+ 
+ static void plic_irq_mask(struct irq_data *d)
+ {
+ 	struct plic_priv *priv = irq_data_get_irq_chip_data(d);
+ 
+-	writel(0, priv->regs + PRIORITY_BASE + d->hwirq * PRIORITY_PER_ID);
++	plic_hw_set_priority(priv, d->hwirq, 0);
+ }
+ 
+ static void plic_irq_eoi(struct irq_data *d)
+@@ -239,6 +248,45 @@
+ 	return IRQ_SET_MASK_OK;
+ }
+ 
++static bool plic_is_plic_chip(struct irq_chip *chip)
++{
++	return chip == &plic_chip || chip == &plic_edge_chip;
++}
++
++/**
++ * plic_set_irq_priority - Set PLIC source priority for a Linux IRQ
++ * @irq: Linux IRQ number
++ * @priority: Priority value 1-7 (higher = more priority)
++ *
++ * Returns 0 on success, negative errno on failure.
++ */
++int plic_set_irq_priority(unsigned int irq, u32 priority)
++{
++	struct irq_data *d;
++	struct plic_priv *priv;
++	irq_hw_number_t hwirq;
++
++	if (!priority || priority > PLIC_DISABLE_THRESHOLD)
++		return -EINVAL;
++
++	d = irq_get_irq_data(irq);
++	if (!d || !d->chip || !plic_is_plic_chip(d->chip))
++		return -ENODEV;
++
++	priv = irq_data_get_irq_chip_data(d);
++	hwirq = d->hwirq;
++	if (!hwirq || hwirq > priv->nr_irqs)
++		return -EINVAL;
++
++	priv->prio[hwirq] = priority;
++
++	if (readl(priv->regs + PRIORITY_BASE + hwirq * PRIORITY_PER_ID))
++		plic_hw_set_priority(priv, hwirq, priority);
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(plic_set_irq_priority);
++
+ static int plic_irq_suspend(void)
+ {
+ 	unsigned int i, cpu;
+@@ -280,8 +328,9 @@
+ 
+ 	for (i = 0; i < priv->nr_irqs; i++) {
+ 		index = BIT_WORD(i);
+-		writel((priv->prio_save[index] & BIT_MASK(i)) ? 1 : 0,
+-		       priv->regs + PRIORITY_BASE + i * PRIORITY_PER_ID);
++		if (priv->prio_save[index] & BIT_MASK(i))
++			plic_hw_set_priority(priv, i,
++					     priv->prio[i] ?: PLIC_DEFAULT_PRIORITY);
+ 	}
+ 
+ 	for_each_cpu(cpu, cpu_present_mask) {
+@@ -441,6 +490,10 @@
+ 
+ 	priv->nr_irqs = nr_irqs;
+ 
++	priv->prio = kcalloc(nr_irqs + 1, sizeof(*priv->prio), GFP_KERNEL);
++	if (!priv->prio)
++		goto out_iounmap;
++
+ 	priv->prio_save = bitmap_alloc(nr_irqs, GFP_KERNEL);
+ 	if (!priv->prio_save)
+ 		goto out_free_priority_reg;
+@@ -531,8 +584,8 @@
+ done:
+ 		for (hwirq = 1; hwirq <= nr_irqs; hwirq++) {
+ 			plic_toggle(handler, hwirq, 0);
+-			writel(1, priv->regs + PRIORITY_BASE +
+-				  hwirq * PRIORITY_PER_ID);
++			priv->prio[hwirq] = PLIC_DEFAULT_PRIORITY;
++			plic_hw_set_priority(priv, hwirq, PLIC_DEFAULT_PRIORITY);
+ 		}
+ 		nr_handlers++;
+ 	}
+@@ -560,6 +613,7 @@
+ 		handler = per_cpu_ptr(&plic_handlers, cpu);
+ 		kfree(handler->enable_save);
+ 	}
++	kfree(priv->prio);
+ out_free_priority_reg:
+ 	kfree(priv->prio_save);
+ out_iounmap:
+diff --git a/include/linux/plic.h b/include/linux/plic.h
+new file mode 100644
+--- a/include/linux/plic.h
++++ b/include/linux/plic.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LINUX_PLIC_H
++#define _LINUX_PLIC_H
++
++#include <linux/types.h>
++
++int plic_set_irq_priority(unsigned int irq, u32 priority);
++
++#endif /* _LINUX_PLIC_H */
+--
+2.25.1

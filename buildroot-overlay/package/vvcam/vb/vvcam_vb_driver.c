@@ -57,14 +57,31 @@
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
 #include <linux/spinlock.h>
-#include <linux/pm_runtime.h>
-#include <linux/io.h>
-#include <linux/interrupt.h>
 #include <linux/poll.h>
 #include <linux/slab.h>
-#include <linux/mm.h>
 #include <linux/dmaengine.h>
+#include <linux/mm.h>
+#include <linux/interrupt.h>
+#include <linux/list.h>
+#include <linux/wait.h>
+#include <linux/fs.h>
+#include <linux/device.h>
+#include <linux/delay.h>
+#include <linux/pagemap.h>
+#include <linux/version.h>
+#include <linux/vmalloc.h>
+#include <linux/mman.h>
+#include <linux/mm_types.h>
+#include <linux/io.h>
+#include <linux/of_platform.h>
+#include <linux/of_gpio.h>
+#include <linux/of_irq.h>
+#include <linux/of_address.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-buf.h>
+#include <linux/clk.h>
+#include <linux/reset.h>
+#include <linux/pm_runtime.h>
 
 #include "vvcam_vb_driver.h"
 #include "vvcam_vb.h"
@@ -72,6 +89,7 @@
 #include "vvcam_mmz.h"
 #include "vvcam_cma.h"
 #include "vvcam_vb_procfs.h"
+
 
 static int enable_cma = 1;
 
@@ -101,45 +119,31 @@ static int vvcam_vb_free(struct file *file, vvcam_vb_t *vb_mem)
 static int vvcam_vb_cache_flush(struct file *file, vvcam_vb_t *vb_mem)
 {
     struct vvcam_vb_dev *vb_dev = file->private_data;
-    unsigned long pfn = __phys_to_pfn(vb_mem->paddr);
-    struct page *page = pfn_to_page(pfn);
-    unsigned long offset = offset_in_page(vb_mem->paddr);
-    size_t size = PAGE_ALIGN(vb_mem->size);
-    dma_addr_t dma_addr = 0;
 
-    dma_addr = dma_map_page(vb_dev->dev, page, offset, size, DMA_TO_DEVICE);
-    if (dma_mapping_error(vb_dev->dev, dma_addr)) {
-        dev_err(vb_dev->dev, "ma map page failed.\n");
+    if (!vb_mem->paddr || !vb_mem->size)
         return -EINVAL;
-    }
 
-    dma_sync_single_for_device(vb_dev->dev, dma_addr, size, DMA_TO_DEVICE);
+    if (vb_dev->type == VVCAM_VB_CMA)
+        return vvcam_cma_cache_sync(vb_dev->allocator.mm_dev, file,
+                        vb_mem->paddr, vb_mem->size, DMA_TO_DEVICE);
 
-    dma_unmap_page(vb_dev->dev, dma_addr, size, DMA_TO_DEVICE);
-
-    return 0;
+    return vvcam_mmz_cache_sync(vb_dev->allocator.mm_dev, file,
+                    vb_mem->paddr, vb_mem->size, DMA_TO_DEVICE);
 }
 
 static int vvcam_vb_cache_invalid(struct file *file, vvcam_vb_t *vb_mem)
 {
     struct vvcam_vb_dev *vb_dev = file->private_data;
-    unsigned long pfn = __phys_to_pfn(vb_mem->paddr);
-    struct page *page = pfn_to_page(pfn);
-    unsigned long offset = offset_in_page(vb_mem->paddr);
-    size_t size = PAGE_ALIGN(vb_mem->size);
-    dma_addr_t dma_addr = 0;
 
-    dma_addr = dma_map_page(vb_dev->dev, page, offset, size, DMA_FROM_DEVICE);
-    if (dma_mapping_error(vb_dev->dev, dma_addr)) {
-        dev_err(vb_dev->dev, "ma map page failed.\n");
+    if (!vb_mem->paddr || !vb_mem->size)
         return -EINVAL;
-    }
 
-    dma_sync_single_for_cpu(vb_dev->dev, dma_addr, size, DMA_FROM_DEVICE);
+    if (vb_dev->type == VVCAM_VB_CMA)
+        return vvcam_cma_cache_sync(vb_dev->allocator.mm_dev, file,
+                        vb_mem->paddr, vb_mem->size, DMA_FROM_DEVICE);
 
-    dma_unmap_page(vb_dev->dev, dma_addr, size, DMA_FROM_DEVICE);
-
-    return 0;
+    return vvcam_mmz_cache_sync(vb_dev->allocator.mm_dev, file,
+                    vb_mem->paddr, vb_mem->size, DMA_FROM_DEVICE);
 }
 
 static int vvcam_vb_open(struct inode *inode, struct file *file)

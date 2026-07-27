@@ -91,10 +91,8 @@ static int vvcam_isp_procfs_info_show(struct seq_file *sfile, void *offset)
             port = pad_idx / VVCAM_ISP_PORT_PAD_NR;
             seq_printf(sfile, "isp%d port%d:\n", isp_dev->id, port);
             seq_printf(sfile, "sensor   : %s\n", isp_dev->sensor_info[port].sensor);
+            seq_printf(sfile, "i2c_bus   : %d\n", isp_dev->sensor_info[port].i2c_bus);
             seq_printf(sfile, "mode     : %d\n", isp_dev->sensor_info[port].mode);
-            seq_printf(sfile, "xml      : %s\n", isp_dev->sensor_info[port].xml);
-            seq_printf(sfile, "manu_json: %s\n", isp_dev->sensor_info[port].manu_json);
-            seq_printf(sfile, "auto_json: %s\n", isp_dev->sensor_info[port].auto_json);
             seq_printf(sfile, "*********************************\n");
         }
     }
@@ -148,9 +146,8 @@ static int32_t vvcam_isp_proc_process(struct seq_file *sfile,
              * importantly, writes strlen(val) bytes regardless of
              * sizeof(dst) - so any write from userspace that is longer
              * than the destination corrupts the following field
-             * (sensor -> xml -> manu_json -> auto_json all adjacent in
-             * struct vvcam_isp_sensor_info). strscpy caps the copy at
-             * dst size and guarantees a trailing NUL.
+             * (sensor -> mode -> i2c_bus adjacent in struct vvcam_isp_sensor_info).
+             * strscpy caps the copy at dst size and guarantees a trailing NUL.
              */
             if (strcmp(val, "sensor") == 0) {
                 val = strsep(&kv_cur, kv_delim);
@@ -158,28 +155,18 @@ static int32_t vvcam_isp_proc_process(struct seq_file *sfile,
                     strscpy(isp_dev->sensor_info[port].sensor, val,
                             sizeof(isp_dev->sensor_info[port].sensor));
                 }
-            } else if (strcmp(val, "mode") == 0) {
+            } 
+            else if (strcmp(val, "mode") == 0) {
                 val = strsep(&kv_cur, kv_delim);
                 if (val && isdigit(*val)) {
                     isp_dev->sensor_info[port].mode = (uint32_t)simple_strtoul(val, &end, 0);
                 }
-            } else if (strcmp(val, "xml") == 0) {
+            } 
+            else if (strcmp(val, "i2c_bus") == 0) {
                 val = strsep(&kv_cur, kv_delim);
-                if (val) {
-                    strscpy(isp_dev->sensor_info[port].xml, val,
-                            sizeof(isp_dev->sensor_info[port].xml));
-                }
-            } else if (strcmp(val, "manu_json") == 0) {
-                val = strsep(&kv_cur, kv_delim);
-                if (val) {
-                    strscpy(isp_dev->sensor_info[port].manu_json, val,
-                            sizeof(isp_dev->sensor_info[port].manu_json));
-                }
-            } else if (strcmp(val, "auto_json") == 0) {
-                val = strsep(&kv_cur, kv_delim);
-                if (val) {
-                    strscpy(isp_dev->sensor_info[port].auto_json, val,
-                            sizeof(isp_dev->sensor_info[port].auto_json));
+                if (val && isdigit(*val)) {
+                    isp_dev->sensor_info[port].i2c_bus =
+                        (uint8_t)simple_strtoul(val, &end, 0);
                 }
             }
         }

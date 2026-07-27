@@ -322,3 +322,57 @@ int vvcam_isp_s_selection_event(struct vvcam_isp_dev *isp_dev,
 
     return ret;
 }
+
+int vvcam_isp_scene_config_event(struct vvcam_isp_dev *isp_dev,
+				 const struct vvcam_isp_scene_config *cfg)
+{
+    struct vvcam_isp_event_pkg *event_pkg = isp_dev->event_shm.virt_addr;
+    int ret;
+
+    if (!cfg)
+        return -EINVAL;
+
+    mutex_lock(&isp_dev->event_shm.event_lock);
+    memcpy(event_pkg->data, cfg, sizeof(*cfg));
+    event_pkg->head.pad = 0;
+    event_pkg->head.dev = isp_dev->id;
+    event_pkg->head.eid = VVCAM_ISP_EVENT_SCENE_CONFIG;
+    event_pkg->head.shm_addr = isp_dev->event_shm.phy_addr;
+    event_pkg->head.shm_size = isp_dev->event_shm.size;
+    event_pkg->head.data_size = sizeof(*cfg);
+    event_pkg->ack = 0;
+    event_pkg->result = 0;
+
+    ret = vvcam_isp_post_event(&isp_dev->sd, event_pkg);
+
+    mutex_unlock(&isp_dev->event_shm.event_lock);
+
+    return ret;
+}
+
+int vvcam_isp_sensor_target_event(struct vvcam_isp_dev *isp_dev, int pad,
+				 const struct vvcam_isp_sensor_target *cfg)
+{
+    struct vvcam_isp_event_pkg *event_pkg = isp_dev->event_shm.virt_addr;
+    int ret;
+
+    if (!cfg)
+        return -EINVAL;
+
+    mutex_lock(&isp_dev->event_shm.event_lock);
+    memcpy(event_pkg->data, cfg, sizeof(*cfg));
+    event_pkg->head.pad = pad;
+    event_pkg->head.dev = isp_dev->id;
+    event_pkg->head.eid = VVCAM_ISP_EVENT_SENSOR_TARGET;
+    event_pkg->head.shm_addr = isp_dev->event_shm.phy_addr;
+    event_pkg->head.shm_size = isp_dev->event_shm.size;
+    event_pkg->head.data_size = sizeof(*cfg);
+    event_pkg->ack = 0;
+    event_pkg->result = 0;
+
+    ret = vvcam_isp_post_event(&isp_dev->sd, event_pkg);
+
+    mutex_unlock(&isp_dev->event_shm.event_lock);
+
+    return ret;
+}

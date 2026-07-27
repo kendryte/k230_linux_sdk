@@ -1,0 +1,833 @@
+From: zhangchenli <zhangchenli@canaan-creative.com>
+Date: Wed, 22 Jul 2026 16:20:00 +0800
+Subject: [PATCH] mcm dts: CSI2 default, prewrite CSI0/CSI1 disabled
+
+Camera board DTS (applies after 0025-dts-add-lckfb-dts-symlink; PLIC is 0027).
+
+- 01studio / lckfb: CSI2 on mipi.0 (okay); CSI0/CSI1 prewritten disabled
+- Enable i2c0/i2c1 so enabling a slot only needs mipi status flip
+- CanMV / CanMV-lcd: aliases i2c0=&i2c3 (camera), i2c1=&i2c4; enable &i2c0
+  and keep &i2c3; dev0-sensor-i2c-bus = <0>
+- Other boards: preserve each board's existing physical CSI mapping and add
+  explicit single-camera mipi status plus dev0 sensor configuration
+- BPI K230D Zero: align the DTS sensor with its imx335 defconfig and i2c4
+- sensor_count = continuous (devN-sensor-name AND mipi.N okay)
+
+---
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio.dts
+@@ -12,8 +12,10 @@
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+-		i2c0 = &i2c4;
+-		i2c1 = &i2c3;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c3 = &i2c3;
++		i2c4 = &i2c4;
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
+ 		spi0 = &spi0;
+@@ -93,6 +95,14 @@
+ 	status = "okay";
+ };
+ 
++&i2c0 {
++	status = "okay";
++};
++
++&i2c1 {
++	status = "okay";
++};
++
+ &i2c3 {
+ 	status = "okay";
+ 
+@@ -154,17 +164,66 @@
+ &vo {
+ 	vth_line = <10>;
+ };
+-&mipi0
+-{
+-	// set to csi2
++/* CSI2 default single-cam; CSI0/CSI1 prewritten disabled.
++ *   slot0 / mipi.0 = physical CSI2 (ON)
++ *   slot1 / mipi.1 = physical CSI0 (disabled; set status="okay" to enable)
++ *   slot2 / mipi.2 = physical CSI1 (disabled; set status="okay" to enable)
++ * Sensor count = continuous (devN-sensor-name AND mipi.N okay).
++ * Enable corresponding &i2cX when enabling a slot.
++ */
++&mipi0 {
++	/* CSI2 -> logical slot0 */
+ 	id = <2>;
+ 	reg = <0x0 0x9000a800 0x0 0x800>;
+ 	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
+ 	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+-	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+-		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++		 <&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++			  K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 9 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&mipi1 {
++	/* CSI0 -> logical slot1; disabled by default */
++	id = <0>;
++	reg = <0x0 0x90009800 0x0 0x800>;
++	interrupts = <115 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI0_REG_OFFSET K230_RESET_CSI0_TYPE
++			  K230_RESET_CSI0_DONE_BIT K230_RESET_CSI0_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M0_REG_OFFSET K230_RESET_M0_TYPE
++			  K230_RESET_M0_DONE_BIT K230_RESET_M0_ASSERT_BIT>;
+ 	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
++	status = "disabled";
++};
++
++&mipi2 {
++	/* CSI1 -> logical slot2; disabled by default */
++	id = <1>;
++	reg = <0x0 0x9000a000 0x0 0x800>;
++	interrupts = <118 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI1_REG_OFFSET K230_RESET_CSI1_TYPE
++			  K230_RESET_CSI1_DONE_BIT K230_RESET_CSI1_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M1_REG_OFFSET K230_RESET_M1_TYPE
++			  K230_RESET_M1_DONE_BIT K230_RESET_M1_ASSERT_BIT>;
++	reset-gpios = <&gpio1_ports 12 GPIO_ACTIVE_HIGH>;
++	status = "disabled";
++};
++
++&v4l2isp {
++	/*
++	 * Pre-write three sensors; only enabled mipi.N slots count.
++	 * With mipi1/mipi2 disabled: 1 cam / 3 video nodes.
++	 */
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <4>; /* CSI2 */
++	dev1-sensor-name = "gc2093";
++	dev1-sensor-mode = <0>;
++	dev1-sensor-i2c-bus = <0>; /* CSI0 */
++	dev2-sensor-name = "gc2093";
++	dev2-sensor-mode = <0>;
++	dev2-sensor-i2c-bus = <1>; /* CSI1 */
+ };
+ &iomux {
+ 	pwm2_pins: pwm2_pins {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc.dts
+@@ -128,7 +128,7 @@
+ };
+ &mipi0
+ {
+-	// set to csi2
++	/* CSI2 remapped to logical slot0 */
+ 	id = <2>;
+ 	reg = <0x0 0x9000a800 0x0 0x800>;
+ 	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
+@@ -137,4 +137,20 @@
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
+ 	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	/* alias i2c0=&i2c4 on this board -> use bus 0 for CSI2 sensor */
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>;
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-emmc-lcd.dts
+@@ -90,7 +90,7 @@
+ };
+ &mipi0
+ {
+-	// set to csi2
++	/* CSI2 remapped to logical slot0 */
+ 	id = <2>;
+ 	reg = <0x0 0x9000a800 0x0 0x800>;
+ 	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
+@@ -99,8 +99,23 @@
+ 	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+ 		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
+ 	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
+ };
+ 
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	/* alias i2c0=&i2c4 on this board -> use bus 0 for CSI2 sensor */
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>;
++};
+ &i2c3
+ {
+ 	status = "okay";
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-01studio-lcd.dts
+@@ -14,8 +14,10 @@
+ 
+ 	aliases {
+ 		serial3 = &uart3;
+-		i2c0 = &i2c4;
+-		i2c1 = &i2c3;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c3 = &i2c3;
++		i2c4 = &i2c4;
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
+ 		spi0 = &spi0;
+@@ -109,19 +111,75 @@
+ &vo {
+ 	vth_line = <10>;
+ };
+-&mipi0
+-{
+-	// set to csi2
++&i2c0 {
++	status = "okay";
++};
++
++&i2c1 {
++	status = "okay";
++};
++
++/* CSI2 default single-cam; CSI0/CSI1 prewritten disabled.
++ *   slot0 / mipi.0 = physical CSI2 (ON)
++ *   slot1 / mipi.1 = physical CSI0 (disabled; set status="okay" to enable)
++ *   slot2 / mipi.2 = physical CSI1 (disabled; set status="okay" to enable)
++ * Sensor count = continuous (devN-sensor-name AND mipi.N okay).
++ * Enable corresponding &i2cX when enabling a slot.
++ */
++&mipi0 {
++	/* CSI2 -> logical slot0 */
+ 	id = <2>;
+ 	reg = <0x0 0x9000a800 0x0 0x800>;
+ 	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
+ 	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+-	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+-		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++		 <&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++			  K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 9 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&mipi1 {
++	/* CSI0 -> logical slot1; disabled by default */
++	id = <0>;
++	reg = <0x0 0x90009800 0x0 0x800>;
++	interrupts = <115 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI0_REG_OFFSET K230_RESET_CSI0_TYPE
++			  K230_RESET_CSI0_DONE_BIT K230_RESET_CSI0_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M0_REG_OFFSET K230_RESET_M0_TYPE
++			  K230_RESET_M0_DONE_BIT K230_RESET_M0_ASSERT_BIT>;
+ 	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
++	status = "disabled";
+ };
+ 
++&mipi2 {
++	/* CSI1 -> logical slot2; disabled by default */
++	id = <1>;
++	reg = <0x0 0x9000a000 0x0 0x800>;
++	interrupts = <118 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI1_REG_OFFSET K230_RESET_CSI1_TYPE
++			  K230_RESET_CSI1_DONE_BIT K230_RESET_CSI1_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M1_REG_OFFSET K230_RESET_M1_TYPE
++			  K230_RESET_M1_DONE_BIT K230_RESET_M1_ASSERT_BIT>;
++	reset-gpios = <&gpio1_ports 12 GPIO_ACTIVE_HIGH>;
++	status = "disabled";
++};
++
++&v4l2isp {
++	/*
++	 * Pre-write three sensors; only enabled mipi.N slots count.
++	 * With mipi1/mipi2 disabled: 1 cam / 3 video nodes.
++	 */
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <4>; /* CSI2 */
++	dev1-sensor-name = "gc2093";
++	dev1-sensor-mode = <0>;
++	dev1-sensor-i2c-bus = <0>; /* CSI0 */
++	dev2-sensor-name = "gc2093";
++	dev2-sensor-mode = <0>;
++	dev2-sensor-i2c-bus = <1>; /* CSI1 */
++};
+ &i2c3
+ {
+ 	status = "okay";
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+@@ -14,8 +14,10 @@
+ 		serial3 = &uart3;
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
+-		i2c0 = &i2c4;
+-		i2c1 = &i2c3;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c3 = &i2c3;
++		i2c4 = &i2c4;
+ 	};
+ 
+ 	chosen {
+@@ -56,6 +58,14 @@
+ 	status = "okay";
+ };
+ 
++&i2c0 {
++	status = "okay";
++};
++
++&i2c1 {
++	status = "okay";
++};
++
+ &i2c3 {
+ 	status = "okay";
+ 	touchscreen@38 {
+@@ -72,20 +82,65 @@
+ &i2c4 {
+ 	status = "okay";
+ };
+-&mipi0
+-{
+-	// set to csi2
++/* CSI2 default single-cam; CSI0/CSI1 prewritten disabled.
++ *   slot0 / mipi.0 = physical CSI2 (ON)
++ *   slot1 / mipi.1 = physical CSI0 (disabled; set status="okay" to enable)
++ *   slot2 / mipi.2 = physical CSI1 (disabled; set status="okay" to enable)
++ * Sensor count = continuous (devN-sensor-name AND mipi.N okay).
++ * Enable corresponding &i2cX when enabling a slot.
++ */
++&mipi0 {
++	/* CSI2 -> logical slot0 */
+ 	id = <2>;
+ 	reg = <0x0 0x9000a800 0x0 0x800>;
+ 	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
+ 	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+-	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+-		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++		 <&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++			  K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
+ 	reset-gpios = <&gpio0_ports 13 GPIO_ACTIVE_HIGH>;
++	status = "okay";
+ };
+ 
+-
++&mipi1 {
++	/* CSI0 -> logical slot1; disabled by default */
++	id = <0>;
++	reg = <0x0 0x90009800 0x0 0x800>;
++	interrupts = <115 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI0_REG_OFFSET K230_RESET_CSI0_TYPE
++			  K230_RESET_CSI0_DONE_BIT K230_RESET_CSI0_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M0_REG_OFFSET K230_RESET_M0_TYPE
++			  K230_RESET_M0_DONE_BIT K230_RESET_M0_ASSERT_BIT>;
++	status = "disabled";
++};
++
++&mipi2 {
++	/* CSI1 -> logical slot2; disabled by default */
++	id = <1>;
++	reg = <0x0 0x9000a000 0x0 0x800>;
++	interrupts = <118 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI1_REG_OFFSET K230_RESET_CSI1_TYPE
++			  K230_RESET_CSI1_DONE_BIT K230_RESET_CSI1_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M1_REG_OFFSET K230_RESET_M1_TYPE
++			  K230_RESET_M1_DONE_BIT K230_RESET_M1_ASSERT_BIT>;
++	status = "disabled";
++};
++
++&v4l2isp {
++	/*
++	 * Pre-write three sensors; only enabled mipi.N slots count.
++	 * With mipi1/mipi2 disabled: 1 cam / 3 video nodes.
++	 */
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <4>; /* CSI2 */
++	dev1-sensor-name = "gc2093";
++	dev1-sensor-mode = <0>;
++	dev1-sensor-i2c-bus = <0>; /* CSI0 */
++	dev2-sensor-name = "gc2093";
++	dev2-sensor-mode = <0>;
++	dev2-sensor-i2c-bus = <1>; /* CSI1 */
++};
+ &lcd {
+ 	dsi_reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_HIGH>;
+ 	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+@@ -15,8 +15,10 @@
+ 		serial3 = &uart3;
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
+-		i2c0 = &i2c4;
+-		i2c1 = &i2c3;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c3 = &i2c3;
++		i2c4 = &i2c4;
+ 	};
+ 
+ 	chosen {
+@@ -60,6 +62,14 @@
+ 	status = "okay";
+ };
+ 
++&i2c0 {
++	status = "okay";
++};
++
++&i2c1 {
++	status = "okay";
++};
++
+ &i2c3 {
+ 	status = "okay";
+ 	touchscreen@38 {
+@@ -75,19 +85,65 @@
+ 	status = "okay";
+ };
+ 
+-&mipi0
+-{
+-	// set to csi2
++/* CSI2 default single-cam; CSI0/CSI1 prewritten disabled.
++ *   slot0 / mipi.0 = physical CSI2 (ON)
++ *   slot1 / mipi.1 = physical CSI0 (disabled; set status="okay" to enable)
++ *   slot2 / mipi.2 = physical CSI1 (disabled; set status="okay" to enable)
++ * Sensor count = continuous (devN-sensor-name AND mipi.N okay).
++ * Enable corresponding &i2cX when enabling a slot.
++ */
++&mipi0 {
++	/* CSI2 -> logical slot0 */
+ 	id = <2>;
+ 	reg = <0x0 0x9000a800 0x0 0x800>;
+ 	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
+ 	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
+ 			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
+-	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
+-		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++		 <&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++			  K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
+ 	reset-gpios = <&gpio0_ports 13 GPIO_ACTIVE_HIGH>;
++	status = "okay";
+ };
+ 
++&mipi1 {
++	/* CSI0 -> logical slot1; disabled by default */
++	id = <0>;
++	reg = <0x0 0x90009800 0x0 0x800>;
++	interrupts = <115 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI0_REG_OFFSET K230_RESET_CSI0_TYPE
++			  K230_RESET_CSI0_DONE_BIT K230_RESET_CSI0_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M0_REG_OFFSET K230_RESET_M0_TYPE
++			  K230_RESET_M0_DONE_BIT K230_RESET_M0_ASSERT_BIT>;
++	status = "disabled";
++};
++
++&mipi2 {
++	/* CSI1 -> logical slot2; disabled by default */
++	id = <1>;
++	reg = <0x0 0x9000a000 0x0 0x800>;
++	interrupts = <118 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI1_REG_OFFSET K230_RESET_CSI1_TYPE
++			  K230_RESET_CSI1_DONE_BIT K230_RESET_CSI1_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M1_REG_OFFSET K230_RESET_M1_TYPE
++			  K230_RESET_M1_DONE_BIT K230_RESET_M1_ASSERT_BIT>;
++	status = "disabled";
++};
++
++&v4l2isp {
++	/*
++	 * Pre-write three sensors; only enabled mipi.N slots count.
++	 * With mipi1/mipi2 disabled: 1 cam / 3 video nodes.
++	 */
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <4>; /* CSI2 */
++	dev1-sensor-name = "gc2093";
++	dev1-sensor-mode = <0>;
++	dev1-sensor-i2c-bus = <0>; /* CSI0 */
++	dev2-sensor-name = "gc2093";
++	dev2-sensor-mode = <0>;
++	dev2-sensor-i2c-bus = <1>; /* CSI1 */
++};
+ &mmc_sd0 {
+ 	status = "okay";
+ 	no-1-8-v;
+diff --git a/arch/riscv/boot/dts/canaan/k230.dtsi b/arch/riscv/boot/dts/canaan/k230.dtsi
+--- a/arch/riscv/boot/dts/canaan/k230.dtsi
++++ b/arch/riscv/boot/dts/canaan/k230.dtsi
+@@ -717,6 +717,13 @@
+ 			status = "okay";
+ 		};
+ 
++		v4l2isp:v4l2-isp {
++			compatible = "verisilicon,isp-v4l2";
++			id = <0>;
++			reg = <0x0 0x90000000 0x0 0x9000>;
++			status = "okay";
++		};
++
+ 		mipi0: mipi.0 {
+ 			compatible = "verisilicon,mipi";
+ 			id = <0>;
+diff --git a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+--- a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
++++ b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+@@ -81,16 +81,32 @@
+ &mipi0 {
+ 	// set to csi2
+ 	id = <2>;
+ 	reg = <0x0 0x9000a800 0x0 0x800>;
+ 	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
+ 	resets = <&sysctl_reset
+ 			  K230_RESET_CSI2_REG_OFFSET
+ 			  K230_RESET_CSI2_TYPE
+ 			  K230_RESET_CSI2_DONE_BIT
+ 			  K230_RESET_CSI2_ASSERT_BIT>,
+ 			 <&sysctl_reset
+ 			  K230_RESET_M2_REG_OFFSET
+ 			  K230_RESET_M2_TYPE
+ 			  K230_RESET_M2_DONE_BIT
+ 			  K230_RESET_M2_ASSERT_BIT>;
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	/* BPI defconfig selects imx335; camera control is on hardware I2C4. */
++	dev0-sensor-name = "imx335";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <4>;
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv.dts b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+@@ -12,6 +12,8 @@
+ 
+ 	aliases {
+ 		serial3 = &uart3;
++		i2c0 = &i2c3; /* camera CSI -> /dev/i2c-0 */
++		i2c1 = &i2c4; /* HDMI bridge -> /dev/i2c-1 */
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
+ 	};
+@@ -129,11 +131,30 @@
+ &spi0 {
+ 	status = "okay";
+ 	spidev@0{
+ 		compatible = "rohm,dh2228fv";
+ 		reg = <0>;
+ 		spi-max-frequency = <100000000>;
+ 	};
+ };
++&i2c0 {
++	status = "okay";
++};
++
+ &mipi0 {
+ 	reset-gpios = <&gpio0_ports 0 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "ov5647";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c3 */
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+@@ -12,6 +12,8 @@
+ 
+ 	aliases {
+ 		serial3 = &uart3;
++		i2c0 = &i2c3; /* camera CSI -> /dev/i2c-0 */
++		i2c1 = &i2c4; /* touchscreen -> /dev/i2c-1 */
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
+ 	};
+@@ -98,3 +100,22 @@
++&i2c0 {
++	status = "okay";
++};
++
+ &mipi0 {
+ 	reset-gpios = <&gpio0_ports 0 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "ov5647";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c3 */
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
+@@ -127,6 +127,24 @@
+ &mmc_sd0 {
+ 	status = "okay";
+ 	no-1-8-v;
+ 	rx_delay_line = <0x0d>;
+ 	tx_delay_line = <0xc0>;
+ };
++
++&mipi0 {
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c4 */
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+@@ -94,6 +94,24 @@
+ &mmc_sd0 {
+ 	status = "okay";
+ 	no-1-8-v;
+ 	rx_delay_line = <0x0d>;
+ 	tx_delay_line = <0xc0>;
+ };
++
++&mipi0 {
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c4 */
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+@@ -119,4 +119,22 @@
+ &lcd {
+ 	dsi_reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_HIGH>;
+ 	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
+ };
++
++&mipi0 {
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c4 */
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts b/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
+@@ -155,7 +155,25 @@
+ 		port {
+ 			hdmi_connector_in: endpoint {
+ 				remote-endpoint = <&lt9611_out>;
+ 			};
+ 		};
+ 	};
+ };
++
++&mipi0 {
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c4 */
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv.dts b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+@@ -85,16 +85,31 @@
+ &mipi0 {
+ 	// set to csi2
+ 	id = <2>;
+ 	reg = <0x0 0x9000a800 0x0 0x800>;
+ 	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
+ 	resets = <&sysctl_reset
+ 			  K230_RESET_CSI2_REG_OFFSET
+ 			  K230_RESET_CSI2_TYPE
+ 			  K230_RESET_CSI2_DONE_BIT
+ 			  K230_RESET_CSI2_ASSERT_BIT>,
+ 			 <&sysctl_reset
+ 			  K230_RESET_M2_REG_OFFSET
+ 			  K230_RESET_M2_TYPE
+ 			  K230_RESET_M2_DONE_BIT
+ 			  K230_RESET_M2_ASSERT_BIT>;
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c4 */
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+@@ -129,17 +129,32 @@
+ &mipi0 {
+ 	// set to csi2
+ 	id = <1>;
+ 	reg = <0x0 0x9000a000 0x0 0x800>;
+ 	interrupts = <118 IRQ_TYPE_LEVEL_HIGH>;
+ 	resets = <&sysctl_reset
+ 				K230_RESET_CSI1_REG_OFFSET
+ 				K230_RESET_CSI1_TYPE
+ 				K230_RESET_CSI1_DONE_BIT
+ 				K230_RESET_CSI1_ASSERT_BIT>,
+ 				<&sysctl_reset
+ 				K230_RESET_M1_REG_OFFSET
+ 				K230_RESET_M1_TYPE
+ 				K230_RESET_M1_DONE_BIT
+ 				K230_RESET_M1_ASSERT_BIT>;
+ 	reset-gpios = <&gpio0_ports 10 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c4 */
+ };
+diff --git a/arch/riscv/boot/dts/canaan/k230-evb.dts b/arch/riscv/boot/dts/canaan/k230-evb.dts
+--- a/arch/riscv/boot/dts/canaan/k230-evb.dts
++++ b/arch/riscv/boot/dts/canaan/k230-evb.dts
+@@ -102,4 +102,26 @@
+ &lcd {
+ 	dsi_reset-gpios = <&gpio0_ports 9 GPIO_ACTIVE_HIGH>;
+ 	backlight_gpio-gpios = <&gpio0_ports 31 GPIO_ACTIVE_HIGH>;
+ };
++
++&i2c0 {
++	status = "okay";
++};
++
++&mipi0 {
++	status = "okay";
++};
++
++&mipi1 {
++	status = "disabled";
++};
++
++&mipi2 {
++	status = "disabled";
++};
++
++&v4l2isp {
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <0>;
++};

@@ -10,14 +10,14 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include <linux/i2c.h>
-static uint8_t get_gc2093_iic_dev_addr();
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-#define GC2093_I2C_SLAVE_ADDRESS get_gc2093_iic_dev_addr()
+#define GC2093_I2C_SLAVE_ADDRESS (ctx->slave_addr)
 #define CHECK_ERROR(x) if(x){printf("error f=%s l=%d \n",__func__, __LINE__); return -1;}
 
 #define GC2093_REG_CHIP_ID_H                                0x03f0
 #define GC2093_REG_CHIP_ID_L                                0x03f1
+#define GC2093_CHIP_ID                                      0x2093
 #define GC2093_REG_MIPI_CTRL00                              0x4800
 #define GC2093_REG_FRAME_OFF_NUMBER                         0x4202
 #define GC2093_REG_PAD_OUT                                  0x300d
@@ -71,6 +71,8 @@ struct gc2093_mode {
 
 struct gc2093_ctx {
     int i2c;
+    int slave_addr;
+    int i2c_bus;
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
@@ -143,42 +145,39 @@ static int gc2093_apply_orient(struct gc2093_ctx *sensor)
     return 0;
 }
 
-uint8_t get_gc2093_iic_dev_addr()
+static uint8_t gc2093_probe_i2c_addr(uint8_t i2c_bus)
 {
-    static uint8_t g_gc2093_iic_add = 0;
+    static const uint8_t gc2093_addrs[] = {0x37, 0x7e};
+    char i2c_dev[32];
+    int fd;
 
-    uint8_t gc2093_adds[]={0x37,0x7e};
-    int fd,ret;
-
-
-    if(g_gc2093_iic_add)
-        return g_gc2093_iic_add;
-
-    //探测iic设备地址；
-    fd = open("/dev/i2c-0", O_RDWR);
+    snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%u", i2c_bus);
+    fd = open(i2c_dev, O_RDWR);
     if (fd < 0) {
-        perror("open /dev/i2c-0");
-        return 0x37;
+        perror(i2c_dev);
+        return gc2093_addrs[0];
     }
 
-    for(uint8_t i = 0 ; i < ARRAY_SIZE(gc2093_adds);  i++){
-        if(ioctl(fd, I2C_SLAVE_FORCE, gc2093_adds[i]) == 0){
-            struct i2c_smbus_ioctl_data args;
-            union i2c_smbus_data data;
+    for (size_t i = 0; i < ARRAY_SIZE(gc2093_addrs); i++) {
+        if (ioctl(fd, I2C_SLAVE_FORCE, gc2093_addrs[i]) != 0) {
+            continue;
+        }
+        struct i2c_smbus_ioctl_data args;
+        union i2c_smbus_data data;
 
-            args.read_write = I2C_SMBUS_READ;
-            args.command = 0;
-            args.size = I2C_SMBUS_BYTE;
-            args.data = &data;
-            if(ioctl(fd, I2C_SMBUS, &args) == 0){
-                g_gc2093_iic_add = gc2093_adds[i];
-                //printf("gc2093 iic dev addr is 0x%02x \n",g_gc2093_iic_add);
-                break;
-            }
+        memset(&args, 0, sizeof(args));
+        args.read_write = I2C_SMBUS_READ;
+        args.command = 0;
+        args.size = I2C_SMBUS_BYTE;
+        args.data = &data;
+        if (ioctl(fd, I2C_SMBUS, &args) == 0) {
+            close(fd);
+            return gc2093_addrs[i];
         }
     }
+
     close(fd);
-    return g_gc2093_iic_add;
+    return gc2093_addrs[0];
 }
 
 static int read_reg(struct gc2093_ctx* ctx, uint16_t addr, uint8_t* value) {
@@ -224,32 +223,109 @@ static int write_reg(struct gc2093_ctx* ctx, uint16_t addr, uint8_t value) {
 
 
 static int open_i2c(struct gc2093_ctx* sensor) {
-    uint8_t gc2093_dev_add = GC2093_I2C_SLAVE_ADDRESS;
-    // i2c
+    char i2c_dev[32];
+
     if (sensor->i2c < 0) {
-        sensor->i2c = open("/dev/i2c-0", O_RDWR);
+        if (!sensor->slave_addr) {
+            sensor->slave_addr = gc2093_probe_i2c_addr(sensor->i2c_bus);
+        }
+        snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%d", sensor->i2c_bus);
+        sensor->i2c = open(i2c_dev, O_RDWR);
         if (sensor->i2c < 0) {
-            perror("open /dev/i2c-0");
+            perror("open i2c device");
             return -1;
         }
-        if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, gc2093_dev_add) < 0) {
+        if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, sensor->slave_addr) < 0) {
             perror("i2c ctrl 0x36");
             return -1;
         }
     }
+
     return 0;
 }
 
-static int init(void** ctx) {
+static void gc2093_close_i2c(struct gc2093_ctx *sensor)
+{
+    if (sensor && sensor->i2c >= 0) {
+        close(sensor->i2c);
+        sensor->i2c = -1;
+    }
+}
+
+static int gc2093_read_chip_id(struct gc2093_ctx *sensor, uint32_t *chip_id)
+{
+    static const uint8_t gc2093_addrs[] = {0x37, 0x7e};
+    uint8_t id_h = 0;
+    uint8_t id_l = 0;
+    uint32_t id = 0;
+    size_t i;
+
+    for (i = 0; i < ARRAY_SIZE(gc2093_addrs); i++) {
+        gc2093_close_i2c(sensor);
+        sensor->slave_addr = gc2093_addrs[i];
+        if (open_i2c(sensor))
+            continue;
+        if (read_reg(sensor, GC2093_REG_CHIP_ID_H, &id_h))
+            continue;
+        if (read_reg(sensor, GC2093_REG_CHIP_ID_L, &id_l))
+            continue;
+
+        id = ((uint32_t)id_h << 8) | id_l;
+        if (chip_id)
+            *chip_id = id;
+        if (id == GC2093_CHIP_ID)
+            return 0;
+
+        fprintf(stderr, "gc2093: chip id mismatch at i2c-%u addr 0x%02x: "
+            "0x%04x (expect 0x%04x)\n",
+            sensor->i2c_bus, sensor->slave_addr, id, GC2093_CHIP_ID);
+    }
+
+    return -1;
+}
+
+static int probe(uint8_t i2c_bus, uint32_t *chip_id)
+{
+    struct gc2093_ctx sensor;
+    uint32_t id = 0;
+
+    memset(&sensor, 0, sizeof(sensor));
+    sensor.i2c = -1;
+    sensor.i2c_bus = i2c_bus;
+
+    if (gc2093_read_chip_id(&sensor, &id) != 0) {
+        fprintf(stderr, "gc2093: read chip id failed on i2c-%u\n", i2c_bus);
+        gc2093_close_i2c(&sensor);
+        return -1;
+    }
+
+    gc2093_close_i2c(&sensor);
+    if (chip_id)
+        *chip_id = id;
+
+    if (id != GC2093_CHIP_ID) {
+        fprintf(stderr, "gc2093: chip id mismatch 0x%04x (expect 0x%04x)\n",
+            id, GC2093_CHIP_ID);
+        return -1;
+    }
+
+    fprintf(stderr, "gc2093: probe ok, chip id 0x%04x, i2c addr 0x%02x\n",
+        id, sensor.slave_addr);
+    return 0;
+}
+
+static int init(void** ctx, uint8_t i2c_bus) {
     struct gc2093_ctx* sensor = calloc(1, sizeof(struct gc2093_ctx));
+
     sensor->i2c = -1;
+    sensor->i2c_bus = i2c_bus;
     *ctx = sensor;
     return 0;
 }
 
 static void deinit(void* ctx) {
     struct gc2093_ctx* sensor = ctx;
-    close(sensor->i2c);
+    gc2093_close_i2c(sensor);
     free(ctx);
 }
 
@@ -576,6 +652,312 @@ static const struct reg_list gc2093_mipi2lane_1080p_60fps_mclk_24m_linear[] = {
 };
 
 
+static const struct reg_list gc2093_mipi2lane_960p_90fps_mclk_24m_linear[] = {
+    {0x03fe, 0xf0},
+    {0x03fe, 0xf0},
+    {0x03fe, 0xf0},
+    {0x03fe, 0x00},
+    {0x03f2, 0x00},
+    {0x03f3, 0x00},
+    {0x03f4, 0x36},
+    {0x03f5, 0xc0},
+    {0x03f6, 0x0d},
+    {0x03f7, 0x01},
+    {0x03f8, 0xc4},
+    {0x03f9, 0x40},
+    {0x03fc, 0x8e},
+    {0x0087, 0x18},
+    {0x00ee, 0x30},
+    {0x00d0, 0xbf},
+    {0x01a0, 0x00},
+    {0x01a4, 0x40},
+    {0x01a5, 0x40},
+    {0x01a6, 0x40},
+    {0x01af, 0x09},
+    {0x0001, 0x00},
+    {0x0002, 0x02},
+    {0x0003, 0x00},
+    {0x0004, 0x64},
+    {0x0005, 0x02},
+    {0x0006, 0x91},
+    {0x0007, 0x00},
+    {0x0008, 0x5a},
+    {0x0009, 0x00},
+    {0x000a, 0x3e},
+    {0x000b, 0x02},
+    {0x000c, 0x88},
+    {0x000d, 0x03},
+    {0x000e, 0xc4},
+    {0x000f, 0x05},
+    {0x0010, 0x08},
+    {0x0013, 0x15},
+    {0x0019, 0x0c},
+    {0x0041, 0x04},
+    {0x0042, 0x32},
+    {0x0053, 0x60},
+    {0x008d, 0x92},
+    {0x0090, 0x00},
+    {0x00c7, 0xe1},
+    {0x001b, 0x73},
+    {0x0028, 0x0d},
+    {0x0029, 0x24},
+    {0x002b, 0x04},
+    {0x002e, 0x23},
+    {0x0037, 0x03},
+    {0x0043, 0x04},
+    {0x0044, 0x28},
+    {0x004a, 0x01},
+    {0x004b, 0x20},
+    {0x0055, 0x28},
+    {0x0066, 0x3f},
+    {0x0068, 0x3f},
+    {0x006b, 0x44},
+    {0x0077, 0x00},
+    {0x0078, 0x20},
+    {0x007c, 0xa1},
+    {0x00ce, 0x7c},
+    {0x00d3, 0xd4},
+    {0x00e6, 0x50},
+    {0x00b6, 0xc0},
+    {0x00b0, 0x68},
+    {0x00b3, 0x00},
+    {0x00b8, 0x01},
+    {0x00b9, 0x00},
+    {0x00b1, 0x01},
+    {0x00b2, 0x00},
+    {0x0101, 0x0c},
+    {0x0102, 0x89},
+    {0x0104, 0x01},
+    {0x0107, 0xa6},
+    {0x0108, 0xa9},
+    {0x0109, 0xa8},
+    {0x010a, 0xa7},
+    {0x010b, 0xff},
+    {0x010c, 0xff},
+    {0x010f, 0x00},
+    {0x0158, 0x00},
+    {0x0428, 0x86},
+    {0x0429, 0x86},
+    {0x042a, 0x86},
+    {0x042b, 0x68},
+    {0x042c, 0x68},
+    {0x042d, 0x68},
+    {0x042e, 0x68},
+    {0x042f, 0x68},
+    {0x0430, 0x4f},
+    {0x0431, 0x68},
+    {0x0432, 0x67},
+    {0x0433, 0x66},
+    {0x0434, 0x66},
+    {0x0435, 0x66},
+    {0x0436, 0x66},
+    {0x0437, 0x66},
+    {0x0438, 0x62},
+    {0x0439, 0x62},
+    {0x043a, 0x62},
+    {0x043b, 0x62},
+    {0x043c, 0x62},
+    {0x043d, 0x62},
+    {0x043e, 0x62},
+    {0x043f, 0x62},
+    {0x0123, 0x08},
+    {0x0123, 0x00},
+    {0x0120, 0x01},
+    {0x0121, 0x04},
+    {0x0122, 0xd8},
+    {0x0124, 0x03},
+    {0x0125, 0xff},
+    {0x001a, 0x8c},
+    {0x00c6, 0xe0},
+    {0x0026, 0x30},
+    {0x0142, 0x00},
+    {0x0149, 0x1e},
+    {0x014a, 0x0f},
+    {0x014b, 0x00},
+    {0x0155, 0x07},
+    {0x0160, 0x10},
+    {0x0414, 0x78},
+    {0x0415, 0x78},
+    {0x0416, 0x78},
+    {0x0417, 0x78},
+    {0x0454, 0x78},
+    {0x0455, 0x78},
+    {0x0456, 0x78},
+    {0x0457, 0x78},
+    {0x04e0, 0x18},
+    {0x0192, 0x02},
+    {0x0194, 0x03},
+    {0x0195, 0x03},
+    {0x0196, 0xc0},
+    {0x0197, 0x05},
+    {0x0198, 0x00},
+    {0x0199, 0x00},
+    {0x019a, 0x06},
+    {0x007b, 0x2a},
+    {0x0023, 0x2d},
+    {0x0201, 0x27},
+    {0x0202, 0x56},
+    {0x0203, 0xb6},
+    {0x0212, 0x80},
+    {0x0213, 0x07},
+    {0x0215, 0x10},
+    {0x003e, 0x91},
+    {0, 0x00},
+};
+
+static const struct reg_list gc2093_mipi2lane_720p_90fps_mclk_24m_linear[] = {
+    {0x03fe, 0xf0},
+    {0x03fe, 0xf0},
+    {0x03fe, 0xf0},
+    {0x03fe, 0x00},
+    {0x03f2, 0x00},
+    {0x03f3, 0x00},
+    {0x03f4, 0x36},
+    {0x03f5, 0xc0},
+    {0x03f6, 0x0b},
+    {0x03f7, 0x01},
+    {0x03f8, 0x63},
+    {0x03f9, 0x40},
+    {0x03fc, 0x8e},
+    {0x0087, 0x18},
+    {0x00ee, 0x30},
+    {0x00d0, 0xbf},
+    {0x01a0, 0x00},
+    {0x01a4, 0x40},
+    {0x01a5, 0x40},
+    {0x01a6, 0x40},
+    {0x01af, 0x09},
+    {0x0001, 0x00},
+    {0x0002, 0x02},
+    {0x0003, 0x00},
+    {0x0004, 0x64},
+    {0x0005, 0x02},
+    {0x0006, 0x91},
+    {0x0007, 0x00},
+    {0x0008, 0x5d},
+    {0x0009, 0x00},
+    {0x000a, 0xb6},
+    {0x000b, 0x02},
+    {0x000c, 0x88},
+    {0x000d, 0x02},
+    {0x000e, 0xd4},
+    {0x000f, 0x05},
+    {0x0010, 0x08},
+    {0x0013, 0x15},
+    {0x0019, 0x0c},
+    {0x0041, 0x03},
+    {0x0042, 0x45},
+    {0x0053, 0x60},
+    {0x008d, 0x92},
+    {0x0090, 0x00},
+    {0x00c7, 0xe1},
+    {0x001b, 0x73},
+    {0x0028, 0x0d},
+    {0x0029, 0x24},
+    {0x002b, 0x04},
+    {0x002e, 0x23},
+    {0x0037, 0x03},
+    {0x0043, 0x04},
+    {0x0044, 0x28},
+    {0x004a, 0x01},
+    {0x004b, 0x20},
+    {0x0055, 0x28},
+    {0x0066, 0x3f},
+    {0x0068, 0x3f},
+    {0x006b, 0x44},
+    {0x0077, 0x00},
+    {0x0078, 0x20},
+    {0x007c, 0xa1},
+    {0x00ce, 0x7c},
+    {0x00d3, 0xd4},
+    {0x00e6, 0x50},
+    {0x00b6, 0xc0},
+    {0x00b0, 0x68},
+    {0x00b3, 0x00},
+    {0x00b8, 0x01},
+    {0x00b9, 0x00},
+    {0x00b1, 0x01},
+    {0x00b2, 0x00},
+    {0x0101, 0x0c},
+    {0x0102, 0x89},
+    {0x0104, 0x01},
+    {0x0107, 0xa6},
+    {0x0108, 0xa9},
+    {0x0109, 0xa8},
+    {0x010a, 0xa7},
+    {0x010b, 0xff},
+    {0x010c, 0xff},
+    {0x010f, 0x00},
+    {0x0158, 0x00},
+    {0x0428, 0x86},
+    {0x0429, 0x86},
+    {0x042a, 0x86},
+    {0x042b, 0x68},
+    {0x042c, 0x68},
+    {0x042d, 0x68},
+    {0x042e, 0x68},
+    {0x042f, 0x68},
+    {0x0430, 0x4f},
+    {0x0431, 0x68},
+    {0x0432, 0x67},
+    {0x0433, 0x66},
+    {0x0434, 0x66},
+    {0x0435, 0x66},
+    {0x0436, 0x66},
+    {0x0437, 0x66},
+    {0x0438, 0x62},
+    {0x0439, 0x62},
+    {0x043a, 0x62},
+    {0x043b, 0x62},
+    {0x043c, 0x62},
+    {0x043d, 0x62},
+    {0x043e, 0x62},
+    {0x043f, 0x62},
+    {0x0123, 0x08},
+    {0x0123, 0x00},
+    {0x0120, 0x01},
+    {0x0121, 0x04},
+    {0x0122, 0xd8},
+    {0x0124, 0x03},
+    {0x0125, 0xff},
+    {0x001a, 0x8c},
+    {0x00c6, 0xe0},
+    {0x0026, 0x30},
+    {0x0142, 0x00},
+    {0x0149, 0x1e},
+    {0x014a, 0x0f},
+    {0x014b, 0x00},
+    {0x0155, 0x07},
+    {0x0160, 0x10},
+    {0x0414, 0x78},
+    {0x0415, 0x78},
+    {0x0416, 0x78},
+    {0x0417, 0x78},
+    {0x0454, 0x78},
+    {0x0455, 0x78},
+    {0x0456, 0x78},
+    {0x0457, 0x78},
+    {0x04e0, 0x18},
+    {0x0192, 0x02},
+    {0x0194, 0x03},
+    {0x0195, 0x02},
+    {0x0196, 0xd0},
+    {0x0197, 0x05},
+    {0x0198, 0x00},
+    {0x0199, 0x00},
+    {0x019a, 0x06},
+    {0x007b, 0x2a},
+    {0x0023, 0x2d},
+    {0x0201, 0x27},
+    {0x0202, 0x56},
+    {0x0203, 0xb6},
+    {0x0212, 0x80},
+    {0x0213, 0x07},
+    {0x0215, 0x10},
+    {0x003e, 0x91},
+    {0, 0x00},
+};
+
 static struct gc2093_mode modes[] = {
     {
         .mode = {
@@ -668,7 +1050,99 @@ static struct gc2093_mode modes[] = {
             },
         },
         .regs = gc2093_mipi2lane_1080p_60fps_mclk_24m_linear,
-    }
+    },
+    {
+        .mode = {
+            .clk = 24000000,
+            .width = 1280,
+            .height = 960,
+            .lanes = VVCAM_SENSOR_2LANE,
+            .freq = VVCAM_SENSOR_1200M,
+            .bayer = VVCAM_BAYER_PAT_RGGB,
+            .bit_width = 10,
+            .ae_info = {
+                .frame_length = 1074,
+                .cur_frame_length = 1074,
+                .one_line_exp_time = 0.00001095,
+                .gain_accuracy = 1024,
+                .min_gain = 1.0,
+                .max_gain = 18.0,
+                .int_time_delay_frame = 2,
+                .gain_delay_frame = 2,
+                .color_type = 0,
+                .integration_time_increment = 0.00001095,
+                .gain_increment = (1.0f/16.0f),
+                .max_long_integraion_line = 1074 - 1,
+                .min_long_integraion_line = 1,
+                .max_integraion_line = 1074 - 1,
+                .min_integraion_line = 1,
+                .max_long_integraion_time = 0.00001095 * (1074 - 1),
+                .min_long_integraion_time = 0.00001095 * 1,
+                .max_integraion_time = 0.00001095 * (1074 - 1),
+                .min_integraion_time = 0.00001095 * 1,
+                .cur_long_integration_time = 0.0,
+                .cur_integration_time = 0.0,
+                .cur_long_again = 0.0,
+                .cur_long_dgain = 0.0,
+                .cur_again = 0.0,
+                .cur_dgain = 0.0,
+                .a_gain.min = 1.0,
+                .a_gain.max = 63.984375,
+                .a_gain.step = (1.0f/64.0f),
+                .d_gain.max = 63.984375,
+                .d_gain.min = 1.0,
+                .d_gain.step = (1.0f/1024.0f),
+                .cur_fps = 90,
+            },
+        },
+        .regs = gc2093_mipi2lane_960p_90fps_mclk_24m_linear,
+    },
+    {
+        .mode = {
+            .clk = 24000000,
+            .width = 1280,
+            .height = 720,
+            .lanes = VVCAM_SENSOR_2LANE,
+            .freq = VVCAM_SENSOR_1200M,
+            .bayer = VVCAM_BAYER_PAT_RGGB,
+            .bit_width = 10,
+            .ae_info = {
+                .frame_length = 837,
+                .cur_frame_length = 837,
+                .one_line_exp_time = 0.000013273,
+                .gain_accuracy = 1024,
+                .min_gain = 1.0,
+                .max_gain = 18.0,
+                .int_time_delay_frame = 2,
+                .gain_delay_frame = 2,
+                .color_type = 0,
+                .integration_time_increment = 0.000013273,
+                .gain_increment = (1.0f/16.0f),
+                .max_long_integraion_line = 837 - 1,
+                .min_long_integraion_line = 1,
+                .max_integraion_line = 837 - 1,
+                .min_integraion_line = 1,
+                .max_long_integraion_time = 0.000013273 * (837 - 1),
+                .min_long_integraion_time = 0.000013273 * 1,
+                .max_integraion_time = 0.000013273 * (837 - 1),
+                .min_integraion_time = 0.000013273 * 1,
+                .cur_long_integration_time = 0.0,
+                .cur_integration_time = 0.0,
+                .cur_long_again = 0.0,
+                .cur_long_dgain = 0.0,
+                .cur_again = 0.0,
+                .cur_dgain = 0.0,
+                .a_gain.min = 1.0,
+                .a_gain.max = 63.984375,
+                .a_gain.step = (1.0f/64.0f),
+                .d_gain.max = 63.984375,
+                .d_gain.min = 1.0,
+                .d_gain.step = (1.0f/1024.0f),
+                .cur_fps = 90,
+            },
+        },
+        .regs = gc2093_mipi2lane_720p_90fps_mclk_24m_linear,
+    },
 };
 
 
@@ -693,7 +1167,7 @@ static int get_mode(void* ctx, struct vvcam_sensor_mode* mode) {
 
 static int set_mode(void* ctx, uint32_t index) {
     struct gc2093_ctx* sensor = ctx;
-    if (index > ARRAY_SIZE(modes) - 1) {
+    if (index >= ARRAY_SIZE(modes)) {
         // out of range
         return -1;
     }
@@ -982,6 +1456,7 @@ struct vvcam_sensor vvcam_gc2093 = {
         .get_vflip = get_vflip,
         .set_analog_gain = set_analog_gain,
         .set_digital_gain = set_digital_gain,
-        .set_int_time = set_int_time
+        .set_int_time = set_int_time,
+        .probe = probe,
     }
 };
