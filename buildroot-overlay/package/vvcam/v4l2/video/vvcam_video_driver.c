@@ -85,7 +85,7 @@
 #endif
 
 #ifdef VVCAM_PLATFORM_REGISTER
-static int mcm_mask = 0x00;
+static int mcm_mask = 0x01;
 MODULE_PARM_DESC(mcm_mask, "vvcam video mcm mask");
 #endif
 
@@ -767,4 +767,3 @@ module_exit(vvcam_video_exit_module);
 MODULE_DESCRIPTION("Verisilicon isp driver");
 MODULE_AUTHOR("Verisilicon ISP SW Team");
 MODULE_LICENSE("GPL");
-
