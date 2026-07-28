@@ -17,9 +17,9 @@ row.set_flex_align(
 )
 
 for i in range(5):
-    btn = lv.Button(row)
+    btn = lv.button(row)
     btn.set_size(45, 35)
-    lbl = lv.Label(btn)
+    lbl = lv.label(btn)
     lbl.set_text("B%d" % i)
     lbl.center()
 
@@ -34,7 +34,7 @@ col.set_flex_align(
 )
 
 for i in range(4):
-    lbl = lv.Label(col)
+    lbl = lv.label(col)
     lbl.set_text("Item %d" % i)
 
 lv.run()

@@ -9,12 +9,12 @@ lv.init()
 scr = lv.screen_active()
 
 # 创建按钮
-btn = lv.Button(scr)
+btn = lv.button(scr)
 btn.set_size(120, 40)
 btn.center()
 
 # 按钮上的文字
-label = lv.Label(btn)
+label = lv.label(btn)
 label.set_text("Hello K230!")
 label.center()
 

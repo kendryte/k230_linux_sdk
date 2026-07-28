@@ -37,6 +37,7 @@ class PythonWrapperGenerator:
     def generate(self) -> str:
         """Generate the complete Python wrapper module."""
         self._emit_header()
+        self._emit_selector_enum()
         self._emit_convenience_functions()
         self._emit_widget_type_tagging()
         self._emit_short_method_aliases()
@@ -61,6 +62,67 @@ class PythonWrapperGenerator:
         self.emit('"""')
         self.emit("")
         self.emit("from ._lvgl import *  # noqa: F401,F403 - re-export all raw bindings")
+        self.emit("")
+        self.emit("")
+        self.emit("# --- Widget type resolution ---")
+        self.emit("#")
+        self.emit("# Objects created via factory functions (lv.btn(), lv.arc(), ...) get a")
+        self.emit("# _widget_type attribute set by the Python wrapper.  But objects received")
+        self.emit("# in C callbacks (anim exec_cb, event_cb, etc.) are new LvObjWrapper")
+        self.emit("# instances created on the C++ side and lack _widget_type.  For those,")
+        self.emit("# we fall back to _infer_widget_type() which queries the LVGL object class.")
+        self.emit("")
+        self.emit("def _get_wt(self):")
+        self.emit("    \"\"\"Return the widget type string, falling back to LVGL class inspection.\"\"\"")
+        self.emit("    wt = getattr(self, '_widget_type', None)")
+        self.emit("    if wt is not None:")
+        self.emit("        return wt")
+        self.emit("    return self._infer_widget_type()")
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Style Selector enum
+    # -----------------------------------------------------------------------
+
+    def _emit_selector_enum(self):
+        """Emit the SELECTOR enum to replace magic number 0 in style APIs.
+
+        In LVGL, the style selector is a combination of part + state
+        (lv_part_t | lv_state_t). The most common value is 0, which means
+        LV_PART_MAIN | LV_STATE_DEFAULT. Exposing this as SELECTOR.DEFAULT
+        makes the API self-documenting and extensible.
+        """
+        self.emit("")
+        self.emit("")
+        self.emit("# --- Style Selector enum ---")
+        self.emit("#")
+        self.emit("# Replaces magic number 0 in set_style_xxx(value, selector) calls.")
+        self.emit("# selector = part | state (LVGL convention).")
+        self.emit("# SELECTOR.DEFAULT = 0 = LV_PART_MAIN | LV_STATE_DEFAULT")
+        self.emit("#")
+        self.emit("import enum as _enum")
+        self.emit("")
+        self.emit("class SELECTOR(_enum.IntEnum):")
+        self.emit('    """Style selector constants for set_style_xxx(value, selector).')
+        self.emit("")
+        self.emit("    Combines LVGL part and state into a single selector value.")
+        self.emit("    DEFAULT = LV_PART_MAIN | LV_STATE_DEFAULT = 0.")
+        self.emit("")
+        self.emit("    Usage::")
+        self.emit("")
+        self.emit("        obj.set_style_bg_color(color, lv.SELECTOR.DEFAULT)")
+        self.emit("        # Equivalent to: obj.set_style_bg_color(color, 0)")
+        self.emit("")
+        self.emit("    For part+state combinations, use bitwise OR::")
+        self.emit("")
+        self.emit("        obj.set_style_bg_color(color, lv.PART.KNOB | lv.STATE.FOCUSED)")
+        self.emit('    """')
+        self.emit("    DEFAULT = 0")
+        self.emit("")
+        self.emit("    @staticmethod")
+        self.emit("    def _combine(part, state=0):")
+        self.emit('        """Combine a part and state into a selector value."""')
+        self.emit("        return part | state")
         self.emit("")
 
     # -----------------------------------------------------------------------
@@ -137,7 +199,12 @@ class PythonWrapperGenerator:
                 if len(widgets) > 1}
 
     def _collect_prefixed_methods(self) -> Dict[str, List[Tuple[str, str]]]:
-        """Collect methods that were prefixed in the C++ layer due to collisions."""
+        """Collect methods that were prefixed in the C++ layer due to collisions.
+
+        The C++ layer prefixes colliding names with _widget_name (leading underscore
+        to make them Python-private). The dispatch layer references these private
+        names internally.
+        """
         colliding_names = self._detect_method_collisions()
         result: Dict[str, List[Tuple[str, str]]] = {}
 
@@ -154,7 +221,8 @@ class PythonWrapperGenerator:
                 if py_name == "delete":
                     py_name = "delete_obj"
                 if py_name in colliding_names:
-                    prefixed_name = "%s_%s" % (widget_name, py_name)
+                    # Match the C++ layer naming: _widget_shortname
+                    prefixed_name = "_%s_%s" % (widget_name, py_name)
                     prefixed.append((prefixed_name, py_name))
             if prefixed:
                 result[widget_name] = prefixed
@@ -176,13 +244,25 @@ class PythonWrapperGenerator:
         self.emit("# C++ method based on the widget type.")
         self.emit("")
 
+        # obj is a class (not a factory function), patch __init__ to set _widget_type
+        self.emit("# obj is a class (not a factory function), so we patch __init__ to set _widget_type")
+        self.emit("try:")
+        self.emit("    _obj_orig_init = obj.__init__")
+        self.emit("    def _obj_patched_init(self, *args, **kwargs):")
+        self.emit("        _obj_orig_init(self, *args, **kwargs)")
+        self.emit("        self._widget_type = 'obj'")
+        self.emit("    obj.__init__ = _obj_patched_init")
+        self.emit("except NameError:")
+        self.emit("    pass")
+        self.emit("")
+
         for widget_name, widget in sorted(self.ir.widgets.items()):
             if widget_name == "obj":
-                continue
+                continue  # Already handled above
             if widget_name not in self.ALL_WIDGET_TYPES:
                 continue
             # Only wrap if there's a factory function for this widget
-            py_name = widget_name[0].upper() + widget_name[1:]
+            py_name = widget_name
             # Check that the factory function exists (has create_func)
             if not widget.create_func:
                 continue
@@ -224,13 +304,71 @@ class PythonWrapperGenerator:
                 self.emit("        return self.%s(*args, **kwargs)" % prefixed_name)
             else:
                 self.emit("    def _%s_dispatch(self, *args, **kwargs):" % short_name)
-                self.emit("        _wt = getattr(self, '_widget_type', None)")
+                self.emit("        _wt = _get_wt(self)")
                 for widget_name, prefixed_name in sorted(widget_map.items()):
                     self.emit("        if _wt == '%s': return self.%s(*args, **kwargs)" % (widget_name, prefixed_name))
                 self.emit("        raise AttributeError(\"Obj has no '%s' for widget type %%s\" %% _wt)" % short_name)
-            self.emit("    Obj.%s = _%s_dispatch" % (short_name, short_name))
+            self.emit("    obj.%s = _%s_dispatch" % (short_name, short_name))
             self.emit("except NameError:")
             self.emit("    pass")
+
+        # Patch add_flag/remove_flag/set_flag/has_flag to accept int (from OBJ_FLAG | OBJ_FLAG)
+        self.emit("")
+        self.emit("# --- Bitmask enum patches ---")
+        self.emit("#")
+        self.emit("# pybind11 enum | returns int, not the enum type, so add_flag(OBJ_FLAG.A | OBJ_FLAG.B)")
+        self.emit("# fails. Patch these methods to cast the int back to the enum type.")
+        self.emit("")
+        self.emit("try:")
+        self.emit("    _orig_add_flag = obj.add_flag")
+        self.emit("    def add_flag(self, f):")
+        self.emit("        _orig_add_flag(self, OBJ_FLAG(int(f)))")
+        self.emit("    obj.add_flag = add_flag")
+        self.emit("except NameError:")
+        self.emit("    pass")
+        self.emit("try:")
+        self.emit("    _orig_remove_flag = obj.remove_flag")
+        self.emit("    def remove_flag(self, f):")
+        self.emit("        _orig_remove_flag(self, OBJ_FLAG(int(f)))")
+        self.emit("    obj.remove_flag = remove_flag")
+        self.emit("except NameError:")
+        self.emit("    pass")
+        self.emit("try:")
+        self.emit("    _orig_set_flag = obj.set_flag")
+        self.emit("    def set_flag(self, f, v):")
+        self.emit("        _orig_set_flag(self, OBJ_FLAG(int(f)), v)")
+        self.emit("    obj.set_flag = set_flag")
+        self.emit("except NameError:")
+        self.emit("    pass")
+        self.emit("try:")
+        self.emit("    _orig_has_flag = obj.has_flag")
+        self.emit("    def has_flag(self, f):")
+        self.emit("        return _orig_has_flag(self, OBJ_FLAG(int(f)))")
+        self.emit("    obj.has_flag = has_flag")
+        self.emit("except NameError:")
+        self.emit("    pass")
+        self.emit("try:")
+        self.emit("    _orig_has_flag_any = obj.has_flag_any")
+        self.emit("    def has_flag_any(self, f):")
+        self.emit("        return _orig_has_flag_any(self, OBJ_FLAG(int(f)))")
+        self.emit("    obj.has_flag_any = has_flag_any")
+        self.emit("except NameError:")
+        self.emit("    pass")
+        # Also patch add_state/remove_state for STATE enum
+        self.emit("try:")
+        self.emit("    _orig_add_state = obj.add_state")
+        self.emit("    def add_state(self, s):")
+        self.emit("        _orig_add_state(self, STATE(int(s)))")
+        self.emit("    obj.add_state = add_state")
+        self.emit("except NameError:")
+        self.emit("    pass")
+        self.emit("try:")
+        self.emit("    _orig_remove_state = obj.remove_state")
+        self.emit("    def remove_state(self, s):")
+        self.emit("        _orig_remove_state(self, STATE(int(s)))")
+        self.emit("    obj.remove_state = remove_state")
+        self.emit("except NameError:")
+        self.emit("    pass")
 
     # -----------------------------------------------------------------------
     # Obj method extensions & Color helpers

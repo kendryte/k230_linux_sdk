@@ -147,6 +147,7 @@ SKIP_FUNCTIONS: Set[str] = {
     # Functions returning non-obj types wrapped as LvObjWrapper
     "lv_indev_create",                   # returns lv_indev_t*, not lv_obj_t*
     "lv_theme_create",                   # returns lv_theme_t*, not lv_obj_t*
+    "lv_timer_create",                   # returns lv_timer_t*, not lv_obj_t* — manual binding uses LvTimerWrapper
 
     # Functions with char* output buffer (const mismatch)
     "lv_roller_get_option_str",          # char* output buffer
@@ -261,7 +262,6 @@ OPAQUE_STRUCT_TYPES: Set[str] = {
     "lv_draw_ctx_t",
     "lv_layer_t",
     "lv_event_dsc_t",
-    "lv_anim_t",
     "lv_img_decoder_t",
     "lv_img_cache_entry_t",
     "lv_fragment_t",
@@ -298,9 +298,8 @@ WRAPPED_STRUCT_TYPES: Dict[str, str] = {
     "lv_obj_t": "LvObjWrapper",
     "lv_display_t": "LvDisplayWrapper",
     "lv_indev_t": "LvIndevWrapper",
+    "lv_timer_t": "LvTimerWrapper",
     # These will need new wrappers:
     # "lv_group_t": "LvGroupWrapper",
-    # "lv_timer_t": "LvTimerWrapper",
     # "lv_style_t": "LvStyleWrapper",
-    # "lv_anim_t": "LvAnimWrapper",
 }

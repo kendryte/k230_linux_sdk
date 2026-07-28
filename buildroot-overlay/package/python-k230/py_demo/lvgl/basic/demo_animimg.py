@@ -20,14 +20,14 @@ IMAGE_PATHS = [
 lv.init()
 scr = lv.screen_active()
 
-anim = lv.Animimg(scr)
+anim = lv.animimg(scr)
 anim.center()
 anim.set_src(IMAGE_PATHS)
 anim.set_duration(1000)          # 一个完整循环 1000ms
 anim.set_repeat_count(255)       # 255 = 无限循环
 anim.start()
 
-info = lv.Label(scr)
+info = lv.label(scr)
 info.set_text("Animimg: 3 frames, 1000ms cycle")
 info.align_to(anim, lv.ALIGN.OUT_BOTTOM_MID, 0, 10)
 

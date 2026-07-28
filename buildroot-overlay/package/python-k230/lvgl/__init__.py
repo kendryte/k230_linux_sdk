@@ -17,11 +17,11 @@ Example usage:
 
     # Create a screen with a button
     scr = lv.screen_active()
-    btn = lv.Button(scr)
+    btn = lv.button(scr)
     btn.set_size(120, 50)
     btn.center()
 
-    label = lv.Label(btn)
+    label = lv.label(btn)
     label.set_text("Hello!")
     label.center()
 
@@ -32,7 +32,7 @@ Example usage:
     btn.on(lv.EVENT.CLICKED, on_click)
 
     # Style with named selector (no magic number)
-    btn.set_style_bg_color(lv.Color.red(), lv.PART.MAIN)
+    btn.set_style_bg_color(lv.color.red(), lv.SELECTOR.DEFAULT)
 
     # Main loop
     lv.run()  # or: while True: idle = lv.timer_handler(); time.sleep(idle / 1000.0)

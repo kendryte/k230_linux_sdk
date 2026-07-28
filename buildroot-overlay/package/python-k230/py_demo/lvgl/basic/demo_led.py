@@ -6,19 +6,19 @@ import lvgl as lv
 lv.init()
 scr = lv.screen_active()
 
-led = lv.Led(scr)
+led = lv.led(scr)
 led.set_size(30, 30)
 led.set_color(lv.color(0, 255, 0))
 led.set_brightness(255)
 led.center()
 
-led_label = lv.Label(scr)
+led_label = lv.label(scr)
 led_label.set_text("ON")
 led_label.align_to(led, lv.ALIGN.OUT_RIGHT_MID, 10, 0)
 
 led_on = [True]
-def on_toggle(event_code):
-    if event_code == lv.EVENT.CLICKED:
+def on_toggle(event):
+    if event.code == lv.EVENT.CLICKED:
         if led_on[0]:
             led.off()
             led.set_brightness(30)
@@ -29,10 +29,10 @@ def on_toggle(event_code):
             led_label.set_text("ON")
         led_on[0] = not led_on[0]
 
-btn = lv.Button(scr)
+btn = lv.button(scr)
 btn.set_size(70, 30)
 btn.align_to(led, lv.ALIGN.OUT_BOTTOM_MID, 0, 15)
-lbl = lv.Label(btn)
+lbl = lv.label(btn)
 lbl.set_text("Toggle")
 lbl.center()
 btn.add_event_cb(lv.EVENT.CLICKED, on_toggle)

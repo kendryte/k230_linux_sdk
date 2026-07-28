@@ -15,10 +15,10 @@ lv.init(v4l2drm, v4l2_drm_run_flag=1)
 
 # 3. 设置透明背景，让摄像头画面透出来
 scr = lv.screen_active()
-scr.set_style_bg_opa(lv.OPA_TRANSP, 0)
+scr.set_style_bg_opa(lv.OPA_TRANSP, lv.SELECTOR.DEFAULT)
 
 # 4. 添加 OSD 文字
-title = lv.Label(scr)
+title = lv.label(scr)
 title.set_text("Camera + OSD")
 title.align(lv.ALIGN.TOP_MID, 0, 10)
 

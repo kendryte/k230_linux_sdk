@@ -6,24 +6,24 @@ import lvgl as lv
 lv.init()
 scr = lv.screen_active()
 
-cb1 = lv.Checkbox(scr)
+cb1 = lv.checkbox(scr)
 cb1.set_text("Option A")
 cb1.align(lv.ALIGN.TOP_LEFT, 20, 30)
 
-cb2 = lv.Checkbox(scr)
+cb2 = lv.checkbox(scr)
 cb2.set_text("Option B")
 cb2.align_to(cb1, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
 
-cb3 = lv.Checkbox(scr)
+cb3 = lv.checkbox(scr)
 cb3.set_text("Option C")
 cb3.align_to(cb2, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
 
-status = lv.Label(scr)
+status = lv.label(scr)
 status.set_text("Check an option")
 status.align_to(cb3, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 20)
 
-def on_check(event_code):
-    if event_code == lv.EVENT.VALUE_CHANGED:
+def on_check(event):
+    if event.code == lv.EVENT.VALUE_CHANGED:
         checked = []
         for cb, name in [(cb1, "A"), (cb2, "B"), (cb3, "C")]:
             if int(cb.get_state()) & int(lv.STATE.CHECKED):

@@ -11,7 +11,7 @@ W, H = 100, 100
 buf = np.zeros((H, W, 4), dtype=np.uint8)
 buf[:, :] = [30, 30, 60, 255]  # 填充深蓝背景 (BGRA in memory)
 
-canvas = lv.Canvas(scr)
+canvas = lv.canvas(scr)
 canvas.set_buffer(buf.ctypes.data, W, H, lv.COLOR_FORMAT.ARGB8888)
 canvas.center()
 

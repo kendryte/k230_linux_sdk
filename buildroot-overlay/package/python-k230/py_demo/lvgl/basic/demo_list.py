@@ -6,7 +6,7 @@ import lvgl as lv
 lv.init()
 scr = lv.screen_active()
 
-list_obj = lv.List(scr)
+list_obj = lv.list(scr)
 list_obj.set_size(180, 200)
 list_obj.center()
 

@@ -50,7 +50,7 @@ def main():
     scr.set_style_bg_opa(lv.OPA_TRANSP, lv.PART.MAIN)
 
     # -- Title --
-    title = lv.Label(scr)
+    title = lv.label(scr)
     title.set_text("K230 LVGL + Camera")
     title.set_style_bg_opa(lv.OPA_50, lv.PART.MAIN)
     title.set_style_bg_color(lv.color_black(), lv.PART.MAIN)
@@ -58,19 +58,19 @@ def main():
     title.align(lv.ALIGN.TOP_MID, 0, 10)
 
     # -- Toggle button --
-    btn = lv.Button(scr)
+    btn = lv.button(scr)
     btn.set_size(120, 40)
     btn.align(lv.ALIGN.BOTTOM_MID, 0, -20)
 
-    btn_text = lv.Label(btn)
+    btn_text = lv.label(btn)
     btn_text.set_text("Hide OSD")
     btn_text.center()
 
     # -- Toggle callback --
     osd_visible = [True]
 
-    def on_btn_click(event_code):
-        if event_code == lv.EVENT.CLICKED:
+    def on_btn_click(event):
+        if event.code == lv.EVENT.CLICKED:
             if osd_visible[0]:
                 title.add_flag(lv.OBJ_FLAG.HIDDEN)
                 btn_text.set_text("Show OSD")

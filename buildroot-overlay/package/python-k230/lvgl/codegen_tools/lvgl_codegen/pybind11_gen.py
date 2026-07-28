@@ -50,8 +50,13 @@ class Pybind11Generator:
         self._emit_color_type()
         self._emit_display_class()
         self._emit_indev_class()
+        self._emit_timer_class()
+        self._emit_anim_class()
+        self._emit_theme_bindings()
+        self._emit_obj_remove_style_binding()
         self._emit_freetype_font()
         self._emit_driver_backends()
+        self._emit_keyboard_group_helpers()
         self._emit_not_generated_list()
         self._emit_module_end()
 
@@ -177,7 +182,15 @@ class Pybind11Generator:
             py_name = enum_py_name_map.get(c_type, self._enum_python_name(c_type))
 
             if c_type and c_type.startswith("lv_"):
-                self.emit('    py::enum_<%s>(m, "%s")' % (c_type, py_name))
+                # Bitmask-style enums need |, &, ^, ~ operators via py::arithmetic()
+                BITMASK_ENUMS = {
+                    "lv_obj_flag_t", "lv_obj_state_t", "lv_part_t",
+                    "lv_style_selector_t", "lv_text_decor_t",
+                }
+                if c_type in BITMASK_ENUMS:
+                    self.emit('    py::enum_<%s>(m, "%s", py::arithmetic())' % (c_type, py_name))
+                else:
+                    self.emit('    py::enum_<%s>(m, "%s")' % (c_type, py_name))
                 for member in enum_ir.members:
                     stripped = self._strip_enum_prefix(member.c_name, py_name)
                     safe_name = self._sanitize(stripped)
@@ -214,18 +227,6 @@ class Pybind11Generator:
                             self.emit('    /* %s skipped (name collision) */' % safe_name)
                     self.emit("")
 
-        # Second pass: manually inject non-conflicting enum values into module namespace
-        # Values that clash with an enum type name or appear in multiple enums are
-        # only accessible via their enum type (e.g., lv.EVENT.KEY, lv.ALIGN.CENTER)
-        self.emit("    /*")
-        self.emit("     * Export non-conflicting enum values into module namespace")
-        self.emit("     * (conflicting values are only accessible via their enum type)")
-        self.emit("     */")
-        for py_name, safe_name, member_c_name in all_value_names:
-            if safe_name not in conflicting_values:
-                self.emit('    m.attr("%s") = (int)%s;' % (safe_name, member_c_name))
-        self.emit("")
-
     @staticmethod
     def _strip_enum_prefix(c_name: str, enum_py_name: str = "") -> str:
         """Strip LV_ prefix and enum class name prefix from a C enum member name.
@@ -234,7 +235,7 @@ class Pybind11Generator:
             LV_ALIGN_TOP_LEFT + ALIGN → TOP_LEFT
             LV_EVENT_CLICKED + EVENT → CLICKED
             LV_OBJ_FLAG_CLICKABLE + OBJ_FLAG → CLICKABLE
-            LV_ARC_MODE_NORMAL + ARC → NORMAL  (strips ARC_ then MODE_ via suffix)
+            LV_ARC_MODE_NORMAL + ARC_MODE → NORMAL
             LV_OPA_50 + OPA → 50
             LV_STR_SYMBOL_AUDIO + SYMBOL → AUDIO
         """
@@ -242,6 +243,24 @@ class Pybind11Generator:
         # Strip LV_ prefix
         if name.startswith("LV_"):
             name = name[3:]
+
+        # For overridden enum names, use the C prefix that corresponds to the
+        # original C type name (before the override) so value stripping works correctly.
+        # e.g. LV_FREETYPE_FONT_RENDER_BITMAP + FREETYPE_RENDER
+        #      → strip FREETYPE_FONT_RENDER_ prefix → BITMAP
+        override_c_prefix = Pybind11Generator.ENUM_VALUE_PREFIX_OVERRIDES.get(enum_py_name)
+        if override_c_prefix and name.startswith(override_c_prefix + "_"):
+            name = name[len(override_c_prefix) + 1:]
+            # Handle SCREEN_LOAD: after stripping SCREEN_LOAD_, leftover has ANIM_ prefix
+            for suffix in Pybind11Generator.ENUM_NAME_SUFFIX_STRIP:
+                suffix_prefix = suffix + "_"
+                if suffix_prefix.startswith("_"):
+                    suffix_prefix = suffix_prefix[1:]
+                if name.startswith(suffix_prefix):
+                    name = name[len(suffix_prefix):]
+                    break
+            return name
+
         # Strip enum class name prefix (e.g., ALIGN_ from ALIGN_TOP_LEFT)
         if enum_py_name and name.startswith(enum_py_name + "_"):
             name = name[len(enum_py_name) + 1:]
@@ -263,34 +282,61 @@ class Pybind11Generator:
     # Only strip truly redundant suffixes that don't carry independent meaning.
     # Keep suffixes like _FLAG, _SIDE, _CTRL that are part of the enum's identity
     # (per API review: OBJ_FLAG.CLICKABLE, BORDER_SIDE.FULL, etc.)
-    # IMPORTANT: Do NOT strip suffixes that would cause name collisions with
-    # other enums (e.g., _ORIENTATION on BAR_ORIENTATION → BAR collides with
-    # BAR_MODE → BAR; _EDITABLE/_GROUP_DEF on OBJ_CLASS_* → OBJ_CLASS collides).
+    #
+    # IMPORTANT: Naming convention (API review line 342) — keep _MODE/_TYPE/_ENCODING/
+    # _COMPRESS/_SRC suffixes so widget-specific enums stay self-describing and
+    # consistent (e.g., ARC_MODE.NORMAL, CHART_TYPE.LINE, CHART_UPDATE.SHIFT, BARCODE_ENCODING.EAN_13).
+    # Only strip suffixes that are pure boilerplate (EVENT_CODE → EVENT, COVER_RES → COVER).
     ENUM_NAME_SUFFIX_STRIP = {
         "_CODE": "",       # EVENT_CODE → EVENT
-        "_TYPE": "",       # CHART_TYPE → CHART, INDEV_TYPE → INDEV
-        "_MODE": "",       # ARC_MODE → ARC, BAR_MODE → BAR, SCROLLBAR_MODE → SCROLLBAR
         "_RES": "",        # COVER_RES → COVER, FS_RES → FS
         "_CMP": "",        # STYLE_STATE_CMP → STYLE_STATE
         "_WALK_RES": "",   # OBJ_TREE_WALK_RES → OBJ_TREE_WALK
         "_TRANSFORM_FLAG": "", # OBJ_POINT_TRANSFORM_FLAG → OBJ_POINT
         "_REFOCUS_POLICY": "", # GROUP_REFOCUS_POLICY → GROUP
         "_GESTURE_TYPE": "", # INDEV_GESTURE_TYPE → INDEV_GESTURE
-        "_LONG_MODE": "",  # LABEL_LONG_MODE → LABEL_LONG
-        "_ENCODING": "",   # BARCODE_ENCODING → BARCODE
+        "_LONG_MODE": "_LONG",  # LABEL_LONG_MODE → LABEL_LONG (keeps _LONG identity)
         # "_ORIENTATION": "",  # REMOVED: BAR_ORIENTATION → BAR collides with BAR_MODE → BAR
-        "_RENDER_MODE": "", # DISPLAY_RENDER_MODE → DISPLAY_RENDER
-        "_LOAD_ANIM": "",  # SCREEN_LOAD_ANIM → SCREEN_LOAD
-        "_COMPRESS": "",   # IMAGE_COMPRESS → IMAGE
-        "_SRC": "",        # IMAGE_SRC → IMAGE
+        "_RENDER_MODE": "_RENDER", # DISPLAY_RENDER_MODE → DISPLAY_RENDER (keeps _RENDER identity for clarity)
+        "_LOAD_ANIM": "_LOAD",  # SCREEN_LOAD_ANIM → SCREEN_LOAD (keeps _LOAD identity)
         "_INHERITABLE": "", # OBJ_CLASS_THEME_INHERITABLE → OBJ_CLASS_THEME
         # "_EDITABLE": "",  # REMOVED: OBJ_CLASS_EDITABLE → OBJ_CLASS collides with OBJ_CLASS_GROUP_DEF
         # "_GROUP_DEF": "", # REMOVED: OBJ_CLASS_GROUP_DEF → OBJ_CLASS collides with OBJ_CLASS_EDITABLE
+        # Kept (NOT stripped) for naming consistency:
+        #   _TYPE  (CHART_TYPE, INDEV_TYPE)
+        #   _MODE  (ARC_MODE, BAR_MODE, KEYBOARD_MODE, SCROLLBAR_MODE, ...)
+        #   _ENCODING (BARCODE_ENCODING)
+        #   _COMPRESS (IMAGE_COMPRESS)
+        #   _SRC  (IMAGE_SRC)
+    }
+
+    # Per-enum overrides for names that can't be derived by simple suffix stripping.
+    # Used to shorten verbose names (FREETYPE_FONT_* → FREETYPE_*, MENU_MODE_* → MENU_*).
+    ENUM_NAME_OVERRIDES = {
+        "lv_freetype_font_render_mode_t": "FREETYPE_RENDER",
+        "lv_freetype_font_style_t": "FREETYPE_STYLE",
+        "lv_menu_mode_header_t": "MENU_HEADER",
+        "lv_menu_mode_root_back_button_t": "MENU_ROOT_BACK_BTN",
+    }
+
+    # For overridden enum names, the C value prefix to strip (derived from the C type).
+    # Without this, _strip_enum_prefix can't find the right prefix to strip from values.
+    # e.g. LV_FREETYPE_FONT_RENDER_BITMAP + FREETYPE_RENDER → strip FREETYPE_FONT_RENDER_ → BITMAP
+    ENUM_VALUE_PREFIX_OVERRIDES = {
+        "FREETYPE_RENDER": "FREETYPE_FONT_RENDER_MODE",
+        "FREETYPE_STYLE": "FREETYPE_FONT_STYLE",
+        "LABEL_LONG": "LABEL_LONG_MODE",
+        "MENU_HEADER": "MENU_MODE_HEADER",
+        "MENU_ROOT_BACK_BTN": "MENU_MODE_ROOT_BACK_BUTTON",
+        "SCREEN_LOAD": "SCREEN_LOAD",  # needs suffix strip for _ANIM_
     }
 
     @staticmethod
     def _enum_python_name(c_type: str) -> str:
         """Convert lv_align_t → ALIGN, lv_event_code_t → EVENT, etc."""
+        # Check explicit overrides first (handles non-suffix renames)
+        if c_type in Pybind11Generator.ENUM_NAME_OVERRIDES:
+            return Pybind11Generator.ENUM_NAME_OVERRIDES[c_type]
         if c_type.startswith("lv_") and c_type.endswith("_t"):
             name = c_type[3:-2]  # strip lv_ and _t
             name = name.upper()
@@ -313,6 +359,23 @@ class Pybind11Generator:
         self.emit('    m.def("is_initialized", &lv_is_initialized, "Check if LVGL is initialized");')
         self.emit('    m.def("timer_handler", &py_timer_handler, "Call LVGL timer handler");')
         self.emit("")
+        self.emit("    /* Module constants */")
+        self.emit('    m.attr("SIZE_CONTENT") = (int32_t)LV_SIZE_CONTENT;')
+        self.emit('    m.attr("RADIUS_CIRCLE") = (int32_t)LV_RADIUS_CIRCLE;')
+        self.emit('    m.attr("OPA_TRANSP") = (int)LV_OPA_TRANSP;')
+        self.emit('    m.attr("OPA_COVER") = (int)LV_OPA_COVER;')
+        self.emit("")
+        self.emit("    /* pct() helper — equivalent of lv_pct(x) macro */")
+        self.emit('    m.def("pct", [](int32_t x) -> int32_t { return LV_PCT(x); }, py::arg("x"), "Set size as percentage of parent (e.g. lv.pct(50))");')
+        self.emit("")
+        self.emit("    /* Font default (as uintptr_t for Python — use with set_style_text_font) */")
+        self.emit('    m.attr("font_default") = reinterpret_cast<uintptr_t>((const lv_font_t *)lv_font_get_default());')
+        self.emit("")
+        self.emit("    /* Palette color functions */")
+        self.emit('    m.def("palette_main", [](lv_palette_t p) -> lv_color_t { return lv_palette_main(p); }, py::arg("palette"), "Get main color for a palette");')
+        self.emit('    m.def("palette_darken", [](lv_palette_t p, uint8_t lvl) -> lv_color_t { return lv_palette_darken(p, lvl); }, py::arg("palette"), py::arg("level"), "Get darkened color for a palette");')
+        self.emit('    m.def("palette_lighten", [](lv_palette_t p, uint8_t lvl) -> lv_color_t { return lv_palette_lighten(p, lvl); }, py::arg("palette"), py::arg("level"), "Get lightened color for a palette");')
+        self.emit("")
         self.emit("    /* Version info */")
         self.emit("    m.def(\"version_major\", []() { return lv_version_major(); });")
         self.emit("    m.def(\"version_minor\", []() { return lv_version_minor(); });")
@@ -329,12 +392,25 @@ class Pybind11Generator:
 
     def _emit_obj_class(self):
         self.emit("    /* Base Object class */")
-        self.emit("    auto obj_cls = py::class_<LvObjWrapper>(m, \"Obj\", py::dynamic_attr());")
+        self.emit("    auto obj_cls = py::class_<LvObjWrapper>(m, \"obj\", py::dynamic_attr());")
+        # Default constructor: lv.obj() — creates a root object on the active screen
         self.emit("    obj_cls.def(py::init<>());")
+        # Parent constructor: lv.obj(parent) — creates a child container under parent.
+        # Matches the API pattern used by all other widgets (lv.btn(parent), lv.label(parent)).
+        self.emit('    obj_cls.def(py::init([](py::object parent_obj) {')
+        self.emit("        LvObjWrapper *_parent = parent_obj.is_none() ? nullptr : parent_obj.cast<LvObjWrapper*>();")
+        self.emit("        LvObjWrapper *wrapper = new LvObjWrapper(lv_obj_create(_parent ? _parent->get() : lv_screen_active()));")
+        self.emit("        if (_parent) wrapper->keep_parent(parent_obj);")
+        self.emit("        return wrapper;")
+        self.emit('    }), py::arg("parent") = py::none());')
         # Expose keep_parent for lifecycle management (called internally by factory functions)
         self.emit('    obj_cls.def("_keep_parent", [](LvObjWrapper &self, py::object parent) {')
         self.emit("        self.keep_parent(parent);")
         self.emit("    }, py::arg(\"parent\"));")
+        # Expose infer_widget_type for dispatch methods when _widget_type is not set
+        self.emit('    obj_cls.def("_infer_widget_type", [](LvObjWrapper &self) -> const char * {')
+        self.emit("        return self.infer_widget_type();")
+        self.emit("    });")
 
         # Generate methods for base obj
         obj_methods = self.ir.get_widget_methods("obj")
@@ -375,7 +451,7 @@ class Pybind11Generator:
                 continue
 
             # Generate factory function
-            py_name = widget_name[0].upper() + widget_name[1:]
+            py_name = widget_name
             self._emit_factory_function(py_name, ctor_func)
 
         self.emit("")
@@ -550,10 +626,12 @@ class Pybind11Generator:
         if method_name == "delete":
             method_name = "delete_obj"
 
-        # If this python method name collides across widgets, prefix with widget name
-        # e.g. set_rotation (owned by arc, image, scale) → arc_set_rotation, image_set_rotation, scale_set_rotation
+        # If this python method name collides across widgets, prefix with _widget_name
+        # (leading underscore makes it a Python private attribute, so only the
+        # short-name dispatch methods in _wrapper.py remain as the public API)
+        # e.g. set_rotation (owned by arc, image, scale) → _arc_set_rotation, _image_set_rotation, _scale_set_rotation
         if colliding_names and method_name in colliding_names and widget_name:
-            method_name = "%s_%s" % (widget_name, method_name)
+            method_name = "_%s_%s" % (widget_name, method_name)
 
         # Build lambda body
         call_args = []
@@ -573,15 +651,25 @@ class Pybind11Generator:
 
             # For wrapper type params, call .get()
             # For const void* params (mapped to const char* for pybind11), add cast
+            # For opaque pointer types mapped to uintptr_t (e.g. const lv_font_t*), cast back
             if cpp_type.endswith("Wrapper &"):
                 call_args.append("%s.get()" % arg_name)
             elif param.c_type == "const void *" and cpp_type == "const char *":
                 call_args.append("(const void *)%s" % arg_name)
+            elif cpp_type == "uintptr_t" and param.c_type in ("const lv_font_t *", "lv_font_t *"):
+                cast_type = param.c_type.replace(" ", "")  # e.g. "constlv_font_t*"
+                # Normalize: "constlv_font_t*" → "const lv_font_t *"
+                if cast_type.startswith("const"):
+                    call_args.append("reinterpret_cast<const lv_font_t *>(%s)" % arg_name)
+                else:
+                    call_args.append("reinterpret_cast<lv_font_t *>(%s)" % arg_name)
             else:
                 call_args.append(arg_name)
             lambda_params.append("%s %s" % (cpp_type, arg_name))
 
             # Add default value for style selector parameters (uint32_t selector → 0)
+            # Note: The Pythonic name is SELECTOR.DEFAULT (defined in _wrapper.py),
+            # but at the C++ pybind11 layer we use the raw value 0.
             if arg_name == "selector" and cpp_type == "uint32_t":
                 py_args.append('py::arg("selector") = 0')
             else:
@@ -625,8 +713,13 @@ class Pybind11Generator:
             # Skip unsupported wrapper pointer returns
             return
         elif return_cpp:
-            self.emit('    %s.def("%s", [](%s) -> %s { return %s(%s); }' % (
-                obj_cls_var, method_name, lambda_params_str, return_cpp, func.name, call_args_str))
+            # For opaque pointer returns mapped to uintptr_t, add reinterpret_cast
+            if return_cpp == "uintptr_t" and return_type in ("const lv_font_t *", "lv_font_t *"):
+                self.emit('    %s.def("%s", [](%s) -> uintptr_t { return reinterpret_cast<uintptr_t>(%s(%s)); }' % (
+                    obj_cls_var, method_name, lambda_params_str, func.name, call_args_str))
+            else:
+                self.emit('    %s.def("%s", [](%s) -> %s { return %s(%s); }' % (
+                    obj_cls_var, method_name, lambda_params_str, return_cpp, func.name, call_args_str))
         else:
             return  # Unsupported return type
 
@@ -715,7 +808,7 @@ class Pybind11Generator:
         self.emit("        lv_chart_set_next_value2(self.get(), ser, x_value, y_value);")
         self.emit('    }, py::arg("series"), py::arg("x_value"), py::arg("y_value"), "Set next X/Y value on a chart series (scatter)");')
 
-        self.emit('    obj_cls.def("refresh_chart", [](LvObjWrapper &self) {')
+        self.emit('    obj_cls.def("refresh", [](LvObjWrapper &self) {')
         self.emit("        lv_chart_refresh(self.get());")
         self.emit('    }, "Refresh chart after data change");')
 
@@ -829,7 +922,42 @@ class Pybind11Generator:
     # -----------------------------------------------------------------------
 
     def _emit_event_callbacks(self):
-        self.emit("    /* Event callback support */")
+        self.emit("    /* Event object and callback support */")
+        self.emit("    py::class_<LvEventWrapper>(m, \"event\")")
+        self.emit('        .def_property_readonly("code", [](LvEventWrapper &e) -> int {')
+        self.emit("            return static_cast<int>(lv_event_get_code(e.get()));")
+        self.emit("        })")
+        self.emit('        .def_property_readonly("target", [](LvEventWrapper &e) -> LvObjWrapper* {')
+        self.emit("            lv_obj_t *t = (lv_obj_t *)lv_event_get_target(e.get());")
+        self.emit("            return t ? new LvObjWrapper(t) : nullptr;")
+        self.emit("        })")
+        self.emit('        .def_property_readonly("current_target", [](LvEventWrapper &e) -> LvObjWrapper* {')
+        self.emit("            lv_obj_t *t = (lv_obj_t *)lv_event_get_current_target(e.get());")
+        self.emit("            return t ? new LvObjWrapper(t) : nullptr;")
+        self.emit("        })")
+        self.emit('        .def("stop_bubbling", [](LvEventWrapper &e) {')
+        self.emit("            lv_event_stop_bubbling(e.get());")
+        self.emit("        })")
+        self.emit('        .def("stop_processing", [](LvEventWrapper &e) {')
+        self.emit("            lv_event_stop_processing(e.get());")
+        self.emit("        })")
+        self.emit('        .def("stop_trickling", [](LvEventWrapper &e) {')
+        self.emit("            lv_event_stop_trickling(e.get());")
+        self.emit("        })")
+        self.emit('        .def("__eq__", [](LvEventWrapper &e, int code) -> bool {')
+        self.emit("            return static_cast<int>(lv_event_get_code(e.get())) == code;")
+        self.emit("        })")
+        self.emit('        .def("__eq__", [](LvEventWrapper &e, LvEventWrapper &other) -> bool {')
+        self.emit("            return e.get() == other.get();")
+        self.emit("        })")
+        self.emit('        .def("__int__", [](LvEventWrapper &e) -> int {')
+        self.emit("            return static_cast<int>(lv_event_get_code(e.get()));")
+        self.emit("        })")
+        self.emit('        .def("__repr__", [](LvEventWrapper &e) -> std::string {')
+        self.emit('            return "event(code=" + std::to_string(static_cast<int>(lv_event_get_code(e.get()))) + ")";')
+        self.emit("        });")
+        self.emit("")
+        self.emit("    /* Event callback registration */")
         self.emit('    obj_cls.def("add_event_cb", [](LvObjWrapper &self, int filter, py::function callback) {')
         self.emit("        register_event_callback(self.get(), (lv_event_code_t)filter, callback);")
         self.emit('    }, py::arg("filter"), py::arg("callback"));')
@@ -841,7 +969,7 @@ class Pybind11Generator:
 
     def _emit_color_type(self):
         self.emit("    /* Color type */")
-        self.emit("    py::class_<lv_color_t>(m, \"Color\")")
+        self.emit("    py::class_<lv_color_t>(m, \"color\")")
         self.emit("        .def(py::init<>())")
         self.emit('        .def_static("from_rgb", [](uint8_t r, uint8_t g, uint8_t b) -> lv_color_t {')
         self.emit("            return lv_color_make(r, g, b);")
@@ -867,7 +995,7 @@ class Pybind11Generator:
 
     def _emit_display_class(self):
         self.emit("    /* Display */")
-        self.emit("    py::class_<LvDisplayWrapper>(m, \"Display\")")
+        self.emit("    py::class_<LvDisplayWrapper>(m, \"display\")")
         self.emit("        .def(py::init<>())")
         self.emit('        .def("set_resolution", [](LvDisplayWrapper &self, int32_t h, int32_t v) {')
         self.emit("            lv_display_set_resolution(self.get(), h, v);")
@@ -899,12 +1027,134 @@ class Pybind11Generator:
 
     def _emit_indev_class(self):
         self.emit("    /* Input device */")
-        self.emit("    py::class_<LvIndevWrapper>(m, \"Indev\")")
+        self.emit("    py::class_<LvIndevWrapper>(m, \"indev\")")
         self.emit("        .def(py::init<>());")
         self.emit("")
         self.emit('    m.def("indev_create", []() -> LvIndevWrapper* {')
         self.emit("        return new LvIndevWrapper(lv_indev_create());")
         self.emit("    });")
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Timer wrapper
+    # -----------------------------------------------------------------------
+
+    def _emit_timer_class(self):
+        """Emit LvTimerWrapper class and timer_create module function.
+
+        lv_timer_create(callback, period) creates a timer that calls the Python
+        callback periodically. The callback receives an LvTimerWrapper.
+        """
+        self.emit("    /* Timer */")
+        self.emit('    py::class_<LvTimerWrapper>(m, "timer_t")')
+        self.emit("        .def(py::init<>())")
+        self.emit('        .def("is_valid", &LvTimerWrapper::is_valid)')
+        self.emit('        .def("delete", [](LvTimerWrapper &self) { self.del(); }, "Delete the timer")')
+        self.emit('        .def("pause", [](LvTimerWrapper &self) { lv_timer_pause(self.get()); })')
+        self.emit('        .def("resume", [](LvTimerWrapper &self) { lv_timer_resume(self.get()); })')
+        self.emit('        .def("set_period", [](LvTimerWrapper &self, uint32_t period) { lv_timer_set_period(self.get(), period); }, py::arg("period"))')
+        self.emit('        .def("ready", [](LvTimerWrapper &self) { lv_timer_ready(self.get()); });')
+        self.emit("")
+        self.emit('    m.def("timer_create", [](py::function callback, uint32_t period) -> LvTimerWrapper* {')
+        self.emit("        uint64_t cb_id = CallbackManager::instance().store(std::move(callback));")
+        self.emit("        lv_timer_t *t = lv_timer_create(lvgl_timer_cb_trampoline, period, reinterpret_cast<void*>(static_cast<uintptr_t>(cb_id)));")
+        self.emit("        return new LvTimerWrapper(t);")
+        self.emit('    }, py::arg("callback"), py::arg("period"), "Create a timer that calls callback every period ms");')
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Animation wrapper
+    # -----------------------------------------------------------------------
+
+    def _emit_anim_class(self):
+        """Emit LvAnimWrapper class with animation API.
+
+        Usage:
+            a = lv.anim_t()       # constructs and calls lv_anim_init()
+            a.set_var(obj)
+            a.set_exec_cb(cb)     # Python callback: cb(var, value)
+            a.set_values(start, end)
+            a.set_duration(ms)
+            a.set_repeat_count(lv.ANIM_REPEAT.INFINITE)
+            a.start()
+        """
+        self.emit("    /* Animation */")
+        self.emit('    py::class_<LvAnimWrapper>(m, "anim_t")')
+        # Constructor calls lv_anim_init internally
+        self.emit("        .def(py::init<>())")
+        self.emit('        .def("set_var", [](LvAnimWrapper &self, LvObjWrapper &var) { lv_anim_set_var(self.get(), var.get()); }, py::arg("var"))')
+        # exec_cb: register Python callback keyed by the var pointer
+        self.emit('        .def("set_exec_cb", [](LvAnimWrapper &self, LvObjWrapper &var, py::function callback) {')
+        self.emit("            register_anim_exec_cb(var.get(), std::move(callback));")
+        self.emit("            lv_anim_set_exec_cb(self.get(), lvgl_anim_exec_trampoline);")
+        self.emit('        }, py::arg("var"), py::arg("callback"), "Set exec callback (must also pass the var object)")')
+        self.emit('        .def("set_values", [](LvAnimWrapper &self, int32_t start, int32_t end) { lv_anim_set_values(self.get(), start, end); }, py::arg("start"), py::arg("end"))')
+        self.emit('        .def("set_duration", [](LvAnimWrapper &self, uint32_t duration) { lv_anim_set_duration(self.get(), duration); }, py::arg("duration"))')
+        self.emit('        .def("set_delay", [](LvAnimWrapper &self, uint32_t delay) { lv_anim_set_delay(self.get(), delay); }, py::arg("delay"))')
+        self.emit('        .def("set_reverse_duration", [](LvAnimWrapper &self, uint32_t duration) { lv_anim_set_reverse_duration(self.get(), duration); }, py::arg("duration"))')
+        self.emit('        .def("set_reverse_delay", [](LvAnimWrapper &self, uint32_t delay) { lv_anim_set_reverse_delay(self.get(), delay); }, py::arg("delay"))')
+        self.emit('        .def("set_repeat_count", [](LvAnimWrapper &self, int32_t count) { lv_anim_set_repeat_count(self.get(), count); }, py::arg("count"))')
+        self.emit('        .def("set_repeat_delay", [](LvAnimWrapper &self, uint32_t delay) { lv_anim_set_repeat_delay(self.get(), delay); }, py::arg("delay"))')
+        # Predefined path functions
+        self.emit('        .def("set_path_linear", [](LvAnimWrapper &self) { lv_anim_set_path_cb(self.get(), lv_anim_path_linear); })')
+        self.emit('        .def("set_path_ease_in", [](LvAnimWrapper &self) { lv_anim_set_path_cb(self.get(), lv_anim_path_ease_in); })')
+        self.emit('        .def("set_path_ease_out", [](LvAnimWrapper &self) { lv_anim_set_path_cb(self.get(), lv_anim_path_ease_out); })')
+        self.emit('        .def("set_path_ease_in_out", [](LvAnimWrapper &self) { lv_anim_set_path_cb(self.get(), lv_anim_path_ease_in_out); })')
+        self.emit('        .def("set_path_overshoot", [](LvAnimWrapper &self) { lv_anim_set_path_cb(self.get(), lv_anim_path_overshoot); })')
+        self.emit('        .def("set_path_bounce", [](LvAnimWrapper &self) { lv_anim_set_path_cb(self.get(), lv_anim_path_bounce); })')
+        self.emit('        .def("set_path_step", [](LvAnimWrapper &self) { lv_anim_set_path_cb(self.get(), lv_anim_path_step); })')
+        # completed_cb: register Python callback keyed by the var pointer
+        self.emit('        .def("set_completed_cb", [](LvAnimWrapper &self, LvObjWrapper &var, py::function callback) {')
+        self.emit("            register_anim_completed_cb(var.get(), std::move(callback));")
+        self.emit("            lv_anim_set_completed_cb(self.get(), lvgl_anim_completed_trampoline);")
+        self.emit('        }, py::arg("var"), py::arg("callback"))')
+        self.emit('        .def("set_early_apply", [](LvAnimWrapper &self, bool en) { lv_anim_set_early_apply(self.get(), en); }, py::arg("en"))')
+        # start: lv_anim_start copies the struct and returns lv_anim_t* (LVGL-owned, not safe to wrap)
+        # We discard the return value since users don't need it.
+        self.emit('        .def("start", [](LvAnimWrapper &self) { lv_anim_start(self.get()); }, "Start the animation")')
+        self.emit('        .def_static("delete", [](LvObjWrapper &var) { lv_anim_delete(var.get(), NULL); }, py::arg("var"), "Delete animations on var");')
+        self.emit("")
+        # ANIM_REPEAT constants
+        self.emit("    /* Animation repeat count constants */")
+        self.emit('    m.attr("ANIM_REPEAT_INFINITE") = (int)LV_ANIM_REPEAT_INFINITE;')
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Theme bindings
+    # -----------------------------------------------------------------------
+
+    def _emit_theme_bindings(self):
+        """Emit theme_default_init binding.
+
+        lv_theme_default_init(display, primary_color, secondary_color, dark, font)
+        Returns nothing (the theme is applied to the display).
+        """
+        self.emit("    /* Theme */")
+        self.emit('    m.def("theme_default_init", [](LvDisplayWrapper *disp, lv_color_t primary, lv_color_t secondary, bool dark, uintptr_t font_addr) {')
+        self.emit("        const lv_font_t *font = reinterpret_cast<const lv_font_t*>(font_addr);")
+        self.emit("        lv_theme_default_init(disp ? disp->get() : NULL, primary, secondary, dark, font);")
+        self.emit('    }, py::arg("display") = py::none(), py::arg("primary"), py::arg("secondary"), py::arg("dark") = true, py::arg("font") = reinterpret_cast<uintptr_t>((const lv_font_t *)lv_font_get_default()), "Initialize default theme");')
+        self.emit('    m.def("theme_get_color_primary", [](LvObjWrapper *obj) -> lv_color_t { return lv_theme_get_color_primary(obj ? obj->get() : NULL); }, py::arg("obj") = py::none(), "Get primary theme color");')
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # obj.remove_style binding (style param as NULL)
+    # -----------------------------------------------------------------------
+
+    def _emit_obj_remove_style_binding(self):
+        """Emit obj.remove_style(selector) that calls lv_obj_remove_style with NULL style.
+
+        lv_obj_remove_style(obj, style, selector) takes a const lv_style_t* which is
+        opaque from Python. The common usage (remove all styles for a given selector)
+        passes NULL as the style. We expose a Python-friendly version.
+        """
+        self.emit("    /* obj.remove_style — remove styles by selector (NULL style) */")
+        self.emit('    obj_cls.def("remove_style", [](LvObjWrapper &self, uint32_t selector) {')
+        self.emit("        lv_obj_remove_style(self.get(), NULL, selector);")
+        self.emit('    }, py::arg("selector") = (uint32_t)LV_PART_ANY, "Remove styles matching selector");')
+        self.emit('    obj_cls.def("remove_style", [](LvObjWrapper &self, uint32_t selector, uint32_t state) {')
+        self.emit("        lv_obj_remove_style(self.get(), NULL, selector | state);")
+        self.emit('    }, py::arg("selector"), py::arg("state"), "Remove styles matching selector|state");')
         self.emit("")
 
     # -----------------------------------------------------------------------
@@ -919,7 +1169,7 @@ class Pybind11Generator:
         """Emit FreeType font bindings and LvFontWrapper overload for set_style_text_font."""
         self.emit("    /* FreeType font support */")
         self.emit("#if LV_USE_FREETYPE")
-        self.emit('    auto font_cls = py::class_<LvFontWrapper>(m, "Font", py::dynamic_attr());')
+        self.emit('    auto font_cls = py::class_<LvFontWrapper>(m, "font", py::dynamic_attr());')
         self.emit("    font_cls.def(py::init<>());")
         self.emit('    font_cls.def("is_valid", &LvFontWrapper::is_valid);')
         self.emit("")
@@ -988,6 +1238,87 @@ class Pybind11Generator:
         self.emit('        return k230_driver_init(reinterpret_cast<void*>(display_ptr), static_cast<char>(v4l2_drm_run_flag));')
         self.emit('    }, py::arg("display_ptr"), py::arg("v4l2_drm_run_flag"),')
         self.emit('        "Initialize K230 display driver with v4l2-drm backend");')
+        self.emit("")
+
+    # -----------------------------------------------------------------------
+    # Keyboard group / indev helpers (for physical keyboard input via evdev)
+    # -----------------------------------------------------------------------
+
+    def _emit_keyboard_group_helpers(self):
+        """Emit manual bindings for lv_group_*, lv_indev_set_group/set_type/get_type/
+        get_next and lv_evdev_create.
+
+        The auto-generator skips all of these because lv_group_t* is an
+        unsupported param/return type and the indev/evdev functions take
+        non-obj-wrapper pointer params. Without these, physical keyboard
+        input (USB/Bluetooth via evdev) is unreachable from Python — LVGL
+        groups are how widgets receive focus from keypad/encoder input
+        devices. Group handles are passed to/from Python as uintptr_t
+        integers (same pattern as chart series handles).
+        """
+        self.emit("    /* Keyboard group helpers — bridge for physical keyboard")
+        self.emit("     * input via evdev. The lv_group_* API is not auto-generated")
+        self.emit("     * (lv_group_t* is unsupported), so we provide a minimal set")
+        self.emit("     * of helpers here. Group handles are passed as uintptr_t. */")
+
+        # Group lifecycle and membership
+        self.emit('    m.def("group_create", []() -> uintptr_t {')
+        self.emit("        return reinterpret_cast<uintptr_t>(lv_group_create());")
+        self.emit('    }, "Create a new LVGL group and return its pointer as an integer");')
+        self.emit('    m.def("group_set_default", [](uintptr_t group_ptr) {')
+        self.emit("        lv_group_set_default(reinterpret_cast<lv_group_t*>(group_ptr));")
+        self.emit('    }, py::arg("group"), "Set the default group");')
+        self.emit('    m.def("group_get_default", []() -> uintptr_t {')
+        self.emit("        return reinterpret_cast<uintptr_t>(lv_group_get_default());")
+        self.emit('    }, "Get the default group pointer as an integer");')
+        self.emit('    m.def("group_add_obj", [](uintptr_t group_ptr, LvObjWrapper &obj) {')
+        self.emit("        lv_group_add_obj(reinterpret_cast<lv_group_t*>(group_ptr), obj.get());")
+        self.emit('    }, py::arg("group"), py::arg("obj"), "Add an object to a group");')
+        self.emit('    m.def("group_remove_obj", [](LvObjWrapper &obj) {')
+        self.emit("        lv_group_remove_obj(obj.get());")
+        self.emit('    }, py::arg("obj"), "Remove an object from its group");')
+        self.emit('    m.def("group_focus_next", [](uintptr_t group_ptr) {')
+        self.emit("        lv_group_focus_next(reinterpret_cast<lv_group_t*>(group_ptr));")
+        self.emit('    }, py::arg("group"), "Focus the next object in the group");')
+        self.emit('    m.def("group_focus_prev", [](uintptr_t group_ptr) {')
+        self.emit("        lv_group_focus_prev(reinterpret_cast<lv_group_t*>(group_ptr));")
+        self.emit('    }, py::arg("group"), "Focus the previous object in the group");')
+        self.emit('    m.def("group_focus_obj", [](LvObjWrapper &obj) {')
+        self.emit("        lv_group_focus_obj(obj.get());")
+        self.emit('    }, py::arg("obj"), "Focus a specific object in its group");')
+        self.emit('    m.def("group_set_wrap", [](uintptr_t group_ptr, bool en) {')
+        self.emit("        lv_group_set_wrap(reinterpret_cast<lv_group_t*>(group_ptr), en);")
+        self.emit('    }, py::arg("group"), py::arg("wrap"), "Set whether the group wraps on focus navigation");')
+        self.emit('    m.def("group_delete", [](uintptr_t group_ptr) {')
+        self.emit("        lv_group_delete(reinterpret_cast<lv_group_t*>(group_ptr));")
+        self.emit('    }, py::arg("group"), "Delete a group");')
+        self.emit("")
+
+        # Indev helpers — connect a keypad device to a group
+        self.emit("    /* Indev helpers for physical keyboard */")
+        self.emit('    m.def("indev_set_type", [](LvIndevWrapper &indev, lv_indev_type_t type) {')
+        self.emit("        lv_indev_set_type(indev.get(), type);")
+        self.emit('    }, py::arg("indev"), py::arg("type"), "Set the input device type");')
+        self.emit('    m.def("indev_set_group", [](LvIndevWrapper &indev, uintptr_t group_ptr) {')
+        self.emit("        lv_indev_set_group(indev.get(), reinterpret_cast<lv_group_t*>(group_ptr));")
+        self.emit('    }, py::arg("indev"), py::arg("group"), "Assign a group to an input device");')
+        self.emit('    m.def("indev_get_type", [](LvIndevWrapper &indev) -> lv_indev_type_t {')
+        self.emit("        return lv_indev_get_type(indev.get());")
+        self.emit('    }, py::arg("indev"), "Get the input device type");')
+        self.emit('    m.def("indev_get_next", [](LvIndevWrapper *indev) -> LvIndevWrapper* {')
+        self.emit("        lv_indev_t *next = lv_indev_get_next(indev ? indev->get() : NULL);")
+        self.emit("        return next ? new LvIndevWrapper(next) : nullptr;")
+        self.emit('    }, py::arg("indev") = py::none(), "Get the next input device (pass None for first)");')
+        self.emit("")
+
+        # evdev — open a specific keyboard device path
+        self.emit("#if LV_USE_EVDEV")
+        self.emit('    m.def("evdev_create", [](lv_indev_type_t indev_type, const std::string &dev_path) -> LvIndevWrapper* {')
+        self.emit("        lv_indev_t *indev = lv_evdev_create(indev_type, dev_path.c_str());")
+        self.emit("        return indev ? new LvIndevWrapper(indev) : nullptr;")
+        self.emit('    }, py::arg("indev_type"), py::arg("dev_path"),')
+        self.emit('        "Create an evdev input device (e.g. LV_INDEV_TYPE_KEYPAD, \'/dev/input/event0\')");')
+        self.emit("#endif")
         self.emit("")
 
     # -----------------------------------------------------------------------

@@ -31,13 +31,13 @@ lv.init(v4l2drm, v4l2_drm_run_flag=1)
 
 # 5. 透明背景 + 半透明标题栏
 scr = lv.screen_active()
-scr.set_style_bg_opa(lv.OPA_TRANSP, 0)
+scr.set_style_bg_opa(lv.OPA_TRANSP, lv.SELECTOR.DEFAULT)
 
-title = lv.Label(scr)
+title = lv.label(scr)
 title.set_text("K230 Camera + Rotation")
-title.set_style_bg_opa(lv.OPA_50, 0)
-title.set_style_bg_color(lv.color_black(), 0)
-title.set_style_text_color(lv.color_white(), 0)
+title.set_style_bg_opa(lv.OPA_50, lv.SELECTOR.DEFAULT)
+title.set_style_bg_color(lv.color_black(), lv.SELECTOR.DEFAULT)
+title.set_style_text_color(lv.color_white(), lv.SELECTOR.DEFAULT)
 title.align(lv.ALIGN.TOP_MID, 0, 10)
 
 # 6. 启动摄像头显示

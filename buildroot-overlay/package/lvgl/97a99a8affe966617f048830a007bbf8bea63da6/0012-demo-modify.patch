@@ -1,0 +1,69 @@
+From cadd589890f6f61af1b4d28e992b3497b053ead7 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 28 Jul 2026 14:33:10 +0800
+Subject: [PATCH] demo modify
+
+---
+ src/main.c | 30 +++++++++++++++++++++++++-----
+ 1 file changed, 25 insertions(+), 5 deletions(-)
+ mode change 100644 => 100755 src/main.c
+
+diff --git a/src/main.c b/src/main.c
+old mode 100644
+new mode 100755
+index e8ab0fb..7da9df1
+--- a/src/main.c
++++ b/src/main.c
+@@ -62,11 +62,13 @@ static void print_lvgl_version(void)
+ static void print_usage(void)
+ {
+     fprintf(stdout,
+-            "\nlvglsim [-V] [-B] [-f] [-m] [-b backend_name] [-W window_width] [-H window_height] [-R rotation]\n\n");
++            "\nlvglsim [-V] [-B] [-f] [-m] [-b backend_name] [-W window_width] [-H window_height] [-R rotation] [demo_name ...]\n\n");
+     fprintf(stdout, "-V print LVGL version\n");
+     fprintf(stdout, "-B list supported backends\n");
+     fprintf(stdout, "-f fullscreen\n");
+     fprintf(stdout, "-m maximize\n");
++    fprintf(stdout, "\nDemo names: widgets, music,stress, keypad_encoder,benchmark,vector_graphic_buffered,vector_graphic_not_buffered etc.\n");
++    fprintf(stdout, "If no demo is specified, 'widgets' is used by default.\n");
+ }
+ 
+ /**
+@@ -202,12 +204,30 @@ int main(int argc, char ** argv)
+ #endif
+ 
+     /*Create a Demo*/
+-    // lv_demo_widgets();
+-    // lv_demo_widgets_start_slideshow();
+-    test_font();
++    int demo_argc = argc - optind;
++    char ** demo_argv = argv + optind;
++    if(demo_argc <= 0) {
++        /* No demo specified on the command line — fall back to widgets. */
++        char * fallback[] = { "widgets" };
++        if(!lv_demos_create(fallback, 1)) {
++            lv_demos_show_help();
++            goto demo_end;
++        }
++    }
++    else if(!lv_demos_create(demo_argv, demo_argc)) {
++        lv_demos_show_help();
++        goto demo_end;
++    }
+ 
+     /* Enter the run loop of the selected backend */
+-    driver_backends_run_loop();
++    while(1) {
++        uint32_t delay = lv_timer_handler();
++        if(delay < 1) delay = 1; /*delay for at least 1 ms*/
++        else if(delay == LV_NO_TIMER_READY) delay = LV_DEF_REFR_PERIOD; /*handle LV_NO_TIMER_READY. Another option is to `sleep` for longer*/
++        usleep(delay * 1000);
++    }
+ 
++demo_end:
++    lv_deinit();
+     return 0;
+ }
+-- 
+2.25.1
+

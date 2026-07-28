@@ -6,14 +6,14 @@ import lvgl as lv
 lv.init()
 scr = lv.screen_active()
 
-win = lv.Win(scr)
+win = lv.win(scr)
 win.set_size(260, 200)
 win.center()
 
 win.add_title("My Window")
 
 content = win.get_content()
-label = lv.Label(content)
+label = lv.label(content)
 label.set_text("Window content area")
 label.center()
 

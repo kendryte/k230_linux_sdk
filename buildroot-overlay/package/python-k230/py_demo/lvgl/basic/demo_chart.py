@@ -7,10 +7,10 @@ lv.init()
 scr = lv.screen_active()
 
 # ---- 折线图 + 实时数据 ----
-chart = lv.Chart(scr)
+chart = lv.chart(scr)
 chart.set_size(240, 160)
 chart.center()
-chart.set_type(lv.CHART.LINE)
+chart.set_type(lv.CHART_TYPE.LINE)
 chart.set_div_line_count(5, 5)
 chart.set_point_count(20)
 
@@ -28,7 +28,7 @@ for v in data1:
     chart.set_next_value(ser1, v)
 for v in data2:
     chart.set_next_value(ser2, v)
-chart.refresh_chart()
+chart.refresh()
 
 # 样式
 chart.set_style_bg_color(lv.color(20, 20, 40), lv.PART.MAIN)
@@ -38,34 +38,34 @@ chart.set_style_line_color(lv.color(60, 60, 80), lv.PART.MAIN)
 chart.set_style_line_width(1, lv.PART.MAIN)
 
 # 图例
-legend1 = lv.Label(scr)
+legend1 = lv.label(scr)
 legend1.set_text("Series 1 (green)")
 legend1.set_style_text_color(lv.color(0, 180, 0), lv.PART.MAIN)
 legend1.align_to(chart, lv.ALIGN.OUT_BOTTOM_LEFT, 5, 5)
 
-legend2 = lv.Label(scr)
+legend2 = lv.label(scr)
 legend2.set_text("Series 2 (orange)")
 legend2.set_style_text_color(lv.color(255, 80, 0), lv.PART.MAIN)
 legend2.align_to(legend1, lv.ALIGN.OUT_RIGHT_MID, 15, 0)
 
 # 动态追加数据的按钮
-btn = lv.Button(scr)
+btn = lv.button(scr)
 btn.set_size(100, 30)
 btn.align(lv.ALIGN.BOTTOM_MID, 0, -10)
-btn_label = lv.Label(btn)
+btn_label = lv.label(btn)
 btn_label.set_text("Add Data")
 btn_label.center()
 
 idx = [0]
-def on_add(event_code):
-    if event_code == lv.EVENT.CLICKED:
+def on_add(event):
+    if event.code == lv.EVENT.CLICKED:
         idx[0] += 1
         import math
         v1 = int(50 + 30 * math.sin(idx[0] * 0.5))
         v2 = int(35 + 20 * math.cos(idx[0] * 0.3))
         chart.set_next_value(ser1, v1)
         chart.set_next_value(ser2, v2)
-        chart.refresh_chart()
+        chart.refresh()
 
 btn.add_event_cb(lv.EVENT.CLICKED, on_add)
 

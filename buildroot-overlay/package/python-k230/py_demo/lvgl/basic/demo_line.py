@@ -6,7 +6,7 @@ lv.init()
 scr = lv.screen_active()
 
 # 创建折线控件
-line = lv.Line(scr)
+line = lv.line(scr)
 line.center()
 
 # 设置折线坐标点 (相对于控件自身)
@@ -21,8 +21,8 @@ points = [
 line.set_points(points)
 
 # 样式：线宽、颜色、圆角端点
-line.set_style_line_width(3, 0)
-line.set_style_line_color(lv.color_hex(0x0080FF), 0)
-line.set_style_line_rounded(True, 0)
+line.set_style_line_width(3, lv.SELECTOR.DEFAULT)
+line.set_style_line_color(lv.color_hex(0x0080FF), lv.SELECTOR.DEFAULT)
+line.set_style_line_rounded(True, lv.SELECTOR.DEFAULT)
 
 lv.run()

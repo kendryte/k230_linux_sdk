@@ -21,7 +21,7 @@ IMAGE_PATH = "A:/root/py_demo/lvgl/assets/animimg001.png"
 lv.init()
 scr = lv.screen_active()
 
-img = lv.Image(scr)
+img = lv.image(scr)
 img.center()
 img.set_src(IMAGE_PATH)
 
@@ -32,21 +32,21 @@ img.set_scale(256)
 img.set_pivot(30, 30)
 img.set_rotation(0)
 
-info = lv.Label(scr)
+info = lv.label(scr)
 info.set_text("Image: %s" % IMAGE_PATH)
 info.set_style_text_color(lv.color(150, 150, 150), lv.PART.MAIN)
 info.align_to(img, lv.ALIGN.OUT_BOTTOM_MID, 0, 10)
 
 angle = [0]
-def rotate_step(event_code):
-    if event_code == lv.EVENT.CLICKED:
+def rotate_step(event):
+    if event.code == lv.EVENT.CLICKED:
         angle[0] = (angle[0] + 300) % 3600  # 每次旋转30度
         img.set_rotation(angle[0])
 
-btn = lv.Button(scr)
+btn = lv.button(scr)
 btn.set_size(100, 35)
 btn.align(lv.ALIGN.BOTTOM_MID, 0, -20)
-btn_label = lv.Label(btn)
+btn_label = lv.label(btn)
 btn_label.set_text("Rotate")
 btn_label.center()
 btn.add_event_cb(lv.EVENT.CLICKED, rotate_step)

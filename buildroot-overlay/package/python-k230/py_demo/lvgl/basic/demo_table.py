@@ -6,7 +6,7 @@ import lvgl as lv
 lv.init()
 scr = lv.screen_active()
 
-table = lv.Table(scr)
+table = lv.table(scr)
 table.set_row_count(4)
 table.set_column_count(2)
 table.set_column_width(0, 80)

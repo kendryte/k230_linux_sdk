@@ -159,6 +159,13 @@ def get_cpp_type(c_type: str) -> Optional[str]:
         base = c_type.rstrip(" *").replace("const ", "").replace("const", "").strip()
         is_const = c_type.strip().startswith("const ")
 
+        # Opaque pointer types that should be passed as uintptr_t (Python int)
+        # lv_font_t* is opaque — no pybind11 class registered, so raw pointers
+        # cause "no attribute" errors at module init. Use uintptr_t instead.
+        OPAQUE_PTR_AS_UINTPTR = {"lv_font_t"}
+        if base in OPAQUE_PTR_AS_UINTPTR:
+            return "uintptr_t"
+
         # Pointer to wrapped struct type (for parameters: use wrapper reference)
         for struct_type, wrapper in WRAPPED_STRUCT_TYPES.items():
             if base == struct_type:

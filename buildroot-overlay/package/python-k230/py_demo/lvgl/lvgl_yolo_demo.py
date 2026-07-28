@@ -155,37 +155,37 @@ def lvgl_thread(v4l2drm, ui_data, stop, ready):
     scr = lv.screen_active()
     scr.set_style_bg_opa(lv.OPA_TRANSP, lv.PART.MAIN)
 
-    title = lv.Label(scr)
+    title = lv.label(scr)
     title.set_text("K230 YOLOv8 + LVGL")
     title.set_style_bg_opa(lv.OPA_60, lv.PART.MAIN)
     title.set_style_bg_color(lv.color_black(), lv.PART.MAIN)
     title.set_style_text_color(lv.color_white(), lv.PART.MAIN)
     title.align(lv.ALIGN.TOP_MID, 0, 8)
 
-    fps_label = lv.Label(scr)
+    fps_label = lv.label(scr)
     fps_label.set_text("FPS: --")
     fps_label.set_style_bg_opa(lv.OPA_60, lv.PART.MAIN)
     fps_label.set_style_bg_color(lv.color_black(), lv.PART.MAIN)
     fps_label.set_style_text_color(lv.color_make(0, 255, 0), lv.PART.MAIN)
     fps_label.align(lv.ALIGN.TOP_LEFT, 10, 40)
 
-    count_label = lv.Label(scr)
+    count_label = lv.label(scr)
     count_label.set_text("Objects: 0")
     count_label.set_style_bg_opa(lv.OPA_60, lv.PART.MAIN)
     count_label.set_style_bg_color(lv.color_black(), lv.PART.MAIN)
     count_label.set_style_text_color(lv.color_make(255, 200, 0), lv.PART.MAIN)
     count_label.align(lv.ALIGN.TOP_LEFT, 10, 65)
 
-    btn = lv.Button(scr)
+    btn = lv.button(scr)
     btn.set_size(100, 36)
     btn.align(lv.ALIGN.BOTTOM_MID, 0, -15)
-    btn_text = lv.Label(btn)
+    btn_text = lv.label(btn)
     btn_text.set_text("Hide OSD")
     btn_text.center()
 
     osd_visible = [True]
-    def on_btn_click(event_code):
-        if event_code == lv.EVENT.CLICKED:
+    def on_btn_click(event):
+        if event.code == lv.EVENT.CLICKED:
             if osd_visible[0]:
                 title.add_flag(lv.OBJ_FLAG.HIDDEN)
                 fps_label.add_flag(lv.OBJ_FLAG.HIDDEN)
