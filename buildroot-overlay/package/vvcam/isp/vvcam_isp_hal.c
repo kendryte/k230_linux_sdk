@@ -140,7 +140,7 @@ irqreturn_t vvcam_isp_irq_process(struct vvcam_isp_dev *isp_dev)
 
     /*
      * Always read and ack the hardware's MIS bits, even when refcnt==0
-     * (e.g. isp_media_server_debian crashed). If we short-circuit with
+     * (e.g. isp_media_server crashed). If we short-circuit with
      * IRQ_NONE while the hardware is still asserting a level-triggered
      * IRQ line, PLIC re-fires it immediately, note_interrupt() counts
      * ~100k unhandled in a flash, and the kernel permanently disables
