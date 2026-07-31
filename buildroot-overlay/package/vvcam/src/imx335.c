@@ -67,10 +67,6 @@
 /* Lines per frame */
 #define IMX335_REG_LPFR 0x3030
 
-/* Chip ID (align RTOS imx335.c _sensor_read_chip_id_r) */
-#define IMX335_REG_CHIP_ID                                  0x0016
-#define IMX335_CHIP_ID                                      0x0355
-
 /* Chip ID */
 #define IMX335_REG_ID 0x3912
 #define IMX335_ID 0x00
@@ -135,6 +131,7 @@ struct imx335_mode {
 
 struct imx335_ctx {
     int i2c;
+    int i2c_bus;
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
@@ -540,17 +537,17 @@ static int write_reg(struct imx335_ctx* ctx, uint16_t addr, uint8_t value) {
 }
 
 static int open_i2c(struct imx335_ctx* sensor) {
+    char i2c_dev[32];
 
-    // i2c
     if (sensor->i2c < 0) {
-        sensor->i2c = open("/dev/i2c-0", O_RDWR);
+        snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%d", sensor->i2c_bus);
+        sensor->i2c = open(i2c_dev, O_RDWR);
         if (sensor->i2c < 0) {
-            perror("open /dev/i2c-0");
+            perror("open i2c device");
             return -1;
         }
-        //printf("I2C_SLAVE_ADDRESS_IMX335=%x\n", I2C_SLAVE_ADDRESS_IMX335);
         if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS_IMX335) < 0) {
-            perror("i2c ctrl 0x36");
+            perror("imx335 i2c slave");
             return -1;
         }
     }
@@ -565,62 +562,25 @@ static void imx335_close_i2c(struct imx335_ctx *sensor)
     }
 }
 
-static int imx335_open_i2c_bus(struct imx335_ctx *sensor, uint8_t i2c_bus)
-{
-    char i2c_dev[32];
-
-    if (sensor->i2c >= 0)
-        return 0;
-
-    snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%u", i2c_bus);
-    sensor->i2c = open(i2c_dev, O_RDWR);
-    if (sensor->i2c < 0) {
-        perror(i2c_dev);
-        return -1;
-    }
-    if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS_IMX335) < 0) {
-        perror("imx335 i2c slave");
-        imx335_close_i2c(sensor);
-        return -1;
-    }
-
-    return 0;
-}
-
-static int imx335_read_chip_id(struct imx335_ctx *sensor, uint32_t *chip_id)
-{
-    uint8_t id_h = 0;
-    uint8_t id_l = 0;
-    uint32_t id;
-
-    if (read_reg(sensor, IMX335_REG_CHIP_ID, &id_h))
-        return -1;
-    if (read_reg(sensor, IMX335_REG_CHIP_ID + 1, &id_l))
-        return -1;
-
-    id = ((uint32_t)id_h << 8) | id_l;
-    if (chip_id)
-        *chip_id = id;
-    if (id == IMX335_CHIP_ID)
-        return 0;
-
-    fprintf(stderr, "imx335: chip id mismatch 0x%04x (expect 0x%04x)\n",
-        id, IMX335_CHIP_ID);
-    return -1;
-}
-
+/*
+ * Align RTOS imx335 probe: only require I2C access to succeed.
+ * Chip-id value is not trusted — some modules return unexpected data
+ * (RTOS comments the same). Reg 0x3912 matches RTOS IMX335_REG_CHIP_ID.
+ */
 static int probe(uint8_t i2c_bus, uint32_t *chip_id)
 {
     struct imx335_ctx sensor;
-    uint32_t id = 0;
+    uint8_t id = 0;
 
     memset(&sensor, 0, sizeof(sensor));
     sensor.i2c = -1;
+    sensor.i2c_bus = i2c_bus;
 
-    if (imx335_open_i2c_bus(&sensor, i2c_bus))
+    if (open_i2c(&sensor))
         return -1;
-    if (imx335_read_chip_id(&sensor, &id) != 0) {
-        fprintf(stderr, "imx335: read chip id failed on i2c-%u\n", i2c_bus);
+
+    if (read_reg(&sensor, IMX335_REG_ID, &id) != 0) {
+        fprintf(stderr, "imx335: i2c probe failed on i2c-%u\n", i2c_bus);
         imx335_close_i2c(&sensor);
         return -1;
     }
@@ -629,24 +589,27 @@ static int probe(uint8_t i2c_bus, uint32_t *chip_id)
     if (chip_id)
         *chip_id = id;
 
-    fprintf(stderr, "imx335: probe ok, chip id 0x%04x, i2c addr 0x%02x\n",
-        id, I2C_SLAVE_ADDRESS_IMX335);
+    fprintf(stderr, "imx335: probe ok, i2c-%u addr 0x%02x (reg 0x%04x=0x%02x)\n",
+        i2c_bus, I2C_SLAVE_ADDRESS_IMX335, IMX335_REG_ID, id);
     return 0;
 }
 
 static int init(void** ctx, uint8_t i2c_bus) {
     struct imx335_ctx* sensor = calloc(1, sizeof(struct imx335_ctx));
+
     sensor->i2c = -1;
+    sensor->i2c_bus = i2c_bus;
     sensor->hflip = false;
     sensor->vflip = false;
     *ctx = sensor;
-    
+
     return 0;
 }
 
 static void deinit(void* ctx) {
     struct imx335_ctx* sensor = ctx;
-    close(sensor->i2c);
+
+    imx335_close_i2c(sensor);
     free(ctx);
 }
 
