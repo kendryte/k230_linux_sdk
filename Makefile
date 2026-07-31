@@ -5,12 +5,7 @@ BR_OVERLAY_DIR = buildroot-overlay
 
 export FORCE_UNSAFE_CONFIGURE := 1
 
-export BR2_PRIMARY_SITE ?= $(shell \
-	if curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl ;then  \
-	echo "https://ai.b-bug.org/k230/downloads/dl";\
-	else \
-	echo "https://download.kendryte.com/k230/downloads/dl";\
-	fi ;)
+export BR2_PRIMARY_SITE ?= $(shell tools/download/get_fast_url.sh | cut -d',' -f1 )
 
 
 ifeq ("$(origin CONF)", "command line")

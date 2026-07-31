@@ -287,15 +287,13 @@ apt-get update
 apt-get install -y  parted curl
 
 # Determine download mirror
+
 print_blue "Checking download mirror..."
-DEFAULT_MIRROR="https://ai.b-bug.org/k230/downloads/dl/distribution"
-if curl --output /dev/null --silent --head --fail "${DEFAULT_MIRROR}" 2>/dev/null; then
-    DISTR_DOWN_URI="${DEFAULT_MIRROR}"
-    print_green "Using mirror: ${DISTR_DOWN_URI}"
-else
-    DISTR_DOWN_URI="https://download.kendryte.com/k230/downloads/dl/distribution"
-    print_yellow "Primary mirror unavailable, using fallback: ${DISTR_DOWN_URI}"
+if [ -z "${BR2_PRIMARY_SITE}" ]; then
+    BR2_PRIMARY_SITE="$(${K230_SDK_ROOT}/tools/download/get_fast_url.sh | cut -d',' -f1)"
 fi
+DISTR_DOWN_URI="${BR2_PRIMARY_SITE}/distribution"
+
 
 # Process distribution type
 case "${distribution_type}" in

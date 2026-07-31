@@ -56,11 +56,11 @@ esac
 # wget "https://ai.b-bug.org/~/wangjianxin/k230/bak/ddr_test_bin/${cpu_elf}" -O "${cpu_elf}"
 # cpu="${cpu_elf%.elf}.bin"
 # /opt/toolchain/Xuantie-900-gcc-elf-newlib-x86_64-V2.6.1/bin/riscv64-unknown-elf-objcopy  -O binary -S  ${cpu_elf}   ${rootfs_overlay}/${cpu}
-{   #下载测试程序；
-    if $(curl --output /dev/null --silent --head --fail https://ai.b-bug.org/k230/downloads/dl/ddr_test ) ;then
-        DOWN_URI="https://ai.b-bug.org/k230/downloads/dl/ddr_test"
+{   # 下载测试程序
+    if [ -z "${BR2_PRIMARY_SITE}" ]; then
+        DOWN_URI="$(${K230_SDK_ROOT}/tools/download/get_fast_url.sh | cut -d',' -f1)/ddr_test"
     else
-        DOWN_URI="https://download.kendryte.com/k230/downloads/dl/ddr_test"
+        DOWN_URI="${BR2_PRIMARY_SITE}/ddr_test"
     fi
 
     wget "${DOWN_URI}/vpu/${vpu}" -O "${SDK_DIR}/output/${CONF}/target/${vpu}"

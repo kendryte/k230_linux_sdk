@@ -480,7 +480,7 @@ static int do_2_burn_mode(struct cmd_tbl *cmdtp, int flag, int argc, char *const
     return 0;
 }
 U_BOOT_CMD(
-	reset2burn, CONFIG_SYS_MAXARGS, 0, do_2_burn_mode,
+	reboot_to_upgrade, CONFIG_SYS_MAXARGS, 0, do_2_burn_mode,
 	"k230 reboot and  enter burn mode ",
 	"k230 reboot and  enter burn mode "
 );
