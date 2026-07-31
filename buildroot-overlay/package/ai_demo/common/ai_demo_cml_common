@@ -16,7 +16,9 @@ set(AIDEMO_UTILS_DIR ${RELOCATED_HOST_DIR}/../build/common/kmodel/ai_poc/utils)
 set(AIDEMO_IMAGES_DIR ${RELOCATED_HOST_DIR}/../build/common/kmodel/ai_poc/images)
 set(AIDEMO_SHELL_DIR ${RELOCATED_HOST_DIR}/../build/common/shell)
 
-set(bin ${PROJECT_NAME}.elf)
+if(NOT DEFINED bin)
+    set(bin ${PROJECT_NAME}.elf)
+endif()
 
 add_executable(${bin} ${src})
 

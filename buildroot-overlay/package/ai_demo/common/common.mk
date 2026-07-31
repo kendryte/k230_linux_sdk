@@ -8,10 +8,6 @@ COMMON_SOURCE := kmodel_v2.10.0.tgz
 COMMON_DEPENDENCIES += libmmz libnncase gsl-lite
 
 
-ifeq ($(OS), common)
-	COMMON_DEPENDENCIES += common
-endif
-
 ifeq ($(BR2_PACKAGE_OPENCV4), y)
 	COMMON_DEPENDENCIES += opencv4 display vvcam
 endif

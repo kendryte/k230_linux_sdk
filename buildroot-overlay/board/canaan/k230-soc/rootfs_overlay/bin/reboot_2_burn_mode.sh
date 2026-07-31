@@ -1,0 +1,3 @@
+devmem  0x80230000
+devmem  0x80230000 32 0x5aa5a55a
+reboot

@@ -1,0 +1,360 @@
+From 52c6d958a1d4a5fd7f96cfc7f9b5c909f151ed0a Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Thu, 30 Jul 2026 17:15:17 +0800
+Subject: [PATCH] handuan mrt
+
+---
+ .../dts/canaan/display-st7701-480x640.dtsi    | 100 +++++++
+ .../boot/dts/canaan/k230-canmv-mrt-lcd.dts    | 233 ++++++++++++++++++
+ 2 files changed, 333 insertions(+)
+ create mode 100644 arch/riscv/boot/dts/canaan/display-st7701-480x640.dtsi
+ create mode 100644 arch/riscv/boot/dts/canaan/k230-canmv-mrt-lcd.dts
+
+diff --git a/arch/riscv/boot/dts/canaan/display-st7701-480x640.dtsi b/arch/riscv/boot/dts/canaan/display-st7701-480x640.dtsi
+new file mode 100644
+index 000000000..688a8199c
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/display-st7701-480x640.dtsi
+@@ -0,0 +1,100 @@
++
++// SPDX-License-Identifier: GPL-2.0
++&vo {
++	vth_line = <10>;
++};
++
++
++&dsi {
++	ports {
++		port@1 {
++			reg = <1>;
++			dsi_out_st7701: endpoint {
++				remote-endpoint = <&st7701_in>;
++			};
++		};
++	};
++
++	lcd: panel@0 {
++		compatible = "canaan,universal";
++		reg = <0>;
++
++		panel-width-mm = <480>;
++		panel-height-mm = <640>;
++		panel-dsi-lane = <1>;
++
++		panel-init-sequence = [
++			39 00 06 ff 77 01 00 00 13
++			15 00 02 ef 08
++			39 00 06 ff 77 01 00 00 10
++			39 00 03 c0 4f 00
++			39 00 03 c1 10 0c
++			39 00 03 c2 31 14
++			15 00 02 cc 10
++			39 00 11 b0 00 0b 13 0d 10 07 02 08 07 1f 04 11 0f 28 2f 1f
++			39 00 11 b1 00 0c 13 0c 10 05 02 08 08 1e 05 13 11 27 30 1f
++			39 00 06 ff 77 01 00 00 11
++			15 00 02 b0 4d
++			15 00 02 b1 4d
++			15 00 02 b2 87
++			15 00 02 b3 80
++			15 00 02 b5 45
++			15 00 02 b7 85
++			15 00 02 b8 20
++			15 00 02 c0 09
++			15 00 02 c1 78
++			15 00 02 c2 78
++			15 64 02 d0 88
++			39 00 04 e0 00 00 02
++			39 00 0c e1 04 b0 06 b0 05 b0 07 b0 00 44 44
++			39 00 0d e2 20 20 44 44 96 a0 00 00 96 a0 00 00
++			39 00 05 e3 00 00 22 22
++			39 00 03 e4 44 44
++			39 00 11 e5 0c 90 b0 a0 0e 92 b0 a0 08 8c b0 a0 0a 8e b0 a0
++			39 00 05 e6 00 00 22 22
++			39 00 03 e7 44 44
++			39 00 11 e8 0d 91 b0 a0 0f 93 b0 a0 09 8d b0 a0 0b 8f b0 a0
++			39 00 03 e9 36 00
++			39 00 08 eb 00 00 e4 e4 44 88 40
++			39 00 11 ed c1 a2 bf 0f 67 45 ff ff ff ff 54 76 f0 fb 2a 1c
++			39 00 07 ef 10 0d 04 08 3f 1f
++			39 00 06 ff 77 01 00 00 13
++			39 00 03 e8 00 0e
++			39 00 06 ff 77 01 00 00 00
++			15 78 02 11 00
++			39 00 06 ff 77 01 00 00 13
++			39 0a 03 e8 00 0c
++			39 00 03 e8 00 00
++			39 00 06 ff 77 01 00 00 00
++			15 14 02 29 00
++		];
++
++		display-timings {
++			timing-0 {
++				clock-frequency = <24864000>;
++				hactive = <480>;
++				vactive = <640>;
++
++				hsync-len = <20>;
++				hback-porch = <20>;
++				hfront-porch = <40>;
++
++				vsync-len = <20>;
++				vback-porch = <20>;
++				vfront-porch = <40>;
++			};
++		};
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++				st7701_in: endpoint {
++					remote-endpoint = <&dsi_out_st7701>;
++				};
++			};
++		};
++	};
++};
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-mrt-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-mrt-lcd.dts
+new file mode 100644
+index 000000000..de2528f93
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-mrt-lcd.dts
+@@ -0,0 +1,233 @@
++// SPDX-License-Identifier: GPL-2.0 OR MIT
++/*
++ * Copyright (C) 2024 Yangyu Chen <cyy@cyyself.name>
++ */
++
++#include "k230.dtsi"
++#include "display-st7701-480x640.dtsi"
++#include <dt-bindings/input/input.h>
++
++/
++{
++	model = "Canaan CanMV-K230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230","k230_canmv_01studio";
++
++	aliases {
++		serial3 = &uart3;
++		serial4 = &uart4;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c3 = &i2c3;
++		i2c4 = &i2c4;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
++		spi0 = &spi0;
++	};
++
++	chosen {
++		stdout-path = "serial4:115200n8";
++	};
++
++	ddr: memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x40000000>;
++	};
++
++	sound {
++		status                      = "okay";
++		compatible                  = "canaan,k230-audio-inno";
++		canaan,model                = "K230_I2S_INNO";
++		canaan,k230-i2s-controller  = <&i2s>;
++		canaan,k230-audio-codec     = <&inno_codec>;
++	};
++
++	// // User button (GPIO21)
++	// btn {
++	// 	compatible = "gpio-keys";
++	// 	pinctrl-names = "default";
++	// 	pinctrl-0 = <&gpio21_pins>;
++	// 	status = "disabled";
++
++	// 	btn0: btn0 {
++	// 		label = "btn";
++	// 		linux,code = <KEY_VOLUMEUP>;
++	// 		gpios = <&gpio0_ports 21 GPIO_ACTIVE_LOW>;
++	// 	};
++	// };
++
++	// User LED (GPIO52)
++	// led {
++	// 	compatible = "gpio-leds";
++	// 	pinctrl-names = "default";
++	// 	pinctrl-0 = <&gpio52_pins>;
++	// 	status = "disabled";
++
++	// 	led0: led0 {
++	// 		label = "led";
++	// 		gpios = <&gpio1_ports 20 GPIO_ACTIVE_HIGH>;
++	// 	};
++	// };
++};
++
++&uart0 {
++	status = "okay";
++};
++&uart1 {
++	status = "okay";
++};
++&uart3 {
++	status = "okay";
++};
++&uart4 {
++	status = "okay";
++};
++&mmc_sd0{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	rx_delay_line = <0x0d>;
++	tx_delay_line = <0xb0>;
++	clocks = <&sd0_cclk_gate>,<&sd0_cclk_gate>;
++	clock-names = "core", "bus";
++};
++&mmc_sd1{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	mshc_ctrl_r = <0x00>;
++};
++&usb0 {
++	status = "okay";
++};
++// &usb1 {
++// 	dr_mode = "host";
++// 	status = "okay";
++// };
++
++
++&i2c4
++{
++	status = "okay";
++};
++
++&i2c0 {
++	status = "okay";
++	touchscreen@55
++	{
++		compatible = "sitronix,st1232";
++		reg = <0x55>;
++		reset-gpios = <&gpio1_ports 9 GPIO_ACTIVE_LOW>;
++		interrupt-parent = <&gpio1_ports>;
++		interrupts = <8 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <640>;
++	};
++};
++
++&i2c1 {
++	status = "okay";
++};
++
++
++&mipi0 {
++	/* CSI2 -> logical slot0 */
++	id = <0>;
++	reg = <0x0 0x9000a800 0x0 0x800>;
++	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
++			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++			  K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 9 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
++
++&v4l2isp {
++	/*
++	 * Pre-write three sensors; only enabled mipi.N slots count.
++	 * With mipi1/mipi2 disabled: 1 cam / 3 video nodes.
++	 */
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <4>; /* CSI0 */
++	// dev1-sensor-name = "gc2093";
++	// dev1-sensor-mode = <0>;
++	// dev1-sensor-i2c-bus = <0>; /* CSI1 */
++	// dev2-sensor-name = "gc2093";
++	// dev2-sensor-mode = <0>;
++	// dev2-sensor-i2c-bus = <1>; /* CSI2 */
++};
++&i2c3
++{
++	status = "okay";
++};
++
++&lcd
++{
++	dsi_reset-gpios = <&gpio1_ports 11 GPIO_ACTIVE_HIGH>; //43
++	backlight_gpio-gpios = <&gpio1_ports 10 GPIO_ACTIVE_HIGH>;//42
++};
++
++// &iomux {
++// 	pwm2_pins: pwm2_pins {
++//         pins = K230_IO46; //io46
++//         function = K230_IO46_PWM2;  // alt2
++//     };
++// 	pwm3_pins: pwm3_pins {
++// 		pins = K230_IO47; //io47
++// 		function = K230_IO47_PWM3;
++// 	};
++// 	gpio21_pins: gpio21_pins {
++// 		pins = K230_IO21;
++// 		function = "alt0";
++// 	};
++// 	gpio52_pins: gpio52_pins {
++// 		pins = K230_IO52;
++// 		function = "alt0";
++// 	};
++// 	ospi_pins: ospi_pins {
++// 		pin_clk_mo_mi{
++// 			pins = K230_IO15,K230_IO16,K230_IO17;
++//         	function = "alt1";
++// 		};
++// 		pin_cs{
++// 			pins = K230_IO14;
++//         	function = "alt1";
++// 			bias-pull-up;
++// 		};
++//     };
++// 	i2c2_pins: i2c2_pins {
++//         pins = K230_IO11,K230_IO12;
++//         function = "alt3";
++// 		bias-pull-up;
++//     };
++// };
++// &pwm0_2{
++// 	status = "okay";
++// 	pinctrl-names = "default";
++//     pinctrl-0 = <&pwm2_pins>;
++// };
++// &pwm3_5{
++// 	status = "okay";
++// 	pinctrl-names = "default";
++// 	pinctrl-0 = <&pwm3_pins>;
++// };
++// &spi0
++// {
++// 	status = "okay";
++// 	pinctrl-names = "default";
++//     pinctrl-0 = <&ospi_pins>;
++
++// 	spidev0: spidev@0 {
++// 		compatible = "rohm,dh2228fv";
++// 		reg = <0>;
++// 		spi-max-frequency = <4000000>;
++// 		status = "okay";
++//     };
++// };
++
++// &i2c2{
++// 	status = "okay";
++// 	pinctrl-names = "default";
++//     pinctrl-0 = <&i2c2_pins>;
++// };
+--
+2.25.1
+

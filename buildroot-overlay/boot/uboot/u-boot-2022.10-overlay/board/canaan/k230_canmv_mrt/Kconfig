@@ -1,0 +1,33 @@
+if TARGET_K230_CANMV_MRT
+
+config SYS_CPU
+	default "k230"
+
+config SYS_VENDOR
+    default "canaan"
+
+config SYS_BOARD
+    default "k230_canmv_mrt"
+
+config SYS_CONFIG_NAME
+    default "k230_evb"
+
+
+config BOARD_SPECIFIC_OPTIONS # dummy
+	def_bool y
+	select RISCV_THEAD
+choice
+	prompt "ddr typy freq"
+	default CANMV_MRT_LPDDR4_2667
+
+config CANMV_MRT_LPDDR4_2667
+	bool LP4_2667
+config CANMV_MRT_LPDDR4_3200
+	bool LP4_3200
+
+config CANMV_MRT_LPDDR4_1600_WITHOUT_ODT
+	bool "canmv mrt LP4_1600 WITHOUT ODT,"
+	help
+		"CANMV MRT"
+endchoice
+endif

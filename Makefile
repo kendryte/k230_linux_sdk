@@ -25,6 +25,7 @@ BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 .PHONY: all buildroot  debian ubuntu openouler  ruyi  debian_rootfs ubuntu_rootfs
 all :  buildroot
 
+
 debian ubuntu openouler debian_rootfs ubuntu_rootfs : sync
 	@$(BR_SRC_DIR)/board/canaan/k230-soc/distribution/distribution.sh  $@  $(BRW_BUILD_DIR)
 
@@ -34,6 +35,10 @@ ddr_test_img_% :sync buildroot ###128/512/1024/2048
 
 buildroot: $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) all   BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
+	@echo -e "\033[32m========================================\033[0m"
+	@echo -e "\033[32m Build complete!\033[0m"
+	@echo -e "\033[32m Image: $(BRW_BUILD_DIR)/images/sysimage-sdcard.img.gz\033[0m"
+	@echo -e "\033[32m========================================\033[0m"
 
 .PHONY:dl
 dl:   $(BRW_BUILD_DIR)/.config

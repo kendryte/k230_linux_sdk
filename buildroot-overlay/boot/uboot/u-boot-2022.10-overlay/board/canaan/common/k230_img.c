@@ -118,7 +118,7 @@ char *board_fdt_chosen_bootargs(void){
             //bootargs = "ubi.mtd=9 rootfstype=ubifs rw root=ubi0_0 console=ttyS0,115200 earlycon=sbi";
             bootargs = "ubi.mtd=9 rootfstype=ubifs rw root=ubi0_0 console=ttyS0,115200 earlycon=sbi fw_devlink=off quiet";
     }
-    //printf("%s\n",bootargs);
+    printf("%s\n",bootargs);
     return bootargs;
 }
 #endif
@@ -220,7 +220,7 @@ static int k230_boot_linux_uimage(image_header_t *pUh)
         if(rd_len > 0x100 )
             memmove((void*)RAMDISK_ADDR, (void *)rd, rd_len);
 
-        K230_dbg("dtb %lx rd=%lx l=%lx  %lx %lx ci%lx %lx \n", dtb,rd, data, OPENSBI_DTB_ADDR, RAMDISK_ADDR, get_CONFIG_CIPHER_ADDR(),get_CONFIG_PLAIN_ADDR());
+        K230_dbg("dtb %lx rd=%lx l=%lx  %lx %lx ci%lx %lx \n", dtb,rd, data, (ulong)OPENSBI_DTB_ADDR, (ulong)RAMDISK_ADDR, get_CONFIG_CIPHER_ADDR(),get_CONFIG_PLAIN_ADDR());
 
         cleanup_before_linux();//flush cache，
         kernel = (void (*)(ulong, void *))img_load_addr;

@@ -7,7 +7,7 @@ $(2)_SUPPORTS_IN_SOURCE_BUILD = NO
 
 $(2)_DEPENDENCIES += libmmz libnncase gsl-lite
 
-ifeq ($(OS), common)
+ifeq ($(BR2_PACKAGE_COMMON),y)
 	$(2)_DEPENDENCIES += common
 endif
 

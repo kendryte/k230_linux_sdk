@@ -352,12 +352,12 @@ int k230_gpio(char opt, int pin, char *value)
 {
     int ret = 0;
 
-    volatile u32 * gpio_dr = (volatile int *)(GPIO_BASE_ADDR0 + pin/32*0x1000); //data register --data out to pin
-    volatile u32 * gpio_ddr = (volatile int *)(gpio_dr+1); // Data Direction Register 1:out ,1:in
-    volatile u32 * gpio_ctrl = (volatile int *)(gpio_dr+2); // data source register
-    volatile u32 * gpio_value_in = (volatile int *)(GPIO_BASE_ADDR0+GPIO_EXT_PORTA + pin/32*4);
+    volatile u32 * gpio_dr = (volatile u32 *)(u64)(GPIO_BASE_ADDR0 + pin/32*0x1000); //data register --data out to pin
+    volatile u32 * gpio_ddr = (volatile u32 *)(u64)(gpio_dr+1); // Data Direction Register 1:out ,1:in
+    //volatile u32 * gpio_ctrl = (volatile u32 *)(u64)(gpio_dr+2); // data source register
+    volatile u32 * gpio_value_in = (volatile u32 *)(u64)(GPIO_BASE_ADDR0+GPIO_EXT_PORTA + pin/32*4);
     //This register always reflects the signals value on the External Port
-    u32 reg_org, reg_set;
+    u32 reg_org ;
 
     //printf("pin=%d  org reg gpio_dr%x=%x gpio_ddr=%x %x\n", pin,  gpio_dr,*gpio_dr, *gpio_ddr, *gpio_ctrl);
 
@@ -437,7 +437,7 @@ static ulong get_gp(void)
 void arch_print_bdinfo(void)
 {
     printf("malloc %lx---%lx---%lx\n", mem_malloc_start, mem_malloc_end, mem_malloc_brk);
-    printf("sp:%16lx ,%lx %lx \n", get_sp(), malloc(0),malloc(0));
+    printf("sp:%16lx ,%lx %lx \n", get_sp(), get_gp(),(ulong)malloc(0));
 }
 
 
@@ -470,6 +470,21 @@ void wifi_gpio_rst(int gpio)
     k230_gpio('s', gpio , &high);
     return;
 }
+
+static int do_2_burn_mode(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+{
+    //int ret = 0;
+    writel(0x5aa5a55a, (void*)0x80230000);
+    flush_dcache_range(0x80230000,0x80230000+4);
+    writel(0x10001, (void*)SYSCTL_BOOT_BASE_ADDR+0x60);
+    return 0;
+}
+U_BOOT_CMD(
+	reset2burn, CONFIG_SYS_MAXARGS, 0, do_2_burn_mode,
+	"k230 reboot and  enter burn mode ",
+	"k230 reboot and  enter burn mode "
+);
+
 #endif
 
 #if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
