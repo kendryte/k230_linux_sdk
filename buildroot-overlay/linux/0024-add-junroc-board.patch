@@ -49,9 +49,9 @@ index 000000000..85cd164b4
 +	};
 +
 +	chosen {
-+		stdout-path = "serial0:115200n8";
++		stdout-path = "serial2:115200n8";
 +		bootargs = "root=/dev/mmcblk0p2 loglevel=8 rw rootdelay=4 \
-+						rootfstype=ext4 console=ttyS0,115200  earlycon=sbi";
++						rootfstype=ext4 console=ttyS2,115200  earlycon=sbi";
 +	};
 +
 +	ddr: memory@0 {

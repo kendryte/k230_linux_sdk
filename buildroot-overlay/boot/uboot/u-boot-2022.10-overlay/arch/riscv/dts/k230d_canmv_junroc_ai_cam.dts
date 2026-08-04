@@ -29,13 +29,13 @@
  * K230D Junroc AI Cam Board - Schematic: K230D_Camera.SchDoc
  *
  * Bank Voltage Configuration (from schematic):
- *   BANK0 (IO0-IO1):   1V8 - FIXED (VCC_1V8)
- *   BANK1 (IO2-IO13):  3V3 (VCC_3V3)
- *   BANK2 (IO14-IO25): 3V3 (VCC_3V3)
- *   BANK3 (IO26-IO37): 3V3 (VCC_3V3)
- *   BANK4 (IO38-IO49): 3V3 (VCC_3V3)
- *   BANK5 (IO50-IO63): 3V3 (VCC_3V3)
- *
+ *   BANK (IO0-IO1):   1V8 - FIXED (VCC_1V8)
+ *   BANK0 (IO2-IO13):  1.8 (VCC_1V8)
+ *   BANK1 (IO14-IO25): 3V3 (VCC_3V3)
+ *   BANK2 (IO26-IO37): 3V3 (VCC_3V3)
+ *   BANK3 (IO38-IO49): 3V3 (VCC_3V3)
+ *   BANK4 (IO50-IO61): 3V3 (VCC_3V3)
+ *   BANK5 (IO62-IO63): 3V3 (VCC_3V3)
  * Camera: GC2093 on MIPI RX1 (4-lane), I2C4, CAM_RST/CAM_CLK
  * WiFi:   RTL8189FTV on SDIO0 (MMC0, GPIO via K230D MMC0 pins)
  * Display: MIPI TX (4-lane), Touch I2C3, LCD_RST/LCD_EN
@@ -46,17 +46,25 @@
  * Boot:   SD card boot via SDIO1 (BOOT0/BOOT1 pulled high to 1V8)
  */
 #define BANK_VOLTAGE_IO0_IO1	 K230_MSC_1V8  // FIXED
-#define BANK_VOLTAGE_IO2_IO13	 K230_MSC_3V3
+#define BANK_VOLTAGE_IO2_IO13	 K230_MSC_1V8   //bank0
 #define BANK_VOLTAGE_IO14_IO25	 K230_MSC_3V3
 #define BANK_VOLTAGE_IO26_IO37	 K230_MSC_3V3
 #define BANK_VOLTAGE_IO38_IO49	 K230_MSC_3V3
 #define BANK_VOLTAGE_IO50_IO61	 K230_MSC_3V3
-#define BANK_VOLTAGE_IO62_IO63	 K230_MSC_3V3
+#define BANK_VOLTAGE_IO62_IO63	 K230_MSC_3V3 //bank5
 #include "k230d.dtsi"
 
 / {
 	model = "kendryte k230d canmv junroc ai cam";
 	compatible = "kendryte,k230d_canmv_junroc_ai_cam";
+	aliases {
+		uart2 = &serial2;
+	};
+
+	chosen {
+		bootargs = "console=ttyS2,115200n8  debug loglevel=7";
+		stdout-path = "uart2:115200n8";
+	};
 
 	memory@0 {
 		device_type = "memory";
@@ -113,10 +121,10 @@
 		(IO13) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 0<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST )
 
 		// OSPI/QSPI flash pins (GPIO14-GPIO25) - not populated, configure as GPIO
-		(IO14) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
-		(IO15) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
-		(IO16) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
-		(IO17) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO14) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 0<<IE | 1<<OE | 1<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO15) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 0<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO16) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
+		(IO17) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
 		(IO18) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
 		(IO19) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO14_IO25<<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 15<<DS | 1<<ST )
 		// CAM_RST (GC2093 reset) - GPIO20
