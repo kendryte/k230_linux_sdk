@@ -58,13 +58,16 @@ static int k230_boot_rtt_uimage(image_header_t *pUh);
 
 #define LINUX_KERNEL_IMG_MAX_SIZE  (25*1024*1024)
 
-#ifndef CONFIG_MEM_LINUX_SYS_SIZE
-#define  CONFIG_MEM_LINUX_SYS_SIZE  CONFIG_MEM_RTT_SYS_SIZE
-#endif
+#undef  CONFIG_MEM_LINUX_SYS_SIZE
+#undef  CONFIG_MEM_LINUX_SYS_BASE
 
-#ifndef CONFIG_MEM_LINUX_SYS_BASE
-#define  CONFIG_MEM_LINUX_SYS_BASE CONFIG_MEM_RTT_SYS_BASE
-#endif
+
+#define CONFIG_MEM_LINUX_SYS_SIZE  (gd->ram_size)
+#define CONFIG_MEM_LINUX_SYS_BASE  (gd->ram_base)
+
+
+
+
 
 unsigned long get_CONFIG_CIPHER_ADDR(void)
 {

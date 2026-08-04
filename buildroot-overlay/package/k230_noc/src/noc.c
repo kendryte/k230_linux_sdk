@@ -900,7 +900,7 @@ static void k230_noc_device_release(struct device *dev)
 /* 定义 Platform Device */
 static struct platform_device k230_noc_device = {
     .name = "k230-noc",  // 设备名称，必须与驱动匹配
-    .id = -1,  // 设备实例 ID，-1 表示只有一个实例
+    .id = PLATFORM_DEVID_NONE,  // 设备实例 ID，PLATFORM_DEVID_NONE，设备名不追加编号后缀，直接为 "k230-noc"
     .num_resources = ARRAY_SIZE(k230_device_resources),
     .resource = k230_device_resources,
 	.dev.release = k230_noc_device_release,

@@ -44,6 +44,9 @@
 				0x0 0x0 0x0 0x20000000 /*MEM_LINUX_SYS*/
 			  >;
 	};
+	aliases {
+		i2c4 = &i2c4;
+	};
 };
 
 &mmc0 {
@@ -196,4 +199,8 @@
 		(IO63) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO62_IO63<<MSC | 0<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST )
 		>;
 	};
+};
+/* Enable I2C3 (IO36=SCL, IO37=SDA) to detect LT9611 HDMI bridge at 0x3b */
+&i2c4 {
+	status = "okay";
 };

@@ -56,4 +56,16 @@ config K230_BARE_DISP_LOGO_ILI9881
 	help
 	  df screen
 
+config K230_HDMI_LCD_I2C_BUS
+	int "k230 hdmi lcd i2c bus"
+	default 3
+
+config K230_HDMI_I2C_DEV
+	hex "k230 hdmi i2c dev "
+	default 0x3b
+
+config K230_LCD_I2C_DEV
+	hex "k230 lcd  i2c dev "
+	default 0x38
+
 endif

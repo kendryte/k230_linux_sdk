@@ -50,7 +50,8 @@
 #include <u-boot/crc.h>
 #include <linux/delay.h>
 #include <mmc.h>
-
+#include <dm.h>
+#include <i2c.h>
 //weak
 int mmc_get_env_dev(void)
 {
@@ -470,10 +471,80 @@ void wifi_gpio_rst(int gpio)
     k230_gpio('s', gpio , &high);
     return;
 }
+#ifndef CONFIG_K230_HDMI_LCD_I2C_BUS
+    #define CONFIG_K230_HDMI_LCD_I2C_BUS 3
+#endif
+
+#ifdef CONFIG_K230_HDMI_I2C_DEV
+    #define CONFIG_K230_HDMI_I2C_DEV 0x3b
+#endif
+
+#ifdef CONFIG_K230_LCD_I2C_DEV
+    #define CONFIG_K230_LCD_I2C_DEV 0x38
+#endif
+
+static int k230_set_dtb_env(const char *varname, const char *file)
+{
+    char cmd[128]={0};
+    char *dtb_name= (char *)CONFIG_CIPHER_ADDR;
+
+    memset(dtb_name, 0 , 512);
+     // 判断存在force.dtb;envsiet; ext4size mmc 0:1 k.dtb;
+    sprintf(cmd, "ext4load mmc ${mmc_boot_dev_num}:1 0x%lx %s", (ulong)dtb_name, file); //:1
+    printf("%s\n",cmd);
+    if(0 != run_command(cmd, 0)){
+        printf("cmd %s error\n",cmd);
+        return -1;
+    }
+    dtb_name[strcspn(dtb_name, "\r\n")] = '\0';
+
+    if(strcmp(env_get("dtb"), dtb_name) != 0){
+        if(env_set("dtb", dtb_name) || env_save()){ //如果一样，则退出，否则修改环境变量，并保存环境变量；
+            printf("dtb env set error\n");
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+static int do_k230_set_dtb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+{
+    int ret = 0;
+    char cmd[128]={0};
+    struct udevice *bus, *chip;
+
+    // 判断存在force.dtb;envsiet; ext4size mmc 0:1 k.dtb;
+    sprintf(cmd, "ext4size mmc ${mmc_boot_dev_num}:1 force_dtb"); //:1
+    //printf("%s\n",cmd);
+    if( (0 == run_command(cmd, 0))  &&
+        (0 < env_get_ulong("filesize", 16, 0)) ){
+        return k230_set_dtb_env("dtb","force_dtb");
+    }
+
+	ret = uclass_get_device_by_seq(UCLASS_I2C, CONFIG_K230_HDMI_LCD_I2C_BUS, &bus);
+	if (ret ==0 ) {
+        if(0 == dm_i2c_probe(bus, CONFIG_K230_LCD_I2C_DEV, 0, &chip)){ //探测到lcd
+            return k230_set_dtb_env("dtb", "lcd_dtb");
+        }
+        if(0 == dm_i2c_probe(bus, CONFIG_K230_HDMI_I2C_DEV, 0, &chip)){ //探测到hdmi；
+            return k230_set_dtb_env("dtb", "hdmi_dtb");
+        }
+	}
+    //探测失败默认lcd;
+    return k230_set_dtb_env("dtb", "lcd_dtb");//默认lcd；;
+}
+U_BOOT_CMD(
+	k230_set_dtb, CONFIG_SYS_MAXARGS, 0, do_k230_set_dtb,
+	"set dtb by display",
+	"set dtb by display"
+);
 
 static int do_2_burn_mode(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
     //int ret = 0;
+    // k230_detect_display();
+    // return 0;
     writel(0x5aa5a55a, (void*)0x80230000);
     flush_dcache_range(0x80230000,0x80230000+4);
     writel(0x10001, (void*)SYSCTL_BOOT_BASE_ADDR+0x60);

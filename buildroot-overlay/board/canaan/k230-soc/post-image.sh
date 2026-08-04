@@ -6,7 +6,7 @@ UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
 K230_SDK_ROOT=$(dirname $(dirname ${BASE_DIR}))
 GENIMAGE_CFG_SD=$(dirname $(realpath "$0"))/genimage.cfg
 env_dir=$(dirname $(realpath "$0"))
-
+CONF=$(basename ${BASE_DIR})
 
 
 #放到post build
@@ -14,7 +14,6 @@ gz_file_add_ver()
 {
 	[ $# -lt 1 ] && return
 	local f="$1"
-	local CONF=$(basename ${BASE_DIR})
 
 	local sdk_ver="v0.0.0";
 	local nncase_ver="2.9.0";
@@ -214,9 +213,6 @@ gen_image()
 gen_env_bin()
 {
 	local mkenvimage="${UBOOT_BUILD_DIR}/tools/mkenvimage"
-	local CONFT=${BUILD_DIR%/build*}
-	local CONF=${CONFT##*/output/};
-
 
 	cd  "${BINARIES_DIR}/";
 	local default_env_file=${env_dir}/default.env;
@@ -237,23 +233,46 @@ gen_env_bin()
 	fi
 	${mkenvimage} -s 0x10000 -o uboot/env.env  ${default_env_file}
 }
+gen_boot_ext4_copy_dtb()
+{
+	cd  "${BINARIES_DIR}/boot";
+	rm -rf *.dtb
+	cp ../*.dtb .;
+
+	# BR2_LINUX_KERNEL_INTREE_DTS_NAME="canaan/k230-canmv-01studio-lcd  canaan/k230-canmv-01studio"
+	local dtb_num="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | tr -d '"' | grep -oP 'canaan/\S+' | wc -l)"
+
+	if [ $dtb_num -ge 2 ];then
+		local lcd_dtb="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | tr ' ' '\n' | grep 'canaan/.*lcd' | head -1 | cut -d/ -f2 | tr -d '"').dtb"
+		local hdmi_dtb="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | tr ' ' '\n' | grep 'canaan/' | grep -v 'lcd' | head -1 | cut -d/ -f2 | tr -d '"').dtb"
+		echo "${lcd_dtb}" > lcd_dtb
+		echo "${hdmi_dtb}" > hdmi_dtb
+    else
+		local first_dtb="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | cut -d / -f2 | tr -d '"' |  cut -d ' ' -f1).dtb"
+		echo  "${first_dtb}" >  force_dtb;
+	fi
+
+	cd  -;
+}
 gen_boot_ext4()
 {
-	local first_dtb="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | cut -d / -f2 | tr -d '"' |  cut -d ' ' -f1).dtb"
 	local logo=$(grep CONFIG_K230_BARE_DISP_LOGO_PATH ${UBOOT_BUILD_DIR}/.config  | cut -d '"' -f2 |  sed 's/\.png$/.yuv/')
 
-
-
-	echo "${first_dtb}"
 	cd  "${BINARIES_DIR}/";
 	rm -rf boot; mkdir -p boot;
+	gen_boot_ext4_copy_dtb
 
-	cp ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/boot/nuttx-7000000-uart2.bin  boot/;
+	if [ ${CONF} == "k230d_canmv_ilp32_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_ilp32_defconfig" ] ||
+		[ ${CONF} == "k230d_canmv_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_defconfig" ] ; then
+		cp ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/boot/nuttx-7000000-uart2.bin  boot/;
+		sed -i 's/^bootcmd=.*$/bootcmd=run bnuttx;run blinuxilp32;/g' ${default_env_file}
+	fi
+
 	cp Image boot/;
 	[ ! -f "Image_ilp32" ] ||  cp Image_ilp32 boot/;
-	cp *.dtb boot;
+
 	[ -z "${logo}" ]  ||  cp ${BUILDROOT_PATH}/${logo} boot/logo.yuv;
-	cd boot; rm -rf k.dtb;ln -s ${first_dtb} k.dtb; cd -;
+	#cd boot; rm -rf k.dtb;ln -s ${first_dtb} k.dtb; cd -;
 	${UBOOT_BUILD_DIR}/tools/mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d ${BINARIES_DIR}/fw_jump.bin  boot/fw_jump_add_uboot_head.bin
 	rm -rf boot.ext4 ;fakeroot mkfs.ext4 -d boot  -r 1 -N 0 -m 1 -L "boot" -O ^64bit boot.ext4 80M
 }

@@ -187,3 +187,7 @@
 		>;
 	};
 };
+/* Enable I2C3 (IO36=SCL, IO37=SDA) to detect LT9611 HDMI bridge at 0x3b */
+&i2c3 {
+	status = "okay";
+};

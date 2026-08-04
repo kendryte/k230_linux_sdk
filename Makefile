@@ -61,7 +61,7 @@ help:sync
 	@echo ""
 	@echo "dcoker build and run example:"
 	@echo "    docker  build   -f tools/docker/Dockerfile  -t wjx/d tools/docker "
-	@echo '    docker run -it --rm  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$HOME:$$HOME  -v /opt/toolchain:/opt/toolchain -w $$(pwd) wjx/d:latest '
+	@echo '    docker run -it --rm  -h k230  -e uid=$$(id -u) -e gid=$$(id -g) -e user=$${USER} -v $$(pwd):$$(pwd) -v /opt/toolchain:/opt/toolchain -w $$(pwd) wjx/d:latest '
 	@echo ""
 	@echo "sdk build usage example:"
 	@echo "    make CONF=k230_canmv_defconfig   "

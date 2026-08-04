@@ -288,11 +288,12 @@ apt-get install -y  parted curl
 
 # Determine download mirror
 
-print_blue "Checking download mirror..."
 if [ -z "${BR2_PRIMARY_SITE}" ]; then
     BR2_PRIMARY_SITE="$(${K230_SDK_ROOT}/tools/download/get_fast_url.sh | cut -d',' -f1)"
 fi
 DISTR_DOWN_URI="${BR2_PRIMARY_SITE}/distribution"
+
+print_blue "download mirror...DISTR_DOWN_URI=${DISTR_DOWN_URI},BR2_PRIMARY_SITE=${BR2_PRIMARY_SITE}"
 
 
 # Process distribution type
