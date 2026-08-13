@@ -123,6 +123,29 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
         struct v4l2_capability capbility;
         CKE(ioctl(context[i].video_fd, VIDIOC_QUERYCAP, &capbility), close);
 
+        /*
+         * Order matters for --sw/--sh/--sfps:
+         *   1) G_FMT warms CREATE_PIPELINE (starts MediaIspHalEven, subscribe
+         *      ISP events 0..10). get_fmt may still return EINVAL after create;
+         *      treat that as soft failure — pipeline side-effect is enough.
+         *   2) sensor_target next so mode/calib paths rebuild before S_FMT and
+         *      before STREAMON LoadCalibration.
+         *   3) HFLIP/VFLIP then S_FMT so ISP demosaic matches.
+         * Always write HFLIP/VFLIP (default 0) so a prior run's sticky V4L2
+         * control cannot reappear at STREAMON.
+         */
+        {
+            struct v4l2_format probe_fmt;
+            memset(&probe_fmt, 0, sizeof(probe_fmt));
+            probe_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            if (ioctl(context[i].video_fd, VIDIOC_G_FMT, &probe_fmt) < 0) {
+                fprintf(stderr,
+                    "[v4l2-drm] VIDIOC_G_FMT warm-up failed (%s); "
+                    "continue if CREATE_PIPELINE already ran\n",
+                    strerror(errno));
+            }
+        }
+
         if (context[i].sensor_target_valid) {
             if (vvcam_set_sensor_target(context[i].video_fd,
                     context[i].sensor_width,
@@ -131,26 +154,6 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
                 perror("VIDIOC_S_EXT_CTRLS sensor target");
                 CKE(-1, close);
             }
-        }
-
-        // struct v4l2_crop crop;
-        // struct v4l2_cropcap cropcap;
-        // if (-1 == ioctl (context[i].video_fd, VIDIOC_CROPCAP, &cropcap)) {
-        //     perror ("VIDIOC_CROPCAP");
-        //     // exit (EXIT_FAILURE);
-        // }
-        // printf("--------------------cropcap.widt is %d ------------dadadadad ---------------------- \n", cropcap.bounds.width);
-
-        /*
-         * Create pipeline first, apply flip (Bayer may change), then S_FMT so
-         * ISP demosaic matches. Always write HFLIP/VFLIP (default 0) so a prior
-         * run's sticky V4L2 control cannot reappear at STREAMON.
-         */
-        {
-            struct v4l2_format probe_fmt;
-            memset(&probe_fmt, 0, sizeof(probe_fmt));
-            probe_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            CKE(ioctl(context[i].video_fd, VIDIOC_G_FMT, &probe_fmt), close);
         }
 
         {
