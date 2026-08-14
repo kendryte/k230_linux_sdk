@@ -588,11 +588,39 @@ FFMPEG_POST_INSTALL_TARGET_HOOKS += FFMPEG_REMOVE_EXAMPLE_SRC_FILES
 
 
 define FFMPEG_BUILD_DEB
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavcodec.so.58,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavformat.so.58 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libavutil.so.56 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libswscale.so.5 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
-	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libswresample.so.3 ,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	# 创建目录
+	mkdir -p $(@D)/deb/DEBIAN
+	mkdir -p $(@D)/deb/usr/bin
+	mkdir -p $(@D)/deb/usr/lib/riscv64-linux-gnu
+
+	# 拷贝 ffmpeg 可执行程序
+	cp -fL $(TARGET_DIR)/usr/bin/ffmpeg $(@D)/deb/usr/bin/
+
+	# 拷贝 7 个动态库实体，并重建 .so.N soname 软链
+	for n in libavcodec.so.58 libavformat.so.58 libavutil.so.56 \
+	         libswscale.so.5 libswresample.so.3 \
+	         libavdevice.so.58 libavfilter.so.7; do \
+		real=$$(readlink -f $(TARGET_DIR)/usr/lib/$$n); \
+		name=$$(basename $$real); \
+		cp -f $$real $(@D)/deb/usr/lib/riscv64-linux-gnu/$$name; \
+		ln -sf $$name $(@D)/deb/usr/lib/riscv64-linux-gnu/$$n; \
+		$(TARGET_CROSS)strip --strip-unneeded $(@D)/deb/usr/lib/riscv64-linux-gnu/$$name; \
+	done
+
+	# strip ffmpeg 可执行程序
+	$(TARGET_CROSS)strip $(@D)/deb/usr/bin/ffmpeg
+
+	# 覆盖 control 文件
+	echo "Package: k230-ffmpeg"      >  $(@D)/deb/DEBIAN/control
+	echo "Version: 4.4.4-canaan"     >> $(@D)/deb/DEBIAN/control
+	echo "Section: utils"            >> $(@D)/deb/DEBIAN/control
+	echo "Priority: optional"        >> $(@D)/deb/DEBIAN/control
+	echo "Architecture: riscv64"     >> $(@D)/deb/DEBIAN/control
+	echo "Depends: libc6"            >> $(@D)/deb/DEBIAN/control
+	echo "Maintainer: K230 Dev <dev@example.com>" >> $(@D)/deb/DEBIAN/control
+	echo "Description: ffmpeg with Canaan VPU v4l2m2m support" >> $(@D)/deb/DEBIAN/control
+
+	# 打包
 	dpkg -b  $(@D)/deb  $(BINARIES_DIR)/deb/$(call LOWERCASE, k230-$(PKG)).deb
 endef
 

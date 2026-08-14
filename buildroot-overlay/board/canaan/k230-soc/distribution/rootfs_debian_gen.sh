@@ -87,7 +87,7 @@ systemctl enable  systemd-networkd
 #-------etho dhcp end
 
 #other
-apt install  -y libdrm2  libgomp1 libwebp7  libpng-dev  libopus-dev  v4l-utils  ffmpeg usbutils
+apt install  -y libdrm2  libgomp1 libwebp7  libpng-dev  libopus-dev  v4l-utils  usbutils
 
 #pyqt
 apt install  -y   qtbase5-dev qtbase5-examples python3-pyqt5
