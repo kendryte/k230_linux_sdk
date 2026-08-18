@@ -1026,6 +1026,9 @@ static int vvcam_isp_parse_params(struct vvcam_isp_dev *isp_dev,
             break;
         isp_dev->sensor_info[i].mode = isp_dev->sensors[i].mode;
         isp_dev->sensor_info[i].i2c_bus = isp_dev->sensors[i].i2c_bus;
+        isp_dev->sensor_info[i].csi_idx = isp_dev->sensors[i].csi_idx;
+        isp_dev->sensor_info[i].mclk_id = isp_dev->sensors[i].mclk_id;
+        isp_dev->sensor_info[i].use_chip_clk = isp_dev->sensors[i].use_chip_clk;
         strncpy(isp_dev->sensor_info[i].sensor, isp_dev->sensors[i].name,
             sizeof(isp_dev->sensor_info[i].sensor) - 1);
         isp_dev->sensor_info[i].sensor[sizeof(isp_dev->sensor_info[i].sensor) - 1] = '\0';
@@ -1038,6 +1041,9 @@ static int vvcam_isp_parse_params(struct vvcam_isp_dev *isp_dev,
     /* port3 is not an MCM camera slot; keep empty default for unused port */
     isp_dev->sensor_info[3].mode = VVCAM_ISP_DEV3_DEFAULT_SENSOR_MODE;
     isp_dev->sensor_info[3].i2c_bus = VVCAM_ISP_DEV3_DEFAULT_SENSOR_I2C_BUS;
+    isp_dev->sensor_info[3].csi_idx = 3;
+    isp_dev->sensor_info[3].mclk_id = 0;
+    isp_dev->sensor_info[3].use_chip_clk = 1;
     strncpy(isp_dev->sensor_info[3].sensor, VVCAM_ISP_DEV3_DEFAULT_SENSOR,
         sizeof(isp_dev->sensor_info[3].sensor) - 1);
     isp_dev->sensor_info[3].sensor[sizeof(isp_dev->sensor_info[3].sensor) - 1] = '\0';
@@ -1073,6 +1079,9 @@ static int vvcam_isp_parse_params(struct vvcam_isp_dev *isp_dev,
         isp_dev->sensor_info[port].sensor[sizeof(isp_dev->sensor_info[port].sensor) - 1] = '\0';
         isp_dev->sensor_info[port].mode = default_mode[port];
         isp_dev->sensor_info[port].i2c_bus = default_i2c_bus[port];
+        isp_dev->sensor_info[port].csi_idx = port;
+        isp_dev->sensor_info[port].mclk_id = port;
+        isp_dev->sensor_info[port].use_chip_clk = 1;
     }
 
     isp_dev->scene_calib_dir[0] = '\0';
@@ -1121,8 +1130,39 @@ static int parse_sensor_dt(struct device *dev, struct device_node *np,
 
     cfg->i2c_bus = u32_value;
 
-    dev_info(dev, "parse_sensor_dt: port %d sensor=%s mode=%u i2c_bus=%u\n",
-         index, cfg->name, cfg->mode, cfg->i2c_bus);
+    snprintf(prop_name, sizeof(prop_name), "mipi.%u", index);
+    {
+        struct device_node *mipi_np = of_find_node_by_name(NULL, prop_name);
+        uint32_t csi_id = index;
+
+        if (mipi_np) {
+            of_property_read_u32(mipi_np, "id", &csi_id);
+            of_node_put(mipi_np);
+        }
+        cfg->csi_idx = csi_id;
+    }
+
+    snprintf(prop_name, sizeof(prop_name), "dev%d-sensor-mclk-id", index);
+    if (of_property_read_u32(np, prop_name, &u32_value))
+        cfg->mclk_id = cfg->csi_idx;
+    else
+        cfg->mclk_id = u32_value;
+
+    if (cfg->mclk_id > 2) {
+        dev_warn(dev, "parse_sensor_dt: port %d mclk_id %u out of range, clamp to csi_idx %u\n",
+             index, cfg->mclk_id, cfg->csi_idx);
+        cfg->mclk_id = cfg->csi_idx <= 2 ? cfg->csi_idx : 0;
+    }
+
+    snprintf(prop_name, sizeof(prop_name), "dev%d-sensor-use-chip-clk", index);
+    if (of_property_read_u32(np, prop_name, &u32_value))
+        cfg->use_chip_clk = 1;
+    else
+        cfg->use_chip_clk = u32_value ? 1 : 0;
+
+    dev_info(dev, "parse_sensor_dt: port %d sensor=%s mode=%u i2c_bus=%u csi_idx=%u mclk_id=%u use_chip_clk=%u\n",
+         index, cfg->name, cfg->mode, cfg->i2c_bus, cfg->csi_idx, cfg->mclk_id,
+         cfg->use_chip_clk);
 
     return 0;
 }

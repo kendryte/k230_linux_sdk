@@ -132,6 +132,7 @@ struct imx335_mode {
 struct imx335_ctx {
     int i2c;
     int i2c_bus;
+    struct vvcam_sensor_hw hw;
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
@@ -443,6 +444,11 @@ static struct imx335_mode modes[] = {
      {
         .mode = {
             .clk = 24000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 25, /* 594/25 = 23.76 MHz */
+            },
             .width = 1920,
             .height = 1080,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -456,6 +462,11 @@ static struct imx335_mode modes[] = {
     {
         .mode = {
             .clk = 24000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 25, /* 594/25 = 23.76 MHz */
+            },
             .width = 2592,
             .height = 1944,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -469,6 +480,11 @@ static struct imx335_mode modes[] = {
     {
         .mode = {
             .clk = 74250000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 8, /* 594/8 = 74.25 MHz */
+            },
             .width = 1920,
             .height = 1080,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -482,6 +498,11 @@ static struct imx335_mode modes[] = {
     {
     .mode = {
         .clk = 74250000,
+        .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 8, /* 594/8 = 74.25 MHz */
+            },
         .width = 2592,
         .height = 1944,
         .lanes = VVCAM_SENSOR_2LANE,
@@ -567,20 +588,30 @@ static void imx335_close_i2c(struct imx335_ctx *sensor)
  * Chip-id value is not trusted — some modules return unexpected data
  * (RTOS comments the same). Reg 0x3912 matches RTOS IMX335_REG_CHIP_ID.
  */
-static int probe(uint8_t i2c_bus, uint32_t *chip_id)
+static int probe(const struct vvcam_sensor_hw *hw, uint32_t *chip_id)
 {
     struct imx335_ctx sensor;
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+    struct vvcam_mclk_setting probe_mclk = {
+        .enable = true,
+        .sel = VVCAM_PLL1_CLK_DIV4,
+        .div = 25, /* 594/25 = 23.76 MHz */
+    };
     uint8_t id = 0;
 
     memset(&sensor, 0, sizeof(sensor));
     sensor.i2c = -1;
-    sensor.i2c_bus = i2c_bus;
+    sensor.hw = local;
+    sensor.i2c_bus = local.i2c_bus;
+
+    vvcam_sensor_apply_mclk(&local, &probe_mclk);
 
     if (open_i2c(&sensor))
         return -1;
 
     if (read_reg(&sensor, IMX335_REG_ID, &id) != 0) {
-        fprintf(stderr, "imx335: i2c probe failed on i2c-%u\n", i2c_bus);
+        fprintf(stderr, "imx335: i2c probe failed on i2c-%u csi-%u mclk-%u\n",
+            local.i2c_bus, local.csi_idx, local.mclk_id);
         imx335_close_i2c(&sensor);
         return -1;
     }
@@ -590,15 +621,17 @@ static int probe(uint8_t i2c_bus, uint32_t *chip_id)
         *chip_id = id;
 
     fprintf(stderr, "imx335: probe ok, i2c-%u addr 0x%02x (reg 0x%04x=0x%02x)\n",
-        i2c_bus, I2C_SLAVE_ADDRESS_IMX335, IMX335_REG_ID, id);
+        local.i2c_bus, I2C_SLAVE_ADDRESS_IMX335, IMX335_REG_ID, id);
     return 0;
 }
 
-static int init(void** ctx, uint8_t i2c_bus) {
+static int init(void** ctx, const struct vvcam_sensor_hw *hw) {
     struct imx335_ctx* sensor = calloc(1, sizeof(struct imx335_ctx));
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
 
     sensor->i2c = -1;
-    sensor->i2c_bus = i2c_bus;
+    sensor->hw = local;
+    sensor->i2c_bus = local.i2c_bus;
     sensor->hflip = false;
     sensor->vflip = false;
     *ctx = sensor;
@@ -609,6 +642,7 @@ static int init(void** ctx, uint8_t i2c_bus) {
 static void deinit(void* ctx) {
     struct imx335_ctx* sensor = ctx;
 
+    vvcam_mclk_disable(sensor->hw.mclk_id);
     imx335_close_i2c(sensor);
     free(ctx);
 }
@@ -732,6 +766,7 @@ static int set_mode(void* ctx, uint32_t index) {
     struct vvcam_sensor_mode* mode = &modes[index].mode;
 
     printf("imx335: %s %ux%u\n", __func__, mode->width, mode->height);
+    vvcam_sensor_apply_mclk(&sensor->hw, &mode->mclk);
     if (open_i2c(sensor)) {
         return -1;
     }

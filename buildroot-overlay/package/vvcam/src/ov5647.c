@@ -76,6 +76,7 @@ struct ov5647_mode {
 
 struct ov5647_ctx {
     int i2c;
+    struct vvcam_sensor_hw hw;
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
@@ -127,17 +128,20 @@ static int write_reg(struct ov5647_ctx* ctx, uint16_t addr, uint8_t value) {
 }
 
 static int open_i2c(struct ov5647_ctx* sensor) {
-    // i2c
+    char i2c_dev[32];
+
+    if (sensor->i2c >= 0)
+        return 0;
+
+    snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%u", sensor->hw.i2c_bus);
+    sensor->i2c = open(i2c_dev, O_RDWR);
     if (sensor->i2c < 0) {
-        sensor->i2c = open("/dev/i2c-0", O_RDWR);
-        if (sensor->i2c < 0) {
-            perror("open /dev/i2c-0");
-            return -1;
-        }
-        if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS) < 0) {
-            perror("i2c ctrl 0x36");
-            return -1;
-        }
+        perror(i2c_dev);
+        return -1;
+    }
+    if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS) < 0) {
+        perror("i2c ctrl 0x36");
+        return -1;
     }
     return 0;
 }
@@ -194,18 +198,28 @@ static int ov5647_read_chip_id(struct ov5647_ctx *sensor, uint32_t *chip_id)
     return -1;
 }
 
-static int probe(uint8_t i2c_bus, uint32_t *chip_id)
+static int probe(const struct vvcam_sensor_hw *hw, uint32_t *chip_id)
 {
     struct ov5647_ctx sensor;
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+    struct vvcam_mclk_setting probe_mclk = {
+        .enable = true,
+        .sel = VVCAM_PLL0_CLK_DIV4,
+        .div = 16, /* 400/16 = 25 MHz */
+    };
     uint32_t id = 0;
 
     memset(&sensor, 0, sizeof(sensor));
     sensor.i2c = -1;
+    sensor.hw = local;
 
-    if (ov5647_open_i2c_bus(&sensor, i2c_bus))
+    vvcam_sensor_apply_mclk(&local, &probe_mclk);
+
+    if (ov5647_open_i2c_bus(&sensor, local.i2c_bus))
         return -1;
     if (ov5647_read_chip_id(&sensor, &id) != 0) {
-        fprintf(stderr, "ov5647: read chip id failed on i2c-%u\n", i2c_bus);
+        fprintf(stderr, "ov5647: read chip id failed on i2c-%u csi-%u mclk-%u\n",
+            local.i2c_bus, local.csi_idx, local.mclk_id);
         ov5647_close_i2c(&sensor);
         return -1;
     }
@@ -219,9 +233,12 @@ static int probe(uint8_t i2c_bus, uint32_t *chip_id)
     return 0;
 }
 
-static int init(void** ctx, uint8_t i2c_bus) {
+static int init(void** ctx, const struct vvcam_sensor_hw *hw) {
     struct ov5647_ctx* sensor = calloc(1, sizeof(struct ov5647_ctx));
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+
     sensor->i2c = -1;
+    sensor->hw = local;
     sensor->hflip = false;
     sensor->vflip = false;
     *ctx = sensor;
@@ -230,6 +247,7 @@ static int init(void** ctx, uint8_t i2c_bus) {
 
 static void deinit(void* ctx) {
     struct ov5647_ctx* sensor = ctx;
+    vvcam_mclk_disable(sensor->hw.mclk_id);
     close(sensor->i2c);
     free(ctx);
 }
@@ -723,6 +741,11 @@ static struct ov5647_mode modes[] = {
     {
         .mode = {
             .clk = 25000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL0_CLK_DIV4,
+                .div = 16, /* 400/16 = 25 MHz */
+            },
             .width = 1920,
             .height = 1080,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -775,6 +798,11 @@ static struct ov5647_mode modes[] = {
     {
         .mode = {
             .clk = 25000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL0_CLK_DIV4,
+                .div = 16, /* 400/16 = 25 MHz */
+            },
             .width = 2592,
             .height = 1944,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -827,6 +855,11 @@ static struct ov5647_mode modes[] = {
     {
         .mode = {
             .clk = 25000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL0_CLK_DIV4,
+                .div = 16, /* 400/16 = 25 MHz */
+            },
             .width = 1280,
             .height = 960,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -879,6 +912,11 @@ static struct ov5647_mode modes[] = {
     {
         .mode = {
             .clk = 25000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL0_CLK_DIV4,
+                .div = 16, /* 400/16 = 25 MHz */
+            },
             .width = 1280,
             .height = 720,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -931,6 +969,11 @@ static struct ov5647_mode modes[] = {
     {
         .mode = {
             .clk = 25000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL0_CLK_DIV4,
+                .div = 16, /* 400/16 = 25 MHz */
+            },
             .width = 640,
             .height = 480,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -1107,6 +1150,8 @@ static int set_mode(void* ctx, uint32_t index) {
         return -1;
     }
     struct vvcam_sensor_mode* mode = &modes[index].mode;
+
+    vvcam_sensor_apply_mclk(&sensor->hw, &mode->mclk);
 
     if (open_i2c(sensor)) {
         return -1;

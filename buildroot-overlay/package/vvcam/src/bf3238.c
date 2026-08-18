@@ -75,6 +75,7 @@ struct bf3238_mode {
 
 struct bf3238_ctx {
     int i2c;
+    struct vvcam_sensor_hw hw;
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
@@ -131,17 +132,20 @@ static int write_reg(struct bf3238_ctx* ctx, uint16_t addr, uint8_t value) {
 
 
 static int open_i2c(struct bf3238_ctx* sensor) {
-    // i2c
+    char i2c_dev[32];
+
+    if (sensor->i2c >= 0)
+        return 0;
+
+    snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%u", sensor->hw.i2c_bus);
+    sensor->i2c = open(i2c_dev, O_RDWR);
     if (sensor->i2c < 0) {
-        sensor->i2c = open("/dev/i2c-0", O_RDWR);
-        if (sensor->i2c < 0) {
-            perror("open /dev/i2c-0");
-            return -1;
-        }
-        if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS) < 0) {
-            perror("i2c ctrl 0x36");
-            return -1;
-        }
+        perror(i2c_dev);
+        return -1;
+    }
+    if (ioctl(sensor->i2c, I2C_SLAVE_FORCE, I2C_SLAVE_ADDRESS) < 0) {
+        perror("i2c ctrl 0x6e");
+        return -1;
     }
     return 0;
 }
@@ -198,18 +202,28 @@ static int bf3238_read_chip_id(struct bf3238_ctx *sensor, uint32_t *chip_id)
     return -1;
 }
 
-static int probe(uint8_t i2c_bus, uint32_t *chip_id)
+static int probe(const struct vvcam_sensor_hw *hw, uint32_t *chip_id)
 {
     struct bf3238_ctx sensor;
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+    struct vvcam_mclk_setting probe_mclk = {
+        .enable = true,
+        .sel = VVCAM_PLL1_CLK_DIV4,
+        .div = 24, /* 594/24 = 24.75 MHz */
+    };
     uint32_t id = 0;
 
     memset(&sensor, 0, sizeof(sensor));
     sensor.i2c = -1;
+    sensor.hw = local;
 
-    if (bf3238_open_i2c_bus(&sensor, i2c_bus))
+    vvcam_sensor_apply_mclk(&local, &probe_mclk);
+
+    if (bf3238_open_i2c_bus(&sensor, local.i2c_bus))
         return -1;
     if (bf3238_read_chip_id(&sensor, &id) != 0) {
-        fprintf(stderr, "bf3238: read chip id failed on i2c-%u\n", i2c_bus);
+        fprintf(stderr, "bf3238: read chip id failed on i2c-%u csi-%u mclk-%u\n",
+            local.i2c_bus, local.csi_idx, local.mclk_id);
         bf3238_close_i2c(&sensor);
         return -1;
     }
@@ -223,9 +237,12 @@ static int probe(uint8_t i2c_bus, uint32_t *chip_id)
     return 0;
 }
 
-static int init(void** ctx, uint8_t i2c_bus) {
+static int init(void** ctx, const struct vvcam_sensor_hw *hw) {
     struct bf3238_ctx* sensor = calloc(1, sizeof(struct bf3238_ctx));
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+
     sensor->i2c = -1;
+    sensor->hw = local;
     sensor->hflip = false;
     sensor->vflip = false;
     *ctx = sensor;
@@ -234,6 +251,7 @@ static int init(void** ctx, uint8_t i2c_bus) {
 
 static void deinit(void* ctx) {
     struct bf3238_ctx* sensor = ctx;
+    vvcam_mclk_disable(sensor->hw.mclk_id);
     close(sensor->i2c);
     free(ctx);
 }
@@ -365,6 +383,11 @@ static struct bf3238_mode modes[] = {
     {
         .mode = {
             .clk = 24000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 24, /* 594/24 = 24.75 MHz */
+            },
             .width = 1920,
             .height = 1080,
             .lanes = VVCAM_SENSOR_1LANE,
@@ -411,6 +434,11 @@ static struct bf3238_mode modes[] = {
     {
         .mode = {
             .clk = 24000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 24, /* 594/24 = 24.75 MHz */
+            },
             .width = 1280,
             .height = 960,
             .lanes = VVCAM_SENSOR_1LANE,
@@ -564,6 +592,7 @@ static int set_mode(void* ctx, uint32_t index) {
     struct vvcam_sensor_mode* mode = &modes[index].mode;
 
     printf("bf3238: %s %ux%u\n", __func__, mode->width, mode->height);
+    vvcam_sensor_apply_mclk(&sensor->hw, &mode->mclk);
     if (open_i2c(sensor)) {
         return -1;
     }

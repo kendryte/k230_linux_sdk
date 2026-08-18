@@ -92,6 +92,9 @@ static int vvcam_isp_procfs_info_show(struct seq_file *sfile, void *offset)
             seq_printf(sfile, "isp%d port%d:\n", isp_dev->id, port);
             seq_printf(sfile, "sensor   : %s\n", isp_dev->sensor_info[port].sensor);
             seq_printf(sfile, "i2c_bus   : %d\n", isp_dev->sensor_info[port].i2c_bus);
+            seq_printf(sfile, "csi_idx   : %d\n", isp_dev->sensor_info[port].csi_idx);
+            seq_printf(sfile, "mclk_id   : %d\n", isp_dev->sensor_info[port].mclk_id);
+            seq_printf(sfile, "use_chip_clk : %d\n", isp_dev->sensor_info[port].use_chip_clk);
             seq_printf(sfile, "mode     : %d\n", isp_dev->sensor_info[port].mode);
             seq_printf(sfile, "*********************************\n");
         }
@@ -167,6 +170,27 @@ static int32_t vvcam_isp_proc_process(struct seq_file *sfile,
                 if (val && isdigit(*val)) {
                     isp_dev->sensor_info[port].i2c_bus =
                         (uint8_t)simple_strtoul(val, &end, 0);
+                }
+            }
+            else if (strcmp(val, "csi_idx") == 0) {
+                val = strsep(&kv_cur, kv_delim);
+                if (val && isdigit(*val)) {
+                    isp_dev->sensor_info[port].csi_idx =
+                        (uint8_t)simple_strtoul(val, &end, 0);
+                }
+            }
+            else if (strcmp(val, "mclk_id") == 0) {
+                val = strsep(&kv_cur, kv_delim);
+                if (val && isdigit(*val)) {
+                    isp_dev->sensor_info[port].mclk_id =
+                        (uint8_t)simple_strtoul(val, &end, 0);
+                }
+            }
+            else if (strcmp(val, "use_chip_clk") == 0) {
+                val = strsep(&kv_cur, kv_delim);
+                if (val && isdigit(*val)) {
+                    isp_dev->sensor_info[port].use_chip_clk =
+                        simple_strtoul(val, &end, 0) ? 1 : 0;
                 }
             }
         }

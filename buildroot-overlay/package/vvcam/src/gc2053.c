@@ -57,6 +57,7 @@ struct gc2053_mode {
 struct gc2053_ctx {
     int i2c;
     uint8_t i2c_bus;
+    struct vvcam_sensor_hw hw;
     struct vvcam_sensor_mode mode;      // fora 3a current val
     uint32_t sensor_again;
     uint32_t et_line;
@@ -156,19 +157,29 @@ static int gc2053_read_chip_id(struct gc2053_ctx *sensor, uint32_t *chip_id)
     return -1;
 }
 
-static int probe(uint8_t i2c_bus, uint32_t *chip_id)
+static int probe(const struct vvcam_sensor_hw *hw, uint32_t *chip_id)
 {
     struct gc2053_ctx sensor;
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+    struct vvcam_mclk_setting probe_mclk = {
+        .enable = true,
+        .sel = VVCAM_PLL1_CLK_DIV4,
+        .div = 25, /* 594/25 = 23.76 MHz */
+    };
     uint32_t id = 0;
 
     memset(&sensor, 0, sizeof(sensor));
     sensor.i2c = -1;
-    sensor.i2c_bus = i2c_bus;
+    sensor.hw = local;
+    sensor.i2c_bus = local.i2c_bus;
+
+    vvcam_sensor_apply_mclk(&local, &probe_mclk);
 
     if (open_i2c(&sensor))
         return -1;
     if (gc2053_read_chip_id(&sensor, &id) != 0) {
-        fprintf(stderr, "gc2053: read chip id failed on i2c-%u\n", i2c_bus);
+        fprintf(stderr, "gc2053: read chip id failed on i2c-%u csi-%u mclk-%u\n",
+            local.i2c_bus, local.csi_idx, local.mclk_id);
         gc2053_close_i2c(&sensor);
         return -1;
     }
@@ -182,16 +193,20 @@ static int probe(uint8_t i2c_bus, uint32_t *chip_id)
     return 0;
 }
 
-static int init(void** ctx, uint8_t i2c_bus) {
+static int init(void** ctx, const struct vvcam_sensor_hw *hw) {
     struct gc2053_ctx* sensor = calloc(1, sizeof(struct gc2053_ctx));
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+
     sensor->i2c = -1;
-    sensor->i2c_bus = i2c_bus;
+    sensor->hw = local;
+    sensor->i2c_bus = local.i2c_bus;
     *ctx = sensor;
     return 0;
 }
 
 static void deinit(void* ctx) {
     struct gc2053_ctx* sensor = ctx;
+    vvcam_mclk_disable(sensor->hw.mclk_id);
     close(sensor->i2c);
     free(ctx);
 }
@@ -648,6 +663,11 @@ static struct gc2053_mode modes[] = {
     {
         .mode = {
             .clk = 24000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 25, /* 594/25 = 23.76 MHz */
+            },
             .width = 1920,
             .height = 1080,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -694,6 +714,11 @@ static struct gc2053_mode modes[] = {
     {
         .mode = {
             .clk = 24000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 25, /* 594/25 = 23.76 MHz */
+            },
             .width = 1280,
             .height = 960,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -740,6 +765,11 @@ static struct gc2053_mode modes[] = {
     {
         .mode = {
             .clk = 24000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 25, /* 594/25 = 23.76 MHz */
+            },
             .width = 1280,
             .height = 720,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -811,6 +841,8 @@ static int set_mode(void* ctx, uint32_t index) {
         return -1;
     }
     struct vvcam_sensor_mode* mode = &modes[index].mode;
+
+    vvcam_sensor_apply_mclk(&sensor->hw, &mode->mclk);
 
     if (open_i2c(sensor)) {
         return -1;

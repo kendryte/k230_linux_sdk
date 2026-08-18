@@ -7,6 +7,7 @@ project(vvcam)
 file(GLOB SOURCES CONFIGURE_DEPENDS "src/*.c")
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
 
 add_subdirectory(v4l2-drm)
 

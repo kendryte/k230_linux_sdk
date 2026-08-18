@@ -52,6 +52,7 @@ struct ov13850_ctx {
     int i2c;
     int slave_addr;
     int i2c_bus;
+    struct vvcam_sensor_hw hw;
     struct vvcam_sensor_mode mode;
     uint32_t sensor_again;
     uint32_t et_line;
@@ -326,6 +327,11 @@ static struct ov13850_mode modes[] = {
     {
         .mode = {
             .clk = 24000000,
+            .mclk = {
+                .enable = true,
+                .sel = VVCAM_PLL1_CLK_DIV4,
+                .div = 8, /* 594/8 = 74.25 MHz */
+            },
             .width = 3840,
             .height = 2160,
             .lanes = VVCAM_SENSOR_2LANE,
@@ -468,15 +474,24 @@ static int ov13850_read_chip_id(struct ov13850_ctx *sensor, uint32_t *chip_id)
     return 0;
 }
 
-static int probe(uint8_t i2c_bus, uint32_t *chip_id)
+static int probe(const struct vvcam_sensor_hw *hw, uint32_t *chip_id)
 {
     struct ov13850_ctx sensor;
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+    struct vvcam_mclk_setting probe_mclk = {
+        .enable = true,
+        .sel = VVCAM_PLL1_CLK_DIV4,
+        .div = 8, /* 594/8 = 74.25 MHz */
+    };
     uint32_t id = 0;
 
     memset(&sensor, 0, sizeof(sensor));
     sensor.i2c = -1;
-    sensor.i2c_bus = i2c_bus;
+    sensor.hw = local;
+    sensor.i2c_bus = local.i2c_bus;
     sensor.slave_addr = 0x10;
+
+    vvcam_sensor_apply_mclk(&local, &probe_mclk);
 
     if (open_i2c(&sensor)) {
         return -1;
@@ -502,15 +517,18 @@ static int probe(uint8_t i2c_bus, uint32_t *chip_id)
     return 0;
 }
 
-static int init(void **ctx, uint8_t i2c_bus)
+static int init(void **ctx, const struct vvcam_sensor_hw *hw)
 {
     struct ov13850_ctx *sensor = calloc(1, sizeof(*sensor));
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+
     if (!sensor) {
         return -1;
     }
 
     sensor->i2c = -1;
-    sensor->i2c_bus = i2c_bus;
+    sensor->hw = local;
+    sensor->i2c_bus = local.i2c_bus;
     sensor->slave_addr = 0x10;
     memcpy(&sensor->mode, &modes[0].mode, sizeof(sensor->mode));
     *ctx = sensor;
@@ -525,6 +543,7 @@ static void deinit(void *ctx)
     if (!sensor) {
         return;
     }
+    vvcam_mclk_disable(sensor->hw.mclk_id);
     if (sensor->i2c >= 0) {
         close(sensor->i2c);
     }
@@ -589,6 +608,8 @@ static int set_mode(void *ctx, uint32_t index)
         return -1;
     }
     mode = &modes[index].mode;
+
+    vvcam_sensor_apply_mclk(&sensor->hw, &mode->mclk);
 
     if (open_i2c(sensor)) {
         return -1;

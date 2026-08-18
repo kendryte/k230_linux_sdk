@@ -2,10 +2,11 @@
 #ifndef __VVCAM_SENSOR_H__
 #define __VVCAM_SENSOR_H__
 
-#define VVCAM_API_VERSION 1UL
+#define VVCAM_API_VERSION 3UL
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <vvcam_mclk.h>
 
 enum vvcam_sensor_freq {
     VVCAM_SENSOR_800M,
@@ -135,6 +136,37 @@ struct vvcam_ae_info {
     uint8_t color_type;		//0, color image; 1, mono sensor image; 2, color sensor gray image.
 };
 
+struct vvcam_sensor_hw {
+    uint8_t i2c_bus;
+    uint8_t csi_idx;
+    uint8_t mclk_id;
+    /* 1: SoC drives this CSI's MCLK (RTOS USE_CHIP_CLK). 0: board crystal. */
+    uint8_t use_chip_clk;
+};
+
+static inline struct vvcam_sensor_hw
+vvcam_sensor_hw_or_default(const struct vvcam_sensor_hw *hw)
+{
+    struct vvcam_sensor_hw def = { .use_chip_clk = 1 };
+
+    if (hw)
+        return *hw;
+    return def;
+}
+
+/* Apply chip-clock setting, or disable this channel when the board uses a crystal. */
+static inline void
+vvcam_sensor_apply_mclk(const struct vvcam_sensor_hw *hw,
+                        const struct vvcam_mclk_setting *chip)
+{
+    struct vvcam_sensor_hw local = vvcam_sensor_hw_or_default(hw);
+    struct vvcam_mclk_setting s = { .enable = false };
+
+    if (local.use_chip_clk && chip)
+        s = *chip;
+    vvcam_mclk_apply(local.mclk_id, &s);
+}
+
 struct vvcam_sensor_mode {
     uint16_t width;
     uint16_t height;
@@ -144,10 +176,11 @@ struct vvcam_sensor_mode {
     enum vvcam_sensor_freq freq;
     enum vvcam_sensor_lanes lanes;
     struct vvcam_ae_info ae_info;
+    struct vvcam_mclk_setting mclk;
 };
 
 struct vvcam_sensor_ctrl {
-    int (*init)(void** ctx, uint8_t i2c_bus);
+    int (*init)(void** ctx, const struct vvcam_sensor_hw *hw);
     void (*deinit)(void* ctx);
     int (*enum_mode)(void* ctx, uint32_t index, struct vvcam_sensor_mode* mode);
     int (*get_mode)(void* ctx, struct vvcam_sensor_mode* mode);
@@ -160,7 +193,7 @@ struct vvcam_sensor_ctrl {
     int (*set_analog_gain)(void* ctx, float gain);
     int (*set_digital_gain)(void* ctx, float gain);
     int (*set_int_time)(void* ctx, float time);
-    int (*probe)(uint8_t i2c_bus, uint32_t *chip_id);
+    int (*probe)(const struct vvcam_sensor_hw *hw, uint32_t *chip_id);
 };
 
 struct vvcam_sensor {
