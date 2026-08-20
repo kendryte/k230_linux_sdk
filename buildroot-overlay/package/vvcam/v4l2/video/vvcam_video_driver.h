@@ -55,6 +55,7 @@
 #define __VVCAM_VIDEO_DRIVER_H__
 
 #include <linux/list.h>
+#include <linux/workqueue.h>
 #include <linux/videodev2.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-event.h>
@@ -90,6 +91,7 @@ struct vvcam_video_params {
 
 struct vvcam_video_event_shm {
 	struct mutex event_lock;
+	bool busy;
 	uint64_t phy_addr;
 	void *virt_addr;
 	uint32_t size;
@@ -104,8 +106,15 @@ struct vvcam_video_dev {
 	struct mutex video_lock;
 	struct v4l2_format format;
 	uint32_t pipeline;
+	struct work_struct destroy_work;
 	struct vvcam_video_event_shm event_shm;
 	int sensor_num;
+	/* Pending --sw/--sh/--sfps until CREATE_PIPELINE embeds them. */
+	bool pending_sensor_target_valid;
+	uint32_t pending_sensor_enable;
+	uint32_t pending_sensor_width;
+	uint32_t pending_sensor_height;
+	uint32_t pending_sensor_fps;
 };
 
 struct vvcam_media_dev {

@@ -114,6 +114,10 @@ struct vvcam_isp_sensor_info {
 	uint8_t csi_idx;
 	uint8_t mclk_id;
 	uint8_t use_chip_clk;
+	uint8_t target_valid;
+	uint16_t target_width;
+	uint16_t target_height;
+	uint32_t target_fps;
 };
 
 #define MAX_SENSORS 3

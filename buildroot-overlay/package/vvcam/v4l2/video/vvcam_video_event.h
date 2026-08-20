@@ -62,6 +62,19 @@ enum vvcam_video_event_id {
     VVCAM_VEVENT_MAX,
 };
 
+/*
+ * Optional CREATE_PIPELINE payload (same layout as vvcam_isp_sensor_target).
+ * Userspace sets WxH@fps via VIDIOC_S_EXT_CTRLS on /dev/videoN before G_FMT;
+ * the kernel embeds this into the CREATE event so isp_media_server can
+ * enum_mode() before CamDevice create.
+ */
+struct vvcam_video_sensor_target {
+    uint32_t enable;
+    uint32_t width;
+    uint32_t height;
+    uint32_t fps;
+};
+
 struct vvcam_video_event_pkg_head {
     uint32_t eid;
     uint64_t shm_addr;

@@ -324,6 +324,8 @@ static int vvcam_video_try_create_pipeline(struct vvcam_video_dev *vvcam_vdev)
         .pads = &pad_cfg,
     };
 
+    flush_work(&vvcam_vdev->destroy_work);
+
     if (vvcam_vdev->pipeline) {
         return 0;
     }
@@ -336,6 +338,8 @@ static int vvcam_video_try_create_pipeline(struct vvcam_video_dev *vvcam_vdev)
     if (!subdev) {
         return -EINVAL;
     }
+
+    /* CREATE embeds pending sensor target from video S_EXT_CTRLS (if any). */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
     pad = media_pad_remote_pad_first(&vvcam_vdev->pad);
 #else
@@ -363,9 +367,29 @@ static int vvcam_video_try_create_pipeline(struct vvcam_video_dev *vvcam_vdev)
 
 static int vvcam_video_destroy_pipeline(struct vvcam_video_dev *vvcam_vdev)
 {
+    int ret;
+
+    ret = vvcam_video_destroy_pipeline_event(vvcam_vdev);
     vvcam_vdev->pipeline = 0;
-    vvcam_video_destroy_pipeline_event(vvcam_vdev);
+    vvcam_vdev->pending_sensor_target_valid = false;
+    vvcam_vdev->pending_sensor_enable = 0;
+    vvcam_vdev->pending_sensor_width = 0;
+    vvcam_vdev->pending_sensor_height = 0;
+    vvcam_vdev->pending_sensor_fps = 0;
+    if (ret)
+        dev_err(vvcam_vdev->vvcam_mdev->dev,
+            "%s DESTROY_PIPELINE event failed (%d)\n",
+            vvcam_vdev->video->name, ret);
     return 0;
+}
+
+static void vvcam_video_destroy_work(struct work_struct *work)
+{
+    struct vvcam_video_dev *vvcam_vdev =
+        container_of(work, struct vvcam_video_dev, destroy_work);
+
+    if (vvcam_vdev->pipeline)
+        vvcam_video_destroy_pipeline(vvcam_vdev);
 }
 
 static int vvcam_videoc_querycap(struct file *file, void *priv,
@@ -651,6 +675,69 @@ static int vvcam_videoc_query_ext_ctrl(struct file *file, void *fh,
     return ret;
 }
 
+#define VVCAM_VIDEO_CID_SENSOR_BASE    0x00980900
+#define VVCAM_VIDEO_CID_SENSOR_ENABLE  (VVCAM_VIDEO_CID_SENSOR_BASE + 2)
+#define VVCAM_VIDEO_CID_SENSOR_WIDTH   (VVCAM_VIDEO_CID_SENSOR_BASE + 3)
+#define VVCAM_VIDEO_CID_SENSOR_HEIGHT  (VVCAM_VIDEO_CID_SENSOR_BASE + 4)
+#define VVCAM_VIDEO_CID_SENSOR_FPS     (VVCAM_VIDEO_CID_SENSOR_BASE + 5)
+
+static bool vvcam_video_ctrls_is_sensor_target(struct v4l2_ext_controls *ctrls)
+{
+    unsigned int i;
+
+    for (i = 0; i < ctrls->count; i++) {
+        if (ctrls->controls[i].id >= VVCAM_VIDEO_CID_SENSOR_ENABLE &&
+            ctrls->controls[i].id <= VVCAM_VIDEO_CID_SENSOR_FPS)
+            return true;
+    }
+    return false;
+}
+
+static int vvcam_video_store_pending_sensor_target(
+    struct vvcam_video_dev *vvcam_vdev, struct v4l2_ext_controls *ctrls)
+{
+    unsigned int i;
+    uint32_t enable = 0, width = 0, height = 0, fps = 0;
+
+    for (i = 0; i < ctrls->count; i++) {
+        switch (ctrls->controls[i].id) {
+        case VVCAM_VIDEO_CID_SENSOR_ENABLE:
+            enable = ctrls->controls[i].value;
+            break;
+        case VVCAM_VIDEO_CID_SENSOR_WIDTH:
+            width = ctrls->controls[i].value;
+            break;
+        case VVCAM_VIDEO_CID_SENSOR_HEIGHT:
+            height = ctrls->controls[i].value;
+            break;
+        case VVCAM_VIDEO_CID_SENSOR_FPS:
+            fps = ctrls->controls[i].value;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (enable && width && height && fps) {
+        vvcam_vdev->pending_sensor_target_valid = true;
+        vvcam_vdev->pending_sensor_enable = enable;
+        vvcam_vdev->pending_sensor_width = width;
+        vvcam_vdev->pending_sensor_height = height;
+        vvcam_vdev->pending_sensor_fps = fps;
+        dev_info(vvcam_vdev->vvcam_mdev->dev,
+            "%s pending sensor target %ux%u@%u\n",
+            vvcam_vdev->video->name, width, height, fps);
+    } else {
+        vvcam_vdev->pending_sensor_target_valid = false;
+        vvcam_vdev->pending_sensor_enable = 0;
+        vvcam_vdev->pending_sensor_width = 0;
+        vvcam_vdev->pending_sensor_height = 0;
+        vvcam_vdev->pending_sensor_fps = 0;
+    }
+
+    return 0;
+}
+
 static int vvcam_vidioc_g_ctrl(struct file *file, void *fh,
 			     struct v4l2_control *a)
 {
@@ -718,6 +805,34 @@ static int vvcam_vidioc_g_ext_ctrls(struct file *file, void *fh,
     struct vvcam_pad_ext_controls pad_ext_controls;
     int ret;
 
+    if (vvcam_video_ctrls_is_sensor_target(a)) {
+        unsigned int i;
+
+        for (i = 0; i < a->count; i++) {
+            switch (a->controls[i].id) {
+            case VVCAM_VIDEO_CID_SENSOR_ENABLE:
+                a->controls[i].value =
+                    vvcam_vdev->pending_sensor_enable;
+                break;
+            case VVCAM_VIDEO_CID_SENSOR_WIDTH:
+                a->controls[i].value =
+                    vvcam_vdev->pending_sensor_width;
+                break;
+            case VVCAM_VIDEO_CID_SENSOR_HEIGHT:
+                a->controls[i].value =
+                    vvcam_vdev->pending_sensor_height;
+                break;
+            case VVCAM_VIDEO_CID_SENSOR_FPS:
+                a->controls[i].value =
+                    vvcam_vdev->pending_sensor_fps;
+                break;
+            default:
+                break;
+            }
+        }
+        return 0;
+    }
+
     subdev = vvcam_video_remote_subdev(vvcam_vdev);
     if (subdev) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
@@ -747,6 +862,35 @@ static int vvcam_vidioc_s_ext_ctrls(struct file *file, void *fh,
     struct vvcam_pad_ext_controls pad_ext_controls;
     int ret;
 
+    /*
+     * Sensor target must be stored on the video node before CREATE_PIPELINE
+     * (triggered by G_FMT). Forwarding to ISP subdev here would race: CREATE
+     * would already have loaded default mode. After pipeline exists, also
+     * forward so runtime mode switch still works.
+     */
+    if (vvcam_video_ctrls_is_sensor_target(a)) {
+        ret = vvcam_video_store_pending_sensor_target(vvcam_vdev, a);
+        if (ret)
+            return ret;
+
+        if (!vvcam_vdev->pipeline)
+            return 0;
+
+        subdev = vvcam_video_remote_subdev(vvcam_vdev);
+        if (!subdev)
+            return 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+        pad = media_pad_remote_pad_first(&vvcam_vdev->pad);
+#else
+        pad = media_entity_remote_pad(&vvcam_vdev->pad);
+#endif
+        memset(&pad_ext_controls, 0, sizeof(pad_ext_controls));
+        pad_ext_controls.pad = pad->index;
+        pad_ext_controls.ext_controls = a;
+        return v4l2_subdev_call(subdev, core, ioctl,
+                    VVCAM_PAD_S_EXT_CTRLS, &pad_ext_controls);
+    }
+
     subdev = vvcam_video_remote_subdev(vvcam_vdev);
     if (!subdev) {
         dev_info(vvcam_vdev->vvcam_mdev->dev, "vvcam_video: no subdev return\n");
@@ -759,12 +903,10 @@ static int vvcam_vidioc_s_ext_ctrls(struct file *file, void *fh,
     pad = media_entity_remote_pad(&vvcam_vdev->pad);
 #endif
     
-    // 包装控件数据，转发到 ISP subdev
     memset(&pad_ext_controls, 0, sizeof(pad_ext_controls));
     pad_ext_controls.pad = pad->index;
     pad_ext_controls.ext_controls = a;
     
-    // ISP subdev 会处理所有 ext_ctrls，包括 scene config
     ret = v4l2_subdev_call(subdev, core, ioctl,
                           VVCAM_PAD_S_EXT_CTRLS, &pad_ext_controls);
     
@@ -839,6 +981,16 @@ static int vvcam_videoc_subscribe_event(struct v4l2_fh *fh,
         break;
     case VVCAM_VIDEO_DEAMON_EVENT:
         ret = v4l2_event_subscribe(fh, sub, 2, NULL);
+        /*
+         * Daemon already subscribes id=0 (CREATE) and id=1 (DESTROY).
+         * Auto-subscribe DESTROY if a client only asked for CREATE.
+         */
+        if (!ret && sub->id == VVCAM_VEVENT_CREATE_PIPELINE) {
+            struct v4l2_event_subscription sub_d = *sub;
+
+            sub_d.id = VVCAM_VEVENT_DESTROY_PIPELINE;
+            (void)v4l2_event_subscribe(fh, &sub_d, 2, NULL);
+        }
         break;
 	default:
 		ret = -EINVAL;
@@ -1018,12 +1170,9 @@ static int vvcam_video_release(struct file *file)
     int ret;
 
     ret = vb2_fop_release(file);
-    if (vvcam_vdev->video->queue->owner == NULL) {
-        if (vvcam_vdev->pipeline) {
-            vvcam_video_destroy_pipeline(vvcam_vdev);
-        }
-    }
-
+    /* DESTROY after close() returns; waiting inside release() deadlocks. */
+    if (vvcam_vdev->pipeline)
+        schedule_work(&vvcam_vdev->destroy_work);
     return ret;
 }
 
@@ -1258,6 +1407,7 @@ int vvcam_video_register(struct vvcam_media_dev *vvcam_mdev, int port)
         return -ENOMEM;
 
     mutex_init(&vvcam_vdev->video_lock);
+    INIT_WORK(&vvcam_vdev->destroy_work, vvcam_video_destroy_work);
     vvcam_vdev->vvcam_mdev = vvcam_mdev;
     vvcam_vdev->video_params = vvcam_mdev->video_params[port];
 
@@ -1336,6 +1486,7 @@ int vvcam_video_unregister(struct vvcam_media_dev *vvcam_mdev, int port)
     if (vvcam_vdev == NULL)
         return 0;
 
+    cancel_work_sync(&vvcam_vdev->destroy_work);
     video_unregister_device(vvcam_vdev->video);
     media_entity_cleanup(&vvcam_vdev->video->entity);
     video_device_release(vvcam_vdev->video);

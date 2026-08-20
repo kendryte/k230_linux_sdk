@@ -124,16 +124,22 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
         CKE(ioctl(context[i].video_fd, VIDIOC_QUERYCAP, &capbility), close);
 
         /*
-         * Order matters for --sw/--sh/--sfps:
-         *   1) G_FMT warms CREATE_PIPELINE (starts MediaIspHalEven, subscribe
-         *      ISP events 0..10). get_fmt may still return EINVAL after create;
-         *      treat that as soft failure — pipeline side-effect is enough.
-         *   2) sensor_target next so mode/calib paths rebuild before S_FMT and
-         *      before STREAMON LoadCalibration.
-         *   3) HFLIP/VFLIP then S_FMT so ISP demosaic matches.
-         * Always write HFLIP/VFLIP (default 0) so a prior run's sticky V4L2
-         * control cannot reappear at STREAMON.
+         * Order: open video → S_EXT_CTRLS sensor target → G_FMT (CREATE).
+         * Kernel stores target on the video node and embeds it in CREATE;
+         * isp_media_server resolves mode via libvvcam before CamDevice create.
          */
+        if (context[i].sensor_target_valid) {
+            if (vvcam_set_sensor_target(context[i].video_fd,
+                    context[i].sensor_width, context[i].sensor_height,
+                    context[i].sensor_fps) < 0) {
+                fprintf(stderr,
+                    "[v4l2-drm] sensor target %ux%u@%u ioctl failed (%s); "
+                    "CREATE may use default mode\n",
+                    context[i].sensor_width, context[i].sensor_height,
+                    context[i].sensor_fps, strerror(errno));
+            }
+        }
+
         {
             struct v4l2_format probe_fmt;
             memset(&probe_fmt, 0, sizeof(probe_fmt));
@@ -143,16 +149,6 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
                     "[v4l2-drm] VIDIOC_G_FMT warm-up failed (%s); "
                     "continue if CREATE_PIPELINE already ran\n",
                     strerror(errno));
-            }
-        }
-
-        if (context[i].sensor_target_valid) {
-            if (vvcam_set_sensor_target(context[i].video_fd,
-                    context[i].sensor_width,
-                    context[i].sensor_height,
-                    context[i].sensor_fps) < 0) {
-                perror("VIDIOC_S_EXT_CTRLS sensor target");
-                CKE(-1, close);
             }
         }
 
@@ -737,6 +733,23 @@ int v4l2_drm_stop(const struct v4l2_drm_context *context)
     }
 
     ret = ioctl(ctx->video_fd, VIDIOC_STREAMOFF, &type);
+
+    /*
+     * Free vb2 buffers so close() can DESTROY_PIPELINE. Display still
+     * holds the DRM dmabuf fds; REQBUFS(0) only drops the ISP import.
+     */
+    {
+        struct v4l2_requestbuffers req;
+
+        memset(&req, 0, sizeof(req));
+        req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        req.memory = ctx->display ? V4L2_MEMORY_DMABUF : V4L2_MEMORY_MMAP;
+        req.count = 0;
+        if (ioctl(ctx->video_fd, VIDIOC_REQBUFS, &req) < 0)
+            fprintf(stderr, "[v4l2-drm] REQBUFS(0) failed: %s\n",
+                strerror(errno));
+    }
+
     close(ctx->video_fd);
     ctx->video_fd = -1;
 
