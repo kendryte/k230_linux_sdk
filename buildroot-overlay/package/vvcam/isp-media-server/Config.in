@@ -1,0 +1,4 @@
+config BR2_PACKAGE_ISP_MEDIA_SERVER
+	bool
+	help
+	  K230 ISP media server prebuilt binary.

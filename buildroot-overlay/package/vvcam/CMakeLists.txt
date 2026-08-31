@@ -16,6 +16,5 @@ add_subdirectory(v4l2-drm-scene)
 add_subdirectory(v4l2-drm-three-camera)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/lib)
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/isp_media_server DESTINATION /usr/bin)
 install(DIRECTORY include/ DESTINATION /usr/include)
 install(DIRECTORY configs/ DESTINATION /etc/vvcam)
