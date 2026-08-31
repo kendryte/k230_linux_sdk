@@ -28,10 +28,17 @@
                     <img src="https://www.kendryte.com/api/post/attachment?id=831" class="w-16 h-16 object-contain "
                         alt="Company Logo">
 
-                    <span class="text-2xl font-bold tracking-tight">K230 linux sdk 镜像下载</span>
+                    <span class="text-2xl font-bold tracking-tight">{{ t.navTitle }}</span>
                 </div>
-                <div class="text-sm text-gray-400 hidden sm:block">
-                    <i class="fas fa-sync-alt mr-1"></i> CI/CD 更新时间: {{ updatetime }}
+                <div class="flex items-center gap-5">
+                    <div class="text-sm text-gray-400 hidden sm:block">
+                        <i class="fas fa-sync-alt mr-1"></i> {{ t.updateLabel }} {{ updatetime }}
+                    </div>
+                    <div class="flex items-center gap-1.5 text-sm font-semibold select-none border-l border-gray-200 pl-4">
+                        <button @click="switchLang('zh')" :class="['px-1 transition-colors', lang === 'zh' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600']">中</button>
+                        <span class="text-gray-300">|</span>
+                        <button @click="switchLang('en')" :class="['px-1 transition-colors', lang === 'en' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600']">En</button>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -42,12 +49,12 @@
                 <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 lg:p-8">
                     <div class="bg-white rounded-xl p-4 shadow-md border-2 border-blue-500">
                         <label class="block text-base font-extrabold text-blue-800 mb-2 flex items-center gap-2">
-                            <i class="fas fa-microchip text-blue-600"></i> 请选择产品型号
+                            <i class="fas fa-microchip text-blue-600"></i> {{ t.selectProductLabel }}
                         </label>
                         <div class="relative w-full">
                             <select v-model="activeProductId"
                                 class="w-full appearance-none bg-white border-2 border-blue-600 rounded-xl px-5 py-3.5 pr-10 text-xl font-extrabold text-gray-900 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all cursor-pointer shadow-lg">
-                                <option :value="null" disabled>👇 请选择产品型号</option>
+                                <option :value="null" disabled>{{ t.selectProductPlaceholder }}</option>
                                 <option v-for="(product, id) in products" :key="id" :value="id">{{ product.name }}</option>
                             </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
@@ -71,33 +78,33 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="bg-orange-50 p-6">
                         <h3 class="text-lg font-bold text-orange-800 mb-4 flex items-center">
-                            <i class="fas fa-exclamation-triangle mr-2"></i> 特别说明
+                            <i class="fas fa-exclamation-triangle mr-2"></i> {{ t.noticeTitle }}
                         </h3>
                         <ul class="space-y-3 text-sm text-orange-700">
                             <li class="flex items-center gap-2">
                                 <i class="fas fa-check-circle text-orange-400"></i>
-                                镜像烧录与串口连接请参考<a
-                                    href="https://www.kendryte.com/k230_linux/zh/main/userguide/how_to_flash.html"
-                                    target="_blank" class="text-blue-600 hover:underline">《烧录与连接操作指南》</a>
+                                <span>{{ t.notice1Prefix }}<a
+                                    :href="links.flashGuide"
+                                    target="_blank" class="text-blue-600 hover:underline">{{ t.notice1LinkText }}</a></span>
                             </li>
                             <li class="flex items-center gap-2">
                                 <i class="fas fa-check-circle text-orange-400"></i>
-                                CanMV IDE（基于 MicroPython）不适用于 Linux SDK，请使用标准串口终端工具（如 PuTTY）来操作 Linux 系统。
+                                {{ t.notice2 }}
                             </li>
                             <li class="flex items-center gap-2">
                                 <i class="fas fa-check-circle text-orange-400"></i>
-                                首次启动需要几分钟进行文件系统扩容，请耐心等待, 部分烧录软件存在 Bug（例如<a
-                                    href="https://www.kendryte.com/answer/questions/10010000000002910" target="_blank"
-                                    class="text-blue-600 hover:underline"> 此处提到的问题</a> ）
+                                <span>{{ t.notice3Prefix }}<a
+                                    :href="links.knownIssue" target="_blank"
+                                    class="text-blue-600 hover:underline">{{ t.notice3LinkText }}</a>{{ t.notice3Suffix }}</span>
                             </li>
                             <li class="flex items-center gap-2">
                                 <i class="fas fa-check-circle text-orange-400"></i>
-                                Linux SDK 仍在开发中。如遇问题，欢迎前往 <a href="https://www.kendryte.com/answer/" target="_blank"
-                                    class="text-blue-600 hover:underline">嘉楠问答社区</a> 寻求帮助。提问前请先搜索历史帖子，避免重复提问
+                                <span>{{ t.notice4Prefix }} <a :href="links.community" target="_blank"
+                                    class="text-blue-600 hover:underline">{{ t.communityLink }}</a> {{ t.notice4Suffix }}</span>
                             </li>
                             <li class="flex items-center gap-2">
                                 <i class="fas fa-check-circle text-orange-400"></i>
-                                镜像仅可烧录到对应的开发板，请务必选择与当前板型完全匹配的镜像，不能混烧其他板型的镜像。否则可能导致硬件损坏！！！
+                                {{ t.notice5 }}
                             </li>
                         </ul>
                     </div>
@@ -119,10 +126,10 @@
                         <div v-if="activeVariant.latest"
                             class="bg-blue-50 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 ring-1 ring-blue-100">
                             <div>
-                                <span class="block text-sm font-bold text-blue-700 mb-1">最新每日构建版本(推荐)</span>
+                                <span class="block text-sm font-bold text-blue-700 mb-1">{{ t.latestBuildLabel }}</span>
                                 <div class="text-xl sm:text-3xl font-bold font-mono text-blue-900 break-all">{{ activeVariant.latest.url ?
                                     activeVariant.latest.url.split('/').pop() : '-' }}</div>
-                                <p class="text-sm text-blue-700 mt-2">发布于: {{ activeVariant.latest.date || '-' }}</p>
+                                <p class="text-sm text-blue-700 mt-2">{{ t.publishedAtLabel }} {{ activeVariant.latest.date || '-' }}</p>
                             </div>
                             <div class="text-right flex flex-col items-end gap-3 w-full sm:w-auto">
                                 <span class="text-xs text-gray-500 break-all font-mono">md5: {{ activeVariant.latest.md5
@@ -130,7 +137,7 @@
                                 <a v-if="activeVariant.latest.url" :href="activeVariant.latest.url" target="_blank"
                                     rel="noopener noreferrer"
                                     class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-200 transition-all transform hover:-translate-y-0.5 inline-flex items-center gap-2">
-                                    <i class="fas fa-download"></i> 下载
+                                    <i class="fas fa-download"></i> {{ t.downloadAction }}
                                 </a>
                             </div>
                         </div>
@@ -138,23 +145,23 @@
                         <div v-if="activeVariant.history.length > 0"
                             class="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                             <h3 class="px-6 py-4 bg-gray-50 text-sm font-bold text-gray-700 border-b border-gray-100">
-                                历史版本</h3>
+                                {{ t.historyTitle }}</h3>
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-100">
                                     <thead class="bg-gray-50 hidden md:table-header-group">
                                         <tr>
                                             <th scope="col"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                版本号</th>
+                                                {{ t.tableVersion }}</th>
                                             <th scope="col"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                发布日期</th>
+                                                {{ t.tableDate }}</th>
                                             <th scope="col"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 MD5</th>
                                             <th scope="col"
                                                 class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                操作</th>
+                                                {{ t.tableAction }}</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-100">
@@ -173,7 +180,7 @@
                                                 <a :href="h.url" target="_blank" rel="noopener noreferrer"
                                                     class="text-blue-600 hover:text-blue-800 flex justify-end items-center group">
                                                     <span
-                                                        class="hidden group-hover:block mr-1 text-xs opacity-75">下载</span>
+                                                        class="hidden group-hover:block mr-1 text-xs opacity-75">{{ t.downloadAction }}</span>
                                                     <i class="fas fa-file-download"></i>
                                                 </a>
                                             </td>
@@ -185,7 +192,7 @@
                             <div v-if="totalPages > 1"
                                 class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
                                 <div class="text-sm text-gray-500">
-                                    共 {{ activeVariant.history.length }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
+                                    {{ t.paginationSummary(activeVariant.history.length, currentPage, totalPages) }}
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button @click="goToPage(1)" :disabled="currentPage === 1"
@@ -228,31 +235,31 @@
         <!-- 常用资源 -->
         <div class="max-w-7xl mx-auto w-full px-6 py-6">
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">常用资源</h3>
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">{{ t.quickLinks }}</h3>
                 <div class="flex flex-wrap gap-x-6 gap-y-2">
-                    <a href="https://www.kendryte.com/answer/" target="_blank"
+                    <a :href="links.community" target="_blank"
                         class="text-sm text-gray-600 hover:text-blue-600 transition-colors inline-flex items-center gap-1.5">
-                        <i class="fas fa-comments w-4 text-center"></i> 嘉楠问答社区
+                        <i class="fas fa-comments w-4 text-center"></i> {{ t.communityLink }}
                     </a>
-                    <a href="https://www.kendryte.com/zh/resource/chip_manual,k230" target="_blank"
+                    <a :href="links.chipManual" target="_blank"
                         class="text-sm text-gray-600 hover:text-blue-600 transition-colors inline-flex items-center gap-1.5">
-                        <i class="fas fa-file-pdf w-4 text-center"></i> 芯片手册
+                        <i class="fas fa-file-pdf w-4 text-center"></i> {{ t.chipManualLink }}
                     </a>
-                    <a href="https://www.kendryte.com/zh/document" target="_blank"
+                    <a :href="links.docs" target="_blank"
                         class="text-sm text-gray-600 hover:text-blue-600 transition-colors inline-flex items-center gap-1.5">
-                        <i class="fas fa-book w-4 text-center"></i> 开发者文档
+                        <i class="fas fa-book w-4 text-center"></i> {{ t.docsLink }}
                     </a>
-                    <a href="https://www.kendryte.com/zh/products" target="_blank"
+                    <a :href="links.products" target="_blank"
                         class="text-sm text-gray-600 hover:text-blue-600 transition-colors inline-flex items-center gap-1.5">
-                        <i class="fas fa-external-link-alt w-4 text-center"></i> 产品中心
+                        <i class="fas fa-external-link-alt w-4 text-center"></i> {{ t.productsLink }}
                     </a>
                     <a href="https://github.com/kendryte/k230_linux_sdk/" target="_blank"
                         class="text-sm text-gray-600 hover:text-blue-600 transition-colors inline-flex items-center gap-1.5">
-                        <i class="fab fa-github w-4 text-center"></i> linux sdk源码
+                        <i class="fab fa-github w-4 text-center"></i> {{ t.sdkSourceLink }}
                     </a>
                     <a href="https://ai.b-bug.org/k230/release/linux_sdk_images/daily_build/" target="_blank"
                         class="text-sm text-gray-600 hover:text-blue-600 transition-colors inline-flex items-center gap-1.5">
-                        <i class="fas fa-external-link-alt w-4 text-center"></i> linux内网镜像
+                        <i class="fas fa-external-link-alt w-4 text-center"></i> {{ t.intranetLink }}
                     </a>
                 </div>
             </div>
@@ -260,14 +267,13 @@
 
         <footer class="bg-white border-t border-gray-100 py-4 mt-8">
             <div class="max-w-7xl mx-auto px-6 text-center text-gray-400 text-sm">
-                <p class="text-center mb-1 small text-secondary">版权所有 © 2025 嘉楠 | 京ICP备2025124317号 |
-                    京公网安备11010802045870号</p>
+                <p class="text-center mb-1 small text-secondary">{{ t.footerCopyright }}</p>
                 <p class="text-center mb-0 text-xs text-gray-400">
-                    <span id="busuanzi_container_site_pv">本站总访问量 <span id="busuanzi_value_site_pv"></span> 次</span>
+                    <span id="busuanzi_container_site_pv">{{ t.sitePvLabel }} <span id="busuanzi_value_site_pv"></span> {{ t.timesUnit }}</span>
                     <span class="mx-2">|</span>
-                    <span id="busuanzi_container_site_uv">访客数 <span id="busuanzi_value_site_uv"></span> 人次</span>
+                    <span id="busuanzi_container_site_uv">{{ t.siteUvLabel }} <span id="busuanzi_value_site_uv"></span> {{ t.peopleUnit }}</span>
                     <span class="mx-2">|</span>
-                    <span id="busuanzi_container_page_pv">本页访问量 <span id="busuanzi_value_page_pv"></span> 次</span>
+                    <span id="busuanzi_container_page_pv">{{ t.pagePvLabel }} <span id="busuanzi_value_page_pv"></span> {{ t.timesUnit }}</span>
                 </p>
             </div>
         </footer>
@@ -277,6 +283,108 @@
     <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     <script>
         const { createApp, ref, computed, onMounted, watch } = Vue;
+
+        // i18n: all user-facing UI strings. Product names/descriptions come from
+        // products.json and are intentionally left untranslated (Chinese board
+        // brand names are kept as-is even in the English UI, per product decision).
+        const STRINGS = {
+            zh: {
+                navTitle: 'K230 linux sdk 镜像下载',
+                updateLabel: 'CI/CD 更新时间:',
+                selectProductLabel: '请选择产品型号',
+                selectProductPlaceholder: '👇 请选择产品型号',
+                noticeTitle: '特别说明',
+                notice1Prefix: '镜像烧录与串口连接请参考',
+                notice1LinkText: '《烧录与连接操作指南》',
+                notice2: 'CanMV IDE（基于 MicroPython）不适用于 Linux SDK，请使用标准串口终端工具（如 PuTTY）来操作 Linux 系统。',
+                notice3Prefix: '首次启动需要几分钟进行文件系统扩容，请耐心等待, 部分烧录软件存在 Bug（例如',
+                notice3LinkText: '此处提到的问题',
+                notice3Suffix: '）',
+                notice4Prefix: 'Linux SDK 仍在开发中。如遇问题，欢迎前往',
+                notice4Suffix: '寻求帮助。提问前请先搜索历史帖子，避免重复提问',
+                notice5: '镜像仅可烧录到对应的开发板，请务必选择与当前板型完全匹配的镜像，不能混烧其他板型的镜像。否则可能导致硬件损坏！！！',
+                latestBuildLabel: '最新每日构建版本(推荐)',
+                publishedAtLabel: '发布于:',
+                downloadAction: '下载',
+                historyTitle: '历史版本',
+                tableVersion: '版本号',
+                tableDate: '发布日期',
+                tableAction: '操作',
+                paginationSummary: (total, current, pages) => `共 ${total} 条记录，第 ${current} / ${pages} 页`,
+                quickLinks: '常用资源',
+                communityLink: '嘉楠问答社区',
+                chipManualLink: '芯片手册',
+                docsLink: '开发者文档',
+                productsLink: '产品中心',
+                sdkSourceLink: 'linux sdk源码',
+                intranetLink: 'linux内网镜像',
+                footerCopyright: '版权所有 © 2025 嘉楠 | 京ICP备2025124317号 | 京公网安备11010802045870号',
+                sitePvLabel: '本站总访问量',
+                siteUvLabel: '访客数',
+                pagePvLabel: '本页访问量',
+                timesUnit: '次',
+                peopleUnit: '人次'
+            },
+            en: {
+                navTitle: 'K230 Linux SDK Image Download',
+                updateLabel: 'CI/CD updated:',
+                selectProductLabel: 'Select Product Model',
+                selectProductPlaceholder: '👇 Select a product model',
+                noticeTitle: 'Important Notes',
+                notice1Prefix: 'For flashing and serial connection, see the ',
+                notice1LinkText: 'Flashing & Connection Guide',
+                notice2: 'CanMV IDE (based on MicroPython) does not apply to the Linux SDK. Please use a standard serial terminal tool (e.g. PuTTY) to operate the Linux system.',
+                notice3Prefix: 'The first boot takes a few minutes to resize the filesystem, please be patient. Some flashing tools have bugs (see ',
+                notice3LinkText: 'this known issue',
+                notice3Suffix: ')',
+                notice4Prefix: 'The Linux SDK is still under active development. If you run into issues, feel free to ask in the',
+                notice4Suffix: '. Please search existing posts first to avoid duplicate questions.',
+                notice5: 'An image can only be flashed to its matching board. Make sure the image you choose exactly matches your board model - flashing the wrong image may damage your hardware!',
+                latestBuildLabel: 'Latest Daily Build (Recommended)',
+                publishedAtLabel: 'Published:',
+                downloadAction: 'Download',
+                historyTitle: 'Version History',
+                tableVersion: 'Version',
+                tableDate: 'Release Date',
+                tableAction: 'Action',
+                paginationSummary: (total, current, pages) => `${total} records total, page ${current} of ${pages}`,
+                quickLinks: 'Quick Links',
+                communityLink: 'Kendryte Community',
+                chipManualLink: 'Chip Manual',
+                docsLink: 'Developer Docs',
+                productsLink: 'Product Center',
+                sdkSourceLink: 'Linux SDK Source',
+                intranetLink: 'Linux Intranet Mirror',
+                footerCopyright: 'Copyright © 2025 Canaan | Beijing ICP No. 2025124317 | Beijing Public Security Network No. 11010802045870',
+                sitePvLabel: 'Total site views:',
+                siteUvLabel: 'Visitors:',
+                pagePvLabel: 'Page views:',
+                timesUnit: '',
+                peopleUnit: ''
+            }
+        };
+
+        // Links that have a distinct localized URL on kendryte.com.
+        function buildLinks(lang) {
+            const prefix = lang === 'en' ? 'en' : 'zh';
+            return {
+                community: `https://www.kendryte.com/answer/?lang=${lang}`,
+                chipManual: `https://www.kendryte.com/${prefix}/resource/chip_manual,k230`,
+                docs: `https://www.kendryte.com/${prefix}/document`,
+                products: `https://www.kendryte.com/${prefix}/products`,
+                flashGuide: `https://www.kendryte.com/k230_linux/${prefix}/main/userguide/how_to_flash.html`,
+                knownIssue: `https://www.kendryte.com/answer/questions/10010000000002910?lang=${lang}`
+            };
+        }
+
+        function detectInitialLang() {
+            const urlLang = new URLSearchParams(window.location.search).get('lang');
+            if (urlLang === 'en' || urlLang === 'zh') return urlLang;
+            const saved = window.localStorage.getItem('k230_index_lang');
+            if (saved === 'en' || saved === 'zh') return saved;
+            return (navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+        }
+
         createApp({
             setup() {
                 const products = ref({});
@@ -285,6 +393,26 @@
                 const updatetime = ref(null);
                 const currentPage = ref(1);
                 const pageSize = 3;
+                const lang = ref(detectInitialLang());
+
+                const t = computed(() => STRINGS[lang.value]);
+                const links = computed(() => buildLinks(lang.value));
+
+                const switchLang = (newLang) => {
+                    if (newLang !== 'en' && newLang !== 'zh') return;
+                    lang.value = newLang;
+                    window.localStorage.setItem('k230_index_lang', newLang);
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('lang', newLang);
+                    window.history.replaceState({}, '', url);
+                };
+
+                watch(lang, (newLang) => {
+                    document.documentElement.lang = newLang === 'en' ? 'en' : 'zh-CN';
+                    document.title = newLang === 'en'
+                        ? 'K230 Linux SDK Image Download Center'
+                        : 'K230 linux sdk 镜像下载中心';
+                }, { immediate: true });
 
                 const fetchProducts = async () => {
                     try {
@@ -293,7 +421,7 @@
                         updatetime.value = data.time;
                         products.value = data.products;
                     } catch (error) {
-                        console.error("加载失败:", error);
+                        console.error("Failed to load products:", error);
                     }
                 };
 
@@ -353,7 +481,8 @@
 
                 return {
                     products, activeProductId, activeVariantKey, activeProduct, activeVariant, updatetime,
-                    currentPage, totalPages, paginatedHistory, visiblePages, goToPage
+                    currentPage, totalPages, paginatedHistory, visiblePages, goToPage,
+                    lang, t, links, switchLang
                 };
             }
         }).mount('#app');
