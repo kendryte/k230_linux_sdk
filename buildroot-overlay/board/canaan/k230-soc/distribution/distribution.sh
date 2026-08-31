@@ -283,15 +283,17 @@ distribution_rootfs_replace() {
     # Check and fix partition table
     echo -e "Fix\n" | parted  ---pretend-input-tty "${dist_img_name}" print
 
-    # Find rootfs partition and resize it
-    local rootfs_part_id="$(parted ${dist_img_name} print free | grep rootfs | cut -d' ' -f2)"
+    # Find rootfs partition (last MBR partition) and resize it
+    local rootfs_part_id
+    rootfs_part_id="$(parted -s "${dist_img_name}" print | awk '/^[[:space:]]*[0-9]+/ { last = $1 } END { print last }')"
     parted -s "${dist_img_name}" resizepart "${rootfs_part_id}" "${total_size}MiB"
 
 
 
     # Embed ext4 image into the partition
     {  #add dist ext4 to image
-        local rootfs_off_sect="$(echo -e "unit s\n print free\n" | parted ${dist_img_name}  | grep rootfs | awk '{print $2} ' | cut -ds -f1)"
+        local rootfs_off_sect
+        rootfs_off_sect="$(parted -s "${dist_img_name}" unit s print | awk '/^[[:space:]]*[0-9]+/ { last = $2 } END { print last }' | sed 's/s$//')"
         dd if=${distr_rootfs}.ext4  of=${dist_img_name} seek=${rootfs_off_sect} conv=notrunc
     }
 
