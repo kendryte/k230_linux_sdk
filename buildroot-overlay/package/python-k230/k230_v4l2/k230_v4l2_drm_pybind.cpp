@@ -14,7 +14,7 @@ namespace py = pybind11;
 // Python module binding - thin wrapper over C++ V4l2Drm class
 //=============================================================================
 PYBIND11_MODULE(k230_v4l2_drm, m) {
-    m.doc() = "Python bindings for v4l2-drm library";
+    m.doc() = "Python bindings for v4l2-drm library (pybind11)";
 
     // Rotation enum
     py::enum_<drm_rotation>(m, "Rotation")
@@ -100,24 +100,23 @@ PYBIND11_MODULE(k230_v4l2_drm, m) {
         .def("set_frame_count", &V4l2Drm::set_frame_count, py::arg("index") = 0,
              py::arg("count") = 0, "Set frame count for the specified context")
         .def("get_video_fd", &V4l2Drm::get_video_fd, py::arg("index") = 0)
-        // Buffer access - convert BufferInfo to py::array
+        // Buffer access - convert BufferInfo to py::array_t
         .def("get_buffer_data",
-             [](V4l2Drm& self, size_t index) -> py::array {
+             [](V4l2Drm& self, size_t index) -> py::array_t<uint8_t> {
                  auto info = self.get_buffer_data(index);
-                 std::vector<ssize_t> shape = {
-                     static_cast<ssize_t>(info.size)};
-                 return py::array_t<uint8_t>(shape,
-                                             static_cast<uint8_t*>(info.ptr),
-                                             py::handle());
+                 return py::array_t<uint8_t>(
+                     std::vector<ssize_t>{static_cast<ssize_t>(info.size)},
+                     static_cast<uint8_t*>(info.ptr));
              },
              py::arg("index") = 0)
-        // Buffer array access - convert ArrayInfo to py::array
+        // Buffer array access - convert ArrayInfo to py::array_t
         .def("get_buffer_array",
-             [](V4l2Drm& self, size_t index) -> py::array {
+             [](V4l2Drm& self, size_t index) -> py::array_t<uint8_t> {
                  auto info = self.get_buffer_array(index);
                  return py::array_t<uint8_t>(
-                     info.shape, info.strides,
-                     static_cast<uint8_t*>(info.ptr), py::handle());
+                     info.shape,
+                     info.strides,
+                     static_cast<uint8_t*>(info.ptr));
              },
              py::arg("index") = 0)
         // Control methods - pass through directly
@@ -142,14 +141,15 @@ PYBIND11_MODULE(k230_v4l2_drm, m) {
              &V4l2Drm::get_display_frame_count,
              &V4l2Drm::set_display_frame_count,
              "Current display frame counter")
-        // OSD methods - convert py::array to void*+size
+        // OSD methods - convert py::array_t to void*+size
         .def("set_osd_format", &V4l2Drm::set_osd_format, py::arg("fourcc"),
              "Set OSD format (fourcc) DRM_FORMAT_ARGB8888/DRM_FORMAT_RGB888")
         .def("osd_update",
-             [](V4l2Drm& self, py::array img) -> int {
+             [](V4l2Drm& self, py::array_t<uint8_t> img) -> int {
                  py::buffer_info buf = img.request();
-                 size_t size = buf.size * buf.itemsize;
-                 return self.osd_update(buf.ptr, size);
+                 // array_t<uint8_t> guarantees itemsize == 1, so element
+                 // count equals byte count
+                 return self.osd_update(buf.ptr, static_cast<size_t>(buf.size));
              },
              py::arg("img"))
         // Helper: expose internal display pointer for LVGL integration

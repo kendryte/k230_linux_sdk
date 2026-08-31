@@ -1,0 +1,315 @@
+From 3a6b88413cef18f8b4529ed8740b7cce4d023a21 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 28 Aug 2026 14:01:09 +0800
+Subject: [PATCH] Refactor K230 rotation handling into display/input backends
+
+- Move the touch rotation transform from main.c into the evdev
+  discovery callback (k230_apply_touch_rotation), eliminating the
+  polling loop that waited for async device discovery
+- Move the k230_set_drm_rotation() call from main.c into the DRM
+  display backend (init_drm) and declare it in lv_linux_drm.h
+- drm_k230_v4l2.c: drop its private touch-rotation polling block and
+  publish k230_display->drm_rotation as settings.rotation, so both
+  executables (lvglsim, lvglsimk230) share the single evdev hook
+
+main.c no longer contains K230-specific code.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+---
+ .../lvgl/drivers/display/lv_linux_drm.h       |  9 ++++
+ lvgl/src/drivers/display/drm/lv_linux_drm.c   |  2 +-
+ src/lib/display_backends/drm.c                |  9 ++++
+ src/lib/display_backends/drm_k230_v4l2.c      | 43 ++++------------
+ src/lib/indev_backends/evdev.c                | 48 ++++++++++++++++++
+ src/main.c                                    | 50 -------------------
+ 6 files changed, 78 insertions(+), 83 deletions(-)
+
+diff --git a/lvgl/include/lvgl/drivers/display/lv_linux_drm.h b/lvgl/include/lvgl/drivers/display/lv_linux_drm.h
+index a08c475..62908ee 100644
+--- a/lvgl/include/lvgl/drivers/display/lv_linux_drm.h
++++ b/lvgl/include/lvgl/drivers/display/lv_linux_drm.h
+@@ -82,6 +82,15 @@ lv_result_t lv_linux_drm_set_file(lv_display_t * disp, const char * file, int64_
+  */
+ char * lv_linux_drm_find_device_path(void);
+ 
++/**
++ * Set the plane rotation applied by the DRM hardware
++ *
++ * @note must be called before lv_linux_drm_set_file(); when rotated 90 or 270
++ *       degrees the reported display resolution is swapped
++ * @param rot rotation angle, one of LV_DISPLAY_ROTATION_0/90/180/270
++ */
++void k230_set_drm_rotation(lv_display_rotation_t rot);
++
+ /**
+  * Set a callback function for custom DRM mode selection to override the default mode selection behavior
+  *
+diff --git a/lvgl/src/drivers/display/drm/lv_linux_drm.c b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+index 41b35eb..15d4476 100755
+--- a/lvgl/src/drivers/display/drm/lv_linux_drm.c
++++ b/lvgl/src/drivers/display/drm/lv_linux_drm.c
+@@ -42,7 +42,7 @@
+ 
+ #define BUFFER_CNT 2
+ 
+-static int g_drm_dev_rotation = 0;
++static int g_drm_dev_rotation = DRM_MODE_ROTATE_0;
+ 
+ /**********************
+  *      TYPEDEFS
+diff --git a/src/lib/display_backends/drm.c b/src/lib/display_backends/drm.c
+index bbf1020..5f5062d 100644
+--- a/src/lib/display_backends/drm.c
++++ b/src/lib/display_backends/drm.c
+@@ -24,6 +24,10 @@
+ #if LV_USE_LINUX_DRM
+ #include "../simulator_util.h"
+ #include "../backends.h"
++#include "../simulator_settings.h"
++
++/* Global simulator settings, defined in driver_backends.c */
++extern simulator_settings_t settings;
+ 
+ /*********************
+  *      DEFINES
+@@ -86,6 +90,11 @@ int backend_init_drm(backend_t * backend)
+ static lv_display_t * init_drm(void)
+ {
+     const char * device = getenv_default("LV_LINUX_DRM_CARD", lv_linux_drm_find_device_path());
++
++    /* Must be set before the DRM device is opened: the plane rotation
++     * property and the swapped display resolution depend on it */
++    k230_set_drm_rotation(settings.rotation);
++
+     lv_display_t * disp = lv_linux_drm_create();
+ 
+     if(disp == NULL) {
+diff --git a/src/lib/display_backends/drm_k230_v4l2.c b/src/lib/display_backends/drm_k230_v4l2.c
+index 03dc862..cd02961 100644
+--- a/src/lib/display_backends/drm_k230_v4l2.c
++++ b/src/lib/display_backends/drm_k230_v4l2.c
+@@ -31,9 +31,13 @@
+ #include "../backends.h"
+ #include <time.h>
+ #include "../driver_backends.h"
++#include "../simulator_settings.h"
+ #include "stdlib.h"
+ #include "stdio.h"
+ 
++/* Global simulator settings, defined in driver_backends.c */
++extern simulator_settings_t settings;
++
+ /*********************
+  *      DEFINES
+  *********************/
+@@ -319,44 +323,19 @@ int k230_driver_init(void * d, char  v4l2_drm_run_flag)
+         return -1;
+     }
+ 
++    /* Publish the v4l2-drm rotation as the simulator-wide rotation so the
++     * evdev touch hook (k230_apply_touch_rotation in evdev.c) transforms
++     * touch input when the device is discovered */
++    if(k230_display && k230_display->drm_rotation <= rotation_270) {
++        settings.rotation = (lv_display_rotation_t)k230_display->drm_rotation;
++    }
++
+     /* Initialize evdev input backend */
+ #if LV_USE_EVDEV
+     ret = driver_backends_init_backend("EVDEV");
+     if(ret == -1) {
+         fprintf(stderr, "Failed to initialize evdev\n");
+     }
+-
+-    /* Set touch coordinate rotation for 90°/270° screen rotation.
+-     * evdev auto-discovery is async, so we poll briefly for the indev. */
+-    if(k230_display &&
+-       (k230_display->drm_rotation == rotation_90 ||
+-        k230_display->drm_rotation == rotation_270)) {
+-        lv_indev_t * indev = NULL;
+-        int attempts = 20; /* wait up to ~200ms for device discovery */
+-        while(attempts-- > 0) {
+-            indev = NULL;
+-            while((indev = lv_indev_get_next(indev)) != NULL) {
+-                if(lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER)
+-                    break;
+-            }
+-            if(indev) break;
+-            usleep(10000);
+-        }
+-        if(indev) {
+-            lv_evdev_set_swap_axes(indev, true);
+-            int phys_w = k230_display->width;
+-            int phys_h = k230_display->height;
+-            if(k230_display->drm_rotation == rotation_90) {
+-                lv_evdev_set_calibration(indev, 0, phys_w - 1, phys_h - 1, 0);
+-            } else {
+-                lv_evdev_set_calibration(indev, phys_h - 1, 0, 0, phys_w - 1);
+-            }
+-            LV_LOG_INFO("Touch rotation set for %d° rotation",
+-                        k230_display->drm_rotation == rotation_90 ? 90 : 270);
+-        } else {
+-            LV_LOG_WARN("Touch indev not found, rotation not set");
+-        }
+-    }
+ #endif
+ 
+     return ret;
+diff --git a/src/lib/indev_backends/evdev.c b/src/lib/indev_backends/evdev.c
+index c5a5bfb..4f99b32 100644
+--- a/src/lib/indev_backends/evdev.c
++++ b/src/lib/indev_backends/evdev.c
+@@ -25,6 +25,10 @@
+ #if LV_USE_EVDEV
+ #include "lvgl/src/core/lv_global.h"
+ #include "../backends.h"
++#include "../simulator_settings.h"
++
++/* Global simulator settings, defined in driver_backends.c */
++extern simulator_settings_t settings;
+ 
+ /*********************
+  *      DEFINES
+@@ -40,6 +44,7 @@
+ 
+ static void indev_deleted_cb(lv_event_t * e);
+ static void discovery_cb(lv_indev_t * indev, lv_evdev_type_t type, void * user_data);
++static void k230_apply_touch_rotation(lv_indev_t * indev, lv_display_t * disp);
+ static void set_mouse_cursor_icon(lv_indev_t * indev, lv_display_t * display);
+ static lv_indev_t * init_pointer_evdev(lv_display_t * display);
+ 
+@@ -95,6 +100,46 @@ static void indev_deleted_cb(lv_event_t * e)
+ }
+ 
+ 
++/*
++ * Map raw touch coordinates to the rotated screen orientation
++ *
++ * @description the touch panel reports coordinates in its native
++ * orientation; when the display is rotated the axes must be swapped
++ * and re-scaled to match the rotated screen
++ * @param indev the touch input device
++ * @param disp the display the touch device is attached to
++ */
++static void k230_apply_touch_rotation(lv_indev_t * indev, lv_display_t * disp)
++{
++    lv_display_rotation_t rotation = settings.rotation;
++
++    if(rotation == LV_DISPLAY_ROTATION_0) {
++        return;
++    }
++
++    int32_t phys_w = lv_display_get_horizontal_resolution(disp);
++    int32_t phys_h = lv_display_get_vertical_resolution(disp);
++
++    switch(rotation) {
++        case LV_DISPLAY_ROTATION_90:
++            /* swap-first: swapped_x=raw_y∈[0,phys_w-1], swapped_y=raw_x∈[0,phys_h-1] */
++            lv_evdev_set_swap_axes(indev, true);
++            lv_evdev_set_calibration(indev, 0, phys_h - 1, phys_w - 1, 0);
++            break;
++        case LV_DISPLAY_ROTATION_180:
++            /* no swap, both axes inverted */
++            lv_evdev_set_calibration(indev, phys_w - 1, phys_h - 1, 0, 0);
++            break;
++        case LV_DISPLAY_ROTATION_270:
++            lv_evdev_set_swap_axes(indev, true);
++            lv_evdev_set_calibration(indev, phys_w - 1, 0, 0, phys_h - 1);
++            break;
++        default:
++            break;
++    }
++    LV_LOG_INFO("Touch rotation set for %d deg", rotation * 90);
++}
++
+ /*
+  * Set cursor icon
+  *
+@@ -117,6 +162,9 @@ static void discovery_cb(lv_indev_t * indev, lv_evdev_type_t type, void * user_d
+     if(type == LV_EVDEV_TYPE_REL) {
+         set_mouse_cursor_icon(indev, disp);
+     }
++    else if(type == LV_EVDEV_TYPE_ABS) {
++        k230_apply_touch_rotation(indev, disp);
++    }
+ }
+ 
+ /*
+diff --git a/src/main.c b/src/main.c
+index d68b41b..28c2dcc 100755
+--- a/src/main.c
++++ b/src/main.c
+@@ -170,55 +170,7 @@ int test_font()
+         lv_label_set_text(label, "你好，世界！");
+     }
+ }
+-static int k230_touch_point_init_by_rotation(simulator_settings_t *set)
+-{
+-    if(set->rotation == LV_DISPLAY_ROTATION_0) {
+-        return 0;
+-    }
+-
+-    lv_indev_t * indev = NULL;
+-    int attempts = 20; /* wait up to ~200ms for device discovery */
+-    while(attempts-- > 0) {
+-        indev = NULL;
+-        while((indev = lv_indev_get_next(indev)) != NULL) {
+-            if(lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER)
+-                break;
+-        }
+-        if(indev) break;
+-        usleep(10000);
+-    }
+-
+-    if(indev) {
+-        lv_display_t * disp = lv_display_get_default();
+-        int phys_w = lv_display_get_horizontal_resolution(disp);
+-        int phys_h = lv_display_get_vertical_resolution(disp);
+-
+-        switch(set->rotation) {
+-            case LV_DISPLAY_ROTATION_90:
+-                /* swap-first: swapped_x=raw_y∈[0,phys_w-1], swapped_y=raw_x∈[0,phys_h-1] */
+-                lv_evdev_set_swap_axes(indev, true);
+-                lv_evdev_set_calibration(indev, 0, phys_h - 1, phys_w - 1, 0);
+-                break;
+-            case LV_DISPLAY_ROTATION_180:
+-                /* no swap, both axes inverted */
+-                lv_evdev_set_calibration(indev, phys_w - 1, phys_h - 1, 0, 0);
+-                break;
+-            case LV_DISPLAY_ROTATION_270:
+-                lv_evdev_set_swap_axes(indev, true);
+-                lv_evdev_set_calibration(indev, phys_w - 1, 0, 0, phys_h - 1);
+-                break;
+-            default:
+-                break;
+-        }
+-        LV_LOG_INFO("Touch rotation set for %d deg", set->rotation * 90);
+-    } else {
+-        LV_LOG_WARN("Touch indev not found, rotation not set");
+-    }
+-
+-    return 0;
+-}
+ 
+-extern void k230_set_drm_rotation(lv_display_rotation_t rot);
+ /**
+  * @brief entry point
+  * @description start a demo
+@@ -232,7 +184,6 @@ int main(int argc, char ** argv)
+ 
+     /* Initialize LVGL. */
+     lv_init();
+-    k230_set_drm_rotation(settings.rotation);
+ 
+     /* Initialize the configured backend */
+     if(driver_backends_init_backend(selected_backend) == -1) {
+@@ -251,7 +202,6 @@ int main(int argc, char ** argv)
+     if(driver_backends_init_backend("EVDEV") == -1) {
+         die("Failed to initialize evdev");
+     }
+-    k230_touch_point_init_by_rotation(&settings);
+ #endif
+ 
+     /*Create a Demo*/
+-- 
+2.25.1
+

@@ -132,7 +132,7 @@ bool init_display(int dev_id = 0, uint32_t drm_format = DRM_FORMAT_BGR888) {
     return true;
 }
 
-bool show_display(py::array img_array, int x = 0, int y = 0) {
+bool show_display(py::array_t<uint8_t> img_array, int x = 0, int y = 0) {
 
     double show_display_start = get_time_ms();
     if (!g_display) {
@@ -146,9 +146,9 @@ bool show_display(py::array img_array, int x = 0, int y = 0) {
         return false;
     }
 
-    int img_h = static_cast<int>(buf.shape[0]);
-    int img_w = static_cast<int>(buf.shape[1]);
-    int img_c = static_cast<int>(buf.shape[2]);
+    int img_h = buf.shape[0];
+    int img_w = buf.shape[1];
+    int img_c = buf.shape[2];
 
     if (img_w <= 0 || img_h <= 0) {
         PyErr_SetString(PyExc_ValueError, "Invalid image dimensions");

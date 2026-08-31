@@ -211,9 +211,43 @@ distribution_rootfs_replace() {
     mkdir -p "${distr_rootfs}/etc/systemd/system/basic.target.wants/"
     ln -sf /etc/systemd/system/vvcam.service "${distr_rootfs}/etc/systemd/system/basic.target.wants/vvcam.service"
 
-    # Download nncase runtime
-    unzip -o  ${K230_SDK_ROOT}/dl/libnncase/nncaseruntime_k230-2.11.0-py3-none-linux_riscv64.whl -d  ${distr_rootfs}/usr/local/lib/python3.1*/dist-packages
-    unzip -o  ${BINARIES_DIR}/../build/python-k230-1.0.0/dist/k230_python-1.0.0-cp313-cp313-linux_riscv64.whl -d  ${distr_rootfs}/usr/local/lib/python3.1*/dist-packages
+    # Install python wheels into the distribution's dist-packages.
+    #
+    # The k230 wheel is ABI-specific: debian13 ships python3.13 while ubuntu24
+    # ships python3.12, and pybind11 extensions are not compatible across the
+    # two. Buildroot only builds the cp313 wheel; the cp312 one comes from
+    # buildroot-overlay/board/canaan/k230-soc/distribution/cp312-support/build_k230_wheel_py312.sh.
+    # nncaseruntime ships inside the k230 wheel (built from source against the
+    # libnncase staging libs), so no prebuilt nncaseruntime wheel is needed
+    # here anymore.
+    local dist_packages
+    dist_packages="$(ls -d "${distr_rootfs}"/usr/local/lib/python3.*/dist-packages 2>/dev/null | head -1)"
+    if [ -z "${dist_packages}" ]; then
+        print_red "Error: no /usr/local/lib/python3.*/dist-packages in ${distr_rootfs}"
+        exit 1
+    fi
+
+    local py_ver py_tag pkg_build_dir k230_wheel
+    py_ver="$(basename "$(dirname "${dist_packages}")")"            # e.g. python3.12
+    py_tag="cp$(echo "${py_ver}" | sed 's/^python//; s/\.//')"      # e.g. cp312
+    pkg_build_dir="${BINARIES_DIR}/../build/python-k230-1.0.0"
+    k230_wheel="${pkg_build_dir}/dist/k230_python-1.0.0-${py_tag}-${py_tag}-linux_riscv64.whl"
+    print_blue "${distname} uses ${py_ver}, installing ${py_tag} wheel"
+
+    if [ ! -f "${k230_wheel}" ] && [ "${py_tag}" = "cp312" ]; then
+        print_blue "cp312 wheel missing, cross-building it..."
+        "${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/distribution/cp312-support/build_k230_wheel_py312.sh" "${BRW_BUILD_DIR}"
+        # We run as root; hand the artifacts back to whoever owns the build tree
+        # so a later non-root `make buildroot` can still write there.
+        chown -R --reference="${pkg_build_dir}/setup.py" \
+            "${pkg_build_dir}/dist" "${pkg_build_dir}/build-py312"
+    fi
+    if [ ! -f "${k230_wheel}" ]; then
+        print_red "Error: ${k230_wheel} not found"
+        exit 1
+    fi
+
+    unzip -o "${k230_wheel}" -d "${dist_packages}"
 
     # Copy additional libraries and binaries
     cp -fL "${target_dir}/usr/lib/libjpeg.so.9" "${distr_rootfs}/usr/lib/riscv64-linux-gnu/"

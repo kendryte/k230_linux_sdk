@@ -17,7 +17,7 @@ ext = Extension(
 
 k230_display = Extension(
     "k230_display",
-    sources=["k230_display/k230_display_pybind.cpp","k230_display/k230_display_pybind_display_lib.cpp"],
+    sources=["k230_display/k230_display_pybind.cpp", "k230_display/k230_display_pybind_display_lib.cpp"],
     include_dirs=[pybind11.get_include()],
     libraries=["display", "drm", "opencv_core", "opencv_imgproc"],
     extra_compile_args=["-O3", "-mcpu=c908v", "-mabi=lp64d", "-mtune=c908", "-mrvv-v0p10-compatible", "-mrvv-auto-vectorize", "-std=c++17"],
@@ -32,6 +32,41 @@ k230_v4l2_drm = Extension(
     include_dirs=[pybind11.get_include()],
     libraries=["v4l2-drm++", "v4l2-drm", "display", "drm"],
     extra_compile_args=["-O3", "-mcpu=c908v", "-mabi=lp64d", "-mtune=c908", "-mrvv-v0p10-compatible", "-mrvv-auto-vectorize", "-std=c++17"],
+    language='c++',
+)
+
+# nncaseruntime Python binding, statically linked against the nncase runtime
+# shipped by the libnncase package (headers + .a in STAGING_DIR)
+staging_lib = os.path.join(staging_dir, 'usr', 'lib') if staging_dir else '/usr/lib'
+nncaseruntime_ext = Extension(
+    "nncaseruntime._nncaseruntime_k230",
+    sources=[
+        "nncaseruntime/ffi.cpp",
+        "nncaseruntime/src/ai2d_wrapper.cpp",
+    ],
+    include_dirs=[
+        pybind11.get_include(),
+        os.path.join(os.path.dirname(__file__), 'nncaseruntime', 'include'),
+        os.path.join(os.path.dirname(__file__), 'nncaseruntime', 'common'),
+        os.path.join(staging_dir, 'usr', 'include') if staging_dir else '/usr/include',
+    ],
+    extra_compile_args=["-O3", "-mcpu=c908v", "-mabi=lp64d", "-mtune=c908", "-mrvv-v0p10-compatible", "-mrvv-auto-vectorize", "-std=c++20", "-fvisibility=hidden", "-Wno-deprecated-declarations"],
+    # Order matters: the archives are scanned left-to-right, and members are
+    # only pulled in to satisfy *currently* undefined symbols. The runtime
+    # core (libNncase.Runtime.Native.a) references builtin_runtimes, which is
+    # defined in libnncase.rt_modules.k230.a / libfunctional_k230.a, so the
+    # core must come first (same order as the upstream CMake target).
+    # --start-group lets ld rescan the three archives if they reference each
+    # other in both directions; -shared would otherwise silently leave the
+    # symbol undefined and only fail at import time.
+    extra_link_args=[
+        "-Wl,--start-group",
+        os.path.join(staging_lib, "libNncase.Runtime.Native.a"),
+        os.path.join(staging_lib, "libnncase.rt_modules.k230.a"),
+        os.path.join(staging_lib, "libfunctional_k230.a"),
+        "-Wl,--end-group",
+        os.path.join(staging_lib, "libmmz.a"),
+    ],
     language='c++',
 )
 
@@ -74,7 +109,7 @@ setup(
     author="wangjianxin",
     description="Python for k230",
     packages=find_packages(exclude=["lvgl.codegen_tools", "lvgl.codegen_tools.*"]),
-    ext_modules=[ext, k230_display, k230_v4l2_drm, lvgl_ext],
+    ext_modules=[ext, k230_display, k230_v4l2_drm, nncaseruntime_ext, lvgl_ext],
     zip_safe=False,
     entry_points={
         "console_scripts": [

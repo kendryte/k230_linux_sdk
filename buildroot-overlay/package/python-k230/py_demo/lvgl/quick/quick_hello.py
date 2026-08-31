@@ -3,6 +3,9 @@
 
 import lvgl as lv
 
+# 屏幕旋转，须在 lv.init() 前设置: _0 / _90 / _180 / _270
+lv.settings.rotation = lv.DISPLAY_ROTATION._0
+
 # 初始化 LVGL + K230 DRM 驱动
 lv.init()
 

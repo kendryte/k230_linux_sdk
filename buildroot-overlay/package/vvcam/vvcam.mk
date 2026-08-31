@@ -23,6 +23,7 @@ define VVCAM_BUILD_DEB
 	$(call COPYFILE ,$(TARGET_DIR)/etc/vvcam,$(@D)/deb/etc/)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libvvcam.so,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libv4l2-drm.so,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
+	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libv4l2-drm++.so,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/lib/libdisplay.so,$(@D)/deb/usr/lib/riscv64-linux-gnu/)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/isp_media_server,$(@D)/deb/usr/bin/)
 	$(call COPYFILE ,$(TARGET_DIR)/usr/bin/v4l2-drm           ,$(@D)/deb/usr/bin/)

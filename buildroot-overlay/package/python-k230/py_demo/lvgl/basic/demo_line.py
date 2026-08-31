@@ -2,6 +2,8 @@
 """Line demo - draw a zigzag line via set_points + style"""
 import lvgl as lv
 
+# Optional rotation before lv.init(): _0 / _90 / _180 / _270
+lv.settings.rotation = lv.DISPLAY_ROTATION._0
 lv.init()
 scr = lv.screen_active()
 

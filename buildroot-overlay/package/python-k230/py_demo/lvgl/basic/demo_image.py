@@ -18,6 +18,8 @@ import lvgl as lv
 # >>> 修改为你的图片路径 (需要 'A:' 前缀) <<<
 IMAGE_PATH = "A:/root/py_demo/lvgl/assets/animimg001.png"
 
+# Optional rotation before lv.init(): _0 / _90 / _180 / _270
+lv.settings.rotation = lv.DISPLAY_ROTATION._0
 lv.init()
 scr = lv.screen_active()
 

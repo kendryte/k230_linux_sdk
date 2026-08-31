@@ -17,6 +17,8 @@ IMAGE_PATHS = [
     f"A:{_SCRIPT_DIR}/../assets/animimg003.png",
 ]
 
+# Optional rotation before lv.init(): _0 / _90 / _180 / _270
+lv.settings.rotation = lv.DISPLAY_ROTATION._0
 lv.init()
 scr = lv.screen_active()
 

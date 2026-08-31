@@ -342,6 +342,9 @@ def launch_demo():
 def main():
     global SCR_W, SCR_H
 
+    # ---- 屏幕旋转，须在 lv.init() 前设置: _0 / _90 / _180 / _270 ----
+    lv.settings.rotation = lv.DISPLAY_ROTATION._0
+
     # ---- LVGL 初始化 ----
     lv.init()
 

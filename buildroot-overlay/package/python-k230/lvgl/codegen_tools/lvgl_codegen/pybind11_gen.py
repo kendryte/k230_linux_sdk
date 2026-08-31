@@ -90,11 +90,15 @@ class Pybind11Generator:
         self.emit("#include <pybind11/numpy.h>")
         self.emit('#include "lvgl/lvgl.h"')
         self.emit('#include "lvgl/driver_backends.h"')
+        self.emit('#include "lvgl/simulator_settings.h"')
         self.emit('#include "lvgl/demos/benchmark/lv_demo_benchmark.h"')
         self.emit('#include "lvgl/font/lv_freetype.h"')
         self.emit('#include "lvgl_pybind_helpers.h"')
         self.emit("")
         self.emit("namespace py = pybind11;")
+        self.emit("")
+        self.emit("/* Global simulator settings, defined in driver_backends.c (liblvgl_linux) */")
+        self.emit('extern "C" simulator_settings_t settings;')
         self.emit("")
 
     # -----------------------------------------------------------------------
@@ -1238,6 +1242,15 @@ class Pybind11Generator:
         self.emit('        return k230_driver_init(reinterpret_cast<void*>(display_ptr), static_cast<char>(v4l2_drm_run_flag));')
         self.emit('    }, py::arg("display_ptr"), py::arg("v4l2_drm_run_flag"),')
         self.emit('        "Initialize K230 display driver with v4l2-drm backend");')
+        self.emit("")
+        self.emit("    /* Global simulator settings (defined in driver_backends.c): direct")
+        self.emit("     * read/write access, mirrors the C simulator's settings global (the")
+        self.emit("     * -R option sets settings.rotation). rotation is consumed by the DRM")
+        self.emit("     * backend at init (init_drm -> k230_set_drm_rotation) and by the")
+        self.emit("     * evdev touch hook; DRM_V4L2_K230 overwrites it from v4l2drm after init. */")
+        self.emit('    py::class_<simulator_settings_t>(m, "SimulatorSettings")')
+        self.emit('        .def_readwrite("rotation", &simulator_settings_t::rotation);')
+        self.emit('    m.attr("settings") = py::cast(&settings, py::return_value_policy::reference);')
         self.emit("")
 
     # -----------------------------------------------------------------------

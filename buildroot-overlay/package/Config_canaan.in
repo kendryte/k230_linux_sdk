@@ -37,6 +37,7 @@ menu "canaan package"
 	source "package/python-adafruit-platformdetect/Config.in"
 	source "package/python-adafruit-pureio/Config.in"
 	source "package/python-k230/Config.in"
+	source "package/gsl-lite/Config.in"
 
 
 	config BR2_CANAAN_AUTO_RUN_CMD

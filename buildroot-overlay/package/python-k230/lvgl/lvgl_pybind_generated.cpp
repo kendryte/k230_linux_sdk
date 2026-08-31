@@ -17,11 +17,15 @@
 #include <pybind11/numpy.h>
 #include "lvgl/lvgl.h"
 #include "lvgl/driver_backends.h"
+#include "lvgl/simulator_settings.h"
 #include "lvgl/demos/benchmark/lv_demo_benchmark.h"
 #include "lvgl/font/lv_freetype.h"
 #include "lvgl_pybind_helpers.h"
 
 namespace py = pybind11;
+
+/* Global simulator settings, defined in driver_backends.c (liblvgl_linux) */
+extern "C" simulator_settings_t settings;
 
 PYBIND11_MODULE(_lvgl, m) {
     m.doc() = "LVGL Python bindings (auto-generated via IR)";
@@ -3355,6 +3359,15 @@ PYBIND11_MODULE(_lvgl, m) {
         return k230_driver_init(reinterpret_cast<void*>(display_ptr), static_cast<char>(v4l2_drm_run_flag));
     }, py::arg("display_ptr"), py::arg("v4l2_drm_run_flag"),
         "Initialize K230 display driver with v4l2-drm backend");
+
+    /* Global simulator settings (defined in driver_backends.c): direct
+     * read/write access, mirrors the C simulator's settings global (the
+     * -R option sets settings.rotation). rotation is consumed by the DRM
+     * backend at init (init_drm -> k230_set_drm_rotation) and by the
+     * evdev touch hook; DRM_V4L2_K230 overwrites it from v4l2drm after init. */
+    py::class_<simulator_settings_t>(m, "SimulatorSettings")
+        .def_readwrite("rotation", &simulator_settings_t::rotation);
+    m.attr("settings") = py::cast(&settings, py::return_value_policy::reference);
 
     /* Keyboard group helpers — bridge for physical keyboard
      * input via evdev. The lv_group_* API is not auto-generated

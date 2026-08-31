@@ -6,7 +6,7 @@ Demonstrates various LVGL widgets using pybind11 bindings.
 Uses init() for initialization.
 
 Usage:
-    python3 lvgl_demo.py
+    python3 lvgl_linux_drm_demo.py
 """
 
 import os
@@ -17,6 +17,11 @@ EVENT = lv.EVENT
 
 
 def main():
+    # ---- Rotation (optional) ----
+    # Must be set before lv.init() — the DRM backend applies it to the
+    # display plane during init: _0 / _90 / _180 / _270
+    lv.settings.rotation = lv.DISPLAY_ROTATION._0
+
     # ---- Initialization ----
     lv.init()
     print("[lvgl] initialized")
