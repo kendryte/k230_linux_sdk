@@ -63,5 +63,5 @@ cd ~/tftp ；mkimage -A riscv -O linux -T kernel -C none -a 0 -e 0 -n linux -d f
 
 uboot命令行执行下面命令
 usb start;dhcp;
-tftpboot 0x3000000 10.10.1.94:wjx/fw_jump_add_uboot_head.bin; tftpboot  0x200000 10.10.1.94:wjx/Image;tftpboot  0x2200000 10.10.1.94:wjx/k230-canmv.dtb;
+tftpboot 0x3000000 192.168.1.2:wjx/fw_jump_add_uboot_head.bin; tftpboot  0x200000 192.168.1.2:wjx/Image;tftpboot  0x2200000 192.168.1.2:wjx/k230-canmv.dtb;
 bootm 0x3000000  - 0x2200000;

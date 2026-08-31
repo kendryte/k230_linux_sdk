@@ -500,8 +500,8 @@ int main() {
 开发板上运行：
 
 ```bash
-[root@canaan ~ ]#scp  wangjianxin@10.10.1.94:/home/wangjianxin/k230_linux_sdk/rvv .
-wangjianxin@10.10.1.94's password:
+[root@canaan ~ ]#scp  wangjianxin@192.168.1.2:/home/wangjianxin/k230_linux_sdk/rvv .
+wangjianxin@192.168.1.2's password:
 rvv                                           100%   14KB   2.1MB/s   00:00
 [root@canaan ~ ]#./rvv
 vl: 8

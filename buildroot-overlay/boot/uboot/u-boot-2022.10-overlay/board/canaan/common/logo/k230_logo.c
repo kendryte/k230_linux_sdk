@@ -289,15 +289,15 @@ U_BOOT_CMD(
 
 /*
 usb start;dhcp;
-tftp 0x1000000 10.10.1.94:wjx/disney_800x480_nv12.yuv ;
-tftp 0x100000 10.10.1.94:wjx/display_logo.bin;cp.b 0x100000 0x80200000 0x100000;
+tftp 0x1000000 192.168.1.2:wjx/disney_800x480_nv12.yuv ;
+tftp 0x100000 192.168.1.2:wjx/display_logo.bin;cp.b 0x100000 0x80200000 0x100000;
 boot_baremetal 0 0x80200000 0x100000
 
 
 
-usb start;dhcp; tftp 0x100000 10.10.1.94:wjx/u-boot.bin;cp.b 0x100000 0 0x100000;
+usb start;dhcp; tftp 0x100000 192.168.1.2:wjx/u-boot.bin;cp.b 0x100000 0 0x100000;
 go 0;
-usb start;dhcp;  tftp 0x30000000 10.10.1.94:wjx/disney_800x480_nv12.yuv ; cp.b 0x30000000   0x3ff00000 0x100000;k230_logo;
+usb start;dhcp;  tftp 0x30000000 192.168.1.2:wjx/disney_800x480_nv12.yuv ; cp.b 0x30000000   0x3ff00000 0x100000;k230_logo;
 k230_logo;
 uboot下更新vmlinux;更新设备树：
 

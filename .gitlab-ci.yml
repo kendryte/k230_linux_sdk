@@ -950,6 +950,7 @@ download_dir_release:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     # release
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+.*$/
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"
   extends:
     - .release_download_dir
 

@@ -32,7 +32,6 @@ typedef struct s_mmz_node
 static pthread_mutex_t mmz_mutex = PTHREAD_MUTEX_INITIALIZER;
 int fd_mmz = -1;
 mmz_node* plist = NULL;
-int mmz_init_flag = 0;
 
 static inline void thead_csi_dcache_clean_invalid_range(void* addr, uint64_t size)
 {
@@ -147,7 +146,7 @@ static int mmz_free(unsigned long phy_addr, void *virt_addr)
 	}
 
     if (munmap(virt_addr, ret->data.length) == -1) {
-        printf("failed to munmap /dev/mmz!");
+        printf("failed to munmap /dev/mmz!\n");
     }
 
     ioctl(fd_mmz, MMZ_FREE_MEM, &ret->data);
@@ -199,12 +198,19 @@ int kd_mpi_sys_mmz_alloc(unsigned long *phy_addr, void **virt_addr, const char *
 
     tmp = mmz_create_node();
     tmp->data.length = len;
-    ioctl(fd_mmz, MMZ_ALLOC_MEM, &(tmp->data));
+    if (ioctl(fd_mmz, MMZ_ALLOC_MEM, &(tmp->data)) < 0) {
+        printf("failed to ioctl MMZ_ALLOC_MEM!\n");
+        free(tmp);
+        pthread_mutex_unlock(&mmz_mutex);
+        return -1;
+    }
     // printf("Alloc phy 0x%llX\n", tmp->data.mmz_phys);
     tmp->data.user_virt_addr = mmap(NULL, tmp->data.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mmz, tmp->data.mmz_phys);
+    //printf("tmp->data.user_virt_addr=%lx ,%lx \n", tmp->data.user_virt_addr, MAP_FAILED);
     if (tmp->data.user_virt_addr == MAP_FAILED) {
+        free(tmp);
         pthread_mutex_unlock(&mmz_mutex);
-        printf("failed to mmap /dev/mmz!");
+        printf("failed to mmap /dev/mmz!\n");
         return -1;
     }
 

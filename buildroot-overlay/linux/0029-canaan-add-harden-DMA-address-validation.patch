@@ -1,0 +1,741 @@
+From 9b1637a19ea142d957c7d79c6431bbec2e108df7 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 26 Aug 2026 17:08:18 +0800
+Subject: [PATCH] canaan: add harden DMA address validation and code optimize
+
+---
+ .vscode/launch.json                      |  35 ++++++
+ drivers/dma/k230_peridma.c               |  37 +++++-
+ drivers/misc/canaan/ai2d/k230_ai2d.c     |  34 ++++--
+ drivers/misc/canaan/gnne/k230_gnne.c     |  20 ++--
+ drivers/misc/canaan/mmz/mmz.c            | 142 ++++++++++++++++++++++-
+ drivers/mmc/host/sdhci-of-kendryte.c     |  23 ++++
+ drivers/nvmem/kendryte_k230_otp.c        |  18 ++-
+ drivers/soc/canaan/k230-gdma.c           |  10 +-
+ include/linux/soc/canaan/k230-dma-addr.h |  77 ++++++++++++
+ 9 files changed, 366 insertions(+), 30 deletions(-)
+ create mode 100644 .vscode/launch.json
+ mode change 100644 => 100755 drivers/dma/k230_peridma.c
+ mode change 100644 => 100755 drivers/misc/canaan/ai2d/k230_ai2d.c
+ mode change 100644 => 100755 drivers/misc/canaan/mmz/mmz.c
+ mode change 100644 => 100755 drivers/mmc/host/sdhci-of-kendryte.c
+ mode change 100644 => 100755 drivers/nvmem/kendryte_k230_otp.c
+ mode change 100644 => 100755 drivers/soc/canaan/k230-gdma.c
+ create mode 100755 include/linux/soc/canaan/k230-dma-addr.h
+
+diff --git a/.vscode/launch.json b/.vscode/launch.json
+new file mode 100644
+index 000000000..ee6af0369
+--- /dev/null
++++ b/.vscode/launch.json
+@@ -0,0 +1,35 @@
++{
++  "version": "0.2.0",
++  "configurations": [
++    {
++      "name": "(gdb) Connect to Kernel (Stop Immediately)",
++      "type": "cppdbg",
++      "request": "launch",
++      "program": "${workspaceFolder}/vmlinux",
++      "cwd": "${workspaceFolder}",
++      "MIMode": "gdb",
++      "miDebuggerPath": "/opt/toolchain/Xuantie-900-gcc-linux-6.6.0-glibc-x86_64-V3.0.2/bin/riscv64-unknown-linux-gnu-gdb",
++      "targetArchitecture": "x86_64", // 欺骗 VS Code 前端校验
++
++      "customLaunchSetupCommands": [
++        {
++          "text": "set architecture riscv:rv64",
++          "description": "设置架构为 RISC-V 64位",
++          "ignoreFailures": false
++        },
++        {
++          "text": "target remote 192.168.1.1:1026",
++          "description": "连接远程内核 GDB 端口",
++          "ignoreFailures": false
++        },
++        {
++          "text": "interrupt",
++          "description": "连上后立即中断/暂停内核运行",
++          "ignoreFailures": true
++        }
++      ],
++
++      "launchCompleteCommand": "None"
++    }
++  ]
++}
+diff --git a/drivers/dma/k230_peridma.c b/drivers/dma/k230_peridma.c
+old mode 100644
+new mode 100755
+index 227d5ba7c..8fc981bd4
+--- a/drivers/dma/k230_peridma.c
++++ b/drivers/dma/k230_peridma.c
+@@ -23,6 +23,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/delay.h>
+ #include <linux/dma-mapping.h>
++#include <linux/soc/canaan/k230-dma-addr.h>
+ 
+ #include "virt-dma.h"
+ 
+@@ -484,6 +485,20 @@ generate_hwdesc(struct k230_peridma_vchan *vchan, dma_addr_t src,
+ 	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_priority = vchan->priority;
+ 	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_dev_tout = vchan->dev_tout;
+ 
++	/* Validate DMA addresses are within DDR range */
++	if (!k230_dma_addr_in_ddr(src, len)) {
++		dev_err(vchan2dev(vchan),
++			"pdma: src DMA addr 0x%pad len 0x%zx out of DDR range [0x%lx-0x%lx]\n",
++			&src, len, K230_DDR_PHYS_START, K230_DDR_PHYS_END);
++		goto err_exit;
++	}
++	if (!k230_dma_addr_in_ddr(dest, len)) {
++		dev_err(vchan2dev(vchan),
++			"pdma: dst DMA addr 0x%pad len 0x%zx out of DDR range [0x%lx-0x%lx]\n",
++			&dest, len, K230_DDR_PHYS_START, K230_DDR_PHYS_END);
++		goto err_exit;
++	}
++
+ 	hwdesc->usr_pdma_chn_cfg.src_addr = src;
+ 	hwdesc->usr_pdma_chn_cfg.dst_addr = dest;
+ 	hwdesc->usr_pdma_chn_cfg.device = vchan->dev_sel;
+@@ -790,6 +805,16 @@ static u32 *pdma_llt_cal(struct device *dev, struct k230_peridma_hwdesc *hwdesc,
+ 	u32 list_num;
+ 	struct pdma_llt_t *llt_list;
+ 
++	/* Guard against 32-bit address truncation in LLT entries */
++	if (upper_32_bits(hwdesc->usr_pdma_chn_cfg.src_addr) ||
++	    upper_32_bits(hwdesc->usr_pdma_chn_cfg.dst_addr)) {
++		dev_err(dev,
++			"pdma: address truncation! src=0x%llx dst=0x%llx\n",
++			(u64)hwdesc->usr_pdma_chn_cfg.src_addr,
++			(u64)hwdesc->usr_pdma_chn_cfg.dst_addr);
++		return NULL;
++	}
++
+ 	list_num =
+ 		(hwdesc->usr_pdma_chn_cfg.line_size - 1) / PDMA_MAX_LINE_SIZE +
+ 		1;
+@@ -826,22 +851,24 @@ static void configure_pchan(struct k230_peridma_pchan *pchan,
+ 			    struct k230_peridma_hwdesc *hwdesc)
+ {
+ 	struct k230_peridma_dev *pdev = pchan->pdev;
++	u32 ch_cfg;
++	u32 *llt_addr;
+ 
+ 	if (unlikely(!peridma_pchan_is_idle(pchan))) {
+ 		dev_err(vchan2dev(pchan->vchan), "pchan %d is non-idle!\n",
+ 			pchan->id);
+-
+ 		return;
+ 	}
+ 
+ 	hwdesc->usr_pdma_chn_cfg.ch = (enum pdma_ch_e)pchan->id;
+-
+-	u32 ch_cfg = *(u32 *)&hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg;
+-
++	ch_cfg = *(u32 *)&hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg;
+ 	iowrite32(ch_cfg, pchan->ch_regs + CH_CFG);
+ 	iowrite32(hwdesc->usr_pdma_chn_cfg.device,
+ 		  pdev->base + 0x120 + pchan->id * 4);
+-	iowrite32((u32)(uintptr_t)pdma_llt_cal(pdev->dev, hwdesc, pchan->id),
++	llt_addr = pdma_llt_cal(pdev->dev, hwdesc, pchan->id);
++	if (WARN_ON(!llt_addr))
++		return;
++	iowrite32((u32)(uintptr_t)llt_addr,
+ 		  pchan->ch_regs + CH_LLT_SADDR);
+ }
+ 
+diff --git a/drivers/misc/canaan/ai2d/k230_ai2d.c b/drivers/misc/canaan/ai2d/k230_ai2d.c
+old mode 100644
+new mode 100755
+index 52324d248..634976d33
+--- a/drivers/misc/canaan/ai2d/k230_ai2d.c
++++ b/drivers/misc/canaan/ai2d/k230_ai2d.c
+@@ -37,6 +37,9 @@
+ #include <linux/poll.h>
+ #include <linux/clk.h>
+ #include <linux/pm_runtime.h>
++#include <linux/capability.h>
++#include <linux/atomic.h>
++#include <linux/soc/canaan/k230-dma-addr.h>
+ 
+ extern int ai_disable_power_and_clk(struct platform_device *pdev, int num_clks,
+ 														struct clk_bulk_data *clks);
+@@ -78,7 +81,7 @@ struct ai2d_plat {
+ };
+ 
+ static struct ai2d_plat *plat;
+-static unsigned int ai2d_int_flag;
++static atomic_t ai2d_int_flag = ATOMIC_INIT(0);
+ static int ai2d_fasync_flag;
+ DECLARE_WAIT_QUEUE_HEAD(ai2d_waitq);
+ struct fasync_struct *ai2d_fasync;
+@@ -96,7 +99,7 @@ static void ai2d_interrupt_clear(void)
+ static irqreturn_t ai2d_irq(int irq, void *dev_id)
+ {
+ 	ai2d_interrupt_clear();
+-	ai2d_int_flag = 1;
++	atomic_set(&ai2d_int_flag, 1);
+ 	wake_up_interruptible(&ai2d_waitq);
+ 
+ 	if (ai2d_fasync_flag)
+@@ -122,17 +125,18 @@ static unsigned int ai2d_poll(struct file *file, poll_table *wait)
+ 	unsigned int ret = 0;
+ 
+ 	poll_wait(file, &ai2d_waitq, wait);
+-	if (ai2d_int_flag) {
++	if (atomic_cmpxchg(&ai2d_int_flag, 1, 0))
+ 		ret |= POLLIN;
+-		ai2d_int_flag = 0;
+-	}
+ 
+ 	return ret;
+ }
+ 
+ static int ai2d_open(struct inode *inode, struct file *filp)
+ {
+-	ai2d_int_flag = 0;
++	if (!capable(CAP_SYS_RAWIO))
++		return -EPERM;
++
++	atomic_set(&ai2d_int_flag, 0);
+ 	INIT_LIST_HEAD(&plat->dmabuf);
+ 	return 0;
+ }
+@@ -141,7 +145,7 @@ static void ai2d_unmap_dmabuf(struct ai2d_plat *plat, struct mapped_memory *mapp
+ 
+ static int ai2d_release(struct inode *inode, struct file *filp)
+ {
+-	ai2d_int_flag = 0;
++	atomic_set(&ai2d_int_flag, 0);
+ 	struct mapped_memory *mapped;
+ 	struct mapped_memory *_mapped;
+ 	// free all dmabuf
+@@ -216,7 +220,18 @@ static int ai2d_map_dmabuf(struct ai2d_plat *plat, int fd, uintptr_t *addr)
+ 	}
+ 	for_each_sg(mapped->dmabuf_desc.sgt->sgl, sg,
+ 				mapped->dmabuf_desc.sgt->orig_nents, i) {
+-		*addr = sg_dma_address(sg);
++		dma_addr_t dma_addr = sg_dma_address(sg);
++		size_t dma_len = sg_dma_len(sg);
++
++		if (!k230_dma_addr_in_ddr(dma_addr, dma_len)) {
++			dev_err(plat->dev,
++				"ai2d: DMA addr 0x%pad len 0x%zx out of valid range [0x%lx-0x%lx]\n",
++				&dma_addr, dma_len,
++				K230_DDR_PHYS_START, K230_DDR_PHYS_END);
++			ai2d_unmap_dmabuf(plat, mapped);
++			return -ERANGE;
++		}
++		*addr = dma_addr;
+ 	}
+ 	list_add(&mapped->list, &plat->dmabuf);
+ 	return 0;
+@@ -224,6 +239,9 @@ static int ai2d_map_dmabuf(struct ai2d_plat *plat, int fd, uintptr_t *addr)
+ 
+ static long ai2d_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ {
++	if (!capable(CAP_SYS_RAWIO))
++		return -EPERM;
++
+ 	switch (cmd) {
+ 	case AI2D_IMPORT_DMABUF: {
+ 		struct ai2d_import_dmabuf parg;
+diff --git a/drivers/misc/canaan/gnne/k230_gnne.c b/drivers/misc/canaan/gnne/k230_gnne.c
+index a06298680..7b5d59a59 100755
+--- a/drivers/misc/canaan/gnne/k230_gnne.c
++++ b/drivers/misc/canaan/gnne/k230_gnne.c
+@@ -37,10 +37,12 @@
+ #include <linux/dma-mapping.h>
+ #include <linux/clk.h>
+ #include <linux/pm_runtime.h>
++#include <linux/capability.h>
++#include <linux/atomic.h>
+ 
+ #define gnne_writeq(v, addr)                       \
+ 	{                                         \
+-		(*(uint64_t *)((size_t)(addr))) = (v); \
++		(*(u64 *)((size_t)(addr))) = (v); \
+ 	}
+ 
+ struct gnne_plat {
+@@ -57,7 +59,7 @@ struct gnne_plat {
+ };
+ 
+ static struct gnne_plat *plat;
+-static unsigned int gnne_int_flag;
++static atomic_t gnne_int_flag = ATOMIC_INIT(0);
+ static int gnne_fasync_flag;
+ DECLARE_WAIT_QUEUE_HEAD(gnne_waitq);
+ struct fasync_struct *gnne_fasync;
+@@ -72,7 +74,7 @@ static void gnne_interrupt_clear(void)
+ static irqreturn_t gnne_irq(int irq, void *dev_id)
+ {
+ 	gnne_interrupt_clear();
+-	gnne_int_flag = 1;
++	atomic_set(&gnne_int_flag, 1);
+ 	wake_up_interruptible(&gnne_waitq);
+ 
+ 	if (gnne_fasync_flag)
+@@ -98,24 +100,24 @@ static unsigned int gnne_poll(struct file *file, poll_table *wait)
+ 	unsigned int ret = 0;
+ 
+ 	poll_wait(file, &gnne_waitq, wait);
+-	if (gnne_int_flag) {
++	if (atomic_cmpxchg(&gnne_int_flag, 1, 0))
+ 		ret |= POLLIN;
+-		gnne_int_flag = 0;
+-	}
+ 
+ 	return ret;
+ }
+ 
+ static int gnne_open(struct inode *inode, struct file *filp)
+ {
+-	gnne_int_flag = 0;
++	if (!capable(CAP_SYS_RAWIO))
++		return -EPERM;
++
++	atomic_set(&gnne_int_flag, 0);
+ 	return 0;
+ }
+ 
+ static int gnne_release(struct inode *inode, struct file *filp)
+ {
+-
+-	gnne_int_flag = 0;
++	atomic_set(&gnne_int_flag, 0);
+ 	return 0;
+ }
+ 
+diff --git a/drivers/misc/canaan/mmz/mmz.c b/drivers/misc/canaan/mmz/mmz.c
+old mode 100644
+new mode 100755
+index 1d61a6f11..3457bddfb
+--- a/drivers/misc/canaan/mmz/mmz.c
++++ b/drivers/misc/canaan/mmz/mmz.c
+@@ -32,10 +32,96 @@
+ #include <linux/uio.h>
+ #include <linux/uaccess.h>
+ #include <linux/security.h>
++#include <linux/soc/canaan/k230-dma-addr.h>
++
++/*
++ * K230 physical memory layout:
++ *   0x00000000 - 0x3FFFFFFF : DDR (1GB)
++ *   0x80400000+             : Device registers (GNNE, AI2D, etc.)
++ *
++ * mmz mmap should only allow mapping within the DDR region.
++ * Mapping device registers or other MMIO regions from userspace
++ * is a security risk (allows direct hardware manipulation).
++ */
++
++
++/* Track per-fd allocations to prevent cross-process free */
++struct mmz_alloc_entry {
++	struct list_head list;
++	unsigned long phys;
++	unsigned long length;
++};
++
++struct mmz_fd_ctx {
++	struct list_head allocs;
++};
+ 
+ static struct device *mmz_dev;
+ static DEFINE_MUTEX(mmz_mutex);
+ 
++static bool mmz_is_owned_alloc(struct mmz_fd_ctx *ctx,
++			       phys_addr_t offset, size_t size)
++{
++	struct mmz_alloc_entry *entry;
++
++	list_for_each_entry(entry, &ctx->allocs, list) {
++		if (offset >= entry->phys &&
++		    offset + size <= entry->phys + entry->length)
++			return true;
++	}
++	pr_warn("mmz: mmap phys=0x%lx size=0x%lx not in owned allocs, checking KPU range\n",
++		offset, size);
++
++	/* Allow entire KPU range (0x80000000–0x807FFFFF).
++	 * This includes both KPU shared memory (0x80000000–0x803FFFFF) and
++	 * AI device registers (0x80400000–0x807FFFFF). The latter is intentionally
++	 * allowed for legacy userspace compatibility. */
++	if (offset >= K230_DDR_PHYS_END &&
++	    offset + size <= K230_KPU_PHYS_END)
++		return true;
++
++	return false;
++}
++
++static int mmz_open(struct inode *inode, struct file *filp)
++{
++	struct mmz_fd_ctx *ctx;
++
++	if (!capable(CAP_SYS_RAWIO))
++		return -EPERM;
++
++	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
++	if (!ctx)
++		return -ENOMEM;
++	INIT_LIST_HEAD(&ctx->allocs);
++	filp->private_data = ctx;
++
++	return 0;
++}
++
++static int mmz_release(struct inode *inode, struct file *filp)
++{
++	struct mmz_fd_ctx *ctx = filp->private_data;
++	struct mmz_alloc_entry *entry, *tmp;
++
++	if (!ctx)
++		return 0;
++
++	mutex_lock(&mmz_mutex);
++	list_for_each_entry_safe(entry, tmp, &ctx->allocs, list) {
++		dma_free_coherent(mmz_dev, entry->length,
++				  phys_to_virt(entry->phys),
++				  (dma_addr_t)entry->phys);
++		list_del(&entry->list);
++		kfree(entry);
++	}
++	mutex_unlock(&mmz_mutex);
++	kfree(ctx);
++	filp->private_data = NULL;
++
++	return 0;
++}
++
+ #define MMZ_ALLOC_MEM _IOWR('g', 1, unsigned long)
+ #define MMZ_FREE_MEM _IOWR('g', 2, unsigned long)
+ struct mmz_info {
+@@ -49,6 +135,9 @@ static long mmz_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
+ 	struct mmz_info t_mem_info;
+ 
++	if (!capable(CAP_SYS_RAWIO))
++		return -EPERM;
++
+ 	switch (cmd) {
+ 	case MMZ_ALLOC_MEM:
+ 		if (copy_from_user(&t_mem_info, (void *)arg,
+@@ -58,6 +147,23 @@ static long mmz_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 			mmz_dev, t_mem_info.length,
+ 			(dma_addr_t *)(&(t_mem_info.mmz_phys)),
+ 			GFP_KERNEL | GFP_DMA);
++		if (!t_mem_info.kernel_virt_addr)
++			return -ENOMEM;
++		{
++			struct mmz_fd_ctx *ctx = filp->private_data;
++			struct mmz_alloc_entry *entry;
++
++			entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++			if (!entry) {
++				dma_free_coherent(mmz_dev, t_mem_info.length,
++						  t_mem_info.kernel_virt_addr,
++						  (dma_addr_t)t_mem_info.mmz_phys);
++				return -ENOMEM;
++			}
++			entry->phys = t_mem_info.mmz_phys;
++			entry->length = t_mem_info.length;
++			list_add(&entry->list, &ctx->allocs);
++		}
+ 		if (copy_to_user((void *)arg, &t_mem_info, sizeof(struct mmz_info)))
+ 			return -EFAULT;
+ 		break;
+@@ -65,6 +171,27 @@ static long mmz_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 		if (copy_from_user(&t_mem_info, (void *)arg,
+ 				   sizeof(struct mmz_info)))
+ 			return -EFAULT;
++		{
++			struct mmz_fd_ctx *ctx = filp->private_data;
++			struct mmz_alloc_entry *entry, *tmp;
++			bool found = false;
++
++			list_for_each_entry_safe(entry, tmp, &ctx->allocs, list) {
++				if (entry->phys == t_mem_info.mmz_phys &&
++				    entry->length == t_mem_info.length) {
++					found = true;
++					list_del(&entry->list);
++					kfree(entry);
++					break;
++				}
++			}
++			if (!found) {
++				pr_err("%s: free untracked allocation phys=0x%lx len=0x%lx\n",
++				       __func__, t_mem_info.mmz_phys,
++				       t_mem_info.length);
++				return -EINVAL;
++			}
++		}
+ 		dma_free_coherent(mmz_dev, t_mem_info.length,
+ 				  t_mem_info.kernel_virt_addr,
+ 				  t_mem_info.mmz_phys);
+@@ -216,6 +343,15 @@ static int mmz_map(struct file *file, struct vm_area_struct *vma)
+ 	size_t size = vma->vm_end - vma->vm_start;
+ 	phys_addr_t offset = (phys_addr_t)vma->vm_pgoff << PAGE_SHIFT;
+ 
++	if (!capable(CAP_SYS_RAWIO))
++		return -EPERM;
++
++	if (!mmz_is_owned_alloc(file->private_data, offset, size)) {
++		pr_err("%s: mmap untracked region phys=0x%pa size=0x%zx\n",
++		       __func__, &offset, size);
++		return -EPERM;
++	}
++
+ 	/* Does it even fit in phys_addr_t? */
+ 	if (offset >> PAGE_SHIFT != vma->vm_pgoff)
+ 		return -EINVAL;
+@@ -256,10 +392,10 @@ static int mmz_map(struct file *file, struct vm_area_struct *vma)
+ 
+ static int mmap_mem(struct file *file, struct vm_area_struct *vma)
+ {
+-	int ret = 0;
++	int ret;
+ 
+ 	mutex_lock(&mmz_mutex);
+-	mmz_map(file, vma);
++	ret = mmz_map(file, vma);
+ 	mutex_unlock(&mmz_mutex);
+ 
+ 	return ret;
+@@ -267,6 +403,8 @@ static int mmap_mem(struct file *file, struct vm_area_struct *vma)
+ 
+ static const struct file_operations mmz_fops = {
+ 	.owner = THIS_MODULE,
++	.open = mmz_open,
++	.release = mmz_release,
+ 	.unlocked_ioctl = mmz_unlocked_ioctl,
+ 	.mmap = mmap_mem,
+ };
+diff --git a/drivers/mmc/host/sdhci-of-kendryte.c b/drivers/mmc/host/sdhci-of-kendryte.c
+old mode 100644
+new mode 100755
+index 748c4a58b..d712c0de3
+--- a/drivers/mmc/host/sdhci-of-kendryte.c
++++ b/drivers/mmc/host/sdhci-of-kendryte.c
+@@ -9,6 +9,8 @@
+ 
+ #include <linux/delay.h>
+ 
++#include <linux/soc/canaan/k230-dma-addr.h>
++
+ #include "sdhci-pltfm.h"
+ 
+ #define DWC_MSHC_PTR_VENDOR1 0x500
+@@ -220,11 +222,28 @@ static void dwcmshc_sdhci_reset(struct sdhci_host *host, u8 mask)
+  * If DMA addr spans 128MB boundary, we split the DMA transfer into two
+  * so that each DMA transfer doesn't exceed the boundary.
+  */
++static bool dwcmshc_check_dma_desc(struct sdhci_host *host, void **desc,
++				   dma_addr_t addr, int len)
++{
++	bool desc_overflow = (*desc - host->adma_table + host->desc_sz) >= host->adma_table_sz;
++
++	if (WARN_ONCE(desc_overflow || (!k230_dma_addr_in_ddr(addr, len)),
++		      "sdhci adma error: desc=%lx adma_table=%lx sz=%lx addr=%pad len=%x\n",
++		      (ulong)(*desc), (ulong)host->adma_table,
++		      (ulong)host->adma_table_sz, &addr, len))
++		return false;
++
++	return true;
++}
++
+ static void dwcmshc_adma_write_desc(struct sdhci_host *host, void **desc,
+ 				    dma_addr_t addr, int len, unsigned int cmd)
+ {
+ 	int tmplen, offset;
+ 
++	if (!dwcmshc_check_dma_desc(host, desc, addr, len))
++		return;
++
+ 	if (likely(!len || BOUNDARY_OK(addr, len))) {
+ 		sdhci_adma_write_desc(host, desc, addr, len, cmd);
+ 		return;
+@@ -232,10 +251,14 @@ static void dwcmshc_adma_write_desc(struct sdhci_host *host, void **desc,
+ 
+ 	offset = addr & (SZ_128M - 1);
+ 	tmplen = SZ_128M - offset;
++	if (!dwcmshc_check_dma_desc(host, desc, addr, tmplen))
++		return;
+ 	sdhci_adma_write_desc(host, desc, addr, tmplen, cmd);
+ 
+ 	addr += tmplen;
+ 	len -= tmplen;
++	if (!dwcmshc_check_dma_desc(host, desc, addr, len))
++		return;
+ 	sdhci_adma_write_desc(host, desc, addr, len, cmd);
+ }
+ 
+diff --git a/drivers/nvmem/kendryte_k230_otp.c b/drivers/nvmem/kendryte_k230_otp.c
+old mode 100644
+new mode 100755
+index ac9365b33..26e157c42
+--- a/drivers/nvmem/kendryte_k230_otp.c
++++ b/drivers/nvmem/kendryte_k230_otp.c
+@@ -47,12 +47,15 @@ static uint32_t be2le(uint32_t var)
+ static bool sysctl_boot_get_otp_bypass(void)
+ {
+ 	void __iomem *OTP_BYPASS_ADDR_V;
++	bool bypass;
+ 
+ 	OTP_BYPASS_ADDR_V = ioremap(OTP_BYPASS_ADDR_P, 4);
+-	if (readl(OTP_BYPASS_ADDR_V) & 0x10)
+-		return true;
+-	else
++	if (!OTP_BYPASS_ADDR_V)
+ 		return false;
++	bypass = readl(OTP_BYPASS_ADDR_V) & 0x10;
++	iounmap(OTP_BYPASS_ADDR_V);
++
++	return bypass;
+ }
+ 
+ static bool otp_get_status(enum OTP_STATUS_E eStatus)
+@@ -87,6 +90,15 @@ static int k230_otp_read(void *context, unsigned int offset, void *val,
+ 	if (true == otp_get_status(OTP_BYPASS_STATUS))
+ 		return -1;
+ 
++	/* Address check: offset+bytes must stay inside the OTP window */
++	if (offset > priv->config->size ||
++	    bytes > priv->config->size - offset) {
++		dev_err(priv->dev,
++			"otp: read out of range, offset 0x%x bytes 0x%zx (size 0x%x)\n",
++			offset, bytes, priv->config->size);
++		return -EINVAL;
++	}
++
+ 	if (wlen > 0) {
+ 		memcpy(outbuf, (void *)(priv->base + OTP_REG_OFFSET + offset),
+ 		       wlen * WORD_SIZE);
+diff --git a/drivers/soc/canaan/k230-gdma.c b/drivers/soc/canaan/k230-gdma.c
+old mode 100644
+new mode 100755
+index 8cec4dc6a..c6c4303d5
+--- a/drivers/soc/canaan/k230-gdma.c
++++ b/drivers/soc/canaan/k230-gdma.c
+@@ -19,6 +19,7 @@
+ #include <drm/drm_fourcc.h>
+ 
+ #include <linux/soc/canaan/k230-gdma.h>
++#include <linux/soc/canaan/k230-dma-addr.h>
+ 
+ #define K230_GDMA_DONE_INT			BIT(18)
+ #define K230_GDMA_INT_MASK			GENMASK(18, 16)
+@@ -148,9 +149,9 @@ static bool k230_gdma_rotation_valid(unsigned int rotation)
+ 	return !(rotation & ~(DRM_MODE_ROTATE_MASK | DRM_MODE_REFLECT_MASK));
+ }
+ 
+-static bool k230_gdma_addr_valid(dma_addr_t addr)
++static bool k230_gdma_addr_valid(dma_addr_t addr, size_t size)
+ {
+-	return !upper_32_bits(addr);
++	return k230_dma_addr_in_ddr(addr, size);
+ }
+ 
+ static int k230_gdma_validate_frame(const struct canaan_gdma_frame *frame,
+@@ -163,10 +164,13 @@ static int k230_gdma_validate_frame(const struct canaan_gdma_frame *frame,
+ 		return -EINVAL;
+ 
+ 	for (i = 0; i < desc->plane_count; i++) {
++		size_t plane_size;
++
+ 		if (!frame->pitch[i] || frame->pitch[i] > U16_MAX)
+ 			return -EINVAL;
+ 
+-		if (!k230_gdma_addr_valid(frame->addr[i]))
++		plane_size = (size_t)frame->pitch[i] * desc->plane[i].height;
++		if (!k230_gdma_addr_valid(frame->addr[i], plane_size))
+ 			return -ERANGE;
+ 	}
+ 
+diff --git a/include/linux/soc/canaan/k230-dma-addr.h b/include/linux/soc/canaan/k230-dma-addr.h
+new file mode 100755
+index 000000000..576221ee7
+--- /dev/null
++++ b/include/linux/soc/canaan/k230-dma-addr.h
+@@ -0,0 +1,77 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2026, Canaan Bright Sight Co., Ltd
++ *
++ * K230 DMA address validation helpers.
++ * K230 DMA engines are 32-bit and can only address specific physical
++ * memory ranges. These helpers ensure DMA addresses fall within the
++ * valid regions before being programmed into hardware registers.
++ */
++
++#ifndef __LINUX_SOC_CANAAN_K230_DMA_ADDR_H__
++#define __LINUX_SOC_CANAAN_K230_DMA_ADDR_H__
++
++#include <linux/types.h>
++#include <linux/bitops.h>
++
++/*
++ * K230 physical memory layout:
++ *   0x00000000 - 0x7FFFFFFF : DDR (up to 2GB)
++ *   0x80000000 - 0x807FFFFF : KPU shared memory (AI work buffers)
++ *   0x80400000+             : AI device registers (GNNE, AI2D, GDMA, PDMA)
++ *   0x90000000+             : Peripheral registers (ISP, VPU, USB, SDHCI, OTP)
++ *
++ * DMA engines must only access DDR or KPU shared memory.
++ * Accessing device register space via DMA is a security risk.
++ */
++#define K230_DDR_PHYS_START	0x00000000UL
++#define K230_DDR_PHYS_END	0x80000000UL
++#define K230_KPU_PHYS_END	0x80800000UL
++
++/**
++ * k230_dma_addr_in_ddr - Check if DMA address falls within DDR only
++ * @addr: DMA physical address
++ * @size: Transfer size in bytes
++ *
++ * Use this for PDMA, SDHCI, USB and other peripheral DMA engines
++ * that should only access DDR memory.
++ *
++ * Return: true if [addr, addr+size) is within DDR and fits 32-bit
++ */
++static inline bool k230_dma_addr_in_ddr(dma_addr_t addr, size_t size)
++{
++	if ((size == 0) && (addr == 0))
++		return true;
++	/* Overflow check */
++	if (addr + size < addr)
++		return false;
++	/* K230 DMA engines are 32-bit */
++	if (upper_32_bits(addr) || upper_32_bits(addr + size - 1))
++		return false;
++	return addr >= K230_DDR_PHYS_START && addr + size <= K230_DDR_PHYS_END;
++}
++
++/**
++ * k230_dma_addr_in_ddr_kpu - Check if DMA address falls within DDR + KPU
++ * @addr: DMA physical address
++ * @size: Transfer size in bytes
++ *
++ * Use this for AI2D, GDMA and other AI DMA engines that may need
++ * to access both DDR and KPU shared memory regions.
++ *
++ * Return: true if [addr, addr+size) is within DDR+KPU and fits 32-bit
++ */
++static inline bool k230_dma_addr_in_ddr_kpu(dma_addr_t addr, size_t size)
++{
++	if ((size == 0) && (addr == 0))
++		return true;
++	/* Overflow check */
++	if (addr + size < addr)
++		return false;
++	/* K230 DMA engines are 32-bit */
++	if (upper_32_bits(addr) || upper_32_bits(addr + size - 1))
++		return false;
++	return addr >= K230_DDR_PHYS_START && addr + size <= K230_KPU_PHYS_END;
++}
++
++#endif /* __LINUX_SOC_CANAAN_K230_DMA_ADDR_H__ */
+-- 
+2.25.1
+

@@ -176,6 +176,8 @@ distribution_rootfs_replace() {
     cp "${target_dir}/lib/modules" "${distr_rootfs}/lib" -r
     cp "${K230_SDK_ROOT}/buildroot-overlay/package/nonai2d/modprobe.d/nonai2d.conf" "${distr_rootfs}/lib/modprobe.d/" -r
     cp "${target_dir}/bin/sta.sh" "${distr_rootfs}/bin/"
+    cp "${target_dir}/bin/reboot_to_upgrade" "${distr_rootfs}/bin/"
+    cp "${target_dir}/bin/k230_iomux.py" "${distr_rootfs}/bin/"
     cat "${target_dir}/etc/version/release_version" >> "${distr_rootfs}/etc/issue"
 
     # Install DEB packages for both debian and ubuntu

@@ -46,22 +46,22 @@
 	"fdt_high=0xa100000\0" \
 	"kernel_addr=0xc100000\0" \
 	"ramdisk_addr=0xa100000\0" \
-	"ipaddr=10.99.105.44\0" \
-	"serverip=10.10.1.94\0" \
-	"gatewayip=10.99.105.254\0" \
+	"ipaddr=192.168.1.100\0" \
+	"serverip=192.168.1.2\0" \
+	"gatewayip=192.168.1.1\0" \
 	"netmask=255.255.255.0\0" \
 	"console_port=console=ttyS1,115200\0" \
 	"usb_load=usb start; dhcp; tftp $ramdisk_addr jiangxiangbing/rtt_systems.bin; k230_boot mem $ramdisk_addr 0x$filesize; tftp $kernel_addr jiangxiangbing/fw_payload.img;tftp $ramdisk_addr jiangxiangbing/rootfs-final.cpio.gz;tftp $dtb_addr jiangxiangbing/k230.dtb\0" \
 	"bootcmd_usb=run usb_load; bootm $kernel_addr - $dtb_addr \0" \
 	"bootcmd_baremetal= mmc dev 1; mmc read 0 0x5000 0xa000; boot_baremetal 1 0 1400000;\0" \
 	DEFAULT_BOOTCMD_ENV \
-	"upspiuboot=usb start; dhcp;  tftp 0xc100000 10.10.1.94:wjx/u-boot.img && sf probe 0:0;sf erase 0x80000 0x180000; sf update  0x$fileaddr 0x80000  0x$filesize; \0" \
-	"upspiimg=usb start; dhcp;  tftp 0x9000000 10.10.1.94:wjx/sysimage-spinor32m.img;sf probe 0:0;sf erase 0 0x2000000;sf write   0x$fileaddr  0 0x$filesize; \0" \
-	"upsduboot=usb start; dhcp;  tftp 0xc100000 10.10.1.94:wjx/u-boot.img && mmc dev 1; mmc write  0x$fileaddr 0x1000  0xc00; \0" \
-	"upsdimg=usb start; dhcp;  tftp 0x9000000 10.10.1.94:wjx/sysimage-sdcard.img.gz;gzwrite mmc 1 0x$fileaddr  0x$filesize; \0" \
+	"upspiuboot=usb start; dhcp;  tftp 0xc100000 192.168.1.2:wjx/u-boot.img && sf probe 0:0;sf erase 0x80000 0x180000; sf update  0x$fileaddr 0x80000  0x$filesize; \0" \
+	"upspiimg=usb start; dhcp;  tftp 0x9000000 192.168.1.2:wjx/sysimage-spinor32m.img;sf probe 0:0;sf erase 0 0x2000000;sf write   0x$fileaddr  0 0x$filesize; \0" \
+	"upsduboot=usb start; dhcp;  tftp 0xc100000 192.168.1.2:wjx/u-boot.img && mmc dev 1; mmc write  0x$fileaddr 0x1000  0xc00; \0" \
+	"upsdimg=usb start; dhcp;  tftp 0x9000000 192.168.1.2:wjx/sysimage-sdcard.img.gz;gzwrite mmc 1 0x$fileaddr  0x$filesize; \0" \
 	"\0"
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_PANIC_ON_RAW_IMAGE
-#endif 
+#endif
 
 #endif /* __CONFIG_H */
