@@ -25,11 +25,19 @@ sudo make toolchain_and_depend
 
 ## Build
 
+The build consists of three steps, executed in order:
+
+1. `make <defconfig>`: Select the build configuration. Only needs to be run once; configuration files are in the `buildroot-overlay/configs/` directory
+2. `make source`: Download the open-source software archives required by the configuration (optional, can be skipped if the source packages have already been prepared manually)
+3. `make`: Perform the build
+
+Example commands:
+
 ```bash
-make k230d_canmv_defconfig && make           # Build k230d CanMV image (64-bit kernel and rootfs)
-# make k230_canmv_defconfig  && make       # Build k230 CanMV image
-# make k230d_canmv_ilp32_defconfig && make  # Build k230d CanMV image (32-bit rootfs)
-# make help                              # Show help
+make k230d_canmv_defconfig && make source && make         # Build k230d CanMV image (64-bit kernel and rootfs)
+# make k230_canmv_defconfig && make source  && make       # Build k230 CanMV image
+# make k230d_canmv_ilp32_defconfig && make source && make # Build k230d CanMV image (32-bit rootfs)
+# make help                                               # Show help
 ```
 
 > The initial build takes considerable time. To skip compilation and try the Linux system directly, download the [daily build image from Canaan](https://download.kendryte.com/k230/release/linux_sdk_images/daily_build/).

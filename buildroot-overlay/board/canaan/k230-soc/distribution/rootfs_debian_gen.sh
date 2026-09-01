@@ -24,7 +24,7 @@ EOF
 #-------locales end 254MB
 
 #-------ssh
-apt install  -y     openssh-server
+apt install  -y     openssh-server sshpass
 echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 systemctl enable  ssh
 #-------ssh end 274MB
@@ -54,6 +54,7 @@ echo -e "Fix\n" | parted ---pretend-input-tty ${bootddev} print
 sd_size=$(parted ${bootddev} print | grep ${bootddev} | cut -d: -f2)
 parted ${bootddev} resizepart 2 ${sd_size}; resize2fs ${bootddev}p2
 mount ${bootddev}p1 /boot
+[ -f /etc/fw_env.config ] || echo "${bootddev}   0x1e0000 0x10000" >/etc/fw_env.config
 EOF
 chmod a+x /opt/mount_boot.sh
 cat >/etc/systemd/system/mount_boot.service <<EOF

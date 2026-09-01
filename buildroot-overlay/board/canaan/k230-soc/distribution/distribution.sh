@@ -176,9 +176,16 @@ distribution_rootfs_replace() {
     cp "${target_dir}/lib/modules" "${distr_rootfs}/lib" -r
     cp "${K230_SDK_ROOT}/buildroot-overlay/package/nonai2d/modprobe.d/nonai2d.conf" "${distr_rootfs}/lib/modprobe.d/" -r
     cp "${target_dir}/bin/sta.sh" "${distr_rootfs}/bin/"
-    cp "${target_dir}/bin/reboot_to_upgrade" "${distr_rootfs}/bin/"
+    #cp "${target_dir}/bin/reboot_to_upgrade" "${distr_rootfs}/bin/"
     cp "${target_dir}/bin/k230_iomux.py" "${distr_rootfs}/bin/"
     cat "${target_dir}/etc/version/release_version" >> "${distr_rootfs}/etc/issue"
+
+    echo '[ -f /etc/fw_env.config ] || echo "${bootddev}   0x1e0000 0x10000" >/etc/fw_env.config' >> ${distr_rootfs}/opt/mount_boot.sh
+    cp "${target_dir}/usr/bin/fw_setenv" "${distr_rootfs}/usr/bin/"
+    cp "${target_dir}/usr/bin/fw_printenv" "${distr_rootfs}/usr/bin/"
+    cp ${target_dir}/usr/lib/libubootenv.so*  "${distr_rootfs}/usr/lib/"
+
+
 
     # Install DEB packages for both debian and ubuntu
     # For debian: download packages from server first

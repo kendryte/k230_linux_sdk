@@ -1,0 +1,114 @@
+From cf2b5fce87e423746cdc794551f4392d702fdb99 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 1 Sep 2026 15:17:58 +0800
+Subject: [PATCH] spi: dw-mmio: use platform_get_irq_optional for k230 extra
+ IRQ probing
+
+Avoid spurious "IRQ index N not found" error logs when the k230 SPI
+controller's IRQ enumeration loop naturally runs past the last
+defined interrupt; platform_get_irq_optional() has identical
+semantics but stays silent on a missing index.
+
+dma: k230: allow PDMA to validate against an extra register range
+
+Add k230_dma_addr_in_ddr_or_register() to check a DMA address against
+DDR plus a caller-supplied physical range, and use it in
+generate_hwdesc() so PDMA transfers targeting the 0x9140f000-0x91410000
+register window are no longer rejected as out-of-range. Reuse the same
+helper in k230_dma_addr_in_ddr_kpu() to remove duplicated bounds logic.
+---
+ drivers/dma/k230_peridma.c               |  4 +--
+ drivers/spi/spi-dw-mmio.c                |  2 +-
+ include/linux/soc/canaan/k230-dma-addr.h | 31 +++++++++++++++---------
+ 3 files changed, 23 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/dma/k230_peridma.c b/drivers/dma/k230_peridma.c
+index 8fc981bd4..46d546d98 100755
+--- a/drivers/dma/k230_peridma.c
++++ b/drivers/dma/k230_peridma.c
+@@ -486,13 +486,13 @@ generate_hwdesc(struct k230_peridma_vchan *vchan, dma_addr_t src,
+ 	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_dev_tout = vchan->dev_tout;
+ 
+ 	/* Validate DMA addresses are within DDR range */
+-	if (!k230_dma_addr_in_ddr(src, len)) {
++	if (!k230_dma_addr_in_ddr_or_register(src, len,0x9140f000,0x91410000)) {
+ 		dev_err(vchan2dev(vchan),
+ 			"pdma: src DMA addr 0x%pad len 0x%zx out of DDR range [0x%lx-0x%lx]\n",
+ 			&src, len, K230_DDR_PHYS_START, K230_DDR_PHYS_END);
+ 		goto err_exit;
+ 	}
+-	if (!k230_dma_addr_in_ddr(dest, len)) {
++	if (!k230_dma_addr_in_ddr_or_register(dest, len,0x9140f000, 0x91410000)) {
+ 		dev_err(vchan2dev(vchan),
+ 			"pdma: dst DMA addr 0x%pad len 0x%zx out of DDR range [0x%lx-0x%lx]\n",
+ 			&dest, len, K230_DDR_PHYS_START, K230_DDR_PHYS_END);
+diff --git a/drivers/spi/spi-dw-mmio.c b/drivers/spi/spi-dw-mmio.c
+index 21782006f..5a43b36f9 100644
+--- a/drivers/spi/spi-dw-mmio.c
++++ b/drivers/spi/spi-dw-mmio.c
+@@ -278,7 +278,7 @@ static int dw_spi_canaan_k230_init(struct platform_device *pdev,
+ 	dwsmmio->dws.ip = DW_HSSI_ID;
+ 	dwsmmio->dws.caps = DW_SPI_CAP_INDEP_IRQ;
+ 	for (i = 1; i < ARRAY_SIZE(dwsmmio->dws.irqs); i++) {
+-		irq = platform_get_irq(pdev, i);
++		irq = platform_get_irq_optional(pdev, i);
+ 		if (irq < 0)
+ 			return 0;
+ 		dwsmmio->dws.irqs[i - 1] = irq;
+diff --git a/include/linux/soc/canaan/k230-dma-addr.h b/include/linux/soc/canaan/k230-dma-addr.h
+index 9169e353a..b9989efc3 100755
+--- a/include/linux/soc/canaan/k230-dma-addr.h
++++ b/include/linux/soc/canaan/k230-dma-addr.h
+@@ -48,9 +48,26 @@ static inline bool k230_dma_addr_in_ddr(dma_addr_t addr, size_t size)
+ 	/* K230 DMA engines are 32-bit */
+ 	if (upper_32_bits(addr) || upper_32_bits(addr + size - 1))
+ 		return false;
+-	return addr >= K230_DDR_PHYS_START && addr + size <= K230_DDR_PHYS_END;
++	return (addr >= K230_DDR_PHYS_START) && (addr + size < K230_DDR_PHYS_END);
+ }
++/**
++ * k230_dma_addr_in_ddr_or_register - Check if DMA address falls within DDR or a given range
++ * @addr: DMA physical address
++ * @size: Transfer size in bytes
++ * @reg_s: Start of the additional allowed physical range
++ * @reg_e: End (exclusive) of the additional allowed physical range
++ *
++ * Return: true if [addr, addr+size) is within DDR, or fits entirely
++ * within [reg_s, reg_e)
++ */
++static inline bool k230_dma_addr_in_ddr_or_register(dma_addr_t addr, size_t size,
++						     ulong reg_s, ulong reg_e)
++{
++	if (k230_dma_addr_in_ddr(addr, size))
++		return true;
+ 
++	return (addr >= reg_s) && (addr + size < reg_e);
++}
+ /**
+  * k230_dma_addr_in_ddr_kpu - Check if DMA address falls within DDR + KPU
+  * @addr: DMA physical address
+@@ -59,19 +76,11 @@ static inline bool k230_dma_addr_in_ddr(dma_addr_t addr, size_t size)
+  * Use this for AI2D, GDMA and other AI DMA engines that may need
+  * to access both DDR and KPU shared memory regions.
+  *
+- * Return: true if [addr, addr+size) is within DDR+KPU and fits 32-bit
++ * Return: true if [addr, addr+size) is within DDR+KPU
+  */
+ static inline bool k230_dma_addr_in_ddr_kpu(dma_addr_t addr, size_t size)
+ {
+-	if ((size == 0) && (addr == 0))
+-		return true;
+-	/* Overflow check */
+-	if (addr + size < addr)
+-		return false;
+-	/* K230 DMA engines are 32-bit */
+-	if (upper_32_bits(addr) || upper_32_bits(addr + size - 1))
+-		return false;
+-	return addr >= K230_DDR_PHYS_START && addr + size <= K230_KPU_PHYS_END;
++	return k230_dma_addr_in_ddr_or_register(addr, size, K230_DDR_PHYS_END, K230_KPU_PHYS_END);
+ }
+ 
+ #endif /* __LINUX_SOC_CANAAN_K230_DMA_ADDR_H__ */
+-- 
+2.25.1
+
