@@ -1,0 +1,44 @@
+From 93b7990e2d74cb504ecbe597019e444715eba63b Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Tue, 1 Sep 2026 17:25:25 +0800
+Subject: [PATCH] riscv: dts: k230d-canmv-junroc-ai-cam: add mclk1 pinctrl for
+ gc2093 sensor
+
+Configure IO13 as MCLK1 output and wire it up via pinctrl so the
+mipi1/v4l2isp sensor can use the chip-provided clock.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+---
+ .../boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts     | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+index 3829b5484..e35f2c80c 100644
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+@@ -143,6 +143,8 @@ K230_RESET_M1_DONE_BIT
+ 				K230_RESET_M1_ASSERT_BIT>;
+ 	reset-gpios = <&gpio0_ports 10 GPIO_ACTIVE_HIGH>;
+ 	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&cam2_mclk_pins>;
+ };
+ 
+ &mipi1 {
+@@ -157,4 +159,13 @@ &v4l2isp {
+ 	dev0-sensor-name = "gc2093";
+ 	dev0-sensor-mode = <0>;
+ 	dev0-sensor-i2c-bus = <0>; /* alias i2c0 = &i2c4 */
++	dev0-sensor-mclk-id = <0>; /*  MCLK1 / IO13 */
++	dev0-sensor-use-chip-clk = <1>;
++};
++
++&iomux {
++	cam2_mclk_pins: cam2_mclk_pins {
++		pins = K230_IO13;
++		function = K230_IO13_M_CLK1;
++	};
+ };
+-- 
+2.25.1
+
