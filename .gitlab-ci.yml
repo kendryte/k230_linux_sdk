@@ -1145,7 +1145,7 @@ build-image_all:
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_TAG !~ /^v\d+\.\d+.*$/
     # daily build
     - if: $CI_PIPELINE_SOURCE == "schedule"
-  timeout: 70m
+  timeout: 80m
   script:
     - *show_vars
     - *check_build_result

@@ -1,0 +1,35 @@
+From 7a82a7296509cef87eb282cc712f345ffd7cae60 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 2 Sep 2026 12:00:04 +0800
+Subject: [PATCH] dma: k230_peridma: allow special src/dst addrs in range check
+
+---
+ drivers/dma/k230_peridma.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/dma/k230_peridma.c b/drivers/dma/k230_peridma.c
+index 46d546d98..9867ccba3 100755
+--- a/drivers/dma/k230_peridma.c
++++ b/drivers/dma/k230_peridma.c
+@@ -485,14 +485,15 @@ generate_hwdesc(struct k230_peridma_vchan *vchan, dma_addr_t src,
+ 	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_priority = vchan->priority;
+ 	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_dev_tout = vchan->dev_tout;
+ 
+-	/* Validate DMA addresses are within DDR range */
+-	if (!k230_dma_addr_in_ddr_or_register(src, len,0x9140f000,0x91410000)) {
++	/* Validate DMA addresses are within DDR range 0x9140f1c0 是特殊值*/
++	if ( (!k230_dma_addr_in_ddr_or_register(src, len,0x9140f000,0x91410000)) && (0x9140f1c0 != src )) {
+ 		dev_err(vchan2dev(vchan),
+ 			"pdma: src DMA addr 0x%pad len 0x%zx out of DDR range [0x%lx-0x%lx]\n",
+ 			&src, len, K230_DDR_PHYS_START, K230_DDR_PHYS_END);
+ 		goto err_exit;
+ 	}
+-	if (!k230_dma_addr_in_ddr_or_register(dest, len,0x9140f000, 0x91410000)) {
++	//0x9140f1c8是个特殊值
++	if ( (!k230_dma_addr_in_ddr_or_register(dest, len,0x9140f000, 0x91410000)) && (0x9140f1c8 != dest)) {
+ 		dev_err(vchan2dev(vchan),
+ 			"pdma: dst DMA addr 0x%pad len 0x%zx out of DDR range [0x%lx-0x%lx]\n",
+ 			&dest, len, K230_DDR_PHYS_START, K230_DDR_PHYS_END);
+-- 
+2.25.1
+

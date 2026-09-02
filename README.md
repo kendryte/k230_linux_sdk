@@ -8,6 +8,8 @@
 ## Install Toolchain and Dependencies
 
 ```bash
+git clone --depth=1 https://github.com/kendryte/k230_linux_sdk.git  # Clone the source code
+cd k230_linux_sdk # Enter the source directory
 sudo make toolchain_and_depend
 # Installs the GCC toolchain and SDK dependencies. See tools/install_toolchain_and_depend.sh for details.
 ```
