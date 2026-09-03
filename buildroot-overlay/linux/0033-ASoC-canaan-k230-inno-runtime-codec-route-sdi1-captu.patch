@@ -1,0 +1,652 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: sunxiaopeng <sunxiaopeng@canaan-creative.com>
+Date: Thu, 3 Sep 2026 14:27:29 +0800
+Subject: [PATCH] ASoC: canaan: k230-inno: runtime codec route, sdi1 capture,
+ S24_LE
+
+Three related gaps kept the K230 audio path from covering boards that
+need more than a single fixed internal-codec stereo link.
+
+Runtime "Codec Route" switch
+-----------------------------
+
+The machine driver hard-coded audio_i2s_enable_audio_codec(true) in
+probe, so the I2S bus was permanently wired to the internal INNO codec
+and an external digital I2S microphone on IO34 could never be reached.
+Selecting one or the other meant editing this file and rebuilding the
+kernel.
+
+Expose the SoC's single audio MUX (PDM_CONTROL_REG_0 bit5,
+audio_codec_bypass) as an ALSA enum control instead:
+
+  amixer -c0 cset name='Codec Route' 'External I2S'
+
+Note the bit is not capture-only: it moves capture and playback
+together. With "External I2S" selected, capture comes from IO34 and
+playback goes out of IO35, so an external I2S DAC is needed for
+playback and the internal codec is entirely unused. Because both
+directions follow the one bit, re-routing under a running stream would
+corrupt them both, so the previously empty startup/shutdown ops now
+refcount open substreams and return -EBUSY while any is open.
+snd_soc_link_shutdown() is only called for a startup that returned 0,
+so the count cannot leak on the open error path.
+
+An optional "canaan,i2s-route" property picks the power-on default for
+boards that are built with only an external microphone; it defaults to
+the internal codec, so existing device trees keep their current
+behaviour bit for bit. The three audio_i2s_*() calls move ahead of
+devm_snd_soc_register_card() so the route is established before the
+card can be opened.
+
+Four-channel capture (sdi1)
+----------------------------
+
+The I2S controller has two receive channel pairs. sdi0 sits behind the
+audio_codec_bypass MUX and is what "Codec Route" switches; sdi1 has no
+MUX in front of it and can only come from IO36. Using both gives a
+four-channel capture - typically the board analog microphone through
+the internal codec together with an external digital I2S microphone,
+sample aligned in one stream.
+
+sdi1 was unreachable because the link had a single CODEC DAI and the
+inno codec declares channels_max = 2, so snd_soc_runtime_calc_hw()
+clamped capture to two channels. The controller itself is already
+capable: dw_i2s_config() enables RER0..RER(chan_nr/2 - 1) as needed.
+
+Add an optional "canaan,rx1-source" property. When it enables sdi1 the
+link gets a second, dummy CODEC DAI, which makes
+snd_soc_runtime_calc_hw() drop the CODEC channel limits in favour of
+the CPU DAI's. Neither the codec driver nor the controller driver
+needs to change; the codec still only ever sees sdi0/sdo0.
+
+Because the CPU DAI reports whatever I2S_COMP_PARAM_1 says, which can
+exceed the two sources that actually exist, k230_inno_startup() now
+constrains capture to the number of channels really wired up and
+playback to stereo. The constraint runs before the stream_users
+reference is taken: ASoC does not call shutdown() when startup() fails.
+
+This also makes "canaan,k230-audio-codec" optional, so a board with no
+internal codec can use a dummy in its place, and moves the card, the
+DAI link and its components out of file-static storage - probe() now
+builds the codec list per device, and ASoC writes back into
+dai_link->dai_fmt.
+
+24/32-bit capture and playback
+--------------------------------
+
+k230_inno_codec_dai_hw_params() has handled SNDRV_PCM_FORMAT_S24_LE
+since the driver was written - it maps it to a 24-bit I2S word length,
+the same way it maps S16_LE to 16 and S32_LE to 32. The format mask
+never listed S24_LE though, so ASoC intersected it away and userspace
+could not select it. The I2S controller offers S24_LE (canaan-dwc-i2s.c
+has an SNDRV_PCM_FORMAT_S24_LE case setting xfer_resolution 0x04), and
+the vendor reference implementation documents the internal codec as
+supporting 16- and 24-bit, so the codec was the only thing blocking it.
+Add S24_LE to the mask; S16_LE and S32_LE are unaffected.
+
+Separately, dw_i2s_hw_params() sets play_dma_data.dt.addr_width only in
+the SNDRV_PCM_FORMAT_S16_LE branch. The S24_LE and S32_LE branches set
+capture_dma_data.dt.addr_width and leave the playback side alone, and
+dw_configure_dai_by_dt() never initialises it either. Since dev comes
+from devm_kzalloc(), addr_width is DMA_SLAVE_BUSWIDTH_UNDEFINED after
+probe, or stale 2-bytes if an S16_LE stream ran earlier, so the DMA
+channel is configured with a source width that does not match the four
+bytes per sample ALSA hands over: playback at 24/32 bits is silent.
+Mirror the capture side's DMA_SLAVE_BUSWIDTH_4_BYTES onto playback.
+
+Existing device trees are unaffected: both new properties default to
+the previous behaviour, so a link with one real codec, two channels,
+and no format/DMA change for S16_LE.
+
+Signed-off-by: Sun Xiaopeng <sunxiaopeng@canaan-creative.com>
+---
+ .../sound/canaan,k230-audio-inno.yaml         | 136 +++++++--
+ sound/soc/canaan/canaan_k230_inno.c           | 277 ++++++++++++++++--
+ sound/soc/codecs/inno_k230.c                  |   9 +-
+ sound/soc/dwc_canaan/canaan-dwc-i2s.c         |   2 +
+ 4 files changed, 369 insertions(+), 55 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/sound/canaan,k230-audio-inno.yaml b/Documentation/devicetree/bindings/sound/canaan,k230-audio-inno.yaml
+index 44cec492d..822ea7b91 100644
+--- a/Documentation/devicetree/bindings/sound/canaan,k230-audio-inno.yaml
++++ b/Documentation/devicetree/bindings/sound/canaan,k230-audio-inno.yaml
+@@ -8,45 +8,117 @@ $schema: "http://devicetree.org/meta-schemas/core.yaml#"
+ title: Canaan K230 Audio INNO Device Tree Bindings
+ 
+ maintainers:
+-- Sun Xiaopeng <sunxiaopeng@canaan-creative.com>
++  - Sun Xiaopeng <sunxiaopeng@canaan-creative.com>
+ 
+ description: |
+-This document describes the device tree bindings for the audio subsystem
+-on the Canaan K230 SoC using the INNO codec.
++  This document describes the device tree bindings for the audio subsystem
++  on the Canaan K230 SoC using the INNO codec.
+ 
+ properties:
+-compatible:
+-  const: "canaan,k230-audio-inno"
+-  description: |
+-    Must be "canaan,k230-audio-inno".
+-
+-canaan,model:
+-  $ref: /schemas/types.yaml#/definitions/string
+-  description: |
+-    Custom model name for the sound card.
+-
+-canaan,k230-i2s-controller:
+-  $ref: /schemas/types.yaml#/definitions/phandle
+-  description: |
+-    Phandle to the I2S controller node.
+-
+-canaan,k230-audio-codec:
+-  $ref: /schemas/types.yaml#/definitions/phandle
+-  description: |
+-    Phandle to the audio codec node.
++  compatible:
++    const: "canaan,k230-audio-inno"
++    description: |
++      Must be "canaan,k230-audio-inno".
++
++  canaan,model:
++    $ref: /schemas/types.yaml#/definitions/string
++    description: |
++      Custom model name for the sound card.
++
++  canaan,k230-i2s-controller:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: |
++      Phandle to the I2S controller node.
++
++  canaan,k230-audio-codec:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: |
++      Phandle to the internal INNO codec node. May be omitted on boards that
++      have no internal codec, in which case the I2S bus is always routed to
++      the external pins.
++
++  canaan,i2s-route:
++    $ref: /schemas/types.yaml#/definitions/string
++    enum: [internal-codec, external-i2s]
++    default: internal-codec
++    description: |
++      Boot-time default for what the I2S bus is wired to. The SoC has a
++      single MUX (PDM_CONTROL_REG_0 bit5) that switches capture and
++      playback together, so this selects both directions at once:
++
++        internal-codec - capture from the internal codec ADC (board analog
++          microphone) and play back through the internal codec DAC.
++        external-i2s - capture from IO34 (an external digital I2S
++          microphone) and send playback to IO35, which requires an
++          external I2S DAC. The internal codec is unused.
++
++      This is only the power-on default; the "Codec Route" mixer control
++      overrides it at runtime while no stream is open.
++
++      Selecting external-i2s requires IO34 (and IO35 for playback) to be
++      muxed to their IIS functions.
++
++  canaan,rx1-source:
++    $ref: /schemas/types.yaml#/definitions/string
++    enum: [none, external-i2s]
++    default: none
++    description: |
++      Whether the second I2S receive channel pair (sdi1) takes part in
++      capture. Nothing muxes sdi1 - IO36 is its only possible source - so
++      this is independent of canaan,i2s-route:
++
++        none - capture uses sdi0 only, two channels.
++        external-i2s - capture also takes sdi1 from IO36, giving four
++          channels interleaved as sdi0-left, sdi0-right, sdi1-left,
++          sdi1-right. Combined with canaan,i2s-route = "internal-codec"
++          this is the board analog microphone and an external digital I2S
++          microphone recorded together, sample aligned.
++
++      Unlike canaan,i2s-route this cannot be changed at runtime: it decides
++      how many CODEC DAIs the link has, which is fixed once the card is
++      registered. It only raises the channel ceiling though - an application
++      may still capture two channels, which yields sdi0 alone.
++
++      Selecting external-i2s requires IO36 to be muxed to IIS_D_IN1. On the
++      Canaan reference boards IO36/IO37 are assigned to I2C3, so a board
++      using sdi1 has to give that up.
+ 
+ required:
+-- compatible
+-- canaan,k230-i2s-controller
+-- canaan,k230-audio-codec
++  - compatible
++  - canaan,k230-i2s-controller
+ 
+ additionalProperties: false
+ 
+ examples:
+-- |
+-  sound {
+-      compatible = "canaan,k230-audio-inno";
+-      canaan,model = "K230_I2S_INNO";
+-      canaan,k230-i2s-controller = <&i2s>;
+-      canaan,k230-audio-codec = <&inno_codec>;
+-  };
+\ No newline at end of file
++  - |
++    sound {
++        compatible = "canaan,k230-audio-inno";
++        canaan,model = "K230_I2S_INNO";
++        canaan,k230-i2s-controller = <&i2s>;
++        canaan,k230-audio-codec = <&inno_codec>;
++    };
++  - |
++    sound {
++        compatible = "canaan,k230-audio-inno";
++        canaan,model = "K230_I2S_INNO";
++        canaan,k230-i2s-controller = <&i2s>;
++        canaan,k230-audio-codec = <&inno_codec>;
++
++        /* Boot with the external digital I2S microphone on IO34. */
++        canaan,i2s-route = "external-i2s";
++    };
++  - |
++    sound {
++        compatible = "canaan,k230-audio-inno";
++        canaan,model = "K230_I2S_INNO";
++        canaan,k230-i2s-controller = <&i2s>;
++        canaan,k230-audio-codec = <&inno_codec>;
++
++        /*
++         * Board analog microphone through the internal codec on sdi0 plus
++         * an external digital I2S microphone on IO36 -> sdi1, captured
++         * together as four channels.
++         */
++        canaan,i2s-route = "internal-codec";
++        canaan,rx1-source = "external-i2s";
++    };
+diff --git a/sound/soc/canaan/canaan_k230_inno.c b/sound/soc/canaan/canaan_k230_inno.c
+index 3dee09feb..fee675691 100644
+--- a/sound/soc/canaan/canaan_k230_inno.c
++++ b/sound/soc/canaan/canaan_k230_inno.c
+@@ -34,6 +34,41 @@ struct k230_inno_info {
+ 	struct clk *pclk;
+ 	struct mutex clk_lock;
+ 	int clk_users;
++	/*
++	 * route_internal selects what the I2S bus is wired to. The hardware
++	 * MUX behind it (PDM_CONTROL_REG_0 bit5, audio_codec_bypass) switches
++	 * capture *and* playback at the same time:
++	 *   true  - sdi0 <- internal codec ADC <- board analog mic and
++	 *           sdo0 -> internal codec DAC -> HPOUT
++	 *   false - sdi0 <- IO34 (external digital I2S mic) and
++	 *           sdo0 -> IO35 (needs an external I2S DAC for playback)
++	 * Because both directions follow the same bit, the route may only be
++	 * changed while no substream is open. stream_users tracks that, and
++	 * clk_lock serialises both against the mixer control.
++	 */
++	bool route_internal;
++	int stream_users;
++	/*
++	 * rx1_enabled adds the second receive channel pair (sdi1, fed from
++	 * IO36) to the capture stream. Nothing muxes sdi1 - IO36 is its only
++	 * possible source - so this is a plain on/off and is orthogonal to
++	 * route_internal. With both in use a capture frame carries four
++	 * channels, interleaved sdi0-left, sdi0-right, sdi1-left, sdi1-right.
++	 */
++	bool rx1_enabled;
++	unsigned int max_capture_ch;
++
++	/*
++	 * The card, the DAI link and its components live here rather than in
++	 * file-static storage: probe() builds the codec list from the device
++	 * tree, and ASoC writes back into dai_link->dai_fmt, so sharing them
++	 * between instances would not be safe.
++	 */
++	struct snd_soc_dai_link_component cpus[1];
++	struct snd_soc_dai_link_component codecs[2];
++	struct snd_soc_dai_link_component platforms[1];
++	struct snd_soc_dai_link dailink;
++	struct snd_soc_card card;
+ };
+ 
+ static int k230_inno_hw_params(struct snd_pcm_substream *substream,
+@@ -44,46 +79,201 @@ static int k230_inno_hw_params(struct snd_pcm_substream *substream,
+ 
+ static void k230_inno_shutdown(struct snd_pcm_substream *substream)
+ {
++	struct snd_soc_pcm_runtime *rtd = snd_soc_substream_to_rtd(substream);
++	struct k230_inno_info *priv = snd_soc_card_get_drvdata(rtd->card);
++
++	mutex_lock(&priv->clk_lock);
++	if (priv->stream_users)
++		priv->stream_users--;
++	mutex_unlock(&priv->clk_lock);
+ }
+ 
+ static int k230_inno_startup(struct snd_pcm_substream *substream)
+ {
++	struct snd_soc_pcm_runtime *rtd = snd_soc_substream_to_rtd(substream);
++	struct k230_inno_info *priv = snd_soc_card_get_drvdata(rtd->card);
++	unsigned int max_ch;
++	int ret;
++
++	/*
++	 * The CPU DAI advertises whatever I2S_COMP_PARAM_1 reports, which can
++	 * be more than the audio_in block actually feeds it: sdi0 and sdi1 are
++	 * the only sources, so capture tops out at four channels, and at two
++	 * unless sdi1 was enabled. Playback is stereo either way - the internal
++	 * codec and IO35 both carry one stereo pair.
++	 *
++	 * Constrain before taking the reference: if startup() fails ASoC does
++	 * not call shutdown(), so an early return here must not have counted.
++	 */
++	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
++		max_ch = priv->max_capture_ch;
++	else
++		max_ch = 2;
++
++	ret = snd_pcm_hw_constraint_minmax(substream->runtime,
++					   SNDRV_PCM_HW_PARAM_CHANNELS,
++					   1, max_ch);
++	if (ret < 0)
++		return ret;
++
++	mutex_lock(&priv->clk_lock);
++	priv->stream_users++;
++	mutex_unlock(&priv->clk_lock);
++
++	return 0;
++}
++
++static const char * const k230_codec_route_text[] = {
++	"Internal Codec", "External I2S",
++};
++
++static SOC_ENUM_SINGLE_EXT_DECL(k230_codec_route_enum, k230_codec_route_text);
++
++static int k230_codec_route_get(struct snd_kcontrol *kcontrol,
++				struct snd_ctl_elem_value *ucontrol)
++{
++	struct snd_soc_card *card = snd_kcontrol_chip(kcontrol);
++	struct k230_inno_info *priv = snd_soc_card_get_drvdata(card);
++
++	ucontrol->value.enumerated.item[0] = priv->route_internal ? 0 : 1;
++
+ 	return 0;
+ }
+ 
++static int k230_codec_route_put(struct snd_kcontrol *kcontrol,
++				struct snd_ctl_elem_value *ucontrol)
++{
++	struct snd_soc_card *card = snd_kcontrol_chip(kcontrol);
++	struct k230_inno_info *priv = snd_soc_card_get_drvdata(card);
++	bool internal;
++	int ret;
++
++	if (ucontrol->value.enumerated.item[0] >=
++	    ARRAY_SIZE(k230_codec_route_text))
++		return -EINVAL;
++
++	internal = ucontrol->value.enumerated.item[0] == 0;
++
++	mutex_lock(&priv->clk_lock);
++
++	if (internal == priv->route_internal) {
++		ret = 0;
++		goto out;
++	}
++
++	/*
++	 * Re-routing under a running stream would corrupt capture and
++	 * playback both. Make the caller close the stream first.
++	 */
++	if (priv->stream_users) {
++		ret = -EBUSY;
++		goto out;
++	}
++
++	audio_i2s_enable_audio_codec(internal);
++	priv->route_internal = internal;
++	ret = 1;
++out:
++	mutex_unlock(&priv->clk_lock);
++
++	return ret;
++}
++
++static const struct snd_kcontrol_new canaan_k230_inno_controls[] = {
++	SOC_ENUM_EXT("Codec Route", k230_codec_route_enum,
++		     k230_codec_route_get, k230_codec_route_put),
++};
++
+ static const struct snd_soc_ops canaan_k230_inno_ops = {
+ 	.startup = k230_inno_startup,
+ 	.shutdown = k230_inno_shutdown,
+ 	.hw_params = k230_inno_hw_params,
+ };
+ 
+-SND_SOC_DAILINK_DEFS(k230_inno, DAILINK_COMP_ARRAY(COMP_EMPTY()),
+-		     DAILINK_COMP_ARRAY(COMP_CODEC(NULL,
+-						   "k230-inno-codec-dai")),
+-		     DAILINK_COMP_ARRAY(COMP_EMPTY()));
+-
+-static struct snd_soc_dai_link canaan_k230_dailink = {
++static const struct snd_soc_dai_link canaan_k230_dailink_template = {
+ 	.name = "k230-inno-codec",
+ 	.stream_name = "Audio",
+ 	.ops = &canaan_k230_inno_ops,
+ 	.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
+ 		   SND_SOC_DAIFMT_CBS_CFS,
+-	SND_SOC_DAILINK_REG(k230_inno),
+ };
+ 
+-static struct snd_soc_card snd_soc_card_k230 = {
++static const struct snd_soc_card canaan_k230_card_template = {
+ 	.name = "CANAAN-K230-I2S",
+ 	.owner = THIS_MODULE,
+-	.dai_link = &canaan_k230_dailink,
+ 	.num_links = 1,
+ };
+ 
++/*
++ * Both properties are optional and both default to what this driver has always
++ * done, so no existing board device tree needs to change.
++ *
++ * "canaan,i2s-route" picks the boot-time default for the sdi0/sdo0 MUX. It is
++ * only a default: userspace can still flip the "Codec Route" control at
++ * runtime, and alsactl(1) can make its choice persistent.
++ *
++ * "canaan,rx1-source" enables sdi1. Unlike the route it cannot be a runtime
++ * control, because it decides how many CODEC DAIs the link has and that is
++ * fixed when the card is registered. It only raises the channel ceiling
++ * though - whether a capture runs two or four channels is still up to the
++ * application.
++ */
++static int canaan_k230_inno_parse_route(struct platform_device *pdev,
++					struct k230_inno_info *priv)
++{
++	const char *route;
++	int ret;
++
++	priv->route_internal = true;
++	priv->rx1_enabled = false;
++
++	ret = of_property_read_string(pdev->dev.of_node, "canaan,i2s-route",
++				      &route);
++	if (ret && ret != -EINVAL)
++		return ret;
++
++	if (!ret) {
++		if (!strcmp(route, "internal-codec")) {
++			priv->route_internal = true;
++		} else if (!strcmp(route, "external-i2s")) {
++			priv->route_internal = false;
++		} else {
++			dev_err(&pdev->dev,
++				"invalid 'canaan,i2s-route' value '%s'\n",
++				route);
++			return -EINVAL;
++		}
++	}
++
++	ret = of_property_read_string(pdev->dev.of_node, "canaan,rx1-source",
++				      &route);
++	if (ret && ret != -EINVAL)
++		return ret;
++
++	if (!ret) {
++		if (!strcmp(route, "none")) {
++			priv->rx1_enabled = false;
++		} else if (!strcmp(route, "external-i2s")) {
++			priv->rx1_enabled = true;
++		} else {
++			dev_err(&pdev->dev,
++				"invalid 'canaan,rx1-source' value '%s'\n",
++				route);
++			return -EINVAL;
++		}
++	}
++
++	priv->max_capture_ch = priv->rx1_enabled ? 4 : 2;
++
++	return 0;
++}
++
+ static int canaan_k230_inno_probe(struct platform_device *pdev)
+ {
+-	struct snd_soc_card *card = &snd_soc_card_k230;
+ 	struct device_node *codec_np, *cpu_np;
+-	struct snd_soc_dai_link *dailink = &canaan_k230_dailink;
+ 	struct device_node *np = pdev->dev.of_node;
++	struct snd_soc_dai_link *dailink;
++	struct snd_soc_card *card;
+ 	struct k230_inno_info *priv;
+ 	int ret;
+ 
+@@ -98,17 +288,56 @@ static int canaan_k230_inno_probe(struct platform_device *pdev)
+ 
+ 	mutex_init(&priv->clk_lock);
+ 
++	ret = canaan_k230_inno_parse_route(pdev, priv);
++	if (ret)
++		return ret;
++
++	priv->dailink = canaan_k230_dailink_template;
++	priv->card = canaan_k230_card_template;
++	dailink = &priv->dailink;
++	card = &priv->card;
++
++	dailink->cpus = priv->cpus;
++	dailink->num_cpus = ARRAY_SIZE(priv->cpus);
++	dailink->platforms = priv->platforms;
++	dailink->num_platforms = ARRAY_SIZE(priv->platforms);
++	dailink->codecs = priv->codecs;
++
++	card->dai_link = dailink;
+ 	card->dev = &pdev->dev;
++	card->controls = canaan_k230_inno_controls;
++	card->num_controls = ARRAY_SIZE(canaan_k230_inno_controls);
+ 	snd_soc_card_set_drvdata(card, priv);
+ 
+ 	codec_np = of_parse_phandle(np, "canaan,k230-audio-codec", 0);
+-	if (!codec_np) {
+-		dev_err(&pdev->dev,
+-			"Property 'canaan,k230-audio-codec' missing or invalid\n");
+-		return -EINVAL;
++	if (codec_np) {
++		priv->codecs[0].of_node = codec_np;
++		priv->codecs[0].dai_name = "k230-inno-codec-dai";
++		of_node_put(codec_np);
++	} else {
++		/*
++		 * A board may have no internal codec at all, in which case the
++		 * I2S bus can only reach the outside world. Stand a dummy DAI
++		 * in for the codec and force the external route.
++		 */
++		dev_info(&pdev->dev,
++			 "no 'canaan,k230-audio-codec', using external I2S only\n");
++		priv->codecs[0] = snd_soc_dummy_dlc;
++		priv->route_internal = false;
++	}
++	dailink->num_codecs = 1;
++
++	if (priv->rx1_enabled && codec_np) {
++		/*
++		 * A second CODEC DAI makes snd_soc_runtime_calc_hw() discard
++		 * the CODEC channel limits and use the CPU DAI's instead, which
++		 * is what lifts capture from the inno codec's two channels to
++		 * the controller's four. The codec driver stays untouched - it
++		 * only ever sees sdi0/sdo0 either way.
++		 */
++		priv->codecs[1] = snd_soc_dummy_dlc;
++		dailink->num_codecs = 2;
+ 	}
+-	dailink->codecs->of_node = codec_np;
+-	of_node_put(codec_np);
+ 
+ 	cpu_np = of_parse_phandle(np, "canaan,k230-i2s-controller", 0);
+ 	if (!cpu_np) {
+@@ -127,17 +356,21 @@ static int canaan_k230_inno_probe(struct platform_device *pdev)
+ 		return ret;
+ 	}
+ 
++	/*
++	 * Establish the route before the card goes live, so the very first
++	 * open already sees the configuration asked for in the device tree.
++	 */
++	audio_i2s_in_init();
++	audio_i2s_enable_audio_codec(priv->route_internal);
++	audio_i2s_out_init(true, 32);
++
+ 	ret = devm_snd_soc_register_card(&pdev->dev, card);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "failed to register card: %d\n", ret);
+ 		return ret;
+ 	}
+ 
+-	audio_i2s_in_init();
+-	audio_i2s_enable_audio_codec(true);
+-	audio_i2s_out_init(true, 32);
+-
+-	return ret;
++	return 0;
+ }
+ 
+ static const struct of_device_id canaan_k230_inno_of_match[] = {
+diff --git a/sound/soc/codecs/inno_k230.c b/sound/soc/codecs/inno_k230.c
+index 2854a8f16..0a1b96ad9 100755
+--- a/sound/soc/codecs/inno_k230.c
++++ b/sound/soc/codecs/inno_k230.c
+@@ -383,7 +383,14 @@ static int k230_inno_codec_dai_startup(struct snd_pcm_substream *substream,
+ 	(SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 | SNDRV_PCM_RATE_32000 | \
+ 	 SNDRV_PCM_RATE_44100 | SNDRV_PCM_RATE_48000)
+ 
+-#define K230_INNO_CODEC_FMTS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE)
++/*
++ * k230_inno_codec_dai_hw_params() has always handled S24_LE - it maps it to a
++ * 24-bit word length - but S24_LE was missing from the format mask, so ASoC
++ * intersected it away and userspace could never select it.
++ */
++#define K230_INNO_CODEC_FMTS                                                 \
++	(SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE |                 \
++	 SNDRV_PCM_FMTBIT_S32_LE)
+ 
+ static const struct snd_soc_dai_ops k230_inno_codec_dai_ops = {
+ 	.startup = k230_inno_codec_dai_startup,
+diff --git a/sound/soc/dwc_canaan/canaan-dwc-i2s.c b/sound/soc/dwc_canaan/canaan-dwc-i2s.c
+index 5b506e580..c3ef4f154 100644
+--- a/sound/soc/dwc_canaan/canaan-dwc-i2s.c
++++ b/sound/soc/dwc_canaan/canaan-dwc-i2s.c
+@@ -298,6 +298,7 @@ static int dw_i2s_hw_params(struct snd_pcm_substream *substream,
+ 		dev->ccr = 0x10;
+ 		dev->xfer_resolution = 0x04;
+ 		dev->capture_dma_data.dt.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++		dev->play_dma_data.dt.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+ 		break;
+ 
+ 	case SNDRV_PCM_FORMAT_S32_LE:
+@@ -305,6 +306,7 @@ static int dw_i2s_hw_params(struct snd_pcm_substream *substream,
+ 		dev->ccr = 0x10;
+ 		dev->xfer_resolution = 0x05;
+ 		dev->capture_dma_data.dt.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++		dev->play_dma_data.dt.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+ 		break;
+ 
+ 	default:
