@@ -534,6 +534,7 @@ before_script:
     - *update_version
     - SUB_DIR="${SUB_BASE}/${CONF}";
     - echo "---create current image version dir---"
+    - sudo rm -rf ${DST_DIR}/${SUB_DIR}/ || exit 1
     - sudo mkdir -p ${DST_DIR}/${SUB_DIR}/ || exit 1
     - echo "---save sdk build output---"
     - ls "${SRC_DIR}"
