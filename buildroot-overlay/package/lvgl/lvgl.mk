@@ -5,7 +5,7 @@
 ################################################################################
 LVGL_VERSION = $(call qstrip,$(BR2_PACKAGE_LVGL_CUSTOM_VERSION))
 
-LVGL_DEPENDENCIES += libdrm vg_lite
+LVGL_DEPENDENCIES += libdrm vg_lite  common
 
 LVGL_CFLAG = -I$(STAGING_DIR)/usr/include/libdrm
 

@@ -1,0 +1,53 @@
+From 640ffe132911f8caf7dad5d78aced0d245bd8a7a Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Mon, 14 Sep 2026 09:15:28 +0800
+Subject: [PATCH] fix ci error
+
+---
+ CMakeLists.txt  | 2 ++
+ src/main_k230.c | 8 +++++++-
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7876044..5aff711 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -457,6 +457,8 @@ add_custom_target(run COMMAND ${EXECUTABLE_OUTPUT_PATH}/lvglsim DEPENDS lvglsim)
+ install(TARGETS lvglsim  lvglsimk230
+     RUNTIME DESTINATION /root/app/
+ )
++# lvgl_demo_music is just an alias entry point for lvglsimk230, symlink instead of rebuilding
++install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink lvglsimk230 lvgl_demo_music WORKING_DIRECTORY \$ENV{DESTDIR}/root/app)")
+ 
+ # Install Chinese font files for FreeType (use Min version - 1.9MB vs 16MB)
+ install(FILES ${CMAKE_SOURCE_DIR}/../common/kmodel/ai_poc/utils/SourceHanSansSC-Normal-Min.ttf
+diff --git a/src/main_k230.c b/src/main_k230.c
+index 452a3fb..5dd8b48 100644
+--- a/src/main_k230.c
++++ b/src/main_k230.c
+@@ -241,8 +241,11 @@ static void cb_drag(lv_event_t * e)
+     }
+ }
+ 
++/**
++ * @brief Load a Chinese test font and show a quick validation label.
++ */
+ int test_font()
+-{   //// 加载 24px 中文字体
++{
+     lv_font_t * font_cn = lv_freetype_font_create(
+         "/usr/lib/fonts/SourceHanSansSC-Normal-Min.ttf",
+         LV_FREETYPE_FONT_RENDER_MODE_BITMAP,
+@@ -273,6 +276,9 @@ int main(int argc, char ** argv)
+         return -1;
+     }
+     printf("[main] display_init OK: %ux%u\n", pdisplay->width, pdisplay->height);
++    /* Print the LCD panel size for quick display validation during bring-up. */
++    printf("lcd w,h,dpi:%d,%d,%d \n", pdisplay->width, pdisplay->height, 26);
++
+         /* ---- 2. Initialize v4l2-drm (camera → NV12 video plane) ---- */
+     v4l2_drm_default_context(&g_v4l2_ctx);
+     g_v4l2_ctx.device = 1;                     /* /dev/video1 */
+-- 
+2.25.1
+

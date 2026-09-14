@@ -40,7 +40,7 @@ print_red()   { echo -e "${RED}$*${NONE}"; }
 print_green() { echo -e "${GREEN}$*${NONE}"; }
 
 # Ubuntu 24.04 (noble) riscv64 python3.12 packages.
-PY312_DEB_VERSION="${PY312_DEB_VERSION:-3.12.3-1ubuntu0.16}"
+PY312_DEB_VERSION="${PY312_DEB_VERSION:-3.12.3-1ubuntu0.17}"
 PY312_DEB_BASE="${PY312_DEB_BASE:-https://ports.ubuntu.com/ubuntu-ports/pool/main/p/python3.12}"
 PY312_DEBS="libpython3.12-dev python3.12-dev libpython3.12-stdlib libpython3.12-minimal"
 
@@ -73,7 +73,7 @@ mkdir -p "${DL_DIR}"
 for p in ${PY312_DEBS}; do
     deb="${p}_${PY312_DEB_VERSION}_riscv64.deb"
     if [ ! -f "${DL_DIR}/${deb}" ]; then
-        print_blue "Downloading ${deb}..."
+        print_blue "Downloading ${PY312_DEB_BASE}/${deb}..."
         wget -q --show-progress -O "${DL_DIR}/${deb}.tmp" "${PY312_DEB_BASE}/${deb}"
         mv "${DL_DIR}/${deb}.tmp" "${DL_DIR}/${deb}"
     fi
