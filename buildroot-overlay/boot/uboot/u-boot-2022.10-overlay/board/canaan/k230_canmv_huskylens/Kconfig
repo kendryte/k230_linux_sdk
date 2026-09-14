@@ -20,20 +20,8 @@ choice
 	prompt "ddr typy freq"
     default CANMV_HUSKYLENS_LPDDR4_2667
 
-config CANMV_HUSKYLENS_LPDDR3_2133
-	bool  2133
-config CANMV_HUSKYLENS_LPDDR3_1600
-	bool  1600
-config CANMV_HUSKYLENS_LPDDR3_800
-	bool 800
 config CANMV_HUSKYLENS_LPDDR4_2667
 	bool LP4_2667
-config CANMV_HUSKYLENS_LPDDR4_3200
-	bool LP4_3200
 
-config CANMV_HUSKYLENS_LPDDR4_1600_WITHOUT_ODT
-	bool "canmv  LP4_1600 WITHOUT ODT,"
-	help
-		"CANMV huskylens"
 endchoice
 endif
