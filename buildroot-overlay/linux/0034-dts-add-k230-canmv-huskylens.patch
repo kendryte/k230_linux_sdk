@@ -1,0 +1,176 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wanghui <wanghui@localhost>
+Date: Mon, 14 Sep 2026 00:00:00 +0800
+Subject: [PATCH] dts: add k230-canmv-huskylens board
+
+---
+ arch/riscv/boot/dts/canaan/k230-canmv-huskylens.dts | 160 +
+ 1 file changed, 160 insertions(+)
+ create mode 100644 arch/riscv/boot/dts/canaan/k230-canmv-huskylens.dts
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-huskylens.dts b/arch/riscv/boot/dts/canaan/k230-canmv-huskylens.dts
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-huskylens.dts
+@@ -0,0 +1,160 @@
++// SPDX-License-Identifier: GPL-2.0 OR MIT
++/*
++ * Copyright (C) 2024 Yangyu Chen <cyy@cyyself.name>
++ */
++
++#include "k230.dtsi"
++#include "display-st7701-480x640.dtsi"
++/ {
++	model = "Canaan CanMV-K230";
++	compatible = "canaan,canmv-k230", "canaan,kendryte-k230";
++
++	aliases {
++                serial1 = &uart1;
++		serial2 = &uart2;
++		serial3 = &uart3;
++		i2c0 = &i2c4;
++		i2c1 = &i2c3;
++		i2c2 = &i2c2;
++		i2c3 = &i2c0;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
++
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	ddr: memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x40000000>;
++	};
++
++	sound {
++		status                      = "okay";
++		compatible                  = "canaan,k230-audio-inno";
++		canaan,model                = "K230_I2S_INNO";
++		canaan,k230-i2s-controller  = <&i2s>;
++		canaan,k230-audio-codec     = <&inno_codec>;
++	};
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart1 {
++        status = "okay";
++};
++
++&uart2 {
++        status = "okay";
++};
++
++&uart3 {
++	status = "okay";
++};
++
++&gnne {
++	status = "okay";
++};
++
++/*
++&mmc_sd0{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	rx_delay_line = <0x0d>;
++	tx_delay_line = <0xb0>;
++	clocks = <&sd0_cclk_gate>,<&sd0_cclk_gate>;
++	clock-names = "core", "bus";
++};*/
++&mmc_sd0{
++        status = "okay";
++        io_fixed_1v8;
++        rx_delay_line = <0x0a>;
++        tx_delay_line = <0x22>;
++};
++
++&mmc_sd1{
++	status = "okay";
++	no-1-8-v;
++	cap-sd-highspeed;
++	mshc_ctrl_r = <0x00>;
++};
++
++&usb0 {
++	status = "okay";
++};
++&usb1 {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&i2c4 {
++       status = "okay";
++};
++&i2c0 {
++       status = "okay";
++};
++
++&i2c2 {
++        status= "okay";
++        snps,slave-mode;
++
++	slavek230@50 {
++                status = "okay";
++                compatible = "slave-k230";
++                reg = <0x40000050>;
++        };
++};
++
++
++&vo {
++	vth_line = <10>;
++};
++
++&mipi0
++{
++	// set to csi2
++	status = "okay";
++	id = <2>;
++	reg = <0x0 0x9000a800 0x0 0x800>;
++	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
++			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
++	<&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++		 K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio1_ports 30 GPIO_ACTIVE_HIGH>;
++};
++
++&i2c3 {
++	status = "okay";
++
++	touchscreen@1a {
++ 		compatible = "hynitron,cst328";//"sitronix,cst3xx";
++ 		reg = <0x1A>;
++ 		reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_LOW>;
++ 		interrupt-parent = <&gpio0_ports>;
++ 		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <640>;
++		touchscreen-size-y = <480>;
++		touchscreen-rotation = <0>; /*0,90,180,270 中0/180是x=640,y=480*/
++ 	};
++	touchscreen@58 {
++ 		compatible = "hynitron,cst3530";
++ 		reg = <0x58>;
++ 		reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_LOW>;
++ 		interrupt-parent = <&gpio0_ports>;
++ 		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <640>;
++		touchscreen-size-y = <480>;
++		touchscreen-rotation = <270>; /*0,90,180,270 中90/270是w=640,h=480*/
++ 	};
++};
++
++&lcd {
++	//dsi_reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_HIGH>;
++	//backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_HIGH>;
++};
