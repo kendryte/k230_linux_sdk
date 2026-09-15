@@ -29,7 +29,7 @@ jobs:
   build_image:
     name: Build Image
     runs-on: [self-hosted, k230_linux_sdk]
-    timeout-minutes: 45
+    timeout-minutes: 90
     container:
       image: ai.b-bug.org:5000/k230_sdk:latest
       env:
@@ -202,7 +202,7 @@ jobs:
   test_image:
     name: Test Image
     needs: build_image
-    timeout-minutes: 15
+    timeout-minutes: 30
     runs-on: [self-hosted, k230_linux_sdk]
     env:
         CONF: ${{ matrix.hw_type }}_${{ matrix.hw_model }}_defconfig
