@@ -55,7 +55,7 @@ jobs:
         run: |
           echo '----------Build ENV Prepare----------'
           sudo mkdir -p ~/.ssh
-          sudo chown -R $(id -u):$(id -g) ~/.ssh
+          sudo chown -R $(id -u):$(id -g) ~
           chmod 700 ~/.ssh
           echo $SHELL
           echo -e "Host *\n    StrictHostKeyChecking no" > ~/.ssh/config
