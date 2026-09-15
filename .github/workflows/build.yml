@@ -29,7 +29,7 @@ jobs:
   build_image:
     name: Build Image
     runs-on: [self-hosted, k230_linux_sdk]
-    timeout-minutes: 45
+    timeout-minutes: 90
     container:
       image: ai.b-bug.org:5000/k230_sdk:latest
       env:
@@ -54,7 +54,9 @@ jobs:
         id: build_env
         run: |
           echo '----------Build ENV Prepare----------'
-          mkdir -p ~/.ssh
+          sudo pip3 install pcpp
+          sudo mkdir -p ~/.ssh
+          sudo chown -R $(id -u):$(id -g) ~
           chmod 700 ~/.ssh
           echo $SHELL
           echo -e "Host *\n    StrictHostKeyChecking no" > ~/.ssh/config
@@ -121,6 +123,7 @@ jobs:
       - name: Save Image
         id: save_image
         run: |
+          sudo chmod 666 "$GITHUB_OUTPUT" || true
           pwd
           ls
           HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
@@ -172,6 +175,7 @@ jobs:
       - name: Save image to TFTP
         id: save_tftp
         run: |
+          sudo chmod 666 "$GITHUB_OUTPUT" || true
           pwd
           ls
           HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
@@ -201,7 +205,7 @@ jobs:
   test_image:
     name: Test Image
     needs: build_image
-    timeout-minutes: 15
+    timeout-minutes: 30
     runs-on: [self-hosted, k230_linux_sdk]
     env:
         CONF: ${{ matrix.hw_type }}_${{ matrix.hw_model }}_defconfig
