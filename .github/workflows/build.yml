@@ -123,6 +123,7 @@ jobs:
       - name: Save Image
         id: save_image
         run: |
+          sudo chmod 666 "$GITHUB_OUTPUT" || true
           pwd
           ls
           HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
@@ -174,6 +175,7 @@ jobs:
       - name: Save image to TFTP
         id: save_tftp
         run: |
+          sudo chmod 666 "$GITHUB_OUTPUT" || true
           pwd
           ls
           HW_TYPE=$(echo $CONF | awk -F '_'  '{print $1}')
