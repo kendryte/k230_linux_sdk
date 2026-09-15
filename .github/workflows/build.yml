@@ -54,6 +54,7 @@ jobs:
         id: build_env
         run: |
           echo '----------Build ENV Prepare----------'
+          sudo pip3 install pcpp
           sudo mkdir -p ~/.ssh
           sudo chown -R $(id -u):$(id -g) ~
           chmod 700 ~/.ssh
