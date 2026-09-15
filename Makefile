@@ -124,7 +124,6 @@ endif
 
 #echo LINUX_OVERRIDE_SRCDIR=/home/wangjianxin/t/linux-xuantie-kernel >output/k230d_canmv_64kernel_32rootfs_defconfig/local.mk
 
-
 .PHONY:clean
 clean:
 	@echo -e "This will delete the entire \033[31m$(PWD)/output/\033[0m directory."; \
