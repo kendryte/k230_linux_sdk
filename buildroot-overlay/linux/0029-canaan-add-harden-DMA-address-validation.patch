@@ -356,8 +356,8 @@ index 1d61a6f11..3457bddfb
 +		    offset + size <= entry->phys + entry->length)
 +			return true;
 +	}
-+	pr_warn("mmz: mmap phys=0x%lx size=0x%lx not in owned allocs, checking KPU range\n",
-+		offset, size);
++	//pr_warn("mmz: mmap phys=0x%lx size=0x%lx not in owned allocs, checking KPU range\n",
++	//	offset, size);
 +
 +	/* Allow entire KPU range (0x80000000–0x807FFFFF).
 +	 * This includes both KPU shared memory (0x80000000–0x803FFFFF) and

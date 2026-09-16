@@ -63,7 +63,7 @@ gen_version()
 }
 auto_boot_proc()
 {
-	set -x
+	#set -x
 	#BR2_ROOTFS_OVERLAY=$(cat ${BASE_DIR}/.config | grep BR2_ROOTFS_OVERLAY | cut -d= -f2  |  tr -d '"' )
 	local config="${BASE_DIR}/.config"
 	local CONF=$(basename ${BASE_DIR})

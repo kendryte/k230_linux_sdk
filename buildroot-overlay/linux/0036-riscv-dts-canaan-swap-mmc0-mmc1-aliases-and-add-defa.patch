@@ -1,0 +1,89 @@
+From 1acb98890876aa26ad7996711fdb6ea368674a52 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 16 Sep 2026 17:06:17 +0800
+Subject: [PATCH] riscv: dts: canaan: swap mmc0/mmc1 aliases and add default
+ IO0 pinctrl
+
+Swap the mmc0/mmc1 aliases on the k230d boards so mmc0 maps to
+mmc_sd0 and mmc1 maps to mmc_sd1, matching the sd0/sd1 hardware
+numbering instead of the previously swapped order.
+
+Also add a default pinctrl state for the iomux node itself, configuring
+IO0 as GPIO0 with pull-up and input enabled, so IO0 has a defined
+default state instead of being left unconfigured.
+---
+ .../boot/dts/canaan/bananapi-canmv-k230d-zero.dts      |  4 ++--
+ arch/riscv/boot/dts/canaan/k230.dtsi                   | 10 ++++++++++
+ .../boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts      |  4 ++--
+ arch/riscv/boot/dts/canaan/k230d-canmv.dts             |  4 ++--
+ 4 files changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+index 20b26cc43..d91a3aa30 100755
+--- a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
++++ b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+@@ -12,8 +12,8 @@ / {
+ 
+ 	aliases {
+ 		serial2 = &uart2;
+-		mmc0 = &mmc_sd1;
+-		mmc1 = &mmc_sd0;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 	};
+ 
+ 	chosen {
+diff --git a/arch/riscv/boot/dts/canaan/k230.dtsi b/arch/riscv/boot/dts/canaan/k230.dtsi
+index 478f5a5ca..3aca2672a 100755
+--- a/arch/riscv/boot/dts/canaan/k230.dtsi
++++ b/arch/riscv/boot/dts/canaan/k230.dtsi
+@@ -900,6 +900,16 @@ iomux: iomux@91105000 {
+ 			clocks = <&iomux_pclk_gate>;
+ 			clock-names = "apb";
+ 			status = "okay";
++			pinctrl-names = "default";
++			pinctrl-0 = <&iomux_default_pins>;
++
++			iomux_default_pins: iomux_default_pins {
++				pins = K230_IO0;
++				function = K230_IO0_GPIO0;
++				bias-pull-up;
++				input-enable;
++				status = "okay";
++			};
+ 		};
+ 		pmuiomux: pmuiomux@91000080 {
+ 			compatible = "canaan,k230-iomux";
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+index e35f2c80c..5e3ae9cf8 100644
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+@@ -25,8 +25,8 @@ / {
+ 	aliases {
+ 		serial0 = &uart0;
+ 		serial2 = &uart2;
+-		mmc0 = &mmc_sd1;
+-		mmc1 = &mmc_sd0;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 		i2c0 = &i2c4;
+ 		i2c1 = &i2c3;
+ 	};
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv.dts b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+index 7cbf541b9..70027cd08 100755
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+@@ -12,8 +12,8 @@ / {
+ 
+ 	aliases {
+ 		serial2 = &uart2;
+-		mmc0 = &mmc_sd1;
+-		mmc1 = &mmc_sd0;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
+ 		i2c0 = &i2c4;
+ 	};
+ 
+-- 
+2.43.0
+

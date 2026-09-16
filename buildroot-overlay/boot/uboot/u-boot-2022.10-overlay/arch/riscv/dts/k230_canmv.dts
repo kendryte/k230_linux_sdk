@@ -72,7 +72,7 @@
 		pinctrl-single,pins = <
 
 		// CAM0_RST
-		(IO0 ) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO0_IO1 <<MSC | 0<<IE | 1<<OE | 1<<PU | 0<<PD | 2<<DS | 0<<ST )
+		//(IO0 ) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO0_IO1 <<MSC | 0<<IE | 1<<OE | 1<<PU | 0<<PD | 2<<DS | 0<<ST )
 		// WIFI_REGON
 		(IO1 ) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO0_IO1 <<MSC | 0<<IE | 1<<OE | 1<<PU | 0<<PD | 2<<DS | 0<<ST )
 

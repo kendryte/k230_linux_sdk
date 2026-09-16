@@ -23,10 +23,10 @@
 #include <env_internal.h>
 #include <linux/delay.h>
 #include <mmc.h>
-sysctl_boot_mode_e sysctl_boot_get_boot_mode(void)
-{
-	return SYSCTL_BOOT_SDIO1;
-}
+// sysctl_boot_mode_e sysctl_boot_get_boot_mode(void)
+// {
+// 	return SYSCTL_BOOT_SDIO1;
+// }
 
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
@@ -37,8 +37,8 @@ int board_late_init(void)
 #endif
 
 
-char *fdt_chosen_bootargs(void)
-{
-    char *bootargs = "root=/dev/mmcblk0p2 loglevel=8 rw rootdelay=4 rootfstype=ext4 console=ttyS2,115200  earlycon=sbi";
-	return bootargs;
-}
+// char *fdt_chosen_bootargs(void)
+// {
+//     char *bootargs = "root=/dev/mmcblk0p2 loglevel=8 rw rootdelay=4 rootfstype=ext4 console=ttyS2,115200  earlycon=sbi";
+// 	return bootargs;
+// }
