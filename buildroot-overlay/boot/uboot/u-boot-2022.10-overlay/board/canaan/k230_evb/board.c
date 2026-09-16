@@ -51,6 +51,21 @@ void quick_boot_board_init(void)
 
 int board_late_init(void)
 {
-    env_set_ulong("mmc_boot_dev_num", g_bootmod - SYSCTL_BOOT_SDIO0);
+    if(g_bootmod >= SYSCTL_BOOT_SDIO0 && g_bootmod <= SYSCTL_BOOT_SDIO1)
+        env_set_ulong("mmc_boot_dev_num", g_bootmod - SYSCTL_BOOT_SDIO0);
     return 0;
+}
+
+int fdtdec_board_setup(const void *fdt_blob)
+{
+    if(SYSCTL_BOOT_NORFLASH == sysctl_boot_get_boot_mode())
+    {
+        fdt_status_okay(fdt_blob, fdt_path_offset(fdt_blob, "/soc/spi@91584000/spi-norflash@0"));
+    }else if(SYSCTL_BOOT_NANDFLASH == sysctl_boot_get_boot_mode()){
+        fdt_status_okay(fdt_blob, fdt_path_offset(fdt_blob, "/soc/spi@91584000/spi-nandflash@0"));
+    }else{
+        fdt_status_okay(fdt_blob, fdt_path_offset(fdt_blob, "/soc/spi@91584000/spi-nandflash@0"));
+        //fdt_status_disabled(fdt_blob, fdt_path_offset(fdt_blob, "/soc/spi@91584000/spi-nandflash@0"));
+    }
+	return 0;
 }

@@ -1,0 +1,452 @@
+From d61b821fe2f86e6d2e2a60c67289b37f705e209c Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 16 Sep 2026 10:30:00 +0800
+Subject: [PATCH] mtd: nand: spi: canaan: add W25N01GW support, fix CTRLR0
+ programming race, and use A/B partitions
+
+Add the JEDEC ID (0xba, 0x21) for the Winbond W25N01GW 1.8V SPI NAND
+to the winbond manufacturer table so spinand_manufacturer_match() can
+recognize it; without this entry probe fails with -ENOTSUPP even
+though the chip is electrically identical to the existing 3.3V
+W25N01GV part.
+
+Enable spi0 on k230-evb.dts and describe the chip at CS0 with a
+fixed-partitions layout matching the NAND boot image layout (SPL,
+uboot, env A/B, opensbi+linux+dtb, rootfs UBI), then split the
+spl_uboot and uboot partitions into A/B slots to match the env A/B
+scheme already used for env.
+
+Fix the DesignWare SPI controller (spi-dw-core.c): CTRLR0/CTRLR1 are
+only writable while the controller is disabled, but SSIENR lives in
+the APB domain while gating logic in the ssi_clk domain, so a
+disable does not take effect synchronously with the register write --
+SSIENR already reads back 0 while the core is still running on the
+old settings. Any CTRLR0 write issued inside that window is silently
+dropped, with no error flag anywhere, and the transfer then executes
+with the *previous* transfer's TMOD/NDF. On K230 SPI-NAND this was
+observed roughly 1000 times per GiB of traffic in both directions,
+corrupting GET FEATURE and PAGE READ transfers. Read the programming
+back and reissue it until it sticks, using the readback as the
+barrier that gives the disable time to cross over.
+---
+ arch/riscv/boot/dts/canaan/k230-evb.dts |   59 ++++++++
+ drivers/mtd/nand/spi/winbond.c          |    9 +
+ drivers/spi/spi-dw-core.c               |  236 ++++++++++++++++++++++++++-----
+ 3 files changed, 263 insertions(+), 41 deletions(-)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-evb.dts b/arch/riscv/boot/dts/canaan/k230-evb.dts
+index 22a3f7ea..2e7572fd 100644
+--- a/arch/riscv/boot/dts/canaan/k230-evb.dts
++++ b/arch/riscv/boot/dts/canaan/k230-evb.dts
+@@ -125,3 +125,62 @@ &v4l2isp {
+ 	dev0-sensor-mode = <0>;
+ 	dev0-sensor-i2c-bus = <0>;
+ };
++
++
++&spi0 {
++	status = "okay";
++	spi-flash@0 {
++		compatible = "spi-nand";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		reg = <0>;
++        rx-sample-delay-ns = <5>;
++		spi-max-frequency = <50000000>;
++		// spi-tx-bus-width = <4>;
++		// spi-rx-bus-width = <4>;
++		status = "okay";
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++                reg = <0 0x80000>;
++                label = "spl_uboot_a";
++            };
++			partition@80000 {
++                reg = <0x80000 0x80000>;
++                label = "spl_uboot_b";
++            };
++			partition@100000 {
++                reg = <0x100000 0x100000>;
++                label = "uboot_a";
++            };
++			partition@200000 {
++                reg = <0x200000 0x100000>;
++                label = "uboot_b";
++            };
++			partition@300000 {
++                reg = <0x300000 0x20000>;
++                label = "env_a";
++            };
++            partition@320000 {
++                reg = <0x320000  0x20000>;
++                label = "env_b";
++            };
++			partition@400000 {
++                reg = <0x400000  0x1000000>;
++                label = "sys_opensbi_linux_dtb";
++            };
++			partition@1400000 {
++                reg = <0x1400000  0x6400000>;
++                label = "rootfs_ubi";
++            };
++            partition@10000000 {
++                reg = <0 0x10000000>;
++                label = "all_flash";
++            };
++		};
++	};
++
++};
+diff --git a/drivers/mtd/nand/spi/winbond.c b/drivers/mtd/nand/spi/winbond.c
+index f507e375..b4781481 100644
+--- a/drivers/mtd/nand/spi/winbond.c
++++ b/drivers/mtd/nand/spi/winbond.c
+@@ -160,6 +160,15 @@ static const struct spinand_info winbond_spinand_table[] = {
+ 					      &update_cache_variants),
+ 		     0,
+ 		     SPINAND_ECCINFO(&w25m02gv_ooblayout, NULL)),
++	SPINAND_INFO("W25N01GW", /* 1.8V */
++		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0xba, 0x21),
++		     NAND_MEMORG(1, 2048, 64, 64, 1024, 20, 1, 1, 1),
++		     NAND_ECCREQ(1, 512),
++		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
++					      &write_cache_variants,
++					      &update_cache_variants),
++		     0,
++		     SPINAND_ECCINFO(&w25m02gv_ooblayout, NULL)),
+ 	SPINAND_INFO("W25N02KV",
+ 		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0xaa, 0x22),
+ 		     NAND_MEMORG(1, 2048, 128, 64, 2048, 40, 1, 1, 1),
+diff --git a/drivers/spi/spi-dw-core.c b/drivers/spi/spi-dw-core.c
+index 5b5cd73c..5aa23dd5 100644
+--- a/drivers/spi/spi-dw-core.c
++++ b/drivers/spi/spi-dw-core.c
+@@ -12,6 +12,7 @@
+ #include <linux/preempt.h>
+ #include <linux/highmem.h>
+ #include <linux/delay.h>
++#include <linux/ktime.h>
+ #include <linux/slab.h>
+ #include <linux/spi/spi.h>
+ #include <linux/spi/spi-mem.h>
+@@ -351,6 +352,90 @@ void dw_spi_update_config(struct dw_spi *dws, struct spi_device *spi,
+ }
+ EXPORT_SYMBOL_NS_GPL(dw_spi_update_config, SPI_DW_CORE);
+ 
++/*
++ * Number of times the controller had to be reprogrammed because the first
++ * CTRLR0/CTRLR1 write was swallowed while SSIENR=0 was still crossing into
++ * the ssi_clk domain. Read via
++ * /sys/module/spi_dw/parameters/canaan_ctrlr0_reprogram.
++ */
++static unsigned int canaan_ctrlr0_reprogram;
++module_param(canaan_ctrlr0_reprogram, uint, 0644);
++MODULE_PARM_DESC(canaan_ctrlr0_reprogram,
++		 "Count of dropped CTRLR0 writes that had to be reissued");
++
++static u32 dw_spi_read_tmod(struct dw_spi *dws)
++{
++	u32 cr0 = dw_readl(dws, DW_SPI_CTRLR0);
++
++	if (dw_spi_ip_is(dws, PSSI))
++		return FIELD_GET(DW_PSSI_CTRLR0_TMOD_MASK, cr0);
++
++	return FIELD_GET(DW_HSSI_CTRLR0_TMOD_MASK, cr0);
++}
++
++/*
++ * Disable the controller and program it, then verify the programming was
++ * actually accepted.
++ *
++ * CTRLR0/CTRLR1 are only writable while the controller is disabled ("It is
++ * impossible to program some of the DWC_ssi control registers when
++ * enabled"). SSIENR lives in the APB domain but gates logic in the ssi_clk
++ * domain, so the disable does not take effect synchronously with the
++ * register write -- SSIENR already reads back 0 while the core is still
++ * running on the old settings. Any CTRLR0 write issued inside that window
++ * is silently dropped, with no error flag anywhere, and the transfer then
++ * executes with the *previous* transfer's TMOD/NDF.
++ *
++ * On K230 SPI-NAND this was observed roughly 1000 times per GiB of traffic,
++ * in both directions:
++ *
++ *   - a GET FEATURE (0x0f, EEPROMREAD ndf=1) left in TMOD_TO never captures
++ *     anything, so its single byte never arrives;
++ *   - a PAGE READ (0x13, TMOD_TO) left in EEPROMREAD with the stale ndf of a
++ *     2048-byte READ FROM CACHE keeps clocking and floods the Rx FIFO.
++ *
++ * Read the programming back and reissue it until it sticks; the readback
++ * doubles as the barrier that gives the disable time to cross over, so this
++ * does not depend on knowing the ssi_clk/pclk ratio. CTRLR1 has to be
++ * checked as well: back-to-back Data-IN ops (GET FEATURE 0x0f then READ FROM
++ * CACHE 0x03) share TMOD, so only the stale ndf would give them away.
++ */
++static int dw_spi_update_config_checked(struct dw_spi *dws,
++					struct spi_device *spi,
++					struct dw_spi_cfg *cfg)
++{
++	int retry;
++
++	for (retry = DW_SPI_WAIT_RETRIES; retry > 0; retry--) {
++		bool ndf_ok = true;
++
++		dw_spi_enable_chip(dws, 0);
++
++		dw_spi_update_config(dws, spi, cfg);
++
++		if (cfg->tmode == DW_SPI_CTRLR0_TMOD_EPROMREAD ||
++		    cfg->tmode == DW_SPI_CTRLR0_TMOD_RO)
++			ndf_ok = dw_readl(dws, DW_SPI_CTRLR1) ==
++				 (cfg->ndf ? cfg->ndf - 1 : 0);
++
++		if (ndf_ok && dw_spi_read_tmod(dws) == cfg->tmode)
++			return 0;
++
++		canaan_ctrlr0_reprogram++;
++		ndelay(100);
++	}
++
++	dev_err(&dws->host->dev,
++		"CTRLR0 programming refused: want tmod=%u got=%u CTRLR0=0x%08x CTRLR1=%u SSIENR=0x%x SR=0x%x\n",
++		cfg->tmode, dw_spi_read_tmod(dws),
++		dw_readl(dws, DW_SPI_CTRLR0),
++		dw_readl(dws, DW_SPI_CTRLR1),
++		dw_readl(dws, DW_SPI_SSIENR),
++		dw_readl(dws, DW_SPI_SR));
++
++	return -EIO;
++}
++
+ static void dw_spi_irq_setup(struct dw_spi *dws)
+ {
+ 	u16 level;
+@@ -433,9 +518,9 @@ static int dw_spi_transfer_one(struct spi_controller *host,
+ 	/* Ensure the data above is visible for all CPUs */
+ 	smp_mb();
+ 
+-	dw_spi_enable_chip(dws, 0);
+-
+-	dw_spi_update_config(dws, spi, &cfg);
++	ret = dw_spi_update_config_checked(dws, spi, &cfg);
++	if (ret)
++		return ret;
+ 
+ 	transfer->effective_speed_hz = dws->current_freq;
+ 
+@@ -549,11 +634,43 @@ static void dw_spi_free_mem_buf(struct dw_spi *dws)
+ 		kfree(dws->tx);
+ }
+ 
+-static int dw_spi_write_then_read(struct dw_spi *dws, struct spi_device *spi)
++/*
++ * Canaan K230: dw_spi_exec_mem_op() is the only transfer path used for the
++ * on-board SPI-NAND (native CS, no cs-gpios), and it runs entirely with
++ * local IRQs and preemption disabled around this function. The Rx-fetch
++ * loop below has no bound on its own: if the Rx FIFO ever stops filling
++ * (has been observed to happen intermittently against the K230 SPI-NAND
++ * during flash_erase/flashcp), it spins forever with IRQs off, wedging the
++ * whole CPU (and, transitively, the rest of the system) instead of failing
++ * the transfer. DW_SPI_MEM_RW_TIMEOUT_MS bounds how long we wait for
++ * forward progress before giving up and returning -ETIMEDOUT.
++ */
++#define DW_SPI_MEM_RW_TIMEOUT_MS	500
++
++/*
++ * Diagnostics: identify *which* spi_mem_op is the one that comes up short.
++ * The failure signature seen on K230 SPI-NAND is always "1 byte(s) left",
++ * which is the only possible value for a 1-byte read (GET FEATURE 0x0F,
++ * ndf=1 -> CTRLR1=0) but would be a suspicious coincidence for a 2112-byte
++ * READ FROM CACHE. Print the opcode/addr/dummy/data so the two can be told
++ * apart.
++ */
++#define DW_SPI_OP_FMT	"cmd=0x%02x addr=0x%llx/%ub dummy=%ub data=%s/%u"
++#define DW_SPI_OP_ARG(op)						\
++	(op)->cmd.opcode,						\
++	(unsigned long long)(op)->addr.val, (op)->addr.nbytes,		\
++	(op)->dummy.nbytes,						\
++	(op)->data.dir == SPI_MEM_DATA_IN ? "in" :			\
++		((op)->data.nbytes ? "out" : "none"),			\
++	(op)->data.nbytes
++
++static int dw_spi_write_then_read(struct dw_spi *dws, struct spi_device *spi,
++				  const struct spi_mem_op *op)
+ {
+ 	u32 room, entries, sts;
+ 	unsigned int len;
+ 	u8 *buf;
++	ktime_t deadline;
+ 
+ 	/*
+ 	 * At initial stage we just pre-fill the Tx FIFO in with no rush,
+@@ -576,7 +693,9 @@ static int dw_spi_write_then_read(struct dw_spi *dws, struct spi_device *spi)
+ 	while (len) {
+ 		entries = readl_relaxed(dws->regs + DW_SPI_TXFLR);
+ 		if (!entries) {
+-			dev_err(&dws->host->dev, "CS de-assertion on Tx\n");
++			dev_err(&dws->host->dev,
++				"CS de-assertion on Tx, %u byte(s) left, "
++				DW_SPI_OP_FMT "\n", len, DW_SPI_OP_ARG(op));
+ 			return -EIO;
+ 		}
+ 		room = min(dws->fifo_len - entries, len);
+@@ -591,16 +710,34 @@ static int dw_spi_write_then_read(struct dw_spi *dws, struct spi_device *spi)
+ 	 */
+ 	len = dws->rx_len;
+ 	buf = dws->rx;
++	deadline = ktime_add_ms(ktime_get(), DW_SPI_MEM_RW_TIMEOUT_MS);
+ 	while (len) {
+ 		entries = readl_relaxed(dws->regs + DW_SPI_RXFLR);
+ 		if (!entries) {
+ 			sts = readl_relaxed(dws->regs + DW_SPI_RISR);
+ 			if (sts & DW_SPI_INT_RXOI) {
+-				dev_err(&dws->host->dev, "FIFO overflow on Rx\n");
++				dev_err(&dws->host->dev,
++					"FIFO overflow on Rx, %u byte(s) left, "
++					DW_SPI_OP_FMT "\n",
++					len, DW_SPI_OP_ARG(op));
+ 				return -EIO;
+ 			}
++			if (ktime_after(ktime_get(), deadline)) {
++				dev_err(&dws->host->dev,
++					"Rx FIFO fill timeout, %u byte(s) left, SR=0x%x ISR=0x%x RISR=0x%x TXFLR=%u, "
++					DW_SPI_OP_FMT "\n",
++					len,
++					readl_relaxed(dws->regs + DW_SPI_SR),
++					readl_relaxed(dws->regs + DW_SPI_ISR),
++					sts,
++					readl_relaxed(dws->regs + DW_SPI_TXFLR),
++					DW_SPI_OP_ARG(op));
++				return -ETIMEDOUT;
++			}
++			cpu_relax();
+ 			continue;
+ 		}
++		deadline = ktime_add_ms(ktime_get(), DW_SPI_MEM_RW_TIMEOUT_MS);
+ 		entries = min(entries, len);
+ 		for (; entries; --entries, --len)
+ 			*buf++ = dw_read_io_reg(dws, DW_SPI_DR);
+@@ -609,39 +746,51 @@ static int dw_spi_write_then_read(struct dw_spi *dws, struct spi_device *spi)
+ 	return 0;
+ }
+ 
+-static inline bool dw_spi_ctlr_busy(struct dw_spi *dws)
+-{
+-	return dw_readl(dws, DW_SPI_SR) & DW_SPI_SR_BUSY;
+-}
+-
+-static int dw_spi_wait_mem_op_done(struct dw_spi *dws)
++/*
++ * Wait for the op to drain out onto the wire.
++ *
++ * Databook 2.5: "The BUSY status is not set when the data are written into
++ * the transmit FIFO. This bit gets set only when the target slave has been
++ * selected and the transfer is underway. After writing data into the
++ * transmit FIFO, the shift logic does not begin the serial transfer until a
++ * positive edge of the sclk_out signal is present... Before polling the BUSY
++ * status, you should first poll the TFE status (waiting for 1) or wait for
++ * BAUDR * ssi_clk clock cycles."
++ *
++ * Polling BUSY alone is therefore wrong for a transmit-only op (PAGE READ
++ * 0x13, WRITE ENABLE 0x06, PROGRAM EXECUTE 0x10): dw_spi_write_then_read()
++ * returns as soon as the command is in the Tx FIFO, and BUSY can still read
++ * 0 because the first sclk edge has not happened yet. The op would be
++ * declared complete and dw_spi_stop_mem_op()'s SSIENR=0 ("all serial
++ * transfers are halted immediately") would truncate the command mid-wire.
++ * TFE is 0 for as long as the Tx FIFO still holds the command, which closes
++ * that window. This is what u-boot's designware_spi.c has always done.
++ */
++static int dw_spi_wait_mem_op_done(struct dw_spi *dws,
++				   const struct spi_mem_op *op)
+ {
+-	int retry = DW_SPI_WAIT_RETRIES;
+-	struct spi_delay delay;
+-	unsigned long ns, us;
+-	u32 nents;
+-
+-	nents = dw_readl(dws, DW_SPI_TXFLR);
+-	ns = NSEC_PER_SEC / dws->current_freq * nents;
+-	ns *= dws->n_bytes * BITS_PER_BYTE;
+-	if (ns <= NSEC_PER_USEC) {
+-		delay.unit = SPI_DELAY_UNIT_NSECS;
+-		delay.value = ns;
+-	} else {
+-		us = DIV_ROUND_UP(ns, NSEC_PER_USEC);
+-		delay.unit = SPI_DELAY_UNIT_USECS;
+-		delay.value = clamp_val(us, 0, USHRT_MAX);
+-	}
+-
+-	while (dw_spi_ctlr_busy(dws) && retry--)
+-		spi_delay_exec(&delay, NULL);
++	ktime_t deadline = ktime_add_ms(ktime_get(), DW_SPI_MEM_RW_TIMEOUT_MS);
++	u32 sr;
++
++	for (;;) {
++		sr = readl_relaxed(dws->regs + DW_SPI_SR);
++		if ((sr & DW_SPI_SR_TF_EMPT) && !(sr & DW_SPI_SR_BUSY))
++			return 0;
++
++		if (ktime_after(ktime_get(), deadline)) {
++			dev_err(&dws->host->dev,
++				"Mem op hanged up, SR=0x%x ISR=0x%x TXFLR=%u RXFLR=%u, "
++				DW_SPI_OP_FMT "\n",
++				sr,
++				readl_relaxed(dws->regs + DW_SPI_ISR),
++				readl_relaxed(dws->regs + DW_SPI_TXFLR),
++				readl_relaxed(dws->regs + DW_SPI_RXFLR),
++				DW_SPI_OP_ARG(op));
++			return -EIO;
++		}
+ 
+-	if (retry < 0) {
+-		dev_err(&dws->host->dev, "Mem op hanged up\n");
+-		return -EIO;
++		cpu_relax();
+ 	}
+-
+-	return 0;
+ }
+ 
+ static void dw_spi_stop_mem_op(struct dw_spi *dws, struct spi_device *spi)
+@@ -687,9 +836,14 @@ static int dw_spi_exec_mem_op(struct spi_mem *mem, const struct spi_mem_op *op)
+ 		cfg.tmode = DW_SPI_CTRLR0_TMOD_TO;
+ 	}
+ 
+-	dw_spi_enable_chip(dws, 0);
+-
+-	dw_spi_update_config(dws, mem->spi, &cfg);
++	/* See dw_spi_update_config_checked() for why this must be verified. */
++	ret = dw_spi_update_config_checked(dws, mem->spi, &cfg);
++	if (ret) {
++		dev_err(&dws->host->dev, "config refused for " DW_SPI_OP_FMT "\n",
++			DW_SPI_OP_ARG(op));
++		dw_spi_free_mem_buf(dws);
++		return ret;
++	}
+ 
+ 	dw_spi_mask_intr(dws, 0xff);
+ 
+@@ -726,7 +880,7 @@ static int dw_spi_exec_mem_op(struct spi_mem *mem, const struct spi_mem_op *op)
+ 	local_irq_save(flags);
+ 	preempt_disable();
+ 
+-	ret = dw_spi_write_then_read(dws, mem->spi);
++	ret = dw_spi_write_then_read(dws, mem->spi, op);
+ 
+ 	local_irq_restore(flags);
+ 	preempt_enable();
+@@ -739,7 +893,7 @@ static int dw_spi_exec_mem_op(struct spi_mem *mem, const struct spi_mem_op *op)
+ 	 * would be due to an error detected on the data transfer.
+ 	 */
+ 	if (!ret) {
+-		ret = dw_spi_wait_mem_op_done(dws);
++		ret = dw_spi_wait_mem_op_done(dws, op);
+ 		if (!ret)
+ 			ret = dw_spi_check_status(dws, true);
+ 	}
+
+-- 
+2.43.0

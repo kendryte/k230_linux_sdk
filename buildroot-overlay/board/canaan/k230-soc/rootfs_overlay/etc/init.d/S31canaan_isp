@@ -1,7 +1,9 @@
 #!/bin/sh
-bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
+mmc_bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
 
-mount ${bootddev}p1 /boot
+if [ -n "${mmc_bootddev}" ] && [ -b "${mmc_bootddev}" ]; then
+    mount ${mmc_bootddev}p1 /boot
+fi
 modprobe vvcam_isp
 modprobe vvcam_mipi
 modprobe vvcam_vb

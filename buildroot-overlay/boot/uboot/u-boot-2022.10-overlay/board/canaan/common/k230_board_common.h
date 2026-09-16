@@ -102,8 +102,8 @@ typedef enum _en___boot_type{
 #define RTT_SYS_IN_SPI_NOR_OFF   CONFIG_SPI_NOR_RTTK_BASE
 #define LINUX_SYS_IN_SPI_NOR_OFF CONFIG_MEM_LINUX_SYS_BASE
 
-#define UBOOT_SYS_IN_SPI_NAND_OFF 0x80000
-#define LINUX_SYS_IN_SPI_NAND_OFF 0x00a00000
+#define UBOOT_SYS_IN_SPI_NAND_OFF 0x100000
+#define LINUX_SYS_IN_SPI_NAND_OFF 0x00400000
 #define RTT_SYS_IN_SPI_NAND_OFF 0x00200000
 
 #define IMG_PART_NOT_EXIT 0XFFFFFFFF
@@ -125,4 +125,5 @@ extern void board_ddr_init(void);
 int k230_gpio(char opt, int pin, char *value);
 void wifi_sdio0_rst(void);
 void wifi_gpio_rst(int gpio);
+void enter_to_usb_burn_mode(void);
 #endif

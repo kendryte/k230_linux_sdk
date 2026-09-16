@@ -35,7 +35,7 @@ RUN apt-get install -y --fix-broken --fix-missing --no-install-recommends   sudo
 
 RUN apt-get install -y  --fix-broken --fix-missing   git sed make binutils build-essential diffutils gcc  g++ bash patch gzip \
         bzip2 perl  tar cpio unzip rsync file  bc findutils wget  libncurses-dev python3 python3-pip  \
-        libssl-dev gawk cmake bison flex  bash-completion  parted curl
+        libssl-dev gawk cmake bison flex  bash-completion  parted curl xz-utils  mtd-utils
 
 RUN UBUNTU_VERSION=$(awk -F'"' '/VERSION=/{print $2}' /etc/os-release | cut -d. -f1-2) && \
     if [ "${UBUNTU_VERSION}" = "24.04" ]; then \

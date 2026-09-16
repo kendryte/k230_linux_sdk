@@ -119,9 +119,11 @@ char *board_fdt_chosen_bootargs(void){
         else  if(g_bootmod == SYSCTL_BOOT_NORFLASH)
             //bootargs = "root=/dev/mtdblock9 rw rootwait rootfstype=jffs2 console=ttyS0,115200 earlycon=sbi";
             //bootargs = "ubi.mtd=9 rootfstype=ubifs rw root=ubi0_0 console=ttyS0,115200 earlycon=sbi";
-            bootargs = "ubi.mtd=9 rootfstype=ubifs rw root=ubi0_0 console=ttyS0,115200 earlycon=sbi fw_devlink=off quiet";
+            bootargs = "ubi.mtd=7 rootfstype=ubifs rw root=ubi0_0 console=ttyS0,115200 earlycon=sbi";
+        else if(g_bootmod == SYSCTL_BOOT_NANDFLASH)
+            bootargs = "ubi.mtd=7 rootfstype=ubifs rw root=ubi0_0 console=ttyS0,115200 earlycon=sbi";
     }
-    printf("%s\n",bootargs);
+    printf("g_bootmod = %d, bootargs=%s\n", g_bootmod, bootargs);
     return bootargs;
 }
 #endif
@@ -682,6 +684,10 @@ static struct mtd_info *get_mtd_by_name(const char *name)
 
 	return mtd;
 }
+static bool mtd_is_aligned_with_block_size(struct mtd_info *mtd, u64 size)
+{
+        return !do_div(size, mtd->erasesize);
+}
 
 static int k230_load_sys_from_spi_nand( en_boot_sys_t sys, ulong buff)
 {
@@ -719,7 +725,7 @@ static int k230_load_sys_from_spi_nand( en_boot_sys_t sys, ulong buff)
 	io_op.oobbuf = NULL;
     end = off+len;
 	while (off < end) {
-		if (mtd_block_isbad(mtd, off)) {
+		if (mtd_is_aligned_with_block_size(mtd, off) && mtd_block_isbad(mtd, off)) {
 			off += blocksize;
 		} else {
 			io_op.datbuf = &buf[amount_loaded];
@@ -742,7 +748,7 @@ static int k230_load_sys_from_spi_nand( en_boot_sys_t sys, ulong buff)
     {
         end = off+pfh->length - (mtd->writesize - sizeof(*pfh));
         while (off < end) {
-            if (mtd_block_isbad(mtd, off)) {
+	    if (mtd_is_aligned_with_block_size(mtd, off) && mtd_block_isbad(mtd, off)) {
                 off += blocksize;
             } else {
                 io_op.datbuf = &buf[amount_loaded];
@@ -816,6 +822,17 @@ __weak int k230_img_load_boot_sys_auot_boot(en_boot_sys_t sys)
 
     return ret;
 }
+#ifdef CONFIG_K230_UBOOT_DOUBLE
+en_boot_sys_t k230_img_get_first_uboot_id(void)
+{
+    char *s = NULL;
+    en_boot_sys_t sys = BOOT_SYS_UBOOT_A;
+    s = env_get("uboot_partition");
+    if((s != NULL) &&( *s == 'b'|| *s == 'B'))
+        sys = BOOT_SYS_UBOOT_B;
+    return sys;
+}
+#endif
 /**
  * @brief
  *
@@ -827,6 +844,19 @@ __weak int k230_img_load_boot_sys_auot_boot(en_boot_sys_t sys)
 int k230_img_load_boot_sys(en_boot_sys_t sys)
 {
     int ret = 0;
+    #ifdef CONFIG_K230_UBOOT_DOUBLE
+    if(sys == BOOT_SYS_UBOOT){
+        en_boot_sys_t uboot_flage = k230_img_get_first_uboot_id();
+        printf("boot uboot %d--\n", uboot_flage);
+        ret = k230_img_load_boot_sys(uboot_flage);
+        if(ret){
+            printf("uboot sys %d boot failed\n", sys);
+            uboot_flage = (uboot_flage == BOOT_SYS_UBOOT_A) ? BOOT_SYS_UBOOT_B : BOOT_SYS_UBOOT_A;
+            ret = k230_img_load_boot_sys(uboot_flage);
+        }
+        return ret;
+    }
+    #endif
 
     if(sys == BOOT_SYS_AUTO)
         ret =  k230_img_load_boot_sys_auot_boot(sys);

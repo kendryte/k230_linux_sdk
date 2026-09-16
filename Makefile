@@ -32,7 +32,7 @@ buildroot: $(BRW_BUILD_DIR)/.config
 	make -C $(BRW_BUILD_DIR) all   BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
 	@echo -e "\033[32m========================================\033[0m"
 	@echo -e "\033[32m Build complete!\033[0m"
-	@echo -e "\033[32m Image: $(BRW_BUILD_DIR)/images/sysimage-sdcard.img.gz\033[0m"
+	@tools/print_images.sh $(BRW_BUILD_DIR)
 	@echo -e "\033[32m========================================\033[0m"
 
 .PHONY:dl

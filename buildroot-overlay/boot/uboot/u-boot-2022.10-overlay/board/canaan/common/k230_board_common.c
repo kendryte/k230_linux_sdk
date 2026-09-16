@@ -77,6 +77,15 @@ enum env_location arch_env_get_location(enum env_operation op, int prio)
     }
 	return ENVL_MMC;
 }
+void enter_to_usb_burn_mode(void)
+{
+    printf("now enter to usb burn mode\r\n\n");
+    mdelay(100);
+
+    writel(0x5aa5a55a, (void*)0x80230000);
+    flush_dcache_range(0x80230000,0x80230000+4);
+    writel(0x10001, (void*)SYSCTL_BOOT_BASE_ADDR+0x60);
+}
 #ifndef CONFIG_SPL_BUILD
 int board_early_init_f(void)
 {
@@ -550,12 +559,7 @@ U_BOOT_CMD(
 
 static int do_2_burn_mode(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-    printf("now enter to usb burn mode\r\n\n");
-    mdelay(100);
-
-    writel(0x5aa5a55a, (void*)0x80230000);
-    flush_dcache_range(0x80230000,0x80230000+4);
-    writel(0x10001, (void*)SYSCTL_BOOT_BASE_ADDR+0x60);
+    enter_to_usb_burn_mode();
     return 0;
 }
 U_BOOT_CMD(

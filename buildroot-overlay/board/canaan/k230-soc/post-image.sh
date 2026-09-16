@@ -4,9 +4,12 @@ BUILDROOT_PATH=$(pwd)
 #BINARIES_DIR=/home/wangjianxin/k230_linux_sdk/output/k230_canmv_defconfig/images
 UBOOT_BUILD_DIR=${BUILD_DIR}/uboot-2022.10
 K230_SDK_ROOT=$(dirname $(dirname ${BASE_DIR}))
-GENIMAGE_CFG_SD=$(dirname $(realpath "$0"))/genimage.cfg
-env_dir=$(dirname $(realpath "$0"))
+GENIMAGE_CFG_SD=$(dirname $(realpath "$0"))/genimage_cfg/genimage.cfg
+GENIMAGE_CFG_NAND=$(dirname $(realpath "$0"))/genimage_cfg/genimage_nand.cfg
+GENIMAGE_CFG_NOR=$(dirname $(realpath "$0"))/genimage_cfg/genimage_nor.cfg
+env_dir=$(dirname $(realpath "$0"))/env
 CONF=$(basename ${BASE_DIR})
+
 
 
 #放到post build
@@ -52,7 +55,7 @@ gz_file_add_ver()
 		cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2 > /dev/null && \
 			nncase_ver=$(cat ${nncase_ver_file} | grep NNCASE_VERSION -w | cut -d\" -f 2)
 	fi
-	final_img_name="${canaan_site_name}_linux_${sdk_ver}_nncase_v${nncase_ver}_${commit_id}.img.gz"
+	final_img_name="${canaan_site_name}_linux_${sdk_ver}_nncase_v${nncase_ver}_${commit_id}_${storage}.img.gz"
 	rm -rf  ${final_img_name}; ln -s  $f ${final_img_name};
 }
 
@@ -90,7 +93,7 @@ k230_gzip()
 	${k230_gzip_tool} -n8  -f -k ${filename}  ||   ${k230_gzip_tool} -n9 -f -k ${filename} ||  \
 	${k230_gzip_tool} -n7 -f -k ${filename}   ||   ${k230_gzip_tool} -n6 -f -k ${filename} || \
 	${k230_gzip_tool} -n5 -f -k ${filename}   ||   ${k230_gzip_tool} -n4 -f -k ${filename}
-	set -e ;sed -i -e "1s/\x08/\x09/"  ${filename}.gz; set +e;
+	set -e ;sed -i -e "1s/\x08/\x09/"  ${filename}.gz;
 }
 
 # "-O linux -T firmware  -a ${add} -e ${add} -n ${name}"
@@ -153,6 +156,9 @@ gen_linux_bin ()
 	local first_dtb="$(grep BR2_LINUX_KERNEL_INTREE_DTS_NAME ${BR2_CONFIG} | cut -d / -f2 | tr -d '"' |  cut -d ' ' -f1).dtb"
 	local CONFIG_MEM_LINUX_SYS_BASE=$(cat ${UBOOT_BUILD_DIR}/board/canaan/common/sdk_autoconf.h | grep CONFIG_MEM_LINUX_SYS_BASE | awk '{print $3}')
 
+	grep -q "^BR2_CANAAN_GEN_SPI_NAND_IMG=y$" ${BR2_CONFIG} || grep -q "^BR2_CANAAN_GEN_SPI_NOR_IMG=y$" ${BR2_CONFIG} || return 0
+
+
 	cd  "${BINARIES_DIR}/";
 
 	# local LINUX_SRC_PATH="src/little/linux"
@@ -170,7 +176,7 @@ gen_linux_bin ()
 	# sed -i "s/linux,initrd-end = <0x0 .*/linux,initrd-end = <0x0 $ROOTFS_END>;/g" hw/k230.dts.txt
 
 	# ${LINUX_BUILD_DIR}/scripts/dtc/dtc -I dts -q -O dtb hw/k230.dts.txt  >k230.dtb;
-	ln -s ${first_dtb} k.dtb
+	rm -rf k.dtb; ln -s ${first_dtb} k.dtb
 	k230_gzip fw_payload.bin;
 	echo a>rd;
 	${mkimage} -A riscv -O linux -T multi -C gzip -a ${CONFIG_MEM_LINUX_SYS_BASE} -e ${CONFIG_MEM_LINUX_SYS_BASE} -n linux -d fw_payload.bin.gz:rd:k.dtb  ulinux.bin;
@@ -204,6 +210,7 @@ gen_image()
 					--inputpath "$(pwd)"  	--outputpath "$(pwd)"	--config "${cfg}"
 
 	rm -rf "${GENIMAGE_TMP}"
+
 	gzip -k -f ${image_name}
 	chmod a+rw ${image_name} ${image_name}.gz;
 
@@ -216,22 +223,17 @@ gen_env_bin()
 
 	cd  "${BINARIES_DIR}/";
 	local default_env_file=${env_dir}/default.env;
-
-	# if [ ${DTB} == "k230-canmv-01studio.dtb" ]; then
-	# 	default_env_file=${env_dir}/01studio.env;
-	# fi
-	# if [ ${DTB} == "k230-canmv.dtb" ]; then
-	# 	default_env_file=${env_dir}/k230_canmv.env;
-	# fi
+	local nand_default_env_file=${env_dir}/default_nand.env;
+	local nor_default_env_file=${env_dir}/default_nor.env;
 
 	if [ ${CONF} == "k230d_canmv_ilp32_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_ilp32_defconfig" ]; then
 		sed -i 's/^bootcmd=.*$/bootcmd=run bnuttx;run blinuxilp32;/g' ${default_env_file}
-	elif [ ${CONF} == "k230d_canmv_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_defconfig" ]; then
-		sed -i 's/^bootcmd=.*$/bootcmd=run bnuttx;run blinux;/g' ${default_env_file}
 	else
 		sed -i 's/^bootcmd=.*$/bootcmd=run blinux;/g' ${default_env_file}
 	fi
-	${mkenvimage} -s 0x10000 -o uboot/env.env  ${default_env_file}
+	${mkenvimage} -s 0x2000 -o uboot/env.env  ${default_env_file}
+	${mkenvimage} -s 0x2000 -o uboot/nand_env.env  ${nand_default_env_file}
+	${mkenvimage} -s 0x2000 -o uboot/nor_env.env  ${nor_default_env_file}
 }
 gen_boot_ext4_copy_dtb()
 {
@@ -256,14 +258,14 @@ gen_boot_ext4_copy_dtb()
 }
 gen_boot_ext4()
 {
+	local default_env_file=${env_dir}/default.env;
 	local logo=$(grep CONFIG_K230_BARE_DISP_LOGO_PATH ${UBOOT_BUILD_DIR}/.config  | cut -d '"' -f2 |  sed 's/\.png$/.yuv/')
 
 	cd  "${BINARIES_DIR}/";
 	rm -rf boot; mkdir -p boot;
 	gen_boot_ext4_copy_dtb
 
-	if [ ${CONF} == "k230d_canmv_ilp32_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_ilp32_defconfig" ] ||
-		[ ${CONF} == "k230d_canmv_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_defconfig" ] ; then
+	if [ ${CONF} == "k230d_canmv_ilp32_defconfig" ] || [ ${CONF} == "BPI-CanMV-K230D-Zero_ilp32_defconfig" ] ; then
 		cp ${K230_SDK_ROOT}/buildroot-overlay/board/canaan/k230-soc/rootfs_overlay/boot/nuttx-7000000-uart2.bin  boot/;
 		sed -i 's/^bootcmd=.*$/bootcmd=run bnuttx;run blinuxilp32;/g' ${default_env_file}
 	fi
@@ -282,9 +284,106 @@ gen_deb_packages_gz()
 	rm -rf  Packages.gz;dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
 	cd -;
 }
+#手动指定要从rootfs里删掉的大文件(相对TARGET_DIR的路径)
+LARGE_FILE_LIST=(
+	"usr/lib/libavcodec.so.58.134.100"
+	"root/app/face_detect/face_detect.elf"
+	"usr/lib/libpython3.13.so.1.0"
+	"usr/lib/python3.13/site-packages/nncaseruntime/_nncaseruntime_k230.cpython-313-riscv64-linux-gnu.so"
+	"root/app/ai2d_kpu/ai2d_kpu.elf"
+	"usr/lib/libopencv_dnn.so.4.10.0"
+	# "usr/lib/libcrypto.so.3" 不能删除
+	"usr/bin/perl"
+	"usr/lib/libavfilter.so.7.110.100"
+	"usr/lib/python3.13/site-packages/numpy/core/_multiarray_umath.cpython-313-riscv64-linux-gnu.so"
+	"usr/lib/libprotobuf.so.29.3.0"
+	"usr/lib/libopencv_imgproc.so.4.10.0"
+	"usr/lib/python3.13/site-packages/cv2/python-3.13/cv2.cpython-313-riscv64-linux-gnu.so"
+	"root/app/ai2d_kpu/test.kmodel"
+	"usr/lib/libavformat.so.58.76.100"
+	"lib/modules/6.6.36/kernel/fs/btrfs/btrfs.ko"
+	"usr/lib/libopencv_core.so.4.10.0"
+	"root/app/ai2d_kpu/ai2d_input.bin"
+	"usr/lib/python3.13/ensurepip/_bundled/pip-25.0.1-py3-none-any.whl"
+	"root/app/camera_webrtc_demo"
+	"usr/bin/radix2-big-64k"
+	"lib/libasan.so.8"
+	"usr/lib/python3.13/site-packages/numpy/linalg/_umath_linalg.cpython-313-riscv64-linux-gnu.so"
+	"usr/lib/libsqlite3.so.0.8.6"
+	"usr/lib/python3.13/site-packages/numpy/linalg/lapack_lite.cpython-313-riscv64-linux-gnu.so"
+	"usr/lib/libliveMedia.so.94.0.1"
+	"usr/lib/libwebrtc-audio-processing-1.so.3"
+	"lib/modules/6.6.36/kernel/net/bluetooth/bluetooth.ko"
+
+	#--- perl 解释器已经删了(usr/bin/perl),下面这整棵树留着也跑不了,直接整目录删 ---
+	"usr/lib/perl5"
+
+	#--- python 打包/构建工具链,目标板运行时不需要 ---
+	"usr/lib/python3.13/site-packages/pip"
+	"usr/lib/python3.13/site-packages/pip-25.0.dist-info"
+	"usr/lib/python3.13/site-packages/setuptools"
+	"usr/lib/python3.13/site-packages/setuptools-75.8.0.dist-info"
+	"usr/lib/python3.13/site-packages/pkg_resources"
+	"usr/lib/python3.13/site-packages/_distutils_hack"
+	"usr/lib/python3.13/site-packages/distutils-precedence.pth"
+
+	#--- numpy 自带的单测/过时构建子模块,运行时不需要 ---
+	"usr/lib/python3.13/site-packages/numpy/core/tests"
+	"usr/lib/python3.13/site-packages/numpy/lib/tests"
+	"usr/lib/python3.13/site-packages/numpy/distutils"
+)
+
+delet_large_file()
+{
+	local f
+	for f in "${LARGE_FILE_LIST[@]}"; do
+		local target="${TARGET_DIR}/${f}"
+		if [ -e "${target}" ]; then
+			rm -rf "${target}"
+		else
+			: #echo "delet_large_file: not found, skip: ${target}"
+		fi
+	done
+
+	#python编译缓存,运行时会自动重新生成,不需要打包进rootfs
+	find "${TARGET_DIR}/usr/lib/python3.13" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+}
+gen_sys_img()
+{
+	rm -rf ${BINARIES_DIR}/*.img.gz  ${BINARIES_DIR}/sysimage*.img;
+	if grep -q "^BR2_CANAAN_GEN_MMC_IMG=y$" ${BR2_CONFIG}; then
+		gen_image ${GENIMAGE_CFG_SD}   sysimage-sdcard.img
+	fi
+	rm -rf ${TARGET_DIR}/../target_*;
+
+	if grep -q "^BR2_CANAAN_GEN_SPI_NAND_IMG=y$" ${BR2_CONFIG}; then
+		rm -rf ${BINARIES_DIR}/../target_bak; cp -r  ${TARGET_DIR}/ ${BINARIES_DIR}/../target_bak;
+		rm -rf ${TARGET_DIR}/boot/*;
+		delet_large_file
+		#cp -r  ${BINARIES_DIR}/boot/*  ${TARGET_DIR}/boot/;
+		gen_image ${GENIMAGE_CFG_NAND}  sysimage-nand.img
+		cp -r  ${TARGET_DIR}/ ${BINARIES_DIR}/../target_nand;
+		rm -rf ${TARGET_DIR}; mv ${BINARIES_DIR}/../target_bak  ${TARGET_DIR};
+
+	fi
+
+	# if grep -q "^BR2_CANAAN_GEN_SPI_NOR_IMG=y$" ${BR2_CONFIG}; then
+	# 	rm -rf ${BINARIES_DIR}/../target_bak; cp -r  ${TARGET_DIR}/ ${BINARIES_DIR}/../target_bak;
+	# 	rm -rf ${TARGET_DIR}/boot/*;
+	# 	delet_large_file
+	# 	#cp -r  ${BINARIES_DIR}/boot/*  ${TARGET_DIR}/boot/;
+	# 	gen_image ${GENIMAGE_CFG_NOR}  sysimage-spinor32m.img
+	# 	cp -r  ${TARGET_DIR}/ ${BINARIES_DIR}/../target_nor;
+	# 	rm -rf ${TARGET_DIR}; mv ${BINARIES_DIR}/../target_bak  ${TARGET_DIR};
+	# fi
+}
+
 gen_uboot_bin
 gen_env_bin
-#gen_linux_bin;
+gen_linux_bin;
 gen_boot_ext4
 #gen_deb_packages_gz
-gen_image ${GENIMAGE_CFG_SD}   sysimage-sdcard.img
+gen_sys_img
+#从nand启动；从nor启动；环境变量配置；
+#修改下默认环境变量，bootargs；
+#

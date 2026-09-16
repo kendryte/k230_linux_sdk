@@ -246,14 +246,14 @@ static int erase_and_write_env(const struct nand_env_location *location,
 	off = location->erase_opts.offset;
 	len = location->erase_opts.length;
 
-	erase_op.mtd = mtd;
-	erase_op.addr = off;
-	erase_op.len = len;
-	erase_op.scrub = NULL;
-
 	mtd = get_mtd_by_name(SPINAND_NAME);
 	if (IS_ERR_OR_NULL(mtd))
 		return 1;
+
+	erase_op.mtd = mtd;
+	erase_op.addr = off;
+	erase_op.len = len;
+	erase_op.scrub = 0;
 
 	if (!mtd_is_aligned_with_block_size(mtd, off)) {
 		printf("Offset not aligned with a block (0x%x)\n",

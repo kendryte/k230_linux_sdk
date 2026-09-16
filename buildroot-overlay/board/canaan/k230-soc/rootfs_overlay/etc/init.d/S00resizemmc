@@ -1,12 +1,16 @@
 #!/bin/sh
-bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
+mmc_bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
 
 
 if [ -f /first_boot_flag ]; then
     echo "first boot flag"
-    echo "${bootddev}   0x1e0000 0x10000" >/etc/fw_env.config
-	printf "fix\n" | parted ---pretend-input-tty ${bootddev} print  >/dev/null 2>&1
-    sd_size=$(parted ${bootddev} print | grep ${bootddev} | cut -d: -f2)
-    parted ${bootddev} resizepart 2 ${sd_size}; resize2fs ${bootddev}p2
+    if [ -n "${mmc_bootddev}" ] && [ -b "${mmc_bootddev}" ]; then
+        echo "${mmc_bootddev}   0x300000 0x2000" >/etc/fw_env.config
+        printf "fix\n" | parted ---pretend-input-tty ${mmc_bootddev} print  >/dev/null 2>&1
+        sd_size=$(parted ${mmc_bootddev} print | grep ${mmc_bootddev} | cut -d: -f2)
+        parted ${mmc_bootddev} resizepart 2 ${sd_size}; resize2fs ${mmc_bootddev}p2
+    else
+        echo "/dev/mtd4   0  0x2000" >/etc/fw_env.config
+    fi
     rm -rf /first_boot_flag
 fi

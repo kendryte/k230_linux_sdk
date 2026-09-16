@@ -148,8 +148,10 @@ int spl_board_init_f(void)
     }
 
     ret = k230_img_load_boot_sys(BOOT_SYS_UBOOT);
-    if(ret )
-        printf("uboot boot failed\n");
+    if(ret ){
+        printf("uboot boot failed ret=0x%x \n", ret);
+        enter_to_usb_burn_mode();
+    }
     //while(1);
     //board_init_r(NULL, 0);
     return ret;

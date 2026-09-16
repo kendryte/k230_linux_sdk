@@ -44,4 +44,15 @@ menu "canaan package"
 		string "auto run cmd"
 		default ""
 
+	config BR2_CANAAN_GEN_SPI_NAND_IMG
+		bool "generate spi nand image"
+		default n
+
+	config BR2_CANAAN_GEN_SPI_NOR_IMG
+		bool "generate spi nor image"
+		default n
+
+	config BR2_CANAAN_GEN_MMC_IMG
+		bool "generate TF/EMMC image"
+		default y
 endmenu

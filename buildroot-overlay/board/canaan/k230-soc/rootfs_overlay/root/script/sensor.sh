@@ -51,3 +51,19 @@ echo 0 auto_json=/etc/vvcam/gc2093-1920x1080_auto.json > /proc/vsi/isp_subdev0
 gpioset 1 30=1;sleep 0.5;gpioset 1 30=0;sleep 0.5;gpioset 1 30=1;
 vglite_drm
 vglite_cube
+
+usb start;dhcp;tftp 0x100000 192.168.1.2:wjx/sysimage-nand.img;
+mtd erase spi-nand0 0 0x8000000; mtd write spi-nand0  0x100000 0 0x4000000;
+mtd read spi-nand0 0x100000 0 0x1000000;
+
+usb start;dhcp;tftp 0x100000 192.168.1.2:wjx/sysimage-nand.img;mtd erase spi-nand0 0 0x8000000; mtd write spi-nand0  0x100000 0 0x4000000;
+
+mtd read spi-nand0 0x100000 0 0x1000000
+
+usb start;dhcp;tftp 0x100000 192.168.1.2:wjx/sysimage-nand.img;mtd erase spi-nand0 0 0x500000; mtd write spi-nand0  0x100000 0 0x500000;
+
+setenv mtdids nand0=spi-nand0
+setenv mtdparts mtdparts=spi-nand0:512k(spl_a),512k(spl_b),2m(uboot_a),2m(uboot_b),13m(reserved),44m(rootfs_ubi)
+ubi part rootfs_ubi;ubi info;ubifsmount ubi0:ubi_rootfs_part;ubifsls /;
+
+ubifsload 0x100000  /nuttx-7000000-uart2.bin
