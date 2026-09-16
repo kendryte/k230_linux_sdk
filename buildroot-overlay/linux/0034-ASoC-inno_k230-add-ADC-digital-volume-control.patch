@@ -1,0 +1,447 @@
+From 1fa3d92b0e14353ffbe9e3c7dae03e0548ddad83 Mon Sep 17 00:00:00 2001
+From: sunxiaopeng <sunxiaopeng@canaan-creative.com>
+Date: Wed, 9 Sep 2026 09:56:13 +0800
+Subject: [PATCH] ASoC: inno_k230: add ADC digital volume control, fix right
+ channel gain
+
+Three capture gain changes for the internal codec.
+
+1) Expose the ADC digital volume as an ALSA control
+
+The post-ADC digital gain stage, reg_08 (left) / reg_09 (right) at
+0x9140e020 / 0x9140e024, had no userspace interface at all, so the only
+way to touch it was devmem.  The vendor code for it was present but
+commented out, because it was written to take a gain in dB as a float,
+which cannot work in the kernel.
+
+Replace that block with an integer implementation and add a stereo
+"ADC Digital Capture Volume" control.  The register value maps to gain
+as
+
+	gain[dB] = -97 + (reg - 1) * 0.5,	reg = 0x01 .. 0xff
+
+The control value is the raw register value rather than dB, with the dB
+mapping handed to userspace as a TLV dB scale, so amixer and
+"devmem 0x9140e020 32" report the same number - which helps when a gain
+problem has to be debugged against the TRM.  The control has two values
+because the reset gains are asymmetric: 0xe1 (+15 dB) on the left and
+0xf0 (+22.5 dB) on the right.
+
+The new control goes at the end of inno_snd_control[], and a comment
+says why: numids are handed out in registration order, and alsactl
+resolves a control by numid before falling back to its name, so
+inserting a control in the middle renumbers everything below it and an
+existing saved asound.state stops restoring those controls.
+
+2) Fix the right channel mic gain never being set
+
+"Mic Capture Volume" declares uinfo->count = 1, so a single value is
+meant to drive the analog MIC PGA of both channels.  The put callback
+instead called audio_codec_adc_set_micl_gain() twice, so writing the
+control only ever touched GAIN_MICL in reg_24 (0x9140e090).  GAIN_MICR
+in reg_27 (0x9140e09c) stayed at whatever _reset_snd_values() left it
+at - 0x03, i.e. the maximum of +30 dB.
+
+The practical effect is that turning the capture volume down does not
+turn the right channel down: it keeps running at +30 dB of analog gain
+and clips on a loud source even with the control at its minimum.  The
+adjacent "Mic Capture Switch" branch already gets this right and mutes
+micl and micr separately.  audio_codec_adc_set_micr_gain() already
+exists and is correct, it was simply never called.
+
+3) Describe the analog PGA gains to userspace
+
+"Mic Capture Volume" ranges over 0..30 in steps of 10, but the four
+hardware steps are 0/6/20/30 dB, so a control value of 10 is really
+6 dB and userspace had no way to know that.  Add a TLV range - a range
+rather than a scale because the steps are not evenly spaced - whose
+entries cover the same spans of control values that convert_adc_gain()
+maps onto each register step.  This only affects what amixer and
+alsamixer display; the control name, its range and the values written
+to the hardware are unchanged.
+
+Signed-off-by: sunxiaopeng <sunxiaopeng@canaan-creative.com>
+---
+ sound/soc/codecs/inno_k230.c     |  92 +++++++++++++++++-
+ sound/soc/codecs/inno_k230_reg.c | 161 +++++++++++++------------------
+ sound/soc/codecs/inno_k230_reg.h |  12 ++-
+ 3 files changed, 162 insertions(+), 103 deletions(-)
+
+diff --git a/sound/soc/codecs/inno_k230.c b/sound/soc/codecs/inno_k230.c
+index 0a1b96ad9..4e695138c 100755
+--- a/sound/soc/codecs/inno_k230.c
++++ b/sound/soc/codecs/inno_k230.c
+@@ -18,6 +18,40 @@
+ 
+ #define INNO_VOLUME_INVERT_VALUE 39
+ 
++/*
++ * "Mic Capture Volume" drives the analog MIC PGA in front of the ADC, which
++ * only has four steps (0/6/20/30 dB) and is already at its maximum by
++ * default.  The digital volume behind the ADC is a much finer knob (0.5 dB
++ * per step over -97..+30 dB) and is what is left to attenuate a hot signal
++ * once the analog stages are already turned all the way down, so expose it
++ * too.
++ *
++ * The control value is the raw register value; the dB mapping is described
++ * to userspace with a TLV scale so that amixer/alsamixer show real dB:
++ *
++ *	0x01 = -97 dB ... 0xc3 = 0 dB ... 0xff = +30 dB
++ */
++static const DECLARE_TLV_DB_SCALE(inno_adc_digital_tlv, -9700, 50, 0);
++
++/*
++ * The analog PGA has four steps of 0/6/20/30 dB, but "Mic Capture Volume"
++ * presents them as 0..30 in steps of 10, so the control value only happens to
++ * equal the gain in dB for three of the four steps - a control value of 10
++ * really is 6 dB, which is why snd_inno_ctl_get() has to translate 6 back to
++ * 10 to keep the value stable across a get/put round trip.
++ *
++ * Describe the real gains as a TLV range so that userspace at least gets told
++ * the truth.  The steps are not evenly spaced, hence a range rather than a
++ * scale, and each entry covers the same span of control values that
++ * convert_adc_gain() maps onto that register step.
++ */
++static const DECLARE_TLV_DB_RANGE(inno_mic_gain_tlv,
++	 0,  0, TLV_DB_SCALE_ITEM(0, 0, 0),
++	 1, 10, TLV_DB_SCALE_ITEM(600, 0, 0),
++	11, 20, TLV_DB_SCALE_ITEM(2000, 0, 0),
++	21, 30, TLV_DB_SCALE_ITEM(3000, 0, 0),
++);
++
+ struct k230_inno_codec_priv {
+ 	void __iomem *base;
+ 	struct clk *pclk_adc;
+@@ -31,8 +65,13 @@ enum snd_inno_k230_ctrl {
+ 	INNO_PCM_PLAYBACK_MUTE,
+ 	INNO_PCM_CAPTURE_VOLUME,
+ 	INNO_PCM_CAPTURE_MUTE,
++	INNO_ADC_DIGITAL_CAPTURE_VOLUME,
+ };
+ 
++/* raw register limits of reg_08 / reg_09, see inno_k230_reg.c */
++#define INNO_ADC_DIGITAL_VOLUME_MIN 0x01
++#define INNO_ADC_DIGITAL_VOLUME_MAX 0xff
++
+ static int inno_capture_info_vol(struct snd_kcontrol *kcontrol,
+ 				 struct snd_ctl_elem_info *uinfo)
+ {
+@@ -142,6 +181,13 @@ static int snd_inno_ctl_vol(struct snd_kcontrol *kcontrol,
+ 		uinfo->count = 1;
+ 		uinfo->value.integer.min = 0;
+ 		uinfo->value.integer.max = 1;
++	} else if (kcontrol->private_value ==
++		   INNO_ADC_DIGITAL_CAPTURE_VOLUME) {
++		uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
++		uinfo->count = 2;
++		uinfo->value.integer.min = INNO_ADC_DIGITAL_VOLUME_MIN;
++		uinfo->value.integer.max = INNO_ADC_DIGITAL_VOLUME_MAX;
++		uinfo->value.integer.step = 1;
+ 	}
+ 	return 0;
+ }
+@@ -167,6 +213,14 @@ static int snd_inno_ctl_get(struct snd_kcontrol *kcontrol,
+ 	} else if (kcontrol->private_value == INNO_PCM_CAPTURE_MUTE) {
+ 		audio_codec_adc_get_micl_mute(&mute);
+ 		ucontrol->value.integer.value[0] = !mute;
++	} else if (kcontrol->private_value ==
++		   INNO_ADC_DIGITAL_CAPTURE_VOLUME) {
++		unsigned int left, right;
++
++		audio_codec_adcl_get_digital_volume(&left);
++		audio_codec_adcr_get_digital_volume(&right);
++		ucontrol->value.integer.value[0] = left;
++		ucontrol->value.integer.value[1] = right;
+ 	}
+ 	return 0;
+ }
+@@ -194,11 +248,34 @@ static int snd_inno_ctl_put(struct snd_kcontrol *kcontrol,
+ 		audio_codec_dac_digital_mute(!ucontrol->value.integer.value[0]);
+ 	} else if (kcontrol->private_value == INNO_PCM_CAPTURE_VOLUME) {
+ 		audio_codec_adc_set_micl_gain(ucontrol->value.integer.value[0]);
+-		audio_codec_adc_set_micl_gain(ucontrol->value.integer.value[0]);
+-
++		audio_codec_adc_set_micr_gain(ucontrol->value.integer.value[0]);
+ 	} else if (kcontrol->private_value == INNO_PCM_CAPTURE_MUTE) {
+ 		audio_codec_adc_micl_mute(!ucontrol->value.integer.value[0]);
+ 		audio_codec_adc_micr_mute(!ucontrol->value.integer.value[0]);
++	} else if (kcontrol->private_value ==
++		   INNO_ADC_DIGITAL_CAPTURE_VOLUME) {
++		long left = ucontrol->value.integer.value[0];
++		long right = ucontrol->value.integer.value[1];
++
++		/*
++		 * Check both channels before writing either one.  The ALSA core
++		 * only validates control values against .info when
++		 * CONFIG_SND_CTL_VALIDATION is set, which the K230 defconfig
++		 * does not set, so an out of range value does reach this
++		 * callback.  Rejecting the right channel after the left one has
++		 * already been written would leave the control half applied and
++		 * a later get() would report a value the caller never asked for.
++		 * Being out of range is the only way the two setters below can
++		 * fail.
++		 */
++		if (left < INNO_ADC_DIGITAL_VOLUME_MIN ||
++		    left > INNO_ADC_DIGITAL_VOLUME_MAX ||
++		    right < INNO_ADC_DIGITAL_VOLUME_MIN ||
++		    right > INNO_ADC_DIGITAL_VOLUME_MAX)
++			return -EINVAL;
++
++		audio_codec_adcl_set_digital_volume(left);
++		audio_codec_adcr_set_digital_volume(right);
+ 	}
+ 	return 0;
+ }
+@@ -223,10 +289,13 @@ static const struct snd_kcontrol_new inno_snd_control[] = {
+ 	{
+ 		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+ 		.name = "Mic Capture Volume",
++		.access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
++			  SNDRV_CTL_ELEM_ACCESS_TLV_READ,
+ 		.info = snd_inno_ctl_vol,
+ 		.get = snd_inno_ctl_get,
+ 		.put = snd_inno_ctl_put,
+ 		.private_value = INNO_PCM_CAPTURE_VOLUME,
++		.tlv.p = inno_mic_gain_tlv,
+ 	},
+ 	{
+ 		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+@@ -252,7 +321,24 @@ static const struct snd_kcontrol_new inno_snd_control[] = {
+ 		.put = snd_inno_ctl_put,
+ 		.private_value = INNO_PCM_PLAYBACK_MUTE,
+ 	},
+-
++	/*
++	 * Keep new controls at the end of the array.  Control numids are handed
++	 * out in registration order, and "alsactl restore" looks a control up by
++	 * numid before it falls back to the name, so inserting anything above
++	 * this point renumbers the controls that follow it and makes an existing
++	 * saved asound.state fail to restore them.
++	 */
++	{
++		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
++		.name = "ADC Digital Capture Volume",
++		.access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
++			  SNDRV_CTL_ELEM_ACCESS_TLV_READ,
++		.info = snd_inno_ctl_vol,
++		.get = snd_inno_ctl_get,
++		.put = snd_inno_ctl_put,
++		.private_value = INNO_ADC_DIGITAL_CAPTURE_VOLUME,
++		.tlv.p = inno_adc_digital_tlv,
++	},
+ };
+ 
+ static int k230_inno_codec_probe(struct snd_soc_component *component)
+diff --git a/sound/soc/codecs/inno_k230_reg.c b/sound/soc/codecs/inno_k230_reg.c
+index 6d637b0ef..0018cae95 100755
+--- a/sound/soc/codecs/inno_k230_reg.c
++++ b/sound/soc/codecs/inno_k230_reg.c
+@@ -852,117 +852,86 @@ int audio_codec_adc_get_micr_gain(int *gain)
+ 	return convert_adc_gain_2(g_snd_current_values.gain_micr, gain);
+ }
+ 
+-// static int convert_adc_volume(float volume, unsigned int *reg_val)
+-// {
+-//     unsigned int reg_value = 0;
+-//     float start_gain = -97;
+-//     bool bfind = false;
+-//     int i = 0;
++/*
++ * ADC digital volume: the post-ADC gain stage, reg_08 (left) / reg_09 (right).
++ *
++ * The register value maps to gain as
++ *
++ *	gain[dB] = -97 + (reg - 1) * 0.5,	reg = 0x01 .. 0xff
++ *
++ * so 0xc3 is 0 dB, and the reset values picked by _reset_snd_values() are
++ * 0xe1 (+15 dB) on the left channel and 0xf0 (+22.5 dB) on the right one.
++ *
++ * There is no floating point in the kernel, so rather than converting to dB
++ * here - which is what the original vendor code tried to do, and why it ended
++ * up commented out - this is exported in raw register units and the dB mapping
++ * is handed to userspace as a TLV dB scale on the ALSA control.  Keeping the
++ * register value as the control value also means the number amixer reports is
++ * exactly the one "devmem 0x9140e020 32" shows, which helps when a gain
++ * problem has to be debugged against the TRM.
++ */
++#define ADC_DIGITAL_VOLUME_MIN 0x01 /* -97 dB */
++#define ADC_DIGITAL_VOLUME_MAX 0xff /* +30 dB */
++
++int audio_codec_adcl_set_digital_volume(unsigned int reg_val)
++{
++	union reg_8_t reg8;
+ 
+-//     if (volume < -97 || volume > 30)
+-//     {
+-//         return -1;
+-//     }
++	if (reg_val < ADC_DIGITAL_VOLUME_MIN ||
++	    reg_val > ADC_DIGITAL_VOLUME_MAX)
++		return -1;
+ 
+-//     for (i = 0x1; i <= 0xff; i++)
+-//     {
+-//         if (volume == start_gain)
+-//         {
+-//             reg_value = i;
+-//             bfind = true;
+-//             break;
+-//         }
+-//         else
+-//         {
+-//             start_gain += 0.5;
+-//         }
+-//     }
+-//     if (!bfind)
+-//     {
+-//         return -1;
+-//     }
++	reg8.reg_data = readl(&audio_codec_reg->reg_08);
++	reg8.reg_8.adcl_vol = reg_val;
++	writel(reg8.reg_data, &audio_codec_reg->reg_08);
++	g_snd_current_values.adc_volumel = reg_val;
++	msleep(AUDIO_REG_CONFIG_NORMAL_DELAY);
+ 
+-//     *reg_val = reg_value;
++	return 0;
++}
+ 
+-//     return 0;
+-// }
++int audio_codec_adcr_set_digital_volume(unsigned int reg_val)
++{
++	union reg_9_t reg9;
+ 
+-// static int convert_adc_volume2(unsigned int reg_val,float* volume)
+-// {
+-//     float start_gain = -97;
+-//     bool bfind = false;
+-//     int i =0;
++	if (reg_val < ADC_DIGITAL_VOLUME_MIN ||
++	    reg_val > ADC_DIGITAL_VOLUME_MAX)
++		return -1;
+ 
+-//     if (reg_val < 1 || reg_val > 0xff)
+-//     {
+-//         return -1;
+-//     }
++	reg9.reg_data = readl(&audio_codec_reg->reg_09);
++	reg9.reg_9.adcr_vol = reg_val;
++	writel(reg9.reg_data, &audio_codec_reg->reg_09);
++	g_snd_current_values.adc_volumer = reg_val;
++	msleep(AUDIO_REG_CONFIG_NORMAL_DELAY);
+ 
+-//     for (i = 0x1; i <= 0xff; i++)
+-//     {
+-//         if (reg_val == i)
+-//         {
+-//             bfind = true;
+-//             break;
+-//         }
+-//         else
+-//         {
+-//             start_gain += 0.5;
+-//         }
+-//     }
+-//     if (!bfind)
+-//     {
+-//         return -1;
+-//     }
++	return 0;
++}
+ 
+-//     *volume = start_gain;
++int audio_codec_adcl_get_digital_volume(unsigned int *reg_val)
++{
++	union reg_8_t reg8;
+ 
+-//     return 0;
+-// }
++	if (!reg_val)
++		return -1;
+ 
+-// int audio_codec_adcl_set_volume(float volume)
+-// {
+-//     unsigned int reg_val = 0;
+-//     reg_8_t reg8;
++	reg8.reg_data = readl(&audio_codec_reg->reg_08);
++	*reg_val = reg8.reg_8.adcl_vol;
+ 
+-//     if (0 != convert_adc_volume(volume, &reg_val))
+-//     {
+-//         return -1;
+-//     }
++	return 0;
++}
+ 
+-//     reg8.reg_data = readl(&audio_codec_reg->reg_08);
+-//     reg8.reg_8.adcl_vol = reg_val;
+-//     writel(reg8.reg_data, &audio_codec_reg->reg_08);
+-//     g_snd_current_values.adc_volumel = reg_val;
+-//     msleep(AUDIO_REG_CONFIG_NORMAL_DELAY);
+-//     return 0;
+-// }
+-// int audio_codec_adcr_set_volume(float volume)
+-// {
+-//     unsigned int reg_val = 0;
+-//     reg_9_t reg9;
++int audio_codec_adcr_get_digital_volume(unsigned int *reg_val)
++{
++	union reg_9_t reg9;
+ 
+-//     if (0 != convert_adc_volume(volume, &reg_val))
+-//     {
+-//         return -1;
+-//     }
++	if (!reg_val)
++		return -1;
+ 
+-//     reg9.reg_data = readl(&audio_codec_reg->reg_09);
+-//     reg9.reg_9.adcr_vol = reg_val;
+-//     writel(reg9.reg_data, &audio_codec_reg->reg_09);
+-//     g_snd_current_values.adc_volumer = reg_val;
+-//     msleep(AUDIO_REG_CONFIG_NORMAL_DELAY);
+-//     return 0;
+-// }
++	reg9.reg_data = readl(&audio_codec_reg->reg_09);
++	*reg_val = reg9.reg_9.adcr_vol;
+ 
+-// int  audio_codec_adcl_get_volume(float* volume)
+-// {
+-//     return convert_adc_volume2(g_snd_current_values.adc_volumel, volume);
+-// }
+-// int  audio_codec_adcr_get_volume(float* volume)
+-// {
+-//     return convert_adc_volume2(g_snd_current_values.adc_volumer, volume);
+-// }
++	return 0;
++}
+ 
+ int audio_codec_adc_micl_mute(bool mute)
+ {
+diff --git a/sound/soc/codecs/inno_k230_reg.h b/sound/soc/codecs/inno_k230_reg.h
+index 550aa0381..fba6d0d06 100755
+--- a/sound/soc/codecs/inno_k230_reg.h
++++ b/sound/soc/codecs/inno_k230_reg.h
+@@ -454,10 +454,14 @@ int audio_codec_adc_set_micr_gain(int gain);
+ int audio_codec_adc_get_micl_gain(int *gain);
+ int audio_codec_adc_get_micr_gain(int *gain);
+ 
+-// int  audio_codec_adcl_set_volume(float volume);
+-// int  audio_codec_adcr_set_volume(float volume);
+-// int  audio_codec_adcl_get_volume(float* volume);
+-// int  audio_codec_adcr_get_volume(float* volume);
++/* ADC digital volume, in raw register units: 0x01 = -97 dB .. 0xff = +30 dB,
++ * 0.5 dB per step, 0xc3 = 0 dB.  See inno_k230_reg.c for why this is not
++ * expressed in dB.
++ */
++int audio_codec_adcl_set_digital_volume(unsigned int reg_val);
++int audio_codec_adcr_set_digital_volume(unsigned int reg_val);
++int audio_codec_adcl_get_digital_volume(unsigned int *reg_val);
++int audio_codec_adcr_get_digital_volume(unsigned int *reg_val);
+ 
+ int audio_codec_adc_micl_mute(bool mute);
+ int audio_codec_adc_micr_mute(bool mute);
+-- 
+2.25.1
+

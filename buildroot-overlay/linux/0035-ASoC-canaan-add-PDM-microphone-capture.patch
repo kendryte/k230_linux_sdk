@@ -1,0 +1,1790 @@
+From bb2983edacf813bf1b78aa109ba5bef67da47dfc Mon Sep 17 00:00:00 2001
+From: sunxiaopeng <sunxiaopeng@canaan-creative.com>
+Date: Wed, 9 Sep 2026 12:14:12 +0800
+Subject: [PATCH] ASoC: canaan: add PDM microphone capture
+
+Adds a capture-only sound card for PDM microphones wired to the K230 PDM
+receiver. It is an independent path - no I2S controller, no internal
+codec - so a board can run PDM capture alongside the existing card.
+
+Up to eight microphones are supported. The receiver has four data
+lines, and a single line carries two microphones when both clock edges
+are sampled, which is the usual arrangement. The default configuration
+is one data line on both edges, giving two channels.
+
+The awkward part is the data format: every 32-bit FIFO word carries a
+four-bit channel tag alongside its 24 bits of PCM, so the stream cannot
+go straight into the buffer the application sees. PDMA fills a bounce
+buffer instead and the period callback strips the tags into the ALSA
+ring. Doing it this way rather than through an ASoC .copy callback keeps
+mmap working, and with it dsnoop, at the cost of a second buffer of a
+few tens of kilobytes.
+
+The tags are used rather than ignored: the frame is reassembled by
+looking at every word's tag instead of assuming the period starts on a
+frame boundary, which it does not - the first burst after a FIFO clear
+can begin on any channel. A stream that loses step then recovers at the
+next channel 0 instead of swapping channels for the rest of the
+recording.
+
+Two supporting changes:
+
+  - canaan_k230_audio.c gains the PDM register helpers and records the
+    physical base. The PDM registers sit inside the block that driver
+    already maps, so they have to be reached through it rather than
+    ioremapped a second time. The probe path also stops storing a
+    possible ERR_PTR in sai.base.
+
+  - k230_peridma.c whitelists the PDM FIFO at 0x9140f4c0. The address
+    check is [addr, addr+len), which a fixed FIFO address can never
+    satisfy, so each one needs an explicit entry; the two existing magic
+    numbers are named at the same time.
+
+No board device tree is touched. The driver only probes where a board
+adds a canaan,k230-audio-pdm node, so boards without PDM microphones
+see no new sound card and no PDM clock driven onto their pins. The
+binding documents how to add one.
+
+canaan,pdm-io-group says which pins feed the receiver's first two
+inputs. IO37 and IO35 carry the two I2S output data lines and PDM inputs
+0 and 1 on the same alt function, and pdm_conf_0's input mode is the
+second mux that separates them - a choice the pin controller cannot
+reach, so it cannot come from pinctrl. Selecting I2S leaves inputs 0 and
+1 on their other pins, IO27 and IO28; selecting PDM feeds them from IO37
+and IO35 instead, and IO27 and IO28 then no longer reach the receiver
+however pinctrl has muxed them. Inputs 2 and 3 exist only on IO36 and
+IO34 and are outside this field.
+
+A board on IO27 and IO28 therefore wants the I2S setting, which is what
+the I2S card programs anyway, so PDM capture costs it nothing. Only a
+board on IO35 and IO37 has to take the field, and it gives up I2S output
+data on those two pins. Since the I2S card wants the same field and the
+two probe in an order neither controls, canaan_k230_audio.c arbitrates:
+the I2S side sets it only while the PDM card has not claimed it, and the
+PDM card hands it back on remove. The internal codec bypass bit is a
+separate matter and is left to the I2S card - the codec is fed inside
+the block, not through these pins, and PDM capture does not disturb it.
+---
+ .../bindings/sound/canaan,k230-audio-pdm.yaml | 179 ++++
+ arch/riscv/configs/k230_defconfig             |   1 +
+ drivers/dma/k230_peridma.c                    | 153 ++-
+ include/linux/soc/canaan/k230-dma-addr.h      |  10 +
+ sound/soc/canaan/Kconfig                      |  10 +
+ sound/soc/canaan/Makefile                     |   3 +
+ sound/soc/canaan/canaan_k230_audio.c          | 178 +++-
+ sound/soc/canaan/canaan_k230_audio.h          |  24 +-
+ sound/soc/canaan/canaan_k230_pdm.c            | 938 ++++++++++++++++++
+ 9 files changed, 1450 insertions(+), 46 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/sound/canaan,k230-audio-pdm.yaml
+ create mode 100644 sound/soc/canaan/canaan_k230_pdm.c
+
+diff --git a/Documentation/devicetree/bindings/sound/canaan,k230-audio-pdm.yaml b/Documentation/devicetree/bindings/sound/canaan,k230-audio-pdm.yaml
+new file mode 100644
+index 000000000..a186d7371
+--- /dev/null
++++ b/Documentation/devicetree/bindings/sound/canaan,k230-audio-pdm.yaml
+@@ -0,0 +1,179 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++
++%YAML 1.2
++---
++$id: "http://devicetree.org/schemas/sound/canaan,k230-audio-pdm.yaml#"
++$schema: "http://devicetree.org/meta-schemas/core.yaml#"
++
++title: Canaan K230 PDM Microphone Capture
++
++maintainers:
++  - Sun Xiaopeng <sunxiaopeng@canaan-creative.com>
++
++description: |
++  Capture-only sound card for PDM microphones wired to the K230 PDM receiver.
++
++  The receiver is an independent capture path: it does not use the I2S
++  controller or the internal codec, so a board may have both this card and a
++  canaan,k230-audio-inno card and run them at the same time.
++
++  The receiver has four data lines, PDM_IN0 to PDM_IN3, and each line carries
++  two microphones when both clock edges are sampled - the microphones strap
++  their L/R pin low and high respectively. Eight channels is therefore the
++  maximum, and the channel count is
++
++    canaan,pdm-data-lines * (canaan,pdm-edge == "both" ? 2 : 1)
++
++  Which pins the lines can use is fixed by the IOMUX, and only the first two
++  lines have a choice:
++
++    PDM_IN0 - IO27 (alt3) or IO37 (alt2)
++    PDM_IN1 - IO28 (alt3) or IO35 (alt2)
++    PDM_IN2 - IO36 (alt2)
++    PDM_IN3 - IO34 (alt2)
++
++  canaan,pdm-io-group picks between the two alternatives for the first two
++  lines. The last two have none: IO36 and IO34 are also IIS_D_IN1 and
++  IIS_D_IN0, so a board wiring up more than two PDM data lines gives up the
++  external I2S microphone inputs on those pins.
++
++  The registers live inside the canaan,k230-audio block, which is why this
++  node has no reg property of its own.
++
++properties:
++  compatible:
++    const: "canaan,k230-audio-pdm"
++
++  canaan,model:
++    $ref: /schemas/types.yaml#/definitions/string
++    description: Custom name for the sound card.
++
++  clocks:
++    maxItems: 1
++    description: The PDM bit clock (pdm_clk).
++
++  clock-names:
++    items:
++      - const: pdm
++
++  dmas:
++    maxItems: 1
++
++  dma-names:
++    items:
++      - const: rx
++
++  canaan,pdm-data-lines:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    enum: [1, 2, 3, 4]
++    default: 1
++    description: |
++      How many PDM data lines the board wires up, counting from PDM_IN0.
++      Together with canaan,pdm-edge this sets the maximum channel count.
++      More than two lines needs IO36 and IO34, which are shared with the I2S
++      data inputs.
++
++  canaan,pdm-edge:
++    $ref: /schemas/types.yaml#/definitions/string
++    enum: [both, rising, falling]
++    default: both
++    description: |
++      Which clock edge the microphones are sampled on.
++
++        both - two microphones per data line, one on each edge. This is the
++          usual arrangement and doubles the channel count.
++        rising, falling - one microphone per data line, sampled on that edge.
++
++  canaan,pdm-oversample:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    enum: [32, 64, 128]
++    default: 64
++    description: |
++      How many PDM clocks make up one output sample; it also selects the
++      decimation filter chain. The PDM clock ends up at sample rate times
++      this factor, so 48kHz at 64x is 3.072MHz. Pick the factor that puts
++      the clock inside the range the microphones accept - most want somewhere
++      between 1 and 3.5MHz.
++
++  canaan,pdm-io-group:
++    $ref: /schemas/types.yaml#/definitions/string
++    enum: [io27-28, io35-37]
++    default: io27-28
++    description: |
++      Which pins carry the first two PDM data lines.
++
++        io27-28 - PDM_IN0 on IO27 and PDM_IN1 on IO28. Costs nothing: this is
++          also what the I2S card programs, so PDM capture, I2S output and the
++          internal codec all coexist.
++        io35-37 - PDM_IN0 on IO37 and PDM_IN1 on IO35. Those two pins then
++          stop carrying I2S output data, because the audio-in block's input
++          mode is a single choice covering both of them. The internal codec is
++          fed inside the block rather than through these pins and is
++          unaffected.
++
++      The pin mux itself is set through pinctrl either way; this property
++      drives a second mux inside the audio block that the pin controller
++      cannot reach. Getting it wrong is silent - the receiver listens to the
++      pins the property names, not the ones pinctrl muxed.
++
++      PDM_IN2 and PDM_IN3 have no such mux - they exist only on IO36 and IO34
++      - so lines three and four are pinctrl alone and are unaffected by this
++      property.
++
++required:
++  - compatible
++  - clocks
++  - clock-names
++  - dmas
++  - dma-names
++
++additionalProperties: false
++
++examples:
++  - |
++    /* Two microphones sharing one data line on IO27. */
++    sound_pdm {
++        compatible = "canaan,k230-audio-pdm";
++        canaan,model = "K230_PDM";
++        clocks = <&pdm_clk>;
++        clock-names = "pdm";
++        dmas = <&pdma 1 0xfff 0 0x21>;
++        dma-names = "rx";
++        pinctrl-names = "default";
++        pinctrl-0 = <&pdm_pins>;
++    };
++  - |
++    /* Four microphones: two data lines, IO27 and IO28, both edges. */
++    sound_pdm {
++        compatible = "canaan,k230-audio-pdm";
++        canaan,model = "K230_PDM";
++        clocks = <&pdm_clk>;
++        clock-names = "pdm";
++        dmas = <&pdma 1 0xfff 0 0x21>;
++        dma-names = "rx";
++        pinctrl-names = "default";
++        pinctrl-0 = <&pdm_pins>;
++
++        canaan,pdm-data-lines = <2>;
++        canaan,pdm-edge = "both";
++        canaan,pdm-oversample = <64>;
++    };
++  - |
++    /*
++     * Eight microphones: all four data lines on both edges. pdm_pins has to
++     * mux IO27, IO28, IO36 and IO34, which means the external I2S
++     * microphone inputs are not available on this board.
++     */
++    sound_pdm {
++        compatible = "canaan,k230-audio-pdm";
++        canaan,model = "K230_PDM";
++        clocks = <&pdm_clk>;
++        clock-names = "pdm";
++        dmas = <&pdma 1 0xfff 0 0x21>;
++        dma-names = "rx";
++        pinctrl-names = "default";
++        pinctrl-0 = <&pdm_pins>;
++
++        canaan,pdm-data-lines = <4>;
++        canaan,pdm-edge = "both";
++    };
+diff --git a/arch/riscv/configs/k230_defconfig b/arch/riscv/configs/k230_defconfig
+index 369cd24be..4891482c9 100644
+--- a/arch/riscv/configs/k230_defconfig
++++ b/arch/riscv/configs/k230_defconfig
+@@ -299,4 +299,5 @@ CONFIG_CANAAN_SND_DESIGNWARE_PCM=y
+ CONFIG_SND_SOC_K230_INNO=y
+ CONFIG_SND_SOC_CANAAN_K230_INNO=y
+ CONFIG_SND_SOC_CANAAN_K230_AUDIO=y
++CONFIG_SND_SOC_CANAAN_K230_PDM=y
+ CONFIG_K230_PERIDMA=y
+diff --git a/drivers/dma/k230_peridma.c b/drivers/dma/k230_peridma.c
+index 9867ccba3..ca9ffa400 100755
+--- a/drivers/dma/k230_peridma.c
++++ b/drivers/dma/k230_peridma.c
+@@ -35,6 +35,14 @@
+ #define PPAUSE_INT 0x00010000
+ #define PTOUT_INT 0x01000000
+ 
++/*
++ * All four sources of one channel. Both PDMA_INT_MASK and PDMA_INT_STAT lay the
++ * channels out the same way - done in bits[7:0], node in [15:8], pause in
++ * [23:16], device timeout in [31:24] - so one shifted constant addresses a
++ * whole channel in either register (TRM 2.5.1, PDMA_INT_MASK / PDMA_INT_STATUS).
++ */
++#define PALL_INT (PDONE_INT | PITEM_INT | PPAUSE_INT | PTOUT_INT)
++
+ /* llt structure */
+ struct pdma_llt_t {
+ 	u32 line_size : 30;
+@@ -324,16 +332,17 @@ static inline bool peridma_pchan_is_paused(struct k230_peridma_pchan *pchan)
+ //	vchan_free_chan_resources(&pvchan->vchan);
+ // }
+ 
++/*
++ * PDMA_INT_STAT is write-one-to-clear, so only the bits belonging to this
++ * channel may be written: reading the register and writing the value back -
++ * which is what this used to do - also wipes whatever another channel had just
++ * latched, losing its interrupt.
++ */
+ static inline void peridma_pchan_irq_clear(struct k230_peridma_pchan *pchan)
+ {
+ 	struct k230_peridma_dev *pdev = pchan->pdev;
+-	u32 reg;
+-	u32 ch_id = pchan->id;
+-	u32 clear = PDONE_INT | PITEM_INT | PPAUSE_INT | PTOUT_INT;
+ 
+-	reg = ioread32(pdev->base + PDMA_INT_STAT);
+-	reg |= (clear << ch_id);
+-	iowrite32(reg, pdev->base + PDMA_INT_STAT);
++	iowrite32(PALL_INT << pchan->id, pdev->base + PDMA_INT_STAT);
+ }
+ 
+ static inline void peridma_pchan_irq_enable(struct k230_peridma_pchan *pchan)
+@@ -342,6 +351,10 @@ static inline void peridma_pchan_irq_enable(struct k230_peridma_pchan *pchan)
+ 	u32 reg;
+ 	u32 ch_id = pchan->id;
+ 
++	reg = ioread32(pdev->base + PDMA_INT_MASK);
++	reg &= ~(PALL_INT << ch_id);
++	iowrite32(reg, pdev->base + PDMA_INT_MASK);
++
+ 	reg = ioread32(pdev->base + PDMA_CH_EN);
+ 	reg |= (1 << ch_id);
+ 	iowrite32(reg, pdev->base + PDMA_CH_EN);
+@@ -356,6 +369,10 @@ static inline void peridma_pchan_irq_disable(struct k230_peridma_pchan *pchan)
+ 	reg = ioread32(pdev->base + PDMA_CH_EN);
+ 	reg &= (~(1 << ch_id));
+ 	iowrite32(reg, pdev->base + PDMA_CH_EN);
++
++	reg = ioread32(pdev->base + PDMA_INT_MASK);
++	reg |= (PALL_INT << ch_id);
++	iowrite32(reg, pdev->base + PDMA_INT_MASK);
+ }
+ 
+ static inline void peridma_pchan_start(struct k230_peridma_pchan *pchan)
+@@ -395,8 +412,19 @@ static void k230_peridma_hw_init(struct k230_peridma_dev *pdev)
+ 	u32 i;
+ 
+ 	iowrite32(0, pdev->base + PDMA_CH_EN);
+-	iowrite32(0, pdev->base + PDMA_INT_MASK);
+-	iowrite32(0, pdev->base + PDMA_INT_STAT);
++
++	/*
++	 * Shield every channel until one is handed out, and unshield it in
++	 * peridma_pchan_irq_enable(). The mask is active high and resets to
++	 * zero, so leaving it alone - or zeroing it, as this used to - lets a
++	 * channel nobody owns raise the shared PDMA_ALL_CHANNEL interrupt.
++	 *
++	 * The status register is write-one-to-clear, so clearing the latches
++	 * left over from whatever ran before Linux means writing ones, not the
++	 * zero that was here before and did nothing at all.
++	 */
++	iowrite32(GENMASK(31, 0), pdev->base + PDMA_INT_MASK);
++	iowrite32(GENMASK(31, 0), pdev->base + PDMA_INT_STAT);
+ 
+ 	for (i = 0; i < pdev->nr_channels; i++)
+ 		peridma_pchan_stop(&pdev->pchan[i]);
+@@ -455,6 +483,31 @@ static enum ch_dev_hsize_t slave_buswidth_to_hsize(enum dma_slave_buswidth buswi
+ 	return hsize;
+ }
+ 
++/*
++ * Beats per burst on the peripheral side. The field counts from zero - 0x0 is
++ * a single burst, 0xf is burst 16 (TRM 2.5.1, CHx_CFG chx_dev_blen) - so eight
++ * beats is PBURST_LEN_8 == 7.
++ *
++ * Which value suits a peripheral is the peripheral's business, and that is what
++ * dma_slave_config::maxburst is for; hardcoding eight left a peripheral that
++ * wants a shorter burst no way to ask for one. PDM wants one: its FIFO gains a
++ * single word per sample per data line, so the longer a burst is the longer the
++ * channel is then left waiting on DataReq, and chx_dev_tout allows it only
++ * 0xfff bus cycles of that before it gives up on the transfer.
++ *
++ * Eight stays as both the ceiling and the value used when a peripheral asks for
++ * nothing, so a driver that never sets maxburst behaves as before. I2S does set
++ * it, to four, and so changes: its threshold is half of a sixteen-entry FIFO,
++ * which four fits with a margin where eight sat exactly on the boundary.
++ */
++static enum pdma_burst_len_e peridma_burst_len(u32 maxburst)
++{
++	if (!maxburst || maxburst > 8)
++		maxburst = 8;
++
++	return (enum pdma_burst_len_e)(maxburst - 1);
++}
++
+ static struct k230_peridma_hwdesc *
+ generate_hwdesc(struct k230_peridma_vchan *vchan, dma_addr_t src,
+ 		dma_addr_t dest, size_t len, struct dma_slave_config *sconfig,
+@@ -481,19 +534,26 @@ generate_hwdesc(struct k230_peridma_vchan *vchan, dma_addr_t src,
+ 		hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_dev_hsize = hsize;
+ 	}
+ 	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_dat_endian = 0;
+-	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_dev_blen = PBURST_LEN_8;
++	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_dev_blen =
++		peridma_burst_len(dir == DMA_MEM_TO_DEV ? sconfig->dst_maxburst :
++							 sconfig->src_maxburst);
+ 	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_priority = vchan->priority;
+ 	hwdesc->usr_pdma_chn_cfg.pdma_ch_cfg.ch_dev_tout = vchan->dev_tout;
+ 
+-	/* Validate DMA addresses are within DDR range 0x9140f1c0 是特殊值*/
+-	if ( (!k230_dma_addr_in_ddr_or_register(src, len,0x9140f000,0x91410000)) && (0x9140f1c0 != src )) {
++	/*
++	 * Validate DMA addresses are within DDR range.
++	 *
++	 * FIFO 寄存器要单独放行：范围检查用的是 addr+len，而 FIFO 是一个固定地址
++	 * 反复读写、len 是整个传输的长度，所以 addr+len 必然冲出寄存器窗口。
++	 */
++	if ( (!k230_dma_addr_in_ddr_or_register(src, len,0x9140f000,0x91410000)) &&
++	     (K230_I2S_RXDMA_ADDR != src) && (K230_PDM_RXDMA_ADDR != src)) {
+ 		dev_err(vchan2dev(vchan),
+ 			"pdma: src DMA addr 0x%pad len 0x%zx out of DDR range [0x%lx-0x%lx]\n",
+ 			&src, len, K230_DDR_PHYS_START, K230_DDR_PHYS_END);
+ 		goto err_exit;
+ 	}
+-	//0x9140f1c8是个特殊值
+-	if ( (!k230_dma_addr_in_ddr_or_register(dest, len,0x9140f000, 0x91410000)) && (0x9140f1c8 != dest)) {
++	if ( (!k230_dma_addr_in_ddr_or_register(dest, len,0x9140f000, 0x91410000)) && (K230_I2S_TXDMA_ADDR != dest)) {
+ 		dev_err(vchan2dev(vchan),
+ 			"pdma: dst DMA addr 0x%pad len 0x%zx out of DDR range [0x%lx-0x%lx]\n",
+ 			&dest, len, K230_DDR_PHYS_START, K230_DDR_PHYS_END);
+@@ -984,21 +1044,6 @@ static void k230_peridma_issue_pending(struct dma_chan *dchan)
+ 	spin_unlock_irqrestore(&vchan->vchan.lock, flags);
+ }
+ 
+-static void _pdma_chn_state_clear(enum pdma_ch_e pdma_chn, u32 *int_state)
+-{
+-	if (*int_state & (1 << pdma_chn))
+-		*int_state |= (PDONE_INT << pdma_chn);
+-
+-	if (*int_state & (1 << (8 + pdma_chn)))
+-		*int_state |= (PITEM_INT << pdma_chn);
+-
+-	if (*int_state & (1 << (16 + pdma_chn)))
+-		*int_state |= (PPAUSE_INT << pdma_chn);
+-
+-	if (*int_state & (1 << (24 + pdma_chn)))
+-		*int_state |= (PTOUT_INT << pdma_chn);
+-}
+-
+ static irqreturn_t k230_peridma_interrupt(int irq, void *dev_id)
+ {
+ 	struct k230_peridma_dev *priv = dev_id;
+@@ -1010,21 +1055,61 @@ static irqreturn_t k230_peridma_interrupt(int irq, void *dev_id)
+ 	u32 int_stat = 0;
+ 
+ 	int_stat = ioread32(priv->base + PDMA_INT_STAT);
++	if (!int_stat)
++		return IRQ_NONE;
++
++	/*
++	 * Write every asserted bit back before looking at any of them.
++	 *
++	 * The status register is write-one-to-clear and all eight channels share
++	 * one level-triggered line (PDMA_ALL_CHANNEL, TRM 2.5.1), so a latch
++	 * left standing re-asserts the interrupt the instant this returns. Only
++	 * the transfer-done bits used to be cleared, and only when one of them
++	 * was set; a lone node, pause or device-timeout latch therefore locked
++	 * the machine up in a loop with no chance to print why.
++	 *
++	 * Clearing up front also means a source that asserts again while the
++	 * descriptor below is being advanced is not swallowed.
++	 */
++	iowrite32(int_stat, priv->base + PDMA_INT_STAT);
+ 
+ 	for (i = 0; i < CH_NUM; i++) {
+-		if ((int_stat >> i) & 0x1) {
+-			_pdma_chn_state_clear(i, &int_stat);
+-			iowrite32(int_stat, priv->base + PDMA_INT_STAT);
+-			g_pdma_llt_list[i].use = false;
+-		} else {
++		u32 ch_stat = int_stat & (PALL_INT << i);
++
++		if (!ch_stat)
++			continue;
++
++		if (!(ch_stat & (PDONE_INT << i))) {
++			/*
++			 * Nothing finished, so there is no descriptor to
++			 * advance. A device timeout means the peripheral stopped
++			 * asserting DataReq for chx_dev_tout cycles and the
++			 * transfer was stopped underneath us - a burst length or
++			 * FIFO trigger level that does not suit the peripheral,
++			 * a clock that is not running, pins that are not muxed.
++			 * The stream sees it as an underrun; say what it really
++			 * was so the two can be told apart.
++			 */
++			dev_warn_ratelimited(priv->dev,
++					     "ch%d: status %#x without transfer done%s\n",
++					     i, ch_stat,
++					     (ch_stat & (PTOUT_INT << i)) ?
++						     " (device timeout)" : "");
+ 			continue;
+ 		}
++
++		g_pdma_llt_list[i].use = false;
+ 		ch_id = i;
+ 		vchan = priv->pchan[ch_id].vchan;
+ 		if (vchan == NULL)
+-			return IRQ_HANDLED;
++			continue;
+ 
+ 		spin_lock(&vchan->vchan.lock);
++		if (!vchan->desc) {
++			/* Raced with terminate_all(); nothing left to advance. */
++			spin_unlock(&vchan->vchan.lock);
++			continue;
++		}
+ 		//dev_vdbg(vchan2dev(vchan),
+ 		//"k230_peridma_interrupt: process Transfer done irq of phy ch%d, int_status(%x)\n",
+ 		//ch_id, int_stat0);
+diff --git a/include/linux/soc/canaan/k230-dma-addr.h b/include/linux/soc/canaan/k230-dma-addr.h
+index b9989efc3..06f547bbb 100755
+--- a/include/linux/soc/canaan/k230-dma-addr.h
++++ b/include/linux/soc/canaan/k230-dma-addr.h
+@@ -28,6 +28,16 @@
+ #define K230_DDR_PHYS_END	0x80000000UL
+ #define K230_KPU_PHYS_END	0x80800000UL
+ 
++/*
++ * Peripheral FIFOs PDMA is allowed to talk to.
++ *
++ * 这几个是"一个地址读/写一整串数据"的 FIFO 寄存器，不是内存缓冲区，所以
++ * 按 [addr, addr+len) 做范围检查一定会失败——必须逐个显式放行。
++ */
++#define K230_I2S_RXDMA_ADDR	0x9140f1c0UL	/* I2S RXDMA */
++#define K230_I2S_TXDMA_ADDR	0x9140f1c8UL	/* I2S TXDMA */
++#define K230_PDM_RXDMA_ADDR	0x9140f4c0UL	/* audio_in_pdm2pcm_data */
++
+ /**
+  * k230_dma_addr_in_ddr - Check if DMA address falls within DDR only
+  * @addr: DMA physical address
+diff --git a/sound/soc/canaan/Kconfig b/sound/soc/canaan/Kconfig
+index e237f8ec4..95bc080b4 100644
+--- a/sound/soc/canaan/Kconfig
++++ b/sound/soc/canaan/Kconfig
+@@ -14,3 +14,13 @@ config SND_SOC_CANAAN_K230_AUDIO
+ 	  on CANAAN K230 SoC, enabling audio input and output capabilities. If
+ 	  unsure, select M.
+ 
++
++config SND_SOC_CANAAN_K230_PDM
++	tristate "CANAAN K230 PDM microphone capture support"
++	depends on SND_SOC_CANAAN_K230_AUDIO
++	help
++	  Say Y or M here to capture from PDM microphones wired to the K230 PDM
++	  receiver. This is an independent capture path: it does not use the I2S
++	  controller or the internal codec, so it can run alongside them. Up to
++	  eight microphones are supported, on one to four data lines, two per
++	  line when both clock edges are sampled. If unsure, select N.
+diff --git a/sound/soc/canaan/Makefile b/sound/soc/canaan/Makefile
+index c5f6b80aa..e8eb0b107 100644
+--- a/sound/soc/canaan/Makefile
++++ b/sound/soc/canaan/Makefile
+@@ -6,3 +6,6 @@ snd-soc-canaan-k230-inno-objs := canaan_k230_inno.o
+ obj-$(CONFIG_SND_SOC_CANAAN_K230_INNO) += snd-soc-canaan-k230-inno.o
+ 
+ 
++snd-soc-canaan-k230-pdm-objs := canaan_k230_pdm.o
++
++obj-$(CONFIG_SND_SOC_CANAAN_K230_PDM) += snd-soc-canaan-k230-pdm.o
+diff --git a/sound/soc/canaan/canaan_k230_audio.c b/sound/soc/canaan/canaan_k230_audio.c
+index 9811b1396..e860d7f96 100644
+--- a/sound/soc/canaan/canaan_k230_audio.c
++++ b/sound/soc/canaan/canaan_k230_audio.c
+@@ -9,17 +9,49 @@
+ struct canaan_audio_data {
+ 	struct platform_device *pdev;
+ 	void __iomem *base;
++	phys_addr_t phys;
+ };
+ 
+ static struct canaan_audio_data sai = { 0 };
+ 
++/*
++ * Set once the PDM card has claimed pdm_conf_0's input mode. Both cards want
++ * that field and only one of them can have it, and they probe in an order
++ * nothing here controls, so the I2S side defers to this whichever runs first.
++ * See audio_pdm_input_select().
++ */
++static bool pdm_owns_input_mode;
++
++/*
++ * The register layouts below are __packed bitfield structs, which lets the
++ * compiler pick whatever access width covers the fields being touched: a
++ * single-bit update in the low byte becomes an lbu/sb pair and a two-field
++ * update becomes an sh. This block only answers to 32-bit accesses, so the
++ * narrow ones are dropped on the floor - the write appears to succeed and the
++ * register keeps its old value.
++ *
++ * Qualifying the pointers volatile is what keeps that from happening:
++ * -fstrict-volatile-bitfields makes the compiler access a volatile bitfield
++ * using its declared type, so every access below is a full 32-bit lw/sw. Drop
++ * the qualifier and writes to pdm_enable, pdm_chl_num and pdm_dma_fifo_th stop
++ * arriving, which leaves the receiver idle and the DMA channel reporting a
++ * device timeout with nothing to point at.
++ */
++
+ void audio_i2s_in_init(void)
+ {
+ 	if (sai.base) {
+-		struct audio_in_reg_s *audio_in_reg = sai.base;
++		volatile struct audio_in_reg_s *audio_in_reg = sai.base;
+ 
+-		//默认使用i2s
+-		audio_in_reg->audio_in_pdm_conf_0.audio_in_mode = AUDIO_IO_OUT_MODE_I2S;
++		/*
++		 * Point IO35 and IO37 at the I2S transmitter, unless a PDM
++		 * board has claimed them for its first two data lines - that
++		 * board has nowhere else to take them from, while I2S output on
++		 * those two pins is something only some boards use.
++		 */
++		if (!pdm_owns_input_mode)
++			audio_in_reg->audio_in_pdm_conf_0.audio_in_mode =
++				AUDIO_IO_OUT_MODE_I2S;
+ 		audio_in_reg->audio_in_agc_para_4.agc_bypass = AUDIO_ENABLE;
+ 	}
+ }
+@@ -37,7 +69,8 @@ void audio_i2s_out_init(bool enable, uint32_t word_len)
+ 		out_word_len = AUDIO_OUT_TYPE_16BIT;
+ 
+ 	if (sai.base) {
+-		struct audio_out_reg_s *audio_out_reg = sai.base + 0x800;
++		volatile struct audio_out_reg_s *audio_out_reg =
++			sai.base + 0x800;
+ 
+ 		audio_out_reg->audio_out_ctl.data_type = out_word_len;
+ 		audio_out_reg->audio_out_ctl.mode = AUDIO_OUT_MODE_I2S; /* i2s/pdm/tdm mode */
+@@ -50,7 +83,7 @@ EXPORT_SYMBOL_GPL(audio_i2s_out_init);
+ void audio_i2s_enable_audio_codec(bool use_audio_codec)
+ {
+ 	if (sai.base) {
+-		struct audio_in_reg_s *audio_in_reg = sai.base;
++		volatile struct audio_in_reg_s *audio_in_reg = sai.base;
+ 
+ 		//是否启用内置codec
+ 		audio_in_reg->audio_in_pdm_conf_0.audio_codec_bypass = !use_audio_codec;
+@@ -59,16 +92,145 @@ void audio_i2s_enable_audio_codec(bool use_audio_codec)
+ }
+ EXPORT_SYMBOL_GPL(audio_i2s_enable_audio_codec);
+ 
++/*
++ * The PDM receiver lives in the same register block as the I2S glue above, and
++ * that block is already claimed by this driver, so the PDM driver cannot map it
++ * a second time. It calls in here instead, the same way canaan_k230_inno.c does
++ * for the I2S side.
++ */
++bool audio_pdm_available(void)
++{
++	return sai.base != NULL;
++}
++EXPORT_SYMBOL_GPL(audio_pdm_available);
++
++/*
++ * Where the PDM receiver drops finished samples. One 32-bit read pops one
++ * sample: 4 bits of channel tag plus 24 bits of PCM, placed either in the high
++ * or the low 28 bits depending on pdm_in_endian.
++ */
++phys_addr_t audio_pdm_fifo_phys_addr(void)
++{
++	return sai.phys + offsetof(struct audio_in_reg_s, audio_in_pdm2pcm_data);
++}
++EXPORT_SYMBOL_GPL(audio_pdm_fifo_phys_addr);
++
++/*
++ * Says where the PDM receiver's first two inputs come from. This is pdm_conf_0
++ * bits 7:6, a second mux behind the pin controller: IO37 and IO35 have the two
++ * I2S output data lines and PDM inputs 0 and 1 on the same alt function, and
++ * this field is what separates them.
++ *
++ * Selecting I2S hands IO37 and IO35 to the transmitter and leaves inputs 0 and
++ * 1 on their other pins, IO27 and IO28. Selecting PDM does the reverse: inputs
++ * 0 and 1 are then fed from IO37 and IO35, and IO27 and IO28 no longer reach
++ * the receiver however the pin controller has muxed them. Inputs 2 and 3, on
++ * IO36 and IO34, are outside this and work either way.
++ *
++ * A board with its data lines on IO27 and IO28 therefore wants the I2S setting,
++ * which is what the I2S card programs anyway, so PDM capture costs it nothing.
++ * Only a board on IO35 and IO37 has to take the field, and it gives up I2S
++ * output data on those two pins to do so.
++ */
++void audio_pdm_input_select(bool io35_37)
++{
++	pdm_owns_input_mode = io35_37;
++
++	if (sai.base) {
++		volatile struct audio_in_reg_s *audio_in_reg = sai.base;
++
++		audio_in_reg->audio_in_pdm_conf_0.audio_in_mode =
++			io35_37 ? AUDIO_IO_IN_MODE_PDM : AUDIO_IO_OUT_MODE_I2S;
++	}
++}
++EXPORT_SYMBOL_GPL(audio_pdm_input_select);
++
++/*
++ * Set up the PDM receive path. Passing chl_num == 0 shuts the receiver down and
++ * clears its FIFO; any other value starts it. Everything else is programmed the
++ * same way either time, so a stop/start pair does not need a full reconfigure.
++ */
++void audio_pdm_in_init(unsigned int oversample, unsigned int chl_num,
++		       unsigned int edge, unsigned int align,
++		       unsigned int fifo_th)
++{
++	volatile struct audio_in_reg_s *audio_in_reg = sai.base;
++
++	if (!audio_in_reg)
++		return;
++
++	audio_in_reg->audio_in_agc_para_4.agc_bypass = AUDIO_ENABLE;
++
++	audio_in_reg->audio_in_pdm_ch_conf.pdm_chl_num = chl_num;
++	audio_in_reg->audio_in_pdm_ch_conf.pdm_pn_sel = edge;
++
++	/* Spike suppression off: no board has needed it so far. */
++	audio_in_reg->audio_in_pdm_clk_spike.pdmin_clk_spike_cnt = 0;
++	audio_in_reg->audio_in_pdm_clk_spike.pdmin_clk_spike_th = 0;
++	audio_in_reg->audio_in_pdm_ch_spike.pdmin_ch0_spike_cnt = 0;
++	audio_in_reg->audio_in_pdm_ch_spike.pdmin_ch0_spike_th = 0;
++
++	/*
++	 * The decimation chain depends on how many PDM clocks make up one
++	 * sample: 32x runs the CIC alone, 64x adds the half-band filter, and
++	 * 128x additionally switches the CIC from 16th to 32nd order.
++	 */
++	switch (oversample) {
++	case AUDIO_PDM_OVERSAMPLE_32:
++		audio_in_reg->audio_in_pdm_conf_1.ord_select = AUDIO_IN_PDM_CIC16;
++		audio_in_reg->audio_in_pdm_bypass.hbf_dsmpl_fir_bypass = 1;
++		break;
++	case AUDIO_PDM_OVERSAMPLE_128:
++		audio_in_reg->audio_in_pdm_conf_1.ord_select = AUDIO_IN_PDM_CIC32;
++		audio_in_reg->audio_in_pdm_conf_0.hbf_enable = 1;
++		break;
++	case AUDIO_PDM_OVERSAMPLE_64:
++	default:
++		audio_in_reg->audio_in_pdm_conf_1.ord_select = AUDIO_IN_PDM_CIC16;
++		audio_in_reg->audio_in_pdm_conf_0.hbf_enable = 1;
++		break;
++	}
++
++	audio_in_reg->audio_in_pdm_conf_0.pdm_in_endian = align;
++	audio_in_reg->audio_in_pdm_conf_0.pdm_dma_fifo_th = fifo_th;
++
++	if (chl_num == 0) {
++		audio_in_reg->audio_in_pdm_conf_0.mpf_enable = 0;
++		audio_in_reg->audio_in_pdm_conf_0.pdm_enable = 0;
++		audio_in_reg->audio_in_pdm_conf_0.pdm_fifo_clear = 1;
++	} else {
++		audio_in_reg->audio_in_pdm_conf_0.mpf_enable = 1;
++		audio_in_reg->audio_in_pdm_conf_0.pdm_enable = 1;
++		audio_in_reg->audio_in_pdm_conf_0.pdm_fifo_clear = 0;
++	}
++}
++EXPORT_SYMBOL_GPL(audio_pdm_in_init);
++
++/* The overrun latch is write-0-to-clear and has no other valid bits. */
++void audio_pdm_irq_clear(void)
++{
++	if (sai.base) {
++		volatile struct audio_in_reg_s *audio_in_reg = sai.base;
++
++		audio_in_reg->audio_in_pdm_interrupt = 0;
++	}
++}
++EXPORT_SYMBOL_GPL(audio_pdm_irq_clear);
++
+ static int canaan_audio_probe(struct platform_device *pdev)
+ {
+ 	struct resource *res;
++	void __iomem *base;
+ 	int ret = 0;
+ 
+ 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+ 
+-	sai.base = devm_ioremap_resource(&pdev->dev, res);
+-	if (IS_ERR(sai.base))
+-		return PTR_ERR(sai.base);
++	base = devm_ioremap_resource(&pdev->dev, res);
++	if (IS_ERR(base))
++		return PTR_ERR(base);
++
++	sai.base = base;
++	sai.phys = res->start;
+ 
+ 	platform_set_drvdata(pdev, &sai);
+ 
+diff --git a/sound/soc/canaan/canaan_k230_audio.h b/sound/soc/canaan/canaan_k230_audio.h
+index 81199c2c9..14ffbf38d 100644
+--- a/sound/soc/canaan/canaan_k230_audio.h
++++ b/sound/soc/canaan/canaan_k230_audio.h
+@@ -159,13 +159,20 @@ struct audio_out_reg_s {
+ } __packed __aligned(4);
+ 
+ /* pdm */
++/*
++ * pdm_conf_0 bits 7:6, whose reset value is AUDIO_IO_IN_MODE_PDM. The field
++ * decides one thing with two consequences: whether IO37 and IO35 belong to the
++ * I2S transmitter or to the PDM receiver. Picking I2S leaves the receiver's
++ * inputs 0 and 1 on their other pins, IO27 and IO28. See
++ * audio_pdm_input_select().
++ */
+ enum audio_io_select_mode_e {
+-	//IO35、IO37:PDM in0和i2s out1复用的IO功能选择为i2s out1，
+-	//PDM in1和i2s out0复用的IO功能选择为i2s out0；
+-	AUDIO_IO_IN_MODE_PDM =
+-		0,
+ 	//IO35、IO37:PDM in0和i2s out1复用的IO功能选择为PDM in0，
+ 	//PDM in1和i2s out0复用的IO功能选择为PDM in1。
++	AUDIO_IO_IN_MODE_PDM =
++		0,
++	//IO35、IO37:PDM in0和i2s out1复用的IO功能选择为i2s out1，
++	//PDM in1和i2s out0复用的IO功能选择为i2s out0；
+ 	AUDIO_IO_OUT_MODE_I2S =
+ 		2,
+ };
+@@ -487,4 +494,13 @@ void audio_i2s_enable_audio_codec(
+ 
+ void audio_i2s_out_init(bool enable, uint32_t word_len);
+ 
++/* PDM receiver - see canaan_k230_pdm.c for the ASoC side */
++bool audio_pdm_available(void);
++phys_addr_t audio_pdm_fifo_phys_addr(void);
++void audio_pdm_input_select(bool io35_37);
++void audio_pdm_in_init(unsigned int oversample, unsigned int chl_num,
++		       unsigned int edge, unsigned int align,
++		       unsigned int fifo_th);
++void audio_pdm_irq_clear(void);
++
+ #endif
+diff --git a/sound/soc/canaan/canaan_k230_pdm.c b/sound/soc/canaan/canaan_k230_pdm.c
+new file mode 100644
+index 000000000..cbbda6445
+--- /dev/null
++++ b/sound/soc/canaan/canaan_k230_pdm.c
+@@ -0,0 +1,947 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * ASoC capture driver for the K230 PDM receiver.
++ *
++ * Copyright (C) 2026, Canaan Bright Sight Co., Ltd
++ *
++ * The PDM receiver sits in the same register block as the I2S glue logic, but
++ * it is otherwise an independent capture path: its own decimation chain, its
++ * own FIFO, and its own PDMA request line (PDM_IN, 33). Nothing here disturbs
++ * the I2S controller or the internal codec, so a board can run PDM capture at
++ * the same time as codec playback.
++ */
++
++#include <linux/clk.h>
++#include <linux/dma-mapping.h>
++#include <linux/dmaengine.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++
++#include <sound/pcm.h>
++#include <sound/pcm_params.h>
++#include <sound/soc.h>
++
++#include "canaan_k230_audio.h"
++
++#define DRV_NAME "canaan-k230-pdm"
++
++/*
++ * Four data lines (PDM_IN0..PDM_IN3), each carrying two microphones when both
++ * clock edges are sampled, so eight channels in total. pdm_chl_num holds the
++ * channel count in four bits and the per-sample channel tag is four bits wide,
++ * so the registers have room for all eight.
++ *
++ * Note pdm_chl_num counts channels rather than lines, so a board sampling both
++ * edges of one line has to program 2 and not 1.
++ */
++#define K230_PDM_MAX_DATA_LINES	4
++#define K230_PDM_MAX_CHANNELS	8
++
++/*
++ * How full the FIFO gets before it asks PDMA for a burst; the field holds the
++ * count minus one, so this is "eight samples". It has to be read together with
++ * the single-beat burst requested in hw_params(): a burst the PDM FIFO cannot
++ * keep fed leaves the channel waiting for DataReq until chx_dev_tout expires,
++ * at which point the hardware stops the transfer (TRM 2.5.1, CHx_CFG
++ * chx_dev_tout).
++ */
++#define K230_PDM_FIFO_TRIGGER	7
++
++/*
++ * Bounds on the buffer the application sees. Eight channels of S32_LE at
++ * 16KB per period is 512 frames, about 10ms at 48kHz, and the 128KB ceiling
++ * leaves room for the deepest sensible buffer at that width.
++ */
++#define K230_PDM_MAX_PERIOD_BYTES	16384
++#define K230_PDM_MAX_BUFFER_BYTES	(128 * 1024)
++
++/*
++ * The same period in the raw stream, which always carries one 32-bit word per
++ * sample: S16_LE is the worst case at twice the application's period, S24_LE
++ * and S32_LE are 1:1. Deriving the cap this way means no set of hw_params
++ * ALSA has already accepted can be turned away in hw_params().
++ *
++ * PDMA splits anything past MAX_LINE_SIZE (0xffff) into several descriptors
++ * and marks only the last one, so the period callback still fires once per
++ * period; the cap is here to bound the bounce buffer, not to fit a descriptor.
++ */
++#define K230_PDM_MAX_RAW_PERIOD_BYTES	(2 * K230_PDM_MAX_PERIOD_BYTES)
++
++/* Right-aligned samples carry the channel tag in bits 27:24, PCM in 23:0. */
++#define K230_PDM_TAG_SHIFT_RIGHT	24
++#define K230_PDM_TAG_SHIFT_LEFT		28
++
++struct k230_pdm {
++	struct device *dev;
++	struct clk *clk;
++	struct dma_chan *chan;
++
++	/* Board description, from the device tree. See the binding. */
++	unsigned int data_lines;
++	unsigned int edge;
++	/* An AUDIO_PDM_OVERSAMPLE_* selector, not a factor. */
++	unsigned int oversample;
++	bool use_io35_37;
++	unsigned int max_channels;
++
++	/*
++	 * The raw stream cannot go straight into the buffer the application
++	 * sees: every 32-bit word carries a four-bit channel tag that has to
++	 * come off first. PDMA fills this bounce buffer instead, and the period
++	 * callback converts one period at a time into runtime->dma_area.
++	 *
++	 * The alternative, an ASoC .copy callback, would rule out mmap and with
++	 * it dsnoop; a second buffer of a few tens of kilobytes is the cheaper
++	 * side of that trade.
++	 */
++	void *raw;
++	dma_addr_t raw_phys;
++	size_t raw_bytes;
++	unsigned int raw_period_words;
++	unsigned int raw_pos_words;
++
++	struct snd_pcm_substream *substream;
++	unsigned int channels;
++	unsigned int tag_shift;
++	snd_pcm_format_t format;
++
++	/* Where the next converted frame goes, in frames from the start. */
++	unsigned int alsa_pos;
++	unsigned int buffer_frames;
++	unsigned int period_frames;
++	unsigned int period_acc;
++
++	/* Frame reassembly state; see k230_pdm_convert(). */
++	unsigned int expect;
++	bool hunting;
++	u32 accum[K230_PDM_MAX_CHANNELS];
++	unsigned long desyncs;
++
++	bool running;
++
++	struct snd_soc_dai_link_component cpus[1];
++	struct snd_soc_dai_link_component codecs[1];
++	struct snd_soc_dai_link_component platforms[1];
++	struct snd_soc_dai_link dailink;
++	struct snd_soc_card card;
++};
++
++/*
++ * AUDIO_PDM_OVERSAMPLE_32, _64 and _128 are consecutive enumerators starting at
++ * zero, which is what the hardware wants in pdm_conf_0. Anything that needs the
++ * decimation factor itself has to convert.
++ */
++static unsigned int k230_pdm_oversample_factor(const struct k230_pdm *pdm)
++{
++	return 32u << pdm->oversample;
++}
++
++/*
++ * The decimation chain is driven entirely by pdm_clk, so this list is about
++ * what the filters were tuned for rather than any hard limit. Rates pdm_clk
++ * cannot actually produce are rejected in hw_params().
++ */
++#define K230_PDM_RATES	SNDRV_PCM_RATE_8000_192000
++
++#define K230_PDM_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE | \
++			  SNDRV_PCM_FMTBIT_S32_LE)
++
++static const struct snd_pcm_hardware k230_pdm_hardware = {
++	.info			= SNDRV_PCM_INFO_INTERLEAVED |
++				  SNDRV_PCM_INFO_BLOCK_TRANSFER |
++				  SNDRV_PCM_INFO_MMAP |
++				  SNDRV_PCM_INFO_MMAP_VALID,
++	.formats		= K230_PDM_FORMATS,
++	.rates			= K230_PDM_RATES,
++	.rate_min		= 8000,
++	.rate_max		= 192000,
++	.channels_min		= 1,
++	.channels_max		= K230_PDM_MAX_CHANNELS,
++	.buffer_bytes_max	= K230_PDM_MAX_BUFFER_BYTES,
++	.period_bytes_min	= 256,
++	.period_bytes_max	= K230_PDM_MAX_PERIOD_BYTES,
++	.periods_min		= 2,
++	.periods_max		= 32,
++};
++
++/* ------------------------------------------------------------------ */
++/* raw stream conversion                                              */
++/* ------------------------------------------------------------------ */
++
++/*
++ * Turn one raw word into one sample of the requested format. The PCM payload is
++ * 24 bits of two's complement; where it sits in the word depends on alignment,
++ * which k230_pdm_prepare() has already folded into tag_shift.
++ */
++static u32 k230_pdm_sample(struct k230_pdm *pdm, u32 raw)
++{
++	u32 pcm24;
++
++	if (pdm->tag_shift == K230_PDM_TAG_SHIFT_RIGHT)
++		pcm24 = raw & GENMASK(23, 0);
++	else
++		pcm24 = (raw >> 4) & GENMASK(23, 0);
++
++	switch (pdm->format) {
++	case SNDRV_PCM_FORMAT_S32_LE:
++		return pcm24 << 8;
++	case SNDRV_PCM_FORMAT_S24_LE:
++		/* 24 bits in the low three bytes of a 32-bit container. */
++		return pcm24;
++	case SNDRV_PCM_FORMAT_S16_LE:
++	default:
++		return pcm24 >> 8;
++	}
++}
++
++static void k230_pdm_store_frame(struct k230_pdm *pdm)
++{
++	struct snd_pcm_runtime *runtime = pdm->substream->runtime;
++	unsigned int i, nch = pdm->channels;
++	void *dst = runtime->dma_area +
++		    frames_to_bytes(runtime, pdm->alsa_pos);
++
++	if (pdm->format == SNDRV_PCM_FORMAT_S16_LE) {
++		u16 *p = dst;
++
++		for (i = 0; i < nch; i++)
++			p[i] = k230_pdm_sample(pdm, pdm->accum[i]);
++	} else {
++		u32 *p = dst;
++
++		for (i = 0; i < nch; i++)
++			p[i] = k230_pdm_sample(pdm, pdm->accum[i]);
++	}
++
++	if (++pdm->alsa_pos >= pdm->buffer_frames)
++		pdm->alsa_pos = 0;
++}
++
++/*
++ * Convert one period out of the bounce buffer.
++ *
++ * Every word says which channel it belongs to, so rather than assuming the
++ * period starts on a frame boundary - it does not, the first DMA burst after a
++ * FIFO clear can begin on any channel - the frame is reassembled from the tags.
++ * The cost is one shift and one compare per sample; the gain is that a stream
++ * that briefly loses step recovers by itself at the next channel 0 instead of
++ * swapping channels for the rest of the recording.
++ *
++ * Returns the number of complete periods written to the ALSA buffer, which is
++ * one in the steady state and can be zero on the very first callback, where up
++ * to nch-1 samples get dropped to find the first frame boundary.
++ */
++static unsigned int k230_pdm_convert(struct k230_pdm *pdm)
++{
++	const u32 *src = (const u32 *)pdm->raw + pdm->raw_pos_words;
++	unsigned int n = pdm->raw_period_words;
++	unsigned int nch = pdm->channels;
++	unsigned int elapsed = 0;
++	unsigned int i;
++
++	for (i = 0; i < n; i++) {
++		u32 word = src[i];
++		unsigned int ch = (word >> pdm->tag_shift) & 0xf;
++
++		if (ch >= nch) {
++			/*
++			 * The tag names a channel we did not enable, so the
++			 * word is not one of ours - a stray FIFO entry from
++			 * before the last clear, or a glitch on the data line.
++			 * Throw it away and look for the start of a frame.
++			 */
++			if (!pdm->hunting) {
++				pdm->desyncs++;
++				pdm->hunting = true;
++			}
++			pdm->expect = 0;
++			continue;
++		}
++
++		if (ch != pdm->expect) {
++			/*
++			 * Out of step. Channel 0 starts a new frame, so we can
++			 * pick up again immediately; anything else means we are
++			 * mid-frame and have to wait for the next channel 0.
++			 */
++			if (!pdm->hunting)
++				pdm->desyncs++;
++			if (ch != 0) {
++				pdm->hunting = true;
++				pdm->expect = 0;
++				continue;
++			}
++		}
++
++		pdm->hunting = false;
++		pdm->accum[ch] = word;
++		pdm->expect = ch + 1;
++
++		if (pdm->expect < nch)
++			continue;
++
++		pdm->expect = 0;
++		k230_pdm_store_frame(pdm);
++
++		if (++pdm->period_acc >= pdm->period_frames) {
++			pdm->period_acc = 0;
++			elapsed++;
++		}
++	}
++
++	pdm->raw_pos_words += n;
++	if (pdm->raw_pos_words >= pdm->raw_bytes / sizeof(u32))
++		pdm->raw_pos_words = 0;
++
++	return elapsed;
++}
++
++static void k230_pdm_dma_complete(void *arg)
++{
++	struct k230_pdm *pdm = arg;
++	unsigned int elapsed;
++
++	/*
++	 * trigger(STOP) tears the transfer down asynchronously, so one more
++	 * callback can still arrive after the substream is on its way out.
++	 */
++	if (!READ_ONCE(pdm->running))
++		return;
++
++	elapsed = k230_pdm_convert(pdm);
++
++	while (elapsed--)
++		snd_pcm_period_elapsed(pdm->substream);
++}
++
++/* ------------------------------------------------------------------ */
++/* PCM component                                                      */
++/* ------------------------------------------------------------------ */
++
++/*
++ * The card and the component both live on this one device, and
++ * snd_soc_register_card() claims the device's driver data for the card
++ * (sound/soc/soc-core.c:2403). snd_soc_component_get_drvdata() is nothing but
++ * dev_get_drvdata() (include/sound/soc-component.h:432), so in a driver shaped
++ * like this one it hands back the card rather than our private data. Reach the
++ * private data through the card's own pointer, which nothing else touches.
++ */
++static struct k230_pdm *k230_pdm_from_substream(struct snd_pcm_substream *substream)
++{
++	struct snd_soc_pcm_runtime *rtd = snd_soc_substream_to_rtd(substream);
++
++	return snd_soc_card_get_drvdata(rtd->card);
++}
++
++static int k230_pdm_open(struct snd_soc_component *component,
++			 struct snd_pcm_substream *substream)
++{
++	struct k230_pdm *pdm = k230_pdm_from_substream(substream);
++	struct snd_pcm_runtime *runtime = substream->runtime;
++	int ret;
++
++	snd_soc_set_runtime_hwparams(substream, &k230_pdm_hardware);
++
++	/*
++	 * How many channels actually exist is a property of the board: one per
++	 * data line, doubled when both clock edges are sampled because then two
++	 * microphones share the line.
++	 */
++	ret = snd_pcm_hw_constraint_minmax(runtime, SNDRV_PCM_HW_PARAM_CHANNELS,
++					   1, pdm->max_channels);
++	if (ret < 0)
++		return ret;
++
++	/*
++	 * Keep the period a whole number of FIFO trigger levels. The FIFO asks
++	 * for data every eight samples, so a period that is a multiple of eight
++	 * frames never leaves a partial group behind at the end of a period -
++	 * every sane period size is a multiple of eight anyway.
++	 */
++	ret = snd_pcm_hw_constraint_step(runtime, 0,
++					 SNDRV_PCM_HW_PARAM_PERIOD_SIZE, 8);
++	if (ret < 0)
++		return ret;
++
++	return 0;
++}
++
++static int k230_pdm_hw_params(struct snd_soc_component *component,
++			      struct snd_pcm_substream *substream,
++			      struct snd_pcm_hw_params *params)
++{
++	struct k230_pdm *pdm = k230_pdm_from_substream(substream);
++	struct dma_slave_config cfg = { 0 };
++	unsigned int channels = params_channels(params);
++	unsigned int periods = params_periods(params);
++	size_t raw_period, raw_total;
++	unsigned long rate, actual;
++	int ret;
++
++	if (channels > pdm->max_channels)
++		return -EINVAL;
++
++	/* One 32-bit word per sample, whatever the application asked for. */
++	raw_period = (size_t)params_period_size(params) * channels * sizeof(u32);
++	raw_total = raw_period * periods;
++
++	if (raw_period > K230_PDM_MAX_RAW_PERIOD_BYTES) {
++		dev_err(pdm->dev, "period of %zu raw bytes exceeds %u\n",
++			raw_period, K230_PDM_MAX_RAW_PERIOD_BYTES);
++		return -EINVAL;
++	}
++
++	if (pdm->raw && pdm->raw_bytes != raw_total) {
++		dma_free_coherent(pdm->chan->device->dev, pdm->raw_bytes,
++				  pdm->raw, pdm->raw_phys);
++		pdm->raw = NULL;
++	}
++
++	if (!pdm->raw) {
++		pdm->raw = dma_alloc_coherent(pdm->chan->device->dev, raw_total,
++					      &pdm->raw_phys, GFP_KERNEL);
++		if (!pdm->raw)
++			return -ENOMEM;
++		pdm->raw_bytes = raw_total;
++	}
++
++	pdm->raw_period_words = raw_period / sizeof(u32);
++
++	cfg.direction = DMA_DEV_TO_MEM;
++	cfg.src_addr = audio_pdm_fifo_phys_addr();
++	cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++	/*
++	 * One beat per burst. The FIFO gains a single word per sample per data
++	 * line, so the deeper a burst drains it the longer the channel is then
++	 * left waiting on DataReq - and chx_dev_tout allows only 0xfff bus
++	 * cycles of waiting before it abandons the transfer. A single beat
++	 * keeps that wait as short as the trigger level allows.
++	 */
++	cfg.src_maxburst = 1;
++
++	ret = dmaengine_slave_config(pdm->chan, &cfg);
++	if (ret) {
++		dev_err(pdm->dev, "failed to configure DMA channel: %d\n", ret);
++		return ret;
++	}
++
++	/*
++	 * One PDM clock per oversampled bit, so the bit clock is the sample
++	 * rate multiplied by the decimation factor: 3.072MHz for 48kHz at 64x.
++	 * Most PDM microphones want somewhere between 1 and 3.5MHz, which is
++	 * why the factor is a board property rather than a fixed 64.
++	 */
++	rate = (unsigned long)params_rate(params) *
++	       k230_pdm_oversample_factor(pdm);
++
++	ret = clk_set_rate(pdm->clk, rate);
++	if (ret) {
++		dev_err(pdm->dev, "failed to set pdm_clk to %luHz: %d\n",
++			rate, ret);
++		return ret;
++	}
++
++	/*
++	 * pdm_clk only supports the rates listed in the table in
++	 * k230_clk_find_approximate(), and asking for anything else does not
++	 * fail: the divider and the multiplier are both left at zero and the
++	 * clock stops. Nothing downstream notices, the receiver simply never
++	 * produces a sample and the DMA channel reports a device timeout, so
++	 * check the rate we actually got instead of the return code.
++	 */
++	actual = clk_get_rate(pdm->clk);
++	if (actual != rate) {
++		dev_err(pdm->dev,
++			"pdm_clk cannot produce %luHz (%uHz x %u), got %luHz\n",
++			rate, params_rate(params),
++			k230_pdm_oversample_factor(pdm), actual);
++		return -EINVAL;
++	}
++
++	dev_dbg(pdm->dev, "pdm_clk %luHz\n", actual);
++
++	return 0;
++}
++
++static int k230_pdm_hw_free(struct snd_soc_component *component,
++			    struct snd_pcm_substream *substream)
++{
++	struct k230_pdm *pdm = k230_pdm_from_substream(substream);
++
++	/*
++	 * prepare() leaves the receiver running, and an application is allowed
++	 * to prepare a stream and then close it without ever starting it, so
++	 * stop it here too rather than only in trigger().
++	 */
++	audio_pdm_in_init(pdm->oversample, 0, pdm->edge, AUDIO_IN_RIGHT_ALIGN,
++			  K230_PDM_FIFO_TRIGGER);
++
++	/*
++	 * trigger() runs atomically and can only terminate the transfer
++	 * asynchronously, so this is where we wait for the callback to be done
++	 * with the bounce buffer before releasing it.
++	 */
++	dmaengine_synchronize(pdm->chan);
++
++	if (pdm->raw) {
++		dma_free_coherent(pdm->chan->device->dev, pdm->raw_bytes,
++				  pdm->raw, pdm->raw_phys);
++		pdm->raw = NULL;
++		pdm->raw_bytes = 0;
++	}
++
++	return 0;
++}
++
++static int k230_pdm_prepare(struct snd_soc_component *component,
++			    struct snd_pcm_substream *substream)
++{
++	struct k230_pdm *pdm = k230_pdm_from_substream(substream);
++	struct snd_pcm_runtime *runtime = substream->runtime;
++
++	pdm->substream = substream;
++	pdm->channels = runtime->channels;
++	pdm->format = runtime->format;
++	pdm->buffer_frames = runtime->buffer_size;
++	pdm->period_frames = runtime->period_size;
++
++	/*
++	 * There is no reason for a board to want anything but right alignment -
++	 * it describes where the chip puts the bits inside a word, not how the
++	 * board is wired.
++	 */
++	pdm->tag_shift = K230_PDM_TAG_SHIFT_RIGHT;
++
++	pdm->raw_pos_words = 0;
++	pdm->alsa_pos = 0;
++	pdm->period_acc = 0;
++	pdm->expect = 0;
++	pdm->hunting = true;
++	pdm->desyncs = 0;
++
++	/*
++	 * Start the receiver here rather than in trigger(), so that it is
++	 * already producing samples by the time the DMA channel is enabled.
++	 *
++	 * The PDMA channel gives up if DataReq stays deasserted for chx_dev_tout
++	 * bus cycles and reports chx_dev_tout_int instead of transferring
++	 * anything (TRM 2.5.2, CHx_CFG). At the 0xfff the device tree asks for
++	 * that is roughly 20us, while the receiver needs to collect
++	 * K230_PDM_FIFO_TRIGGER + 1 words before it asks for a burst - 83us for
++	 * two channels at 48kHz. Enabling the receiver from trigger() therefore
++	 * loses the race no matter how the two calls are ordered: the FIFO is
++	 * empty at that point either way.
++	 *
++	 * prepare() and the start trigger are separate ioctls, so by the time
++	 * the channel runs the FIFO has long passed the trigger level and
++	 * DataReq is already asserted - the same situation the I2S receiver is
++	 * always in, its bit clock never having stopped. Samples collected in
++	 * between are simply overwritten in the FIFO; frames are assembled from
++	 * the channel tag carried by each sample, so nothing depends on which
++	 * channel the first word taken happens to belong to.
++	 */
++	audio_pdm_in_init(pdm->oversample, 0, pdm->edge, AUDIO_IN_RIGHT_ALIGN,
++			  K230_PDM_FIFO_TRIGGER);
++	audio_pdm_irq_clear();
++	audio_pdm_in_init(pdm->oversample, pdm->channels, pdm->edge,
++			  AUDIO_IN_RIGHT_ALIGN, K230_PDM_FIFO_TRIGGER);
++
++	return 0;
++}
++
++static int k230_pdm_trigger(struct snd_soc_component *component,
++			    struct snd_pcm_substream *substream, int cmd)
++{
++	struct k230_pdm *pdm = k230_pdm_from_substream(substream);
++	struct dma_async_tx_descriptor *desc;
++
++	switch (cmd) {
++	case SNDRV_PCM_TRIGGER_START:
++	case SNDRV_PCM_TRIGGER_RESUME:
++	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
++		/*
++		 * The receiver has been running since prepare() and its FIFO is
++		 * above the trigger level, so the channel finds DataReq already
++		 * asserted and starts moving data straight away.
++		 *
++		 * Only START actually gets here. snd_pcm_pre_resume() and
++		 * snd_pcm_pre_pause() refuse with -ENOSYS unless the stream
++		 * advertises SNDRV_PCM_INFO_RESUME and SNDRV_PCM_INFO_PAUSE,
++		 * and k230_pdm_hardware advertises neither, so the core never
++		 * issues the other two commands - an application recovers a
++		 * suspended stream through prepare(), which is where the
++		 * receiver is restarted. The labels are kept because the
++		 * default case rejects anything not listed.
++		 */
++		desc = dmaengine_prep_dma_cyclic(pdm->chan, pdm->raw_phys,
++						 pdm->raw_bytes,
++						 pdm->raw_period_words *
++							 sizeof(u32),
++						 DMA_DEV_TO_MEM,
++						 DMA_PREP_INTERRUPT);
++		if (!desc)
++			return -ENOMEM;
++
++		desc->callback = k230_pdm_dma_complete;
++		desc->callback_param = pdm;
++
++		WRITE_ONCE(pdm->running, true);
++
++		dmaengine_submit(desc);
++		dma_async_issue_pending(pdm->chan);
++		break;
++
++	case SNDRV_PCM_TRIGGER_STOP:
++	case SNDRV_PCM_TRIGGER_SUSPEND:
++	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
++		WRITE_ONCE(pdm->running, false);
++
++		/* A channel count of zero stops the receiver and clears the FIFO. */
++		audio_pdm_in_init(pdm->oversample, 0, pdm->edge,
++				  AUDIO_IN_RIGHT_ALIGN, K230_PDM_FIFO_TRIGGER);
++		dmaengine_terminate_async(pdm->chan);
++
++		if (pdm->desyncs)
++			dev_warn(pdm->dev,
++				 "%lu channel tag desyncs during capture\n",
++				 pdm->desyncs);
++		break;
++
++	default:
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
++static snd_pcm_uframes_t k230_pdm_pointer(struct snd_soc_component *component,
++					  struct snd_pcm_substream *substream)
++{
++	struct k230_pdm *pdm = k230_pdm_from_substream(substream);
++
++	/*
++	 * The DMA position is not the position the application sees: the
++	 * conversion in the period callback is what advances the ALSA buffer.
++	 */
++	return READ_ONCE(pdm->alsa_pos);
++}
++
++static int k230_pdm_pcm_construct(struct snd_soc_component *component,
++				  struct snd_soc_pcm_runtime *rtd)
++{
++	/*
++	 * The application's buffer is written by the CPU, never by DMA, so it
++	 * only has to be page-backed for mmap - vmalloc is enough and avoids
++	 * pinning a second block of coherent memory.
++	 */
++	snd_pcm_set_managed_buffer_all(rtd->pcm, SNDRV_DMA_TYPE_VMALLOC, NULL,
++				       0, K230_PDM_MAX_BUFFER_BYTES);
++
++	return 0;
++}
++
++static const struct snd_soc_component_driver k230_pdm_component = {
++	.name		= DRV_NAME,
++	.open		= k230_pdm_open,
++	.hw_params	= k230_pdm_hw_params,
++	.hw_free	= k230_pdm_hw_free,
++	.prepare	= k230_pdm_prepare,
++	.trigger	= k230_pdm_trigger,
++	.pointer	= k230_pdm_pointer,
++	.pcm_construct	= k230_pdm_pcm_construct,
++};
++
++static struct snd_soc_dai_driver k230_pdm_dai = {
++	.name = "k230-pdm-dai",
++	.capture = {
++		.stream_name	= "PDM Capture",
++		.channels_min	= 1,
++		.channels_max	= K230_PDM_MAX_CHANNELS,
++		.rates		= K230_PDM_RATES,
++		.formats	= K230_PDM_FORMATS,
++	},
++};
++
++/* ------------------------------------------------------------------ */
++/* platform driver                                                    */
++/* ------------------------------------------------------------------ */
++
++/*
++ * Everything below is optional and defaults to the most common wiring: one
++ * data line on IO27, both clock edges sampled (so two microphones), 64x
++ * oversampling. A board that matches that only needs the pin control group and
++ * the node itself.
++ */
++static int k230_pdm_parse_dt(struct k230_pdm *pdm)
++{
++	struct device_node *np = pdm->dev->of_node;
++	const char *s;
++	u32 val;
++	int ret;
++
++	pdm->data_lines = 1;
++	pdm->edge = AUDIO_IN_PDM_BOTH;
++	pdm->oversample = AUDIO_PDM_OVERSAMPLE_64;
++	pdm->use_io35_37 = false;
++
++	ret = of_property_read_u32(np, "canaan,pdm-data-lines", &val);
++	if (!ret) {
++		if (val < 1 || val > K230_PDM_MAX_DATA_LINES) {
++			dev_err(pdm->dev,
++				"invalid 'canaan,pdm-data-lines' value %u\n",
++				val);
++			return -EINVAL;
++		}
++		pdm->data_lines = val;
++	} else if (ret != -EINVAL) {
++		return ret;
++	}
++
++	ret = of_property_read_string(np, "canaan,pdm-edge", &s);
++	if (!ret) {
++		if (!strcmp(s, "both"))
++			pdm->edge = AUDIO_IN_PDM_BOTH;
++		else if (!strcmp(s, "rising"))
++			pdm->edge = AUDIO_IN_PDM_RISING;
++		else if (!strcmp(s, "falling"))
++			pdm->edge = AUDIO_IN_PDM_FAILING;
++		else {
++			dev_err(pdm->dev,
++				"invalid 'canaan,pdm-edge' value '%s'\n", s);
++			return -EINVAL;
++		}
++	} else if (ret != -EINVAL) {
++		return ret;
++	}
++
++	ret = of_property_read_u32(np, "canaan,pdm-oversample", &val);
++	if (!ret) {
++		switch (val) {
++		case 32:
++			pdm->oversample = AUDIO_PDM_OVERSAMPLE_32;
++			break;
++		case 64:
++			pdm->oversample = AUDIO_PDM_OVERSAMPLE_64;
++			break;
++		case 128:
++			pdm->oversample = AUDIO_PDM_OVERSAMPLE_128;
++			break;
++		default:
++			dev_err(pdm->dev,
++				"invalid 'canaan,pdm-oversample' value %u\n",
++				val);
++			return -EINVAL;
++		}
++	} else if (ret != -EINVAL) {
++		return ret;
++	}
++
++	ret = of_property_read_string(np, "canaan,pdm-io-group", &s);
++	if (!ret) {
++		if (!strcmp(s, "io27-28"))
++			pdm->use_io35_37 = false;
++		else if (!strcmp(s, "io35-37"))
++			pdm->use_io35_37 = true;
++		else {
++			dev_err(pdm->dev,
++				"invalid 'canaan,pdm-io-group' value '%s'\n", s);
++			return -EINVAL;
++		}
++	} else if (ret != -EINVAL) {
++		return ret;
++	}
++
++	/*
++	 * Both edges give two microphones per line, so this is at most
++	 * K230_PDM_MAX_DATA_LINES * 2 == K230_PDM_MAX_CHANNELS. No combination
++	 * the checks above let through can overflow accum[].
++	 */
++	pdm->max_channels = pdm->data_lines *
++			    (pdm->edge == AUDIO_IN_PDM_BOTH ? 2 : 1);
++
++	return 0;
++}
++
++/*
++ * The PDM receiver has no CODEC of its own - the microphones are digital and
++ * hang straight off the pins - so the link is closed with a dummy.
++ */
++static const struct snd_soc_dai_link k230_pdm_dailink_template = {
++	.name = "k230-pdm",
++	.stream_name = "PDM",
++	.capture_only = 1,
++};
++
++static const struct snd_soc_card k230_pdm_card_template = {
++	.name = "K230PDM",
++	.owner = THIS_MODULE,
++	.num_links = 1,
++};
++
++static int k230_pdm_probe(struct platform_device *pdev)
++{
++	struct snd_soc_dai_link *dailink;
++	struct snd_soc_card *card;
++	struct k230_pdm *pdm;
++	int ret;
++
++	if (!pdev->dev.of_node)
++		return -EINVAL;
++
++	/*
++	 * The registers belong to the audio wrapper driver, which maps the
++	 * whole 0x9140f400 block; wait for it rather than mapping it twice.
++	 */
++	if (!audio_pdm_available())
++		return -EPROBE_DEFER;
++
++	pdm = devm_kzalloc(&pdev->dev, sizeof(*pdm), GFP_KERNEL);
++	if (!pdm)
++		return -ENOMEM;
++
++	pdm->dev = &pdev->dev;
++
++	/*
++	 * No platform_set_drvdata() here on purpose: snd_soc_register_card()
++	 * below overwrites the device's driver data with the card, so anything
++	 * stored now would silently disappear. The card's own private pointer,
++	 * set just before it is registered, is what everything else uses.
++	 */
++
++	ret = k230_pdm_parse_dt(pdm);
++	if (ret)
++		return ret;
++
++	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
++	if (ret)
++		return ret;
++
++	pdm->clk = devm_clk_get(&pdev->dev, "pdm");
++	if (IS_ERR(pdm->clk))
++		return dev_err_probe(&pdev->dev, PTR_ERR(pdm->clk),
++				     "failed to get pdm clock\n");
++
++	ret = clk_prepare_enable(pdm->clk);
++	if (ret)
++		return ret;
++
++	pdm->chan = dma_request_chan(&pdev->dev, "rx");
++	if (IS_ERR(pdm->chan)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(pdm->chan),
++				    "failed to get rx DMA channel\n");
++		goto err_clk;
++	}
++
++	/*
++	 * Say which pins feed the first two data lines. This is a mux inside
++	 * the audio block rather than in the pin controller, so the device tree
++	 * cannot express it the way it expresses the rest of the pin setup.
++	 * Picking IO35/IO37 costs the board its I2S output data on those pins;
++	 * picking IO27/IO28 costs nothing, and is what the I2S card programs
++	 * anyway. See audio_pdm_input_select().
++	 */
++	audio_pdm_input_select(pdm->use_io35_37);
++
++	/* Leave the receiver stopped until a stream starts. */
++	audio_pdm_in_init(pdm->oversample, 0, pdm->edge, AUDIO_IN_RIGHT_ALIGN,
++			  K230_PDM_FIFO_TRIGGER);
++
++	ret = devm_snd_soc_register_component(&pdev->dev, &k230_pdm_component,
++					      &k230_pdm_dai, 1);
++	if (ret) {
++		dev_err(&pdev->dev, "failed to register component: %d\n", ret);
++		goto err_dma;
++	}
++
++	pdm->dailink = k230_pdm_dailink_template;
++	pdm->card = k230_pdm_card_template;
++	dailink = &pdm->dailink;
++	card = &pdm->card;
++
++	pdm->cpus[0].dai_name = k230_pdm_dai.name;
++	pdm->cpus[0].of_node = pdev->dev.of_node;
++	pdm->platforms[0].of_node = pdev->dev.of_node;
++	pdm->codecs[0] = snd_soc_dummy_dlc;
++
++	dailink->cpus = pdm->cpus;
++	dailink->num_cpus = ARRAY_SIZE(pdm->cpus);
++	dailink->codecs = pdm->codecs;
++	dailink->num_codecs = ARRAY_SIZE(pdm->codecs);
++	dailink->platforms = pdm->platforms;
++	dailink->num_platforms = ARRAY_SIZE(pdm->platforms);
++
++	card->dai_link = dailink;
++	card->dev = &pdev->dev;
++	snd_soc_card_set_drvdata(card, pdm);
++
++	if (of_property_read_bool(pdev->dev.of_node, "canaan,model")) {
++		ret = snd_soc_of_parse_card_name(card, "canaan,model");
++		if (ret) {
++			dev_err(&pdev->dev, "failed to parse card name: %d\n",
++				ret);
++			goto err_dma;
++		}
++	}
++
++	ret = devm_snd_soc_register_card(&pdev->dev, card);
++	if (ret) {
++		dev_err_probe(&pdev->dev, ret, "failed to register card\n");
++		goto err_dma;
++	}
++
++	dev_info(&pdev->dev,
++		 "PDM capture: %u data line(s) on %s, %s edge, %ux oversampling, up to %u channels\n",
++		 pdm->data_lines, pdm->use_io35_37 ? "IO35/IO37" : "IO27/IO28",
++		 pdm->edge == AUDIO_IN_PDM_BOTH ? "both" :
++			pdm->edge == AUDIO_IN_PDM_RISING ? "rising" : "falling",
++		 k230_pdm_oversample_factor(pdm), pdm->max_channels);
++
++	return 0;
++
++err_dma:
++	dma_release_channel(pdm->chan);
++err_clk:
++	clk_disable_unprepare(pdm->clk);
++
++	return ret;
++}
++
++static int k230_pdm_remove(struct platform_device *pdev)
++{
++	/* The card owns the device's driver data; see k230_pdm_probe(). */
++	struct snd_soc_card *card = platform_get_drvdata(pdev);
++	struct k230_pdm *pdm = snd_soc_card_get_drvdata(card);
++
++	audio_pdm_in_init(pdm->oversample, 0, pdm->edge, AUDIO_IN_RIGHT_ALIGN,
++			  K230_PDM_FIFO_TRIGGER);
++
++	/* Give IO35 and IO37 back to the I2S transmitter. */
++	audio_pdm_input_select(false);
++
++	dma_release_channel(pdm->chan);
++	clk_disable_unprepare(pdm->clk);
++
++	return 0;
++}
++
++static const struct of_device_id k230_pdm_of_match[] = {
++	{ .compatible = "canaan,k230-audio-pdm" },
++	{ /* sentinel */ },
++};
++MODULE_DEVICE_TABLE(of, k230_pdm_of_match);
++
++static struct platform_driver k230_pdm_driver = {
++	.probe = k230_pdm_probe,
++	.remove = k230_pdm_remove,
++	.driver = {
++		.name = DRV_NAME,
++		.of_match_table = k230_pdm_of_match,
++	},
++};
++
++module_platform_driver(k230_pdm_driver);
++
++MODULE_DESCRIPTION("CANAAN K230 PDM capture ASoC driver");
++MODULE_LICENSE("GPL");
++MODULE_ALIAS("platform:" DRV_NAME);
+-- 
+2.25.1
+
