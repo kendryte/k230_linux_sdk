@@ -1,5 +1,7 @@
 # K230 Linux SDK
 
+**English** | [中文](README_CN.md)
+
 - Documentation: <https://www.kendryte.com/zh/sdkResource/230linux>
 - CI Images: <https://download.kendryte.com/k230/release/linux_sdk_images/daily_build/>
 
