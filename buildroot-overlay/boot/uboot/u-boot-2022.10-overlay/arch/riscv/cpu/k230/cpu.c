@@ -84,8 +84,21 @@ void harts_early_init(void)
 
     writel(0x0, (void*)SYSCTL_PWR_BASE_ADDR + 0x158); //disable pmu isolation
 
+
+
 // This address space only allows write access by the k230_burntool.
 #ifndef CONFIG_CMD_DFU
+	//把cde保护起来,不允许访问；
+	writel(0xffffffff,  (void*)0x91213280);//cde_psmask0; cde 0--511  ---每2位对应32*4=128字节
+	writel(0xffffffff,  (void*)0x91213284);//cde_psmask1; cde 512--767   ---cde总共3K字节；
+
+	//writel(0xffffffff,  (void*)0x912132b4);//otp_psmk0  每2位对应8*4=32字节；
+	//writel(0xffffffff,  (void*)0x912132b8);//otp_psmsk1  otp共1K字节
+	writel(0x3,  (void*)0x912132b4);//otp_psmk0  每2位对应8*4=32字节；,保护前32字节；
+
+	writel(0xff000000,  (void*)0x912132bc); //lck_psmsk;锁住post msk;
+
+	asm volatile("fence" ::: "memory"); //pmp 保护otp
 	csr_write(pmpaddr0, 0x24484dff);//start addr：0x24484c00<<2=0x91213000 len=1<<9 * 8 = 4KB
 	csr_write(pmpaddr1, 0x244851ff);//start addr：0x24485000<<2=0x91214000 len=1<<9 * 8 = 4KB
 	csr_write(pmpcfg0, 0x9999);
