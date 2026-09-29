@@ -86,6 +86,7 @@ list-def list_def:
 	@echo "	k230_evb_defconfig                    --k230 evb board"
 	@echo "	k230_canmv_gt6700_defconfig           --gt6700 board"
 	@echo "	k230_canmv_01studio_emmc_defconfig    --01studio emmc board"
+	@echo " k230d_canmv_junroc_ai_cam_defconfig   --junroc ai cam"
 	@echo ""
 
 

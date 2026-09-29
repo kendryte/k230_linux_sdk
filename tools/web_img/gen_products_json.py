@@ -85,6 +85,9 @@ def get_product_name_from_filepath(file_path):
             "CanMV_K230_V3P0": "k230_canmv_v3_defconfig"
         }
         return product_dict.get(product_, product_)
+    elif "images" in file_path:
+        idx = file_path.index("/images/")
+        return os.path.basename(file_path[:idx])
     return ""
 
 def get_url(file_path):
@@ -102,8 +105,9 @@ def update_file_to_json(file_path, products):
     product_name = get_product_name_from_filepath(file_path)
     if product_name not in products:
         return
-
-    if "linux" in filename:
+    if "nand.img.gz" in filename:
+        variant_key = "nand"
+    elif "linux" in filename:
         variant_key = "linux"
     elif "debian" in filename:
         variant_key = "debian"
@@ -140,6 +144,8 @@ def update_directory_to_json(directory, products):
     file_info_list = []
     for root, _, files in os.walk(directory):
         for f in files:
+            if not f.endswith(".img.gz"):
+                continue
             file_path = os.path.join(root, f)
             try:
                 file_mtime = os.path.getmtime(file_path)
@@ -254,6 +260,12 @@ json_str = u'''
             "image_url": "https://www.kendryte.com/api/imagecdn/zh/sdk/k230_linux_sdk_docs/screenshot_20260730_182637.png",
             "variants": { "linux" :{"latest": {}, "history": []},"debian" : {"latest": {}, "history": [] },"ubuntu" : {"latest": {}, "history": [] },"micropython" : {"latest": {}, "history": []} }
         },
+        "k230_evb_defconfig": {
+            "name": "k230 evb",
+            "description": "k230 evb",
+            "image_url": "https://www.kendryte.com/api/imagecdn/zh/sdk/k230_linux_sdk_docs/evb.png",
+            "variants": { "linux" :{"latest": {}, "history": []}, "debian" : {"latest": {}, "history": [] }, "ubuntu" : {"latest": {}, "history": [] }, "nand" : {"latest": {}, "history": [] }, "nor" : {"latest": {}, "history": [] }, "micropython" : {"latest": {}, "history": []} }
+        },
         "k230d_canmv_labplus_ai_camera_defconfig": {
             "name": "labplus",
             "description": "k230d_canmv_labplus_ai_camera_defconfig",
@@ -310,6 +322,7 @@ def update_products_json():
     sdk_release_dirs_2_json("/data/kendryte-download/k230/release/linux_sdk_images", products, 20)
     #sdk_release_dirs_2_json("/data/kendryte-download/developer/releases/canmv_k230_micropython", products, 10)
     sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/", products, 20)
+    #sdk_release_dirs_2_json("/home/wangjianxin/k230/k230_linux_sdk/output/", products, 20)
     save_json(products, "products.json")
 
 if __name__ == "__main__":

@@ -974,6 +974,7 @@ release_image_publish:
         - k230_canmv_v3_defconfig
         - k230_canmv_01studio_emmc_defconfig
         - k230_canmv_dongshanpi_defconfig
+        - k230_evb_defconfig
   script:
     - echo "daily build image publish for ${CONF}"
     - |
@@ -1104,7 +1105,7 @@ build-image:
     # MR open
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-  timeout: 60m
+  timeout: 70m
   script:
     - *show_vars
     - *check_build_result
@@ -1132,6 +1133,7 @@ build-image_all:
         - k230_canmv_v3_defconfig
         - k230_canmv_01studio_emmc_defconfig
         - k230_canmv_dongshanpi_defconfig
+        - k230_evb_defconfig
   variables:
     DST_BASE: /data1/k230/gitlab-ci/images/${CI_PROJECT_NAME}
     SRC_DIR: ./output/${CONF}/images
