@@ -129,10 +129,10 @@ void harts_early_init(void)
 
 	//improving_cpu_performance();
 }
-u32 spl_boot_device(void)
-{
-	return BOOT_DEVICE_MMC1; //BOOT_DEVICE_SPI
-}
+// u32 spl_boot_device(void)
+// {
+// 	return BOOT_DEVICE_MMC1; //BOOT_DEVICE_SPI
+// }
 
 typedef void (*func_app_entry)(void);
 static int k230_boot_baremetal(struct cmd_tbl *cmdtp, int flag, int argc,

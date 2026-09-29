@@ -266,6 +266,14 @@ static int k230_boot_uboot_uimage(image_header_t *pUh)
 
     ret = k230_boot_decomp_to_load_addr(pUh, 0x6000000,  data, &len );
     if(ret == 0){
+        #if defined(CONFIG_LINUX_RUN_CORE_ID) && (CONFIG_LINUX_RUN_CORE_ID == 1)
+        de_reset_big_core(image_get_load(pUh));
+        while(1)
+        {
+            asm volatile("wfi");
+        }
+        #endif
+
         icache_disable();
         dcache_disable();
         // csi_l2cache_flush_invalid();
@@ -273,15 +281,6 @@ static int k230_boot_uboot_uimage(image_header_t *pUh)
 
         uboot = (void (*)(ulong, void *))(ulong)image_get_load(pUh);
         //do_timeinfo(0,0,0,0);
-        #if defined(CONFIG_LINUX_RUN_CORE_ID) && (CONFIG_LINUX_RUN_CORE_ID == 1)
-        de_reset_big_core(image_get_load(pUh));
-
-        while(1)
-        {
-            asm volatile("wfi");
-        }
-
-        #endif
         uboot(0, (void*)OPENSBI_DTB_ADDR);
     }
     return 0;

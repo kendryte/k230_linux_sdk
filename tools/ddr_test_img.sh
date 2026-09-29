@@ -3,7 +3,7 @@ SDK_DIR="$(dirname $(readlink -f "$0"))/.."
 
 echo "${SDK_DIR}"
 
-default_env_file="${SDK_DIR}/buildroot-overlay/board/canaan/k230-soc/default.env"
+default_env_file="${SDK_DIR}/buildroot-overlay/board/canaan/k230-soc/env/default.env"
 uboot_spl_file="${SDK_DIR}/buildroot-overlay/boot/uboot/u-boot-2022.10-overlay/board/canaan/common/k230_spl.c"
 cp ${default_env_file} ${default_env_file}.bak
 cp ${uboot_spl_file} ${uboot_spl_file}.bak
