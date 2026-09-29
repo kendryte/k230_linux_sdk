@@ -71,23 +71,7 @@ help:sync
 
 .PHONY:list_def list-def
 list-def list_def:
-	@echo "current config:"
-	@echo "	$$(cat .last_conf | cut -d = -f2)"
-	@echo "Available all configs and board note:"
-	@echo "	k230_canmv_defconfig                  --canmv 1.0/1.1 board"
-	@echo "	k230_canmv_v3_defconfig               --canmv v3 board"
-	@echo "	k230_canmv_01studio_defconfig         --01studio board"
-	@echo "	k230_canmv_dongshanpi_defconfig       --dongshanpi board"
-	@echo "	k230_canmv_lckfb_defconfig            --lushanpi ,jialichuang board"
-	@echo "	BPI-CanMV-K230D-Zero_defconfig        --bananapi k230d"
-	@echo "	k230d_canmv_ilp32_defconfig           --k230d canmv new32 board,plct use"
-	@echo "	k230d_canmv_defconfig                 --k230d canmv zero board"
-	@echo "	BPI-CanMV-K230D-Zero_ilp32_defconfig  --plct use,new 32 board"
-	@echo "	k230_evb_defconfig                    --k230 evb board"
-	@echo "	k230_canmv_gt6700_defconfig           --gt6700 board"
-	@echo "	k230_canmv_01studio_emmc_defconfig    --01studio emmc board"
-	@echo " k230d_canmv_junroc_ai_cam_defconfig   --junroc ai cam"
-	@echo ""
+	@tools/list_def.sh $(BRW_BUILD_DIR)
 
 
 
