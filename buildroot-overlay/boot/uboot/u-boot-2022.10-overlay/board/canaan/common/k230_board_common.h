@@ -24,6 +24,7 @@
  */
 #ifndef __K230_BOARD_H__
 #define __K230_BOARD_H__
+#include "sysctl.h"
 //uboo使用的是 128M@128M  0x8000000---0x100000000
 //假设：密文32MB；明文32M,解压缩后32M, ----
 /*

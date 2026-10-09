@@ -18,6 +18,7 @@
  * ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES,
  * IF ANY, THAT YOU HAVE PAID DIRECTLY TO PUFSECURITY FOR THIS SOFTWARE.
  */
+#include <asm/io.h>
 #include "pufs_internal.h"
 #include "pufs_rt_internal.h"
 #include "platform.h"
@@ -25,6 +26,33 @@
 #pragma GCC optimize ("O0")
 
 struct pufs_rt_regs *rt_regs = (struct pufs_rt_regs *)(PUFIOT_ADDR_START+RT_ADDR_OFFSET);
+
+void pufs_read_otp_by_range_set_psmsk(int set, uint32_t len, pufs_otp_addr_t addr)
+{
+    const uint32_t group_bytes = WORD_SIZE * RWLOCK_GROUP_OTP;
+    uint32_t start_idx, end_idx, idx;
+
+    if (len == 0)
+        return;
+
+    /* group index range covering every byte in [addr, addr + len) */
+    start_idx = addr / group_bytes;
+    end_idx = (addr + len - 1) / group_bytes;
+
+    for (idx = start_idx; idx <= end_idx; idx++)
+    {
+        uint32_t reg_idx = idx / 16;
+        uint32_t shift = (idx % 16) * 2;
+        uint32_t val = readl(&rt_regs->otp_psmsk[reg_idx]);
+
+        if (set)
+            val |= 0x3 << shift;
+        else
+            val &= ~(0x3 << shift);
+
+        writel(val, &rt_regs->otp_psmsk[reg_idx]);
+    }
+}
 
 /**
  * pufs_read_otp()
@@ -38,7 +66,9 @@ pufs_status_t pufs_read_otp(uint8_t* outbuf, uint32_t len, pufs_otp_addr_t addr)
 
     if (wlen > 0)
     {
+        pufs_read_otp_by_range_set_psmsk(0, len, addr);
         memcpy(outbuf, (void *)(rt_regs->otp + start_index), wlen * WORD_SIZE);
+        pufs_read_otp_by_range_set_psmsk(1, len, addr);
 
         uint32_t *out32 = (uint32_t *)outbuf;
         for (size_t i = 0; i < wlen; ++i)
@@ -61,8 +91,8 @@ static size_t rwlck_index_sel(uint32_t idx)
 
     if (group >= MAX_RWLOCK_GROUPS)
         return -1;
-    
-    return PIF_RWLCK_START_INDEX + group; 
+
+    return PIF_RWLCK_START_INDEX + group;
 }
 
 static bool check_enable(uint32_t value)
@@ -145,10 +175,10 @@ uint32_t wait_status(void)
 static void _pufs_ptm_cfg_set(uint32_t mask, bool on, bool wait)
 {
     if (on)
-        rt_regs->cfg |= mask; 
+        rt_regs->cfg |= mask;
     else
-        rt_regs->cfg = rt_regs->cfg & (~mask); 
-    
+        rt_regs->cfg = rt_regs->cfg & (~mask);
+
     if (wait)
         wait_status();
 }
@@ -191,10 +221,10 @@ void rt_write_pdstb(bool off)
     pufs_ptm_cfg_set(PTM_CFG_REG_PDSTB_MASK, off, (off ? true : false));
 }
 
-// Program protectÎªÁË±£Ö¤ÒÑ¾­ÉÕÂ¼Îª1µÄcell²»»áÔÙÉÕÒ»´Î¡£
-// Program ignoreÎªÁË±£Ö¤Ìø¹ýÎª0µÄcell£¬¼õÉÙµçÂ·stress¡£
-// ²»ÖªµÀÎªÊ²Ã´ip³§ÉÌ²»°ÑÕâÁ½¸ö¹¦ÄÜÅäÖÃÎªÄ¬ÈÏÊ¹ÄÜ
-// ÔÚ½øÐÐ±à³ÌÖ®Ç°Îñ±ØÈ·ÈÏÒÑÆôÓÃprogram protect (done at factory) ÒÔ¼°ÆôÓÃprogram ignore(enable config reg)
+// Program protect ä¸ºäº†ä¿è¯å·²ç»çƒ§å½•ä¸º1çš„cellä¸ä¼šå†çƒ§ä¸€æ¬¡
+// Program ignore   ä¸ºäº†ä¿è¯è·³è¿‡ä¸º0çš„cellï¼Œå‡å°‘ç”µè·¯stress
+// ä¸çŸ¥é“ä¸ºä»€ä¹ˆipåŽ‚å•†ä¸æŠŠè¿™ä¸¤ä¸ªåŠŸèƒ½é…ç½®ä¸ºé»˜è®¤ä½¿èƒ½
+// åœ¨è¿›è¡Œç¼–ç¨‹ä¹‹å‰åŠ¡å¿…ç¡®è®¤å·²å¯ç”¨program protect (done at factory) ä»¥åŠå¯ç”¨program ignore(enable config reg)
 void puf_pgm_ign_ctrl(bool on)
 {
     pufs_ptm_cfg_set(PTM_CFG_REG_PGM_IGN_MASK, on);
@@ -332,10 +362,10 @@ pufs_status_t pufs_program_otp(const uint8_t* inbuf, uint32_t len,
         } otp_word;
         for (int8_t j=3;j>=0;j--) // reserve, default 0xff
             otp_word.byte[j] = ((i+3-j) < len) ? inbuf[i+3-j] : 0xff;
-            
+
         if(otp_word.word == 0x0) continue;
         if(rt_regs->otp[start_index + (i/4)] == otp_word.word) continue;
-        
+
         // printf("[%d]:0x%x \n", start_index + (i/4), otp_word.word);
         rt_regs->otp[start_index + (i/4)] = otp_word.word;
     }
@@ -433,7 +463,7 @@ pufs_status_t pufs_zeroize(pufs_rt_slot_t slot)
     } else {
         return E_INVALID;
     }
-    
+
     if (slot < OTPKEY_0)
         rt_regs->puf_zeroize = val32;
     else

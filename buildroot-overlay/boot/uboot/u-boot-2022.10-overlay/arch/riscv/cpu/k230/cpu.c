@@ -35,6 +35,8 @@
 #include <asm/cache.h>
 #include <linux/delay.h>
 #include "platform.h"
+#include "../../../../board/canaan/common/k230_board_common.h"
+
 
 static inline void improving_cpu_performance(void)
 {
@@ -92,16 +94,16 @@ void harts_early_init(void)
 	writel(0xffffffff,  (void*)0x91213280);//cde_psmask0; cde 0--511  ---每2位对应32*4=128字节
 	writel(0xffffffff,  (void*)0x91213284);//cde_psmask1; cde 512--767   ---cde总共3K字节；
 
-	//writel(0xffffffff,  (void*)0x912132b4);//otp_psmk0  每2位对应8*4=32字节；
-	//writel(0xffffffff,  (void*)0x912132b8);//otp_psmsk1  otp共1K字节
-	writel(0x3,  (void*)0x912132b4);//otp_psmk0  每2位对应8*4=32字节；,保护前32字节；
+	writel(0xffffffff,  (void*)0x912132b4);//otp_psmk0  每2位对应8*4=32字节；
+	writel(0xffffffff,  (void*)0x912132b8);//otp_psmsk1  otp共1K字节
+	//writel(0x3,  (void*)0x912132b4);//otp_psmk0  每2位对应8*4=32字节；,保护前32字节；
 
-	writel(0xff000000,  (void*)0x912132bc); //lck_psmsk;锁住post msk;
+	//writel(0xff000000,  (void*)0x912132bc); //lck_psmsk;锁住post msk;
 
 	asm volatile("fence" ::: "memory"); //pmp 保护otp
-	csr_write(pmpaddr0, 0x24484dff);//start addr：0x24484c00<<2=0x91213000 len=1<<9 * 8 = 4KB
-	csr_write(pmpaddr1, 0x244851ff);//start addr：0x24485000<<2=0x91214000 len=1<<9 * 8 = 4KB
-	csr_write(pmpcfg0, 0x9999);
+	// csr_write(pmpaddr0, 0x24484dff);//start addr：0x24484c00<<2=0x91213000 len=1<<9 * 8 = 4KB
+	// csr_write(pmpaddr1, 0x244851ff);//start addr：0x24485000<<2=0x91214000 len=1<<9 * 8 = 4KB
+	// csr_write(pmpcfg0, 0x9999);
 #endif
 
 	#define USB_IDPULLUP0 		(1<<4)
@@ -182,9 +184,12 @@ U_BOOT_CMD_COMPLETE(
 
 int do_reset(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
-	printf("reboot system\n");
+
 	#ifndef CONFIG_SPL_BUILD
+	printf("reboot system\n");
 	writel(0x10001, (void*)SYSCTL_BOOT_BASE_ADDR+0x60);
+	#else
+	enter_to_usb_burn_mode();
 	#endif
 	while(1);
 }

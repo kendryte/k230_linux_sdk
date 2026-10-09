@@ -455,15 +455,15 @@ static int k230_check_and_get_plain_data(firmware_head_s *pfh, ulong *pplain_add
     }
 
     if(pfh->crypto_type == NONE_SECURITY){
-        //printf(" NONE_SECURITY \n");
-        // if(SUCCESS != cb_pufs_read_otp((uint8_t *)&otp_msc, OTP_BLOCK_PRODUCT_MISC_BYTES, OTP_BLOCK_PRODUCT_MISC_ADDR)){
-        //     printf("otp read error \n");
-        //     return -4;
-        // }
-        // if(otp_msc & 0x1){
-        //     printf(" NONE_SECURITY not support  %x \n", pfh->crypto_type);
-        //     return -5;
-        // }
+        printf(" NONE_SECURITY \n");
+        if(SUCCESS != cb_pufs_read_otp((uint8_t *)&otp_msc, OTP_BLOCK_PRODUCT_MISC_BYTES, OTP_BLOCK_PRODUCT_MISC_ADDR)){
+            printf("otp read error \n");
+            return -4;
+        }
+        if(otp_msc & 0x1){
+            printf(" NONE_SECURITY not support  %x \n", pfh->crypto_type);
+            return -5;
+        }
         //校验完整性
         #ifdef  CONFIG_K230_PUFS
 		cb_pufs_hash(&md, (const uint8_t*)(pfh + 1), pfh->length, SHA_256);

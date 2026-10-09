@@ -1,0 +1,126 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Fri, 9 Oct 2026 16:40:00 +0800
+Subject: [PATCH] nvmem: k230-otp: unmask otp_psmsk around OTP reads
+
+u-boot now masks (protects) the entire PUFrt OTP array via otp_psmsk
+before jumping to Linux (see the otp_psmsk0/1 writes added to
+harts_early_init() in arch/riscv/cpu/k230/cpu.c). A masked word reads
+back as a fixed/invalid value instead of the real OTP content, which
+breaks the "canaan,k230-otp" nvmem provider.
+
+Mirror u-boot's pufs_read_otp()/pufs_read_otp_by_range_set_psmsk()
+(puf_fw/pufs_rt/pufs_rt.c): unmask the otp_psmsk bits covering the
+requested range before reading, and re-mask them afterwards.
+
+otp_psmsk[0..1] (physical 0x912132b4/0x912132b8) sit outside the DT
+"otp" window, which only covers the OTP_BLOCK_RESERVED1 user region
+starting at byte 256 of the full OTP array, so they need their own
+ioremap and an offset correction when computing which otp_psmsk group
+a given nvmem offset belongs to.
+---
+ drivers/nvmem/kendryte_k230_otp.c | 58 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 58 insertions(+)
+
+diff --git a/drivers/nvmem/kendryte_k230_otp.c b/drivers/nvmem/kendryte_k230_otp.c
+index 26e157c42..9f3c18f55 100755
+--- a/drivers/nvmem/kendryte_k230_otp.c
++++ b/drivers/nvmem/kendryte_k230_otp.c
+@@ -20,6 +20,26 @@
+ #define OTP_REG_OFFSET 0x0
+ #define OTP_USER_START_OFFSET 0x0
+ 
++/*
++ * u-boot masks (protects) the whole PUFrt OTP array with otp_psmsk before
++ * jumping to Linux (see otp_psmsk0/1 writes in arch/riscv/cpu/k230/cpu.c),
++ * so a masked word reads back as a fixed/invalid value instead of the real
++ * OTP content. Each word must be unmasked before reading and re-masked
++ * afterwards, mirroring pufs_read_otp()/pufs_read_otp_by_range_set_psmsk()
++ * in u-boot's puf_fw/pufs_rt/pufs_rt.c.
++ *
++ * otp_psmsk[0..1] live outside the DT "otp" window (which only covers the
++ * OTP_BLOCK_RESERVED1 user region), so they need their own ioremap.
++ * OTP_PSMSK_BASE_OFFSET is the byte offset of this nvmem window (offset 0)
++ * within the full PUFrt OTP array that otp_psmsk addresses are relative to
++ * (OTP_BLOCK_RESERVED1_ADDR == 256 in pufs_rt.h).
++ */
++#define OTP_PSMSK_ADDR_P          0x912132b4
++#define OTP_PSMSK_REG_SIZE        8	/* otp_psmsk[2] */
++#define OTP_PSMSK_GROUP_BYTES     32	/* each group's 2 mask bits cover 32 bytes */
++#define OTP_PSMSK_GROUPS_PER_REG  16
++#define OTP_PSMSK_BASE_OFFSET     256
++
+ enum OTP_STATUS_E {
+ 	OTP_BYPASS_STATUS = 0,
+ 	OTP_MAX_STATUS = 1,
+@@ -28,9 +48,38 @@
+ struct otp_priv {
+ 	struct device *dev;
+ 	void __iomem *base;
++	void __iomem *psmsk_base;
+ 	struct nvmem_config *config;
+ };
+ 
++/**
++ * @brief Set or clear the otp_psmsk bits covering [offset, offset + bytes)
++ * of this nvmem window, unmasking the range for real reads and re-masking
++ * it afterwards.
++ */
++static void k230_otp_psmsk_set(struct otp_priv *priv, unsigned int offset,
++				size_t bytes, bool set)
++{
++	unsigned int start_idx, end_idx, idx;
++
++	start_idx = (offset + OTP_PSMSK_BASE_OFFSET) / OTP_PSMSK_GROUP_BYTES;
++	end_idx = (offset + OTP_PSMSK_BASE_OFFSET + bytes - 1) /
++		  OTP_PSMSK_GROUP_BYTES;
++
++	for (idx = start_idx; idx <= end_idx; idx++) {
++		unsigned int reg_idx = idx / OTP_PSMSK_GROUPS_PER_REG;
++		unsigned int shift = (idx % OTP_PSMSK_GROUPS_PER_REG) * 2;
++		u32 val = readl(priv->psmsk_base + reg_idx * 4);
++
++		if (set)
++			val |= 0x3 << shift;
++		else
++			val &= ~(0x3 << shift);
++
++		writel(val, priv->psmsk_base + reg_idx * 4);
++	}
++}
++
+ static uint32_t be2le(uint32_t var)
+ {
+ 	return (((0xff000000 & var) >> 24) | ((0x00ff0000 & var) >> 8) |
+@@ -99,6 +148,8 @@
+ 		return -EINVAL;
+ 	}
+ 
++	k230_otp_psmsk_set(priv, offset, bytes, false);
++
+ 	if (wlen > 0) {
+ 		memcpy(outbuf, (void *)(priv->base + OTP_REG_OFFSET + offset),
+ 		       wlen * WORD_SIZE);
+@@ -116,6 +167,8 @@
+ 		memcpy(outbuf, &word, bytes % WORD_SIZE);
+ 	}
+ 
++	k230_otp_psmsk_set(priv, offset, bytes, true);
++
+ 	return 0;
+ }
+ 
+@@ -154,6 +207,11 @@
+ 	if (IS_ERR(priv->base))
+ 		return PTR_ERR(priv->base);
+ 
++	priv->psmsk_base = devm_ioremap(dev, OTP_PSMSK_ADDR_P,
++					 OTP_PSMSK_REG_SIZE);
++	if (!priv->psmsk_base)
++		return -ENOMEM;
++
+ 	kendryte_otp_nvmem_config.dev = dev;
+ 	kendryte_otp_nvmem_config.priv = priv;
+ 	priv->config = &kendryte_otp_nvmem_config;
+--
+2.34.1
