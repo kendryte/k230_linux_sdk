@@ -1818,9 +1818,6 @@ static int set_mode(void* ctx, uint32_t index) {
     sensor->vflip = false;
     CHECK_ERROR(gc2093_apply_orient(sensor));
 
-    fprintf(stderr, "gc2093: set_mode %u %ux%u chip_clk=%u\n",
-        index, mode->width, mode->height, sensor->hw.use_chip_clk);
-
     return 0;
 }
 
@@ -1985,6 +1982,10 @@ static int set_analog_gain(void* ctx, float gain) {
     uint32_t i = 0;
     // printf("gc2093 %s %f\n", __func__, gain);
 
+    /* Below 1.0x no gainLevelTable entry matches and regValTable overflows. */
+    gain = MAX(sensor->mode.ae_info.a_gain.min, gain);
+    gain = MIN(sensor->mode.ae_info.a_gain.max, gain);
+
     again = (uint32_t)(gain * 64 + 0.5);
 
     if(sensor->sensor_again !=again)
@@ -2014,6 +2015,7 @@ static int set_analog_gain(void* ctx, float gain) {
     }
 
     sensor->mode.ae_info.cur_gain = (float)sensor->sensor_again/64.0f;
+    sensor->mode.ae_info.cur_again = sensor->mode.ae_info.cur_gain;
 
     return 0;
 }
@@ -2032,7 +2034,8 @@ static int set_int_time(void* ctx, float time) {
 
     integraion_time = time;
 
-    exp_line = integraion_time / sensor->mode.ae_info.one_line_exp_time;
+    /* A whole number of lines may divide to n - epsilon in float: keep n. */
+    exp_line = integraion_time / sensor->mode.ae_info.one_line_exp_time + 0.001f;
     exp_line = MIN(sensor->mode.ae_info.max_integraion_line, MAX(sensor->mode.ae_info.min_integraion_line, exp_line));
 
     if (sensor->et_line != exp_line)

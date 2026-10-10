@@ -120,6 +120,14 @@ struct vvcam_isp_sensor_info {
 	uint32_t target_fps;
 };
 
+struct vvcam_isp_exp_limits {
+	bool valid;
+	s32 exposure_min;
+	s32 exposure_max;
+	s32 again_min;
+	s32 again_max;
+};
+
 #define MAX_SENSORS 3
 
 struct sensor_config {
@@ -159,6 +167,10 @@ struct vvcam_isp_dev {
 
 	unsigned long pde;
 	struct vvcam_isp_sensor_info sensor_info[VVCAM_ISP_PORT_NR];
+
+	/* Published by isp_media_server, may be updated while QUERYCTRL runs */
+	spinlock_t exp_limits_lock;
+	struct vvcam_isp_exp_limits exp_limits[VVCAM_ISP_PORT_NR];
 
 	char scene_calib_dir[VVCAM_ISP_SCENE_CALIB_DIR_MAX];
 	uint32_t scene_mode;

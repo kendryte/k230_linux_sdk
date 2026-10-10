@@ -55,6 +55,13 @@ struct v4l2_drm_context {
     uint32_t sensor_height;
     uint32_t sensor_fps;
     bool sensor_target_valid;
+    /*
+     * Written before stream on, values first and mode last. Mode -1 and
+     * values 0 leave the control untouched (the daemon keeps the last ones).
+     */
+    int8_t ae_mode;             /* V4L2_EXPOSURE_AUTO / MANUAL */
+    int32_t ae_exposure_us;     /* exposure time, us */
+    int32_t ae_again_milli;     /* analog gain, 1/1000 x */
 };
 
 
@@ -75,6 +82,11 @@ int v4l2_drm_start(const struct v4l2_drm_context* context);
 int v4l2_drm_stop(const struct v4l2_drm_context* context);
 int v4l2_drm_dump(struct v4l2_drm_context* context, int timeout);
 int v4l2_drm_dump_release(struct v4l2_drm_context* context);
+/* Exposure controls on an opened context; return 0 or -errno. */
+int v4l2_drm_set_ae_ctrl(const struct v4l2_drm_context* context, uint32_t id, int value);
+int v4l2_drm_get_ae_ctrl(const struct v4l2_drm_context* context, uint32_t id, int* value);
+/* Range of the sensor mode once the pipeline exists (after G_FMT). */
+int v4l2_drm_get_ae_range(const struct v4l2_drm_context* context, uint32_t id, int* min, int* max);
 extern bool v4l2_drm_run_v4l2_2_drm_need_run;
 #ifdef __cplusplus
 }

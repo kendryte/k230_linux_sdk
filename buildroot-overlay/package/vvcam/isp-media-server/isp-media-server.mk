@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-ISP_MEDIA_SERVER_VERSION = v0.8.1
+ISP_MEDIA_SERVER_VERSION = v0.8.2
 ISP_MEDIA_SERVER_SITE = https://download.kendryte.com/k230/downloads/dl/isp-media-server
 ISP_MEDIA_SERVER_SOURCE = isp_media_server_$(ISP_MEDIA_SERVER_VERSION).tar.gz
 # To release a new version, package the binary and upload to the SITE:

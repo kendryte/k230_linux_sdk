@@ -1195,8 +1195,6 @@ static int set_mode(void* ctx, uint32_t index) {
 
     mode->ae_info.cur_integration_time = exp_time * mode->ae_info.one_line_exp_time;
 
-    printf("mode->ae_info.cur_integration_time is %f \n", mode->ae_info.cur_integration_time);
-
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
@@ -1270,7 +1268,6 @@ static int get_vflip(void* ctx, bool *on)
 
 static int set_stream(void* ctx, bool on) {
     struct ov5647_ctx* sensor = ctx;
-    printf("ov5647 %s %d\n", __func__, on);
     if (open_i2c(sensor)) {
         return -1;
     }
@@ -1301,6 +1298,10 @@ static int set_analog_gain(void* ctx, float gain) {
     struct ov5647_ctx* sensor = ctx;
     uint32_t again;
 
+    /* The register has 10 bits: larger values would wrap. */
+    gain = MAX(sensor->mode.ae_info.a_gain.min, gain);
+    gain = MIN(sensor->mode.ae_info.a_gain.max, gain);
+
     again = (uint32_t)(gain * 16 + 0.5);
 
     if(sensor->sensor_again !=again)
@@ -1311,13 +1312,14 @@ static int set_analog_gain(void* ctx, float gain) {
     }
 
     sensor->mode.ae_info.cur_gain = (float)sensor->sensor_again/16.0f;
+    sensor->mode.ae_info.cur_again = sensor->mode.ae_info.cur_gain;
 
-    // printf("ov5647 %s %f  sensor->mode.ae_info.cur_again is %f \n", __func__, gain, sensor->mode.ae_info.cur_again);
     return 0;
 }
 
 static int set_digital_gain(void* ctx, float gain) {
-    // printf("ov5647 %s %f\n", __func__, gain);
+    (void)ctx;
+    (void)gain;
     return 0;
 }
 
@@ -1326,11 +1328,10 @@ static int set_int_time(void* ctx, float time) {
     uint16_t exp_line = 0;
     float integraion_time = 0;
 
-    printf("ov5647 %s %f\n", __func__, time);
-
     integraion_time = time;
 
-    exp_line = integraion_time / sensor->mode.ae_info.one_line_exp_time;
+    /* A whole number of lines may divide to n - epsilon in float: keep n. */
+    exp_line = integraion_time / sensor->mode.ae_info.one_line_exp_time + 0.001f;
     exp_line = MIN(sensor->mode.ae_info.max_integraion_line, MAX(sensor->mode.ae_info.min_integraion_line, exp_line));
 
     if (sensor->et_line != exp_line)

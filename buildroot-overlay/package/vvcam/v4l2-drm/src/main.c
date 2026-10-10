@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 
@@ -31,11 +32,32 @@ static void help(const char* argv0) {
         "\t--sh Sensor output height\n"
         "\t--sfps Sensor target fps\n"
         "\t--rotation N Rotation: 0=0°, 1=90°, 2=180°, 3=270°\n"
+        "\t--ae 0/1 Auto exposure before stream on: 0=off (manual), 1=on (auto)\n"
+        "\t--exp US Exposure time in microseconds, not the V4L2 100 us unit (manual mode)\n"
+        "\t--again N Analogue gain in 1/1000 x, 1000=1.0x (manual mode)\n"
+        "Keys (type the key, then Enter):\n"
+        "\tq quit, d dump\n"
+        "\t+ / - double / halve exposure, ] / [ double / halve analogue gain\n"
     );
 }
 
 static uint32_t to_v4l2_fourcc(const char* fourcc) {
     return v4l2_fourcc(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
+}
+
+/* Positive integer only. 0, a negative value and trailing junk are rejected. */
+static int parse_positive(const char* text, int* out) {
+    char* end = NULL;
+    long value;
+
+    if (!text || !*text)
+        return -1;
+    errno = 0;
+    value = strtol(text, &end, 10);
+    if (errno || end == text || *end || value <= 0 || value > 0x7fffffffL)
+        return -1;
+    *out = (int)value;
+    return 0;
 }
 
 static int parse_cmd(int argc, char* argv[], struct v4l2_drm_context* context) {
@@ -104,6 +126,24 @@ static int parse_cmd(int argc, char* argv[], struct v4l2_drm_context* context) {
             NULL,
             258
         },
+        {
+            "ae",
+            required_argument,
+            NULL,
+            259
+        },
+        {
+            "exp",
+            required_argument,
+            NULL,
+            260
+        },
+        {
+            "again",
+            required_argument,
+            NULL,
+            261
+        },
         {0, 0, 0, 0}
     };
 
@@ -167,6 +207,30 @@ static int parse_cmd(int argc, char* argv[], struct v4l2_drm_context* context) {
             case 258:
                 context[context_idx].sensor_fps = (uint32_t)atoi(optarg);
                 break;
+            case 259:
+                context[context_idx].ae_mode = (atoi(optarg) != 0) ?
+                    V4L2_EXPOSURE_AUTO : V4L2_EXPOSURE_MANUAL;
+                break;
+            case 260: {
+                int value;
+                if (parse_positive(optarg, &value) < 0) {
+                    fprintf(stderr, "invalid --exp '%s': want a positive number of microseconds\n",
+                        optarg ? optarg : "");
+                    return -1;
+                }
+                context[context_idx].ae_exposure_us = value;
+                break;
+            }
+            case 261: {
+                int value;
+                if (parse_positive(optarg, &value) < 0) {
+                    fprintf(stderr, "invalid --again '%s': want a positive gain in 1/1000 x\n",
+                        optarg ? optarg : "");
+                    return -1;
+                }
+                context[context_idx].ae_again_milli = value;
+                break;
+            }
             default:
                 help(argv[0]);
                 return -1;
@@ -195,6 +259,41 @@ static struct timeval tv, tv2;
 static struct display* display = NULL;
 static int num = 0;
 
+/* Only meaningful in manual mode; in auto mode AE overrides the value. */
+static void adjust_ae(struct v4l2_drm_context* context, char key) {
+    bool exposure = (key == '+' || key == '-');
+    uint32_t id = exposure ? V4L2_CID_EXPOSURE : V4L2_CID_ANALOGUE_GAIN;
+    int min = exposure ? 1 : 1000;
+    int cur, val, ret;
+
+    for (int i = 0; i < num; i++) {
+        ret = v4l2_drm_get_ae_ctrl(&context[i], id, &cur);
+        if (ret < 0) {
+            fprintf(stderr, "\n[%d] get %s failed: %s\n", i,
+                exposure ? "exposure" : "analogue_gain", strerror(-ret));
+            continue;
+        }
+        if (cur <= 0) {
+            fprintf(stderr, "\n[%d] get %s read back %d\n", i,
+                exposure ? "exposure" : "analogue_gain", cur);
+            continue;
+        }
+        val = (key == '+' || key == ']') ? cur * 2 : cur / 2;
+        if (val < min)
+            val = min;
+        ret = v4l2_drm_set_ae_ctrl(&context[i], id, val);
+        if (ret == 0)
+            ret = v4l2_drm_get_ae_ctrl(&context[i], id, &val);
+        if (ret < 0)
+            fprintf(stderr, "\n[%d] set %s failed: %s\n", i,
+                exposure ? "exposure" : "analogue_gain", strerror(-ret));
+        else
+            fprintf(stderr, "\n[%d] %s: %d -> %d %s\n", i,
+                exposure ? "exposure" : "analogue_gain", cur, val,
+                exposure ? "us" : "/1000x");
+    }
+}
+
 int handler(struct v4l2_drm_context* context, bool displayed) {
     // FPS
     static unsigned response = 0, display_frame_count = 0;
@@ -222,6 +321,10 @@ int handler(struct v4l2_drm_context* context, bool displayed) {
     // key
     char c;
     ssize_t n = read(STDIN_FILENO, &c, 1);
+    if ((n > 0) && (c == '+' || c == '-' || c == ']' || c == '[')) {
+        adjust_ae(context, c);
+        return 0;
+    }
     if ((n > 0) && (c != '\n')) {
         return c;
     }

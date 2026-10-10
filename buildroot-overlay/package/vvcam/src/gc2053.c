@@ -859,7 +859,6 @@ static int set_mode(void* ctx, uint32_t index) {
     uint8_t again_h, again_l;
     uint8_t exp_time_h, exp_time_l;
     uint8_t exp_time;
-    uint8_t fe_val = 0;
     float again = 0, dgain = 0;
 
     CHECK_ERROR(read_reg(ctx, GC2053_REG_DGAIN_H, &again_h));
@@ -881,10 +880,6 @@ static int set_mode(void* ctx, uint32_t index) {
 
     mode->ae_info.cur_integration_time = exp_time * mode->ae_info.one_line_exp_time;
 
-    CHECK_ERROR(read_reg(ctx, 0x87, &fe_val));
-
-    printf("mode->ae_info.cur_integration_time is %f fe_val is %x \n", mode->ae_info.cur_integration_time, fe_val);
-
     // save current mode
     memcpy(&sensor->mode , mode, sizeof(struct vvcam_sensor_mode));
 
@@ -894,7 +889,6 @@ static int set_mode(void* ctx, uint32_t index) {
 
 static int set_stream(void* ctx, bool on) {
     struct gc2053_ctx* sensor = ctx;
-    printf("gc2053 %s %d\n", __func__, on);
     if (open_i2c(sensor)) {
         return -1;
     }
@@ -992,7 +986,10 @@ static int set_analog_gain(void* ctx, float gain) {
     struct gc2053_ctx* sensor = ctx;
     uint32_t again, dgain, total;;
     uint32_t i = 0;
-    printf("gc2053 %s %f\n", __func__, gain);
+
+    /* Outside a_gain no gainLevelTable entry matches and the tables overflow. */
+    gain = MAX(sensor->mode.ae_info.a_gain.min, gain);
+    gain = MIN(sensor->mode.ae_info.a_gain.max, gain);
 
     again = (uint32_t)(gain * 64 + 0.5);
 
@@ -1018,12 +1015,14 @@ static int set_analog_gain(void* ctx, float gain) {
     }
 
     sensor->mode.ae_info.cur_gain = (float)sensor->sensor_again/64.0f;
+    sensor->mode.ae_info.cur_again = sensor->mode.ae_info.cur_gain;
 
     return 0;
 }
 
 static int set_digital_gain(void* ctx, float gain) {
-    // printf("gc2053 %s %f\n", __func__, gain);
+    (void)ctx;
+    (void)gain;
     return 0;
 }
 
@@ -1032,11 +1031,10 @@ static int set_int_time(void* ctx, float time) {
     uint16_t exp_line = 0;
     float integraion_time = 0;
 
-    printf("gc2053 %s %f\n", __func__, time);
-
     integraion_time = time;
 
-    exp_line = integraion_time / sensor->mode.ae_info.one_line_exp_time;
+    /* A whole number of lines may divide to n - epsilon in float: keep n. */
+    exp_line = integraion_time / sensor->mode.ae_info.one_line_exp_time + 0.001f;
     exp_line = MIN(sensor->mode.ae_info.max_integraion_line, MAX(sensor->mode.ae_info.min_integraion_line, exp_line));
 
     if (sensor->et_line != exp_line)

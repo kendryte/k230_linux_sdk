@@ -728,8 +728,12 @@ static int set_stream(void *ctx, bool on)
 static int set_analog_gain(void *ctx, float gain)
 {
     struct ov13850_ctx *sensor = ctx;
-    uint32_t again = (uint32_t)(gain * 16.0f + 0.5f);
+    uint32_t again;
 
+    gain = MAX(sensor->mode.ae_info.a_gain.min, gain);
+    gain = MIN(sensor->mode.ae_info.a_gain.max, gain);
+
+    again = (uint32_t)(gain * 16.0f + 0.5f);
     if (again > 0x3ff) {
         again = 0x3ff;
     }
@@ -759,7 +763,8 @@ static int set_int_time(void *ctx, float time)
     struct ov13850_ctx *sensor = ctx;
     uint32_t exp_line;
 
-    exp_line = time / sensor->mode.ae_info.one_line_exp_time;
+    /* A whole number of lines may divide to n - epsilon in float: keep n. */
+    exp_line = time / sensor->mode.ae_info.one_line_exp_time + 0.001f;
     exp_line = MIN(sensor->mode.ae_info.max_integraion_line,
         MAX(sensor->mode.ae_info.min_integraion_line, exp_line));
 

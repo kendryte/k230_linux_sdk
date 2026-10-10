@@ -262,8 +262,6 @@ int vvcam_isp_g_ctrl_event(struct vvcam_isp_dev *isp_dev,
     int ret = 0;
     struct vvcam_isp_ctrl *isp_ctrl;
 
-    dev_info(isp_dev->dev, "%s:%d\n", __func__, __LINE__);
-
     mutex_lock(&isp_dev->event_shm.event_lock);
 
     isp_ctrl = (struct vvcam_isp_ctrl *)event_pkg->data;

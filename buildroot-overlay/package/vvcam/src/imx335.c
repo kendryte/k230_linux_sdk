@@ -765,7 +765,6 @@ static int set_mode(void* ctx, uint32_t index) {
     }
     struct vvcam_sensor_mode* mode = &modes[index].mode;
 
-    printf("imx335: %s %ux%u\n", __func__, mode->width, mode->height);
     vvcam_sensor_apply_mclk(&sensor->hw, &mode->mclk);
     if (open_i2c(sensor)) {
         return -1;
@@ -885,11 +884,8 @@ static int get_vflip(void* ctx, bool *on)
 }
 
 static int set_stream(void* ctx, bool on) {
-    //printf("wjxxx f=%s l=%d\n", __func__, __LINE__ );
-
     struct imx335_ctx* sensor = ctx;
     int ret;
-    printf("imx335  %s %d\n", __func__, on);
     if (open_i2c(sensor)) {
         return -1;
     }
@@ -914,6 +910,10 @@ static int set_analog_gain(void* ctx, float gain) {
     int ret;
 
     //printf("imx335 %s %f\n", __func__, gain);
+
+    /* Below 1.0x log10f() is negative and wraps; the register has 11 bits. */
+    gain = MAX(sensor->mode.ae_info.a_gain.min, gain);
+    gain = MIN(sensor->mode.ae_info.a_gain.max, gain);
 
     again = (uint16_t)(log10f(gain)*200.0f/3.0f + 0.5f);     //20*log(gain)*10/3
     if(sensor->sensor_again !=again)
@@ -957,7 +957,8 @@ static int set_int_time(void* ctx, float time) {
 
     integraion_time = time;
 
-    exp_line = integraion_time / sensor->mode.ae_info.one_line_exp_time;
+    /* A whole number of lines may divide to n - epsilon in float: keep n. */
+    exp_line = integraion_time / sensor->mode.ae_info.one_line_exp_time + 0.001f;
     exp_line = MIN(sensor->mode.ae_info.max_integraion_line, MAX(sensor->mode.ae_info.min_integraion_line, exp_line));
     if (sensor->et_line != exp_line)
     {

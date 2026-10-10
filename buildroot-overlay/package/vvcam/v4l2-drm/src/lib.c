@@ -46,6 +46,9 @@ void v4l2_drm_default_context(struct v4l2_drm_context* ctx) {
     ctx->sensor_height = 0;
     ctx->sensor_fps = 0;
     ctx->sensor_target_valid = false;
+    ctx->ae_mode = -1;
+    ctx->ae_exposure_us = 0;
+    ctx->ae_again_milli = 0;
 }
 
 static int v4l2_drm_set_control(int fd, uint32_t id, int value)
@@ -56,6 +59,98 @@ static int v4l2_drm_set_control(int fd, uint32_t id, int value)
     ctrl.id = id;
     ctrl.value = value;
     return ioctl(fd, VIDIOC_S_CTRL, &ctrl);
+}
+
+int v4l2_drm_set_ae_ctrl(const struct v4l2_drm_context* context, uint32_t id, int value)
+{
+    if (v4l2_drm_set_control(context->video_fd, id, value) < 0)
+        return -errno;
+    return 0;
+}
+
+int v4l2_drm_get_ae_ctrl(const struct v4l2_drm_context* context, uint32_t id, int* value)
+{
+    struct v4l2_control ctrl;
+
+    memset(&ctrl, 0, sizeof(ctrl));
+    ctrl.id = id;
+    if (ioctl(context->video_fd, VIDIOC_G_CTRL, &ctrl) < 0)
+        return -errno;
+    *value = ctrl.value;
+    return 0;
+}
+
+int v4l2_drm_get_ae_range(const struct v4l2_drm_context* context, uint32_t id, int* min, int* max)
+{
+    struct v4l2_queryctrl qc;
+
+    memset(&qc, 0, sizeof(qc));
+    qc.id = id;
+    if (ioctl(context->video_fd, VIDIOC_QUERYCTRL, &qc) < 0)
+        return -errno;
+    *min = qc.minimum;
+    *max = qc.maximum;
+    return 0;
+}
+
+/*
+ * The ISP pipeline only exists after G_FMT and is destroyed on close(), so
+ * this must run on the fd that streams. The daemon applies the values when
+ * the mode is MANUAL at stream on, hence values first and mode last.
+ */
+static int v4l2_drm_apply_ae(struct v4l2_drm_context* ctx)
+{
+    struct {
+        uint32_t id;
+        int value;
+        bool set;
+        const char* name;
+    } ctrls[] = {
+        { V4L2_CID_EXPOSURE, ctx->ae_exposure_us, ctx->ae_exposure_us > 0, "exposure(us)" },
+        { V4L2_CID_ANALOGUE_GAIN, ctx->ae_again_milli, ctx->ae_again_milli > 0, "analogue_gain(1/1000x)" },
+        { V4L2_CID_EXPOSURE_AUTO, ctx->ae_mode, ctx->ae_mode >= 0, "auto_exposure" },
+    };
+    bool any = false;
+    unsigned k;
+    int ret, val, min, max;
+
+    for (k = 0; k < sizeof(ctrls) / sizeof(ctrls[0]); k++) {
+        if (ctrls[k].set)
+            any = true;
+    }
+    if (!any)
+        return 0;
+
+    for (k = 0; k < 2; k++) {
+        if (v4l2_drm_get_ae_range(ctx, ctrls[k].id, &min, &max) == 0)
+            printf("[v4l2-drm] video%u %s range: %d ~ %d\n",
+                ctx->device, ctrls[k].name, min, max);
+    }
+
+    for (k = 0; k < sizeof(ctrls) / sizeof(ctrls[0]); k++) {
+        if (!ctrls[k].set)
+            continue;
+        ret = v4l2_drm_set_ae_ctrl(ctx, ctrls[k].id, ctrls[k].value);
+        if (ret < 0) {
+            fprintf(stderr, "[v4l2-drm] video%u set %s=%d failed: %s\n",
+                ctx->device, ctrls[k].name, ctrls[k].value, strerror(-ret));
+            if (ret == -EINVAL)
+                fprintf(stderr,
+                    "[v4l2-drm] kernel does not support this manual AE control; check the kernel version\n");
+            return ret;
+        }
+    }
+
+    for (k = 0; k < sizeof(ctrls) / sizeof(ctrls[0]); k++) {
+        if (v4l2_drm_get_ae_ctrl(ctx, ctrls[k].id, &val) != 0)
+            continue;
+        if (ctrls[k].id == V4L2_CID_EXPOSURE_AUTO)
+            printf("[v4l2-drm] video%u auto exposure: %s\n", ctx->device,
+                val == V4L2_EXPOSURE_MANUAL ? "off (manual)" : "on (auto)");
+        else
+            printf("[v4l2-drm] video%u %s: %d\n", ctx->device, ctrls[k].name, val);
+    }
+    return 0;
 }
 
 static uint32_t v4l2_to_drm(uint32_t fourcc) {
@@ -161,6 +256,8 @@ int v4l2_drm_setup(struct v4l2_drm_context context[], unsigned num, struct displ
             context[i].hflip = hflip;
             context[i].vflip = vflip;
         }
+
+        CKE(v4l2_drm_apply_ae(&context[i]) < 0, close);
 
         struct v4l2_format format;
         memset(&format, 0, sizeof(format));

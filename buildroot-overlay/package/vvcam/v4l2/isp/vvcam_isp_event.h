@@ -129,7 +129,22 @@ struct vvcam_isp_crop_size {
     uint32_t y;
 };
 
+/*
+ * Range of V4L2_CID_EXPOSURE (us) and V4L2_CID_ANALOGUE_GAIN (1/1000 x) for
+ * the sensor mode selected on the port of pad. valid = 0 drops the range so
+ * QUERYCTRL reports the static control range again.
+ */
+struct vvcam_isp_exp_range {
+    uint32_t pad;
+    uint32_t valid;
+    int32_t  exposure_min;
+    int32_t  exposure_max;
+    int32_t  again_min;
+    int32_t  again_max;
+};
+
 #define VVCAM_ISP_IOC_BUFDONE    _IOWR('I',  BASE_VIDIOC_PRIVATE + 0, struct vvcam_isp_buf)
+#define VVCAM_ISP_IOC_S_EXP_RANGE _IOW('I', BASE_VIDIOC_PRIVATE + 1, struct vvcam_isp_exp_range)
 
 #ifdef __KERNEL__
 #include "vvcam_isp_driver.h"

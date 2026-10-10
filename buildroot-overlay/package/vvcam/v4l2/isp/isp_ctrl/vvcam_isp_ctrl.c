@@ -60,6 +60,7 @@
 
 #if defined(ISP_AE_V3) || defined(ISP_AE_V4) || defined(ISP_AE_V4_1)
 #include "vvcam_isp_ae.h"
+#include "vvcam_isp_exposure.h"
 #endif
 
 #if defined(ISP_AWB_V3) || defined(ISP_AWB_V4) || defined(ISP_AWB_V4_1)
@@ -320,6 +321,10 @@ int vvcam_isp_ctrl_init(struct vvcam_isp_dev *isp_dev)
 
     ctrl_count += vvcam_isp_sensor_ctrl_count();
 
+#if defined(ISP_AE_V3) || defined(ISP_AE_V4) || defined(ISP_AE_V4_1)
+    ctrl_count += vvcam_isp_exposure_ctrl_count();
+#endif
+
     v4l2_ctrl_handler_init(&isp_dev->ctrl_handler,  ctrl_count);
 
 #if defined(ISP_AE_V3) || defined (ISP_AE_V4) || defined(ISP_AE_V4_1)
@@ -451,6 +456,10 @@ int vvcam_isp_ctrl_init(struct vvcam_isp_dev *isp_dev)
 #endif
 
     vvcam_isp_sensor_ctrl_create(isp_dev);
+
+#if defined(ISP_AE_V3) || defined(ISP_AE_V4) || defined(ISP_AE_V4_1)
+    vvcam_isp_exposure_ctrl_create(isp_dev);
+#endif
 
     isp_dev->sd.ctrl_handler = &isp_dev->ctrl_handler;
 

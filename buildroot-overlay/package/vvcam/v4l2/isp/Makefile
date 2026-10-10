@@ -44,6 +44,7 @@ ccflags-y	+= -DISP_AFM_V1 -I$(src)/isp_ctrl/afm/afm_v1
 ccflags-y	+= -DISP_DMSC_V2 -I$(src)/isp_ctrl/dmsc/dmsc_v2
 ccflags-y	+= -DISP_EXP_V2 -I$(src)/isp_ctrl/exp/exp_v2
 ccflags-y	+= -I$(src)/isp_ctrl/sensor/sensor
+ccflags-y	+= -I$(src)/isp_ctrl/exposure
 
 vvcam_isp_subdev-objs			:= vvcam_isp_procfs.o
 vvcam_isp_subdev-objs			+= vvcam_isp_event.o
@@ -67,6 +68,7 @@ vvcam_isp_subdev-objs			+= isp_ctrl/ccm/ccm/vvcam_isp_ccm.o
 vvcam_isp_subdev-objs			+= isp_ctrl/bls/bls/vvcam_isp_bls.o
 vvcam_isp_subdev-objs			+= isp_ctrl/awb/awb_v3/vvcam_isp_awb.o
 vvcam_isp_subdev-objs			+= isp_ctrl/sensor/sensor/vvcam_isp_sensor.o
+vvcam_isp_subdev-objs			+= isp_ctrl/exposure/vvcam_isp_exposure.o
 vvcam_isp_subdev-objs			+= isp_ctrl/vvcam_isp_ctrl.o
 
 obj-m		+= vvcam_isp_subdev.o

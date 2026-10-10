@@ -80,6 +80,7 @@
 #include "vvcam_isp_driver.h"
 #include "vvcam_isp_event.h"
 #include "vvcam_isp_ctrl.h"
+#include "vvcam_isp_exposure.h"
 #include "vvcam_isp_procfs.h"
 #ifdef VVCAM_PLATFORM_REGISTER
 #include "vvcam_isp_platform.h"
@@ -301,9 +302,23 @@ static int vvcam_isp_queryctrl(struct v4l2_subdev *sd,void *arg)
     struct vvcam_isp_dev *isp_dev = v4l2_get_subdevdata(sd);
     struct vvcam_pad_queryctrl *pad_querctrl =
                                     (struct vvcam_pad_queryctrl *)arg;
-    ret = v4l2_queryctrl(&isp_dev->ctrl_handler, pad_querctrl->query_ctrl);
+    struct v4l2_queryctrl *qc = pad_querctrl->query_ctrl;
+    s64 qmin, qmax, qdef;
 
-    return ret;
+    ret = v4l2_queryctrl(&isp_dev->ctrl_handler, qc);
+    if (ret)
+        return ret;
+
+    qmin = qc->minimum;
+    qmax = qc->maximum;
+    qdef = qc->default_value;
+    vvcam_isp_exposure_fixup_range(isp_dev, pad_querctrl->pad, qc->id,
+                                   &qmin, &qmax, &qdef);
+    qc->minimum = qmin;
+    qc->maximum = qmax;
+    qc->default_value = qdef;
+
+    return 0;
 }
 
 static int vvcam_isp_query_ext_ctrl(struct v4l2_subdev *sd,void *arg)
@@ -312,10 +327,17 @@ static int vvcam_isp_query_ext_ctrl(struct v4l2_subdev *sd,void *arg)
     struct vvcam_isp_dev *isp_dev = v4l2_get_subdevdata(sd);
     struct vvcam_pad_query_ext_ctrl *pad_quer_ext_ctrl =
                                     (struct vvcam_pad_query_ext_ctrl *)arg;
-    ret = v4l2_query_ext_ctrl(&isp_dev->ctrl_handler,
-                        pad_quer_ext_ctrl->query_ext_ctrl);
+    struct v4l2_query_ext_ctrl *qec = pad_quer_ext_ctrl->query_ext_ctrl;
 
-    return ret;
+    ret = v4l2_query_ext_ctrl(&isp_dev->ctrl_handler, qec);
+    if (ret)
+        return ret;
+
+    vvcam_isp_exposure_fixup_range(isp_dev, pad_quer_ext_ctrl->pad, qec->id,
+                                   &qec->minimum, &qec->maximum,
+                                   &qec->default_value);
+
+    return 0;
 }
 
 static int vvcam_isp_querymenu(struct v4l2_subdev *sd,void *arg)
@@ -559,6 +581,9 @@ static long vvcam_isp_priv_ioctl(struct v4l2_subdev *sd,
             break;
         case VVCAM_ISP_IOC_BUFDONE:
             ret = vvcam_isp_buf_done(sd, arg);
+            break;
+        case VVCAM_ISP_IOC_S_EXP_RANGE:
+            ret = vvcam_isp_exposure_s_range(isp_dev, arg);
             break;
         case VVCAM_PAD_QUERYCTRL:
             ret = vvcam_isp_queryctrl(sd, arg);
@@ -1223,6 +1248,7 @@ static int vvcam_isp_probe(struct platform_device *pdev)
 
     mutex_init(&isp_dev->mlock);
     mutex_init(&isp_dev->ctrl_lock);
+    spin_lock_init(&isp_dev->exp_limits_lock);
     isp_dev->dev = &pdev->dev;
     platform_set_drvdata(pdev, isp_dev);
 
