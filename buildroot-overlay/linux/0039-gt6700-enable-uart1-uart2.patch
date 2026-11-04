@@ -1,0 +1,29 @@
+From 9e20899a9b3c308eee1a922b74f0ad45cfb023c1 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Wed, 4 Nov 2026 11:51:30 +0800
+Subject: [PATCH] gt6700 enable uart1 uart2
+
+---
+ arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts b/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
+index 7a7b2fb11..2fbfa7d2e 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
+@@ -62,6 +62,12 @@ &mmc_sd1{
+ &uart0 {
+ 	status = "okay";
+ };
++&uart1 {
++	status = "okay";
++};
++&uart2 {
++	status = "okay";
++};
+ &uart3 {
+ 	status = "okay";
+ };
+-- 
+2.25.1
+

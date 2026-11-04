@@ -1,2 +1,14 @@
 #!/bin/sh
-cat /etc/version/release_version
+
+case "$1" in
+  start)
+    cat /etc/version/release_version
+    ;;
+  stop)
+    ;;
+  *)
+    echo "Usage: $0 {start|stop}"
+    exit 1
+esac
+
+exit $?

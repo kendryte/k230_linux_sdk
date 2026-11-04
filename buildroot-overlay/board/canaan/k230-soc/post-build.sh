@@ -78,6 +78,10 @@ EOF
 
 
 
+	if  $(cat ${config} |  grep  BR2_PACKAGE_RTL8723BU=y >/dev/null 2>&1 ); then
+		echo " modprobe 8723bu " >> ${auto_boot_f}
+	fi
+
 	if  $(cat ${config} |  grep  BR2_PACKAGE_RTL8189FS=y >/dev/null 2>&1 ); then
 		echo " modprobe 8189fs " >> ${auto_boot_f}
 	fi

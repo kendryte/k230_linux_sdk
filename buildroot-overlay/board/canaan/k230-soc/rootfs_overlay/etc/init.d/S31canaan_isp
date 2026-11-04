@@ -1,16 +1,50 @@
 #!/bin/sh
-mmc_bootddev=$(cat /proc/cmdline  | sed  -n  "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p" )
 
-if [ -n "${mmc_bootddev}" ] && [ -b "${mmc_bootddev}" ]; then
-    mount ${mmc_bootddev}p1 /boot
-fi
-modprobe vvcam_isp
-modprobe vvcam_mipi
-modprobe vvcam_vb
-modprobe vvcam_isp_subdev
-modprobe vvcam_video mcm_mask=1
-modprobe nonai2d
-ISP_MEDIA_SENSOR_DRIVER=/usr/lib/libvvcam.so /usr/bin/isp_media_server > /dev/null 2> /tmp/isp.err.log &
+start() {
+    mmc_bootddev=$(cat /proc/cmdline | sed -n "s#root=\(\/dev\/mmcblk[0-9]\).*#\1#p")
 
+    if [ -n "${mmc_bootddev}" ] && [ -b "${mmc_bootddev}" ]; then
+        mount ${mmc_bootddev}p1 /boot
+    fi
+    modprobe vvcam_isp
+    modprobe vvcam_mipi
+    modprobe vvcam_vb
+    modprobe vvcam_isp_subdev
+    modprobe vvcam_video mcm_mask=1
+    modprobe nonai2d
+    ISP_MEDIA_SENSOR_DRIVER=/usr/lib/libvvcam.so /usr/bin/isp_media_server > /dev/null 2> /tmp/isp.err.log &
 
-vo_init &
+    vo_init &
+}
+
+stop() {
+    killall isp_media_server 2>/dev/null
+    killall vo_init 2>/dev/null
+
+    rmmod nonai2d 2>/dev/null
+    rmmod vvcam_video 2>/dev/null
+    rmmod vvcam_isp_subdev 2>/dev/null
+    rmmod vvcam_vb 2>/dev/null
+    rmmod vvcam_mipi 2>/dev/null
+    rmmod vvcam_isp 2>/dev/null
+
+    umount /boot 2>/dev/null
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|reload)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?

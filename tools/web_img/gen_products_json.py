@@ -266,6 +266,12 @@ json_str = u'''
             "image_url": "https://www.kendryte.com/api/imagecdn/zh/sdk/k230_linux_sdk_docs/evb.png",
             "variants": { "linux" :{"latest": {}, "history": []}, "debian" : {"latest": {}, "history": [] }, "ubuntu" : {"latest": {}, "history": [] }, "nand" : {"latest": {}, "history": [] }, "nor" : {"latest": {}, "history": [] }, "micropython" : {"latest": {}, "history": []} }
         },
+        "k230_canmv_gt6700_defconfig": {
+            "name": "银杏科技gt6700",
+            "description": "银杏科技gt6700",
+            "image_url": "https://img.alicdn.com/imgextra/i1/677513810/O1CN01L98hhw1e1243Y2AGL_!!677513810.jpg",
+            "variants": { "linux" :{"latest": {}, "history": []}, "debian" : {"latest": {}, "history": [] }, "ubuntu" : {"latest": {}, "history": [] }, "nand" : {"latest": {}, "history": [] }, "nor" : {"latest": {}, "history": [] }, "micropython" : {"latest": {}, "history": []} }
+        },
         "k230d_canmv_labplus_ai_camera_defconfig": {
             "name": "labplus",
             "description": "k230d_canmv_labplus_ai_camera_defconfig",
