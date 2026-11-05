@@ -1,0 +1,175 @@
+From c22af159785990209714fc3e169219e1893e7158 Mon Sep 17 00:00:00 2001
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Date: Thu, 5 Nov 2026 08:52:23 +0800
+Subject: [PATCH] fix mmc probe warn
+
+---
+ arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts        | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts            | 5 +++++
+ arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts               | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts         | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts            | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv-v3.dts                | 1 +
+ arch/riscv/boot/dts/canaan/k230-canmv.dts                   | 1 +
+ arch/riscv/boot/dts/canaan/k230-evb.dts                     | 4 ++++
+ arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts    | 1 +
+ arch/riscv/boot/dts/canaan/k230d-canmv.dts                  | 1 +
+ 11 files changed, 18 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+index 186db7175..a7dae5b3e 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi.dts
+@@ -57,6 +57,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ 	};
+ 
+ &uart0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts b/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
+index 2fbfa7d2e..bddfa9617 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-gt6700.dts
+@@ -48,6 +48,10 @@ &usb1 {
+ &mmc_sd0{
+ 	status = "okay";
+ 	io_fixed_1v8;
++	is_emmc;
++	non-removable;
++	no-sdio;
++	no-sd;
+ 	// rx_delay_line = <0x0d>;
+ 	// tx_delay_line = <0x40>;
+ };
+@@ -57,6 +61,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ 	};
+ 
+ &uart0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+index 4e2a3a832..96ac2a736 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lcd.dts
+@@ -47,6 +47,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ 
+ &usb0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+index 1e61e60d7..317aa3532 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd-ili9881.dts
+@@ -52,6 +52,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ 
+ &usb0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+index f62f28051..bfafbc2e2 100755
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-lckfb-lcd.dts
+@@ -49,6 +49,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ 
+ &usb0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+index 3c4befa20..7fe99bec6 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3-lcd.dts
+@@ -47,6 +47,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ 
+ &usb0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts b/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
+index d61f53d52..b643bd0e9 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-v3.dts
+@@ -47,6 +47,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ 
+ &usb0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv.dts b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+index f0a5fd7d4..a3c4a9c11 100644
+--- a/arch/riscv/boot/dts/canaan/k230-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230-canmv.dts
+@@ -46,6 +46,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ 
+ &usb0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230-evb.dts b/arch/riscv/boot/dts/canaan/k230-evb.dts
+index 2e7572fd7..cb5ec7db6 100644
+--- a/arch/riscv/boot/dts/canaan/k230-evb.dts
++++ b/arch/riscv/boot/dts/canaan/k230-evb.dts
+@@ -46,6 +46,9 @@ &mmc_sd0{
+ 	is_emmc;
+     io_fixed_1v8;
+     mmc-hs200-1_8v;
++	non-removable;
++	no-sdio;
++	no-sd;
+ };
+ 
+ &mmc_sd1{
+@@ -53,6 +56,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ 
+ &usb0 {
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+index 5e3ae9cf8..6340dfe1e 100644
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv-junroc-ai-cam.dts
+@@ -84,6 +84,7 @@ &mmc_sd1 {
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ 
+ /* USB0 - Type-C USB OTG */
+diff --git a/arch/riscv/boot/dts/canaan/k230d-canmv.dts b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+index 70027cd08..a45601965 100755
+--- a/arch/riscv/boot/dts/canaan/k230d-canmv.dts
++++ b/arch/riscv/boot/dts/canaan/k230d-canmv.dts
+@@ -54,6 +54,7 @@ &mmc_sd1{
+ 	no-1-8-v;
+ 	cap-sd-highspeed;
+ 	mshc_ctrl_r = <0x00>;
++	no-sdio;
+ };
+ &usb0 {
+ 	status = "okay";
+-- 
+2.25.1
+
