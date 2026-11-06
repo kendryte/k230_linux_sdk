@@ -30,7 +30,18 @@ static unsigned align_down(unsigned value, unsigned align)
 
 static void usage()
 {
-	std::cerr << "usage: vvcam-libcamera-hold -d video[,video...] [width height]\n";
+	std::cerr << "usage: vvcam-libcamera-hold -d video[,video...] [--hflip 0|1] [--vflip 0|1] [width height]\n";
+}
+
+static Orientation flip_orientation(int hflip, int vflip)
+{
+	if (hflip && vflip)
+		return Orientation::Rotate180;
+	if (hflip)
+		return Orientation::Rotate0Mirror;
+	if (vflip)
+		return Orientation::Rotate180Mirror;
+	return Orientation::Rotate0;
 }
 
 static bool read_first_line(const std::string &path, std::string *text)
@@ -67,14 +78,33 @@ static bool parse_videos(const std::string &text, std::vector<int> *videos)
 
 int main(int argc, char **argv)
 {
+	static const struct option longopts[] = {
+		{ "hflip", required_argument, nullptr, 'M' },
+		{ "vflip", required_argument, nullptr, 'F' },
+		{ nullptr, 0, nullptr, 0 },
+	};
 	std::string list;
+	int hflip = 0;
+	int vflip = 0;
 	int opt;
-	while ((opt = getopt(argc, argv, "d:")) != -1) {
-		if (opt != 'd') {
+	while ((opt = getopt_long(argc, argv, "d:M:F:", longopts, nullptr)) != -1) {
+		if (opt == 'd')
+			list = optarg;
+		else if (opt == 'M' || opt == 'F') {
+			char *end = nullptr;
+			const long flip = strtol(optarg, &end, 10);
+			if (!end || *end || (flip != 0 && flip != 1)) {
+				usage();
+				return 1;
+			}
+			if (opt == 'M')
+				hflip = static_cast<int>(flip);
+			else
+				vflip = static_cast<int>(flip);
+		} else {
 			usage();
 			return 1;
 		}
-		list = optarg;
 	}
 
 	std::vector<int> videos;
@@ -159,6 +189,7 @@ int main(int argc, char **argv)
 		StreamConfiguration &cfg = config->at(0);
 		cfg.pixelFormat = formats::NV12;
 		cfg.size = Size(width, height);
+		config->orientation = flip_orientation(hflip, vflip);
 		if (config->validate() == CameraConfiguration::Invalid) {
 			std::cerr << "vvcam-libcamera-hold: " << entity << " 配置无效\n";
 			camera->release();
@@ -174,7 +205,7 @@ int main(int argc, char **argv)
 
 		std::cout << "hold /dev/video" << index << " " << entity
 			  << " " << cfg.size.width << "x" << cfg.size.height
-			  << " NV12\n";
+			  << " NV12 hflip=" << hflip << " vflip=" << vflip << "\n";
 		std::cout.flush();
 		held.push_back(Held{ std::move(camera), index });
 	}

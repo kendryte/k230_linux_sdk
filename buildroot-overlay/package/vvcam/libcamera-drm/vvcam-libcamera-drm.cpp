@@ -112,7 +112,9 @@ static void usage()
 		  << "  -x  画面左上角的横坐标，默认单路居中\n"
 		  << "  -y  画面左上角的纵坐标，默认单路居中\n"
 		  << "  -w  这一路的宽\n"
-		  << "  -h  这一路的高\n";
+		  << "  -h  这一路的高\n"
+		  << "  --hflip 0|1  水平镜像，写在 -d 后面，默认 0\n"
+		  << "  --vflip 0|1  垂直翻转，写在 -d 后面，默认 0\n";
 }
 
 static bool read_first_line(const std::string &path, std::string *text)
@@ -192,7 +194,20 @@ struct View {
 	int y = -1;
 	unsigned width = 0;
 	unsigned height = 0;
+	int hflip = 0;
+	int vflip = 0;
 };
+
+static Orientation flip_orientation(int hflip, int vflip)
+{
+	if (hflip && vflip)
+		return Orientation::Rotate180;
+	if (hflip)
+		return Orientation::Rotate0Mirror;
+	if (vflip)
+		return Orientation::Rotate180Mirror;
+	return Orientation::Rotate0;
+}
 
 class Preview {
 public:
@@ -286,11 +301,17 @@ static bool parse_int(const char *text, long *value)
 
 static int parse_args(int argc, char **argv, std::vector<View> *views)
 {
+	static const struct option longopts[] = {
+		{ "hflip", required_argument, nullptr, 'M' },
+		{ "vflip", required_argument, nullptr, 'F' },
+		{ nullptr, 0, nullptr, 0 },
+	};
 	int current = -1;
 	int opt;
-	while ((opt = getopt(argc, argv, "d:x:y:w:h:")) != -1) {
+	while ((opt = getopt_long(argc, argv, "d:x:y:w:h:M:F:", longopts, nullptr)) != -1) {
 		long value = 0;
-		if (opt != 'd' && opt != 'x' && opt != 'y' && opt != 'w' && opt != 'h') {
+		if (opt != 'd' && opt != 'x' && opt != 'y' && opt != 'w' && opt != 'h' &&
+		    opt != 'M' && opt != 'F') {
 			usage();
 			return -1;
 		}
@@ -337,6 +358,20 @@ static int parse_args(int argc, char **argv, std::vector<View> *views)
 				return -1;
 			}
 			view.height = static_cast<unsigned>(value);
+			break;
+		case 'M':
+			if (value != 0 && value != 1) {
+				usage();
+				return -1;
+			}
+			view.hflip = static_cast<int>(value);
+			break;
+		case 'F':
+			if (value != 0 && value != 1) {
+				usage();
+				return -1;
+			}
+			view.vflip = static_cast<int>(value);
 			break;
 		}
 	}
@@ -465,6 +500,11 @@ int main(int argc, char **argv)
 		StreamConfiguration &cfg = slot.config->at(0);
 		cfg.pixelFormat = formats::NV12;
 		cfg.size = Size(spec.width, spec.height);
+		slot.config->orientation = flip_orientation(spec.hflip, spec.vflip);
+		std::cout << "flip /dev/video" << spec.video
+			  << " hflip=" << spec.hflip
+			  << " vflip=" << spec.vflip << "\n";
+		std::cout.flush();
 		if (slot.config->validate() == CameraConfiguration::Invalid) {
 			std::cerr << "vvcam-libcamera-drm: " << slot.entity << " 配置无效\n";
 			finish();

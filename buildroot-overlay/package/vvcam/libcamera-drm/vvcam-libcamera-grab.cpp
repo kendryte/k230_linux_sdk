@@ -60,6 +60,8 @@ static unsigned g_sensorHeight = 0;
 static unsigned g_sensorFps = 0;
 static bool g_sensorTarget = false;
 static std::string g_calibDir;
+static int g_hflip = 0;
+static int g_vflip = 0;
 
 static unsigned align_down(unsigned value, unsigned align)
 {
@@ -68,7 +70,18 @@ static unsigned align_down(unsigned value, unsigned align)
 
 static void usage()
 {
-	std::cerr << "usage: vvcam-libcamera-grab -d video[,video...] [-e us] [-g gain] [-a 0|1] [-b bright] [-k contrast] [-u saturation] [-S WxH@fps] [-C dir] [width height]\n";
+	std::cerr << "usage: vvcam-libcamera-grab -d video[,video...] [-e us] [-g gain] [-a 0|1] [-b bright] [-k contrast] [-u saturation] [-S WxH@fps] [-C dir] [--hflip 0|1] [--vflip 0|1] [width height]\n";
+}
+
+static Orientation flip_orientation(int hflip, int vflip)
+{
+	if (hflip && vflip)
+		return Orientation::Rotate180;
+	if (hflip)
+		return Orientation::Rotate0Mirror;
+	if (vflip)
+		return Orientation::Rotate180Mirror;
+	return Orientation::Rotate0;
 }
 
 static bool read_first_line(const std::string &path, std::string *text)
@@ -331,11 +344,28 @@ static bool wait_until(GrabCamera *grab, unsigned saved, unsigned completed)
 
 int main(int argc, char **argv)
 {
+	static const struct option longopts[] = {
+		{ "hflip", required_argument, nullptr, 'M' },
+		{ "vflip", required_argument, nullptr, 'F' },
+		{ nullptr, 0, nullptr, 0 },
+	};
 	std::string list;
 	int opt;
-	while ((opt = getopt(argc, argv, "d:e:g:a:b:k:u:S:C:")) != -1) {
+	while ((opt = getopt_long(argc, argv, "d:e:g:a:b:k:u:S:C:M:F:", longopts, nullptr)) != -1) {
 		if (opt == 'd')
 			list = optarg;
+		else if (opt == 'M' || opt == 'F') {
+			char *end = nullptr;
+			const long flip = strtol(optarg, &end, 10);
+			if (!end || *end || (flip != 0 && flip != 1)) {
+				usage();
+				return 1;
+			}
+			if (opt == 'M')
+				g_hflip = static_cast<int>(flip);
+			else
+				g_vflip = static_cast<int>(flip);
+		}
 		else if (opt == 'e')
 			g_exposureUs = atoi(optarg);
 		else if (opt == 'g') {
@@ -492,6 +522,12 @@ int main(int argc, char **argv)
 			sensor.outputSize = Size(g_sensorWidth, g_sensorHeight);
 			sensor.bitDepth = g_sensorFps;
 			grab->config->sensorConfig = sensor;
+		}
+		grab->config->orientation = flip_orientation(g_hflip, g_vflip);
+		if (grabs.empty()) {
+			std::cout << "flip hflip=" << g_hflip
+				  << " vflip=" << g_vflip << "\n";
+			std::cout.flush();
 		}
 		if (grab->config->validate() == CameraConfiguration::Invalid ||
 		    grab->camera->configure(grab->config.get()) < 0) {

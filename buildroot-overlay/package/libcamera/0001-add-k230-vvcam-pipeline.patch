@@ -555,6 +555,7 @@ diff -Naur libcamera-v0.7.2/src/libcamera/pipeline/vvcam/vvcam.cpp libcamera-v0.
 +	{ 1920, 1080, 60 },
 +	{ 1280, 960, 90 },
 +	{ 1280, 720, 90 },
++	{ 1920, 1080, 15 },
 +};
 +
 +static constexpr SensorMode kGc2053Modes[] = {
