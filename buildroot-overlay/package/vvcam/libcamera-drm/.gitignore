@@ -1,0 +1,4 @@
+# Makefile writes these next to the sources. CMake rebuilds them from the .cpp files.
+vvcam-libcamera-drm
+vvcam-libcamera-grab
+vvcam-libcamera-hold

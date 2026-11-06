@@ -1,0 +1,1598 @@
+libcamera: add the K230 vvcam pipeline
+
+Register the vvcam pipeline handler and IPA so the K230 ISP can be
+used from libcamera. The rest of v0.7.2 is unchanged.
+
+---
+
+diff -Naur libcamera-v0.7.2/include/libcamera/ipa/meson.build libcamera-v0.7.2-vvcam/include/libcamera/ipa/meson.build
+--- libcamera-v0.7.2/include/libcamera/ipa/meson.build	2026-11-04 19:36:11.621862947 +0800
++++ libcamera-v0.7.2-vvcam/include/libcamera/ipa/meson.build	2026-11-05 10:48:14.845856740 +0800
+@@ -70,6 +70,7 @@
+     'rpi/vc4': 'raspberrypi.mojom',
+     'simple': 'soft.mojom',
+     'vimc': 'vimc.mojom',
++    'vvcam': 'vvcam.mojom',
+ }
+ 
+ #
+diff -Naur libcamera-v0.7.2/include/libcamera/ipa/vvcam.mojom libcamera-v0.7.2-vvcam/include/libcamera/ipa/vvcam.mojom
+--- libcamera-v0.7.2/include/libcamera/ipa/vvcam.mojom	1970-01-01 08:00:00.000000000 +0800
++++ libcamera-v0.7.2-vvcam/include/libcamera/ipa/vvcam.mojom	2026-11-05 10:48:14.846235453 +0800
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++
++/*
++ * \todo Document the interface and remove the related EXCLUDE_PATTERNS entry.
++ */
++
++module ipa.vvcam;
++
++import "include/libcamera/ipa/core.mojom";
++
++interface IPAVvcamInterface {
++	init(libcamera.IPASettings settings) => (int32 ret);
++
++	configure(libcamera.SharedFD videoFd) => (int32 ret);
++
++	start() => (int32 ret);
++	stop();
++
++	setControls(bool hasAe, bool aeEnable,
++		   bool hasExposure, int32 exposureTime,
++		   bool hasGain, float analogueGain) => (int32 ret);
++
++	setFlip(bool hflip, bool vflip) => (int32 ret);
++
++	[async] process(uint32 frame);
++};
++
++interface IPAVvcamEventInterface {
++	ready();
++};
+diff -Naur libcamera-v0.7.2/meson.build libcamera-v0.7.2-vvcam/meson.build
+--- libcamera-v0.7.2/meson.build	2026-11-04 19:36:11.626445367 +0800
++++ libcamera-v0.7.2-vvcam/meson.build	2026-11-05 10:48:14.843483077 +0800
+@@ -225,6 +225,7 @@
+     'uvcvideo':     ['any'],
+     'vimc':         ['test'],
+     'virtual':      ['any'],
++    'vvcam':        ['any'],
+ }
+ 
+ if wanted_pipelines.contains('all')
+diff -Naur libcamera-v0.7.2/meson_options.txt libcamera-v0.7.2-vvcam/meson_options.txt
+--- libcamera-v0.7.2/meson_options.txt	2026-11-04 19:36:11.626523025 +0800
++++ libcamera-v0.7.2-vvcam/meson_options.txt	2026-11-05 10:48:14.843818127 +0800
+@@ -49,7 +49,7 @@
+ option('ipas',
+         type : 'array',
+         choices : ['ipu3', 'mali-c55', 'rkisp1', 'rpi/pisp', 'rpi/vc4', 'simple',
+-                   'vimc'],
++                   'vimc', 'vvcam'],
+         description : 'Select which IPA modules to build')
+ 
+ option('lc-compliance',
+@@ -87,7 +87,8 @@
+             'simple',
+             'uvcvideo',
+             'vimc',
+-            'virtual'
++            'virtual',
++            'vvcam'
+         ],
+         description : 'Select which pipeline handlers to build. If this is set to "auto", all the pipelines applicable to the target architecture will be built. If this is set to "all", all the pipelines will be built. If both are selected then "all" will take precedence.')
+ 
+diff -Naur libcamera-v0.7.2/src/ipa/vvcam/meson.build libcamera-v0.7.2-vvcam/src/ipa/vvcam/meson.build
+--- libcamera-v0.7.2/src/ipa/vvcam/meson.build	1970-01-01 08:00:00.000000000 +0800
++++ libcamera-v0.7.2-vvcam/src/ipa/vvcam/meson.build	2026-10-10 17:41:35.188552290 +0800
+@@ -0,0 +1,21 @@
++# SPDX-License-Identifier: CC0-1.0
++
++ipa_name = 'ipa_vvcam'
++
++mod = shared_module(ipa_name, 'vvcam.cpp',
++                    name_prefix : '',
++                    include_directories : [ipa_includes],
++                    dependencies : [libcamera_private, libipa_dep],
++                    install : true,
++                    install_dir : ipa_install_dir)
++
++if ipa_sign_module
++    custom_target(ipa_name + '.so.sign',
++                  input : mod,
++                  output : ipa_name + '.so.sign',
++                  command : [ipa_sign, ipa_priv_key, '@INPUT@', '@OUTPUT@'],
++                  install : false,
++                  build_by_default : true)
++endif
++
++ipa_names += ipa_name
+diff -Naur libcamera-v0.7.2/src/ipa/vvcam/vvcam.cpp libcamera-v0.7.2-vvcam/src/ipa/vvcam/vvcam.cpp
+--- libcamera-v0.7.2/src/ipa/vvcam/vvcam.cpp	1970-01-01 08:00:00.000000000 +0800
++++ libcamera-v0.7.2-vvcam/src/ipa/vvcam/vvcam.cpp	2026-10-29 16:54:32.366031186 +0800
+@@ -0,0 +1,239 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++/*
++ * VVCAM IPA. 3A stays in isp_media_server. This module only maps controls.
++ */
++
++#include <libcamera/ipa/vvcam_ipa_interface.h>
++
++#include <cerrno>
++#include <cmath>
++#include <cstring>
++#include <sys/ioctl.h>
++#include <vector>
++
++#include <linux/videodev2.h>
++
++#include <libcamera/base/log.h>
++
++#include <libcamera/ipa/ipa_interface.h>
++#include <libcamera/ipa/ipa_module_info.h>
++
++namespace libcamera {
++
++LOG_DEFINE_CATEGORY(IPAVVCAM)
++
++class IPAVvcam : public ipa::vvcam::IPAVvcamInterface
++{
++public:
++	int32_t init(const IPASettings &settings) override;
++	int32_t configure(const SharedFD &videoFd) override;
++	int32_t start() override;
++	void stop() override;
++	int32_t setControls(bool hasAe, bool aeEnable,
++			    bool hasExposure, int32_t exposureTime,
++			    bool hasGain, float analogueGain) override;
++	int32_t setFlip(bool hflip, bool vflip) override;
++	void process(uint32_t frame) override;
++
++private:
++	int queryRange(uint32_t id, v4l2_query_ext_ctrl *query) const;
++	static int64_t clampTo(int64_t value, const v4l2_query_ext_ctrl &query);
++
++	SharedFD videoFd_;
++};
++
++int32_t IPAVvcam::init([[maybe_unused]] const IPASettings &settings)
++{
++	return 0;
++}
++
++int32_t IPAVvcam::configure(const SharedFD &videoFd)
++{
++	videoFd_ = videoFd;
++	return videoFd_.isValid() ? 0 : -EBADF;
++}
++
++int32_t IPAVvcam::queryRange(uint32_t id, v4l2_query_ext_ctrl *query) const
++{
++	*query = {};
++	query->id = id;
++	if (ioctl(videoFd_.get(), VIDIOC_QUERY_EXT_CTRL, query) < 0)
++		return -errno;
++	return 0;
++}
++
++int64_t IPAVvcam::clampTo(int64_t value, const v4l2_query_ext_ctrl &query)
++{
++	if (value < query.minimum)
++		return query.minimum;
++	if (value > query.maximum)
++		return query.maximum;
++	return value;
++}
++
++int32_t IPAVvcam::setControls(bool hasAe, bool aeEnable,
++			      bool hasExposure, int32_t exposureTime,
++			      bool hasGain, float analogueGain)
++{
++	if (!videoFd_.isValid())
++		return -EBADF;
++	if (!hasAe && !hasExposure && !hasGain)
++		return 0;
++
++	/*
++	 * AE mode must be written before exposure and gain, and only while
++	 * the port is not streaming. Manual is 1, auto is 0.
++	 */
++	if (hasAe) {
++		const int32_t mode = aeEnable ? V4L2_EXPOSURE_AUTO
++					      : V4L2_EXPOSURE_MANUAL;
++
++		v4l2_ext_control ctrl{};
++		ctrl.id = V4L2_CID_EXPOSURE_AUTO;
++		ctrl.value = mode;
++
++		v4l2_ext_controls ext{};
++		ext.which = V4L2_CTRL_WHICH_CUR_VAL;
++		ext.count = 1;
++		ext.controls = &ctrl;
++
++		if (ioctl(videoFd_.get(), VIDIOC_S_EXT_CTRLS, &ext) < 0) {
++			int err = -errno;
++			LOG(IPAVVCAM, Error)
++				<< "Failed to set exposure mode " << mode
++				<< ": " << strerror(-err);
++			return err;
++		}
++	}
++
++	std::vector<v4l2_ext_control> ctrls;
++	int64_t exposureWritten = 0;
++	int64_t exposureMin = 0;
++	int64_t exposureMax = 0;
++	double gainWritten = 0;
++	double gainMin = 0;
++	double gainMax = 0;
++
++	if (hasExposure) {
++		v4l2_query_ext_ctrl query;
++		int ret = queryRange(V4L2_CID_EXPOSURE, &query);
++		if (ret) {
++			LOG(IPAVVCAM, Error) << "QUERY_EXT_CTRL exposure failed: " << ret;
++			return ret;
++		}
++
++		exposureWritten = clampTo(exposureTime, query);
++		exposureMin = query.minimum;
++		exposureMax = query.maximum;
++
++		v4l2_ext_control ctrl{};
++		ctrl.id = V4L2_CID_EXPOSURE;
++		ctrl.value = static_cast<int32_t>(exposureWritten);
++		ctrls.push_back(ctrl);
++	}
++
++	if (hasGain) {
++		v4l2_query_ext_ctrl query;
++		int ret = queryRange(V4L2_CID_ANALOGUE_GAIN, &query);
++		if (ret) {
++			LOG(IPAVVCAM, Error) << "QUERY_EXT_CTRL analogue gain failed: " << ret;
++			return ret;
++		}
++
++		int64_t code = std::lround(static_cast<double>(analogueGain) * 1000.0);
++		int64_t written = clampTo(code, query);
++		gainWritten = written / 1000.0;
++		gainMin = query.minimum / 1000.0;
++		gainMax = query.maximum / 1000.0;
++
++		v4l2_ext_control ctrl{};
++		ctrl.id = V4L2_CID_ANALOGUE_GAIN;
++		ctrl.value = static_cast<int32_t>(written);
++		ctrls.push_back(ctrl);
++	}
++
++	if (ctrls.empty())
++		return 0;
++
++	v4l2_ext_controls ext{};
++	ext.which = V4L2_CTRL_WHICH_CUR_VAL;
++	ext.count = ctrls.size();
++	ext.controls = ctrls.data();
++
++	if (ioctl(videoFd_.get(), VIDIOC_S_EXT_CTRLS, &ext) < 0) {
++		int err = -errno;
++		LOG(IPAVVCAM, Error)
++			<< "Failed to set exposure or gain: " << strerror(-err);
++		return err;
++	}
++
++	if (hasExposure)
++		LOG(IPAVVCAM, Info)
++			<< "Exposure " << exposureWritten << " us"
++			<< " (range " << exposureMin << ".." << exposureMax << ")";
++	if (hasGain)
++		LOG(IPAVVCAM, Info)
++			<< "Analogue gain " << gainWritten
++			<< " x (range " << gainMin << ".." << gainMax << ")";
++
++	return 0;
++}
++
++int32_t IPAVvcam::setFlip(bool hflip, bool vflip)
++{
++	if (!videoFd_.isValid())
++		return -EBADF;
++
++	const struct {
++		uint32_t id;
++		const char *name;
++		int32_t value;
++	} ctrls[] = {
++		{ V4L2_CID_HFLIP, "HFLIP", hflip ? 1 : 0 },
++		{ V4L2_CID_VFLIP, "VFLIP", vflip ? 1 : 0 },
++	};
++
++	for (const auto &ctrl : ctrls) {
++		v4l2_control control{};
++		control.id = ctrl.id;
++		control.value = ctrl.value;
++		if (ioctl(videoFd_.get(), VIDIOC_S_CTRL, &control) < 0) {
++			int err = -errno;
++			LOG(IPAVVCAM, Error)
++				<< "Failed to set " << ctrl.name << " " << ctrl.value
++				<< ": " << strerror(-err);
++			return err;
++		}
++	}
++
++	return 0;
++}
++
++int32_t IPAVvcam::start()
++{
++	return 0;
++}
++
++void IPAVvcam::stop()
++{
++}
++
++void IPAVvcam::process([[maybe_unused]] uint32_t frame)
++{
++}
++
++extern "C" {
++const struct IPAModuleInfo ipaModuleInfo = {
++	IPA_MODULE_API_VERSION,
++	0,
++	"vvcam",
++	"vvcam",
++};
++
++IPAInterface *ipaCreate()
++{
++	return new IPAVvcam();
++}
++}
++
++} /* namespace libcamera */
+diff -Naur libcamera-v0.7.2/src/libcamera/pipeline/vvcam/meson.build libcamera-v0.7.2-vvcam/src/libcamera/pipeline/vvcam/meson.build
+--- libcamera-v0.7.2/src/libcamera/pipeline/vvcam/meson.build	1970-01-01 08:00:00.000000000 +0800
++++ libcamera-v0.7.2-vvcam/src/libcamera/pipeline/vvcam/meson.build	2026-10-10 15:49:31.864023643 +0800
+@@ -0,0 +1,5 @@
++# SPDX-License-Identifier: CC0-1.0
++
++libcamera_internal_sources += files([
++    'vvcam.cpp',
++])
+diff -Naur libcamera-v0.7.2/src/libcamera/pipeline/vvcam/vvcam.cpp libcamera-v0.7.2-vvcam/src/libcamera/pipeline/vvcam/vvcam.cpp
+--- libcamera-v0.7.2/src/libcamera/pipeline/vvcam/vvcam.cpp	1970-01-01 08:00:00.000000000 +0800
++++ libcamera-v0.7.2-vvcam/src/libcamera/pipeline/vvcam/vvcam.cpp	2026-11-05 17:20:00.000000000 +0800
+@@ -0,0 +1,1232 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++/*
++ * Pipeline handler for VeriSilicon vvcam on K230.
++ *
++ * match() registers every vvcam-video capture node on the media device.
++ * The /dev/video number is assigned by the kernel and is not the port index.
++ * Format and buffer ioctls, which ask isp_media_server to create an ISP
++ * pipeline, happen after acquire().
++ */
++
++#include <algorithm>
++#include <cctype>
++#include <cerrno>
++#include <cmath>
++#include <cstdio>
++#include <fcntl.h>
++#include <fstream>
++#include <iomanip>
++#include <string.h>
++#include <sys/ioctl.h>
++#include <time.h>
++#include <unistd.h>
++
++#include <linux/videodev2.h>
++
++#include "vvcam_cid.h"
++
++#include <map>
++#include <memory>
++#include <set>
++#include <string>
++#include <vector>
++
++#include <libcamera/base/log.h>
++#include <libcamera/base/mutex.h>
++#include <libcamera/base/shared_fd.h>
++#include <libcamera/base/timer.h>
++#include <libcamera/base/unique_fd.h>
++
++#include <libcamera/ipa/vvcam_ipa_interface.h>
++#include <libcamera/ipa/vvcam_ipa_proxy.h>
++
++#include <libcamera/camera.h>
++#include <libcamera/control_ids.h>
++#include <libcamera/controls.h>
++#include <libcamera/formats.h>
++#include <libcamera/framebuffer.h>
++#include <libcamera/orientation.h>
++#include <libcamera/property_ids.h>
++#include <libcamera/request.h>
++#include <libcamera/stream.h>
++#include <libcamera/transform.h>
++
++#include "libcamera/internal/camera.h"
++#include "libcamera/internal/device_enumerator.h"
++#include "libcamera/internal/framebuffer.h"
++#include "libcamera/internal/media_device.h"
++#include "libcamera/internal/pipeline_handler.h"
++#include "libcamera/internal/request.h"
++#include "libcamera/internal/v4l2_videodevice.h"
++
++namespace libcamera {
++
++LOG_DEFINE_CATEGORY(VVCAM)
++
++class VvcamVideoDevice : public V4L2VideoDevice
++{
++public:
++	using V4L2VideoDevice::V4L2VideoDevice;
++
++	SharedFD dupFd() const
++	{
++		return SharedFD(dup(fd()));
++	}
++
++	/*
++	 * Stored on the video node and attached to the next CREATE.
++	 * enable=0 clears a target left by an earlier open.
++	 * SensorConfiguration has no frame-rate field. bitDepth carries fps
++	 * here and is not the sensor bit depth. A real bit depth does not
++	 * match a mode and validate() rejects it.
++	 */
++	int setSensorTarget(uint32_t enable, uint32_t width, uint32_t height,
++			    uint32_t fps)
++	{
++		v4l2_ext_control ctrl[4] = {};
++		v4l2_ext_controls ctrls = {};
++
++		ctrl[0].id = VVCAM_CID_SENSOR_ENABLE;
++		ctrl[0].value = static_cast<int32_t>(enable);
++		ctrl[1].id = VVCAM_CID_SENSOR_WIDTH;
++		ctrl[1].value = static_cast<int32_t>(width);
++		ctrl[2].id = VVCAM_CID_SENSOR_HEIGHT;
++		ctrl[2].value = static_cast<int32_t>(height);
++		ctrl[3].id = VVCAM_CID_SENSOR_FPS;
++		ctrl[3].value = static_cast<int32_t>(fps);
++
++		ctrls.ctrl_class = V4L2_CTRL_CLASS_USER;
++		ctrls.count = 4;
++		ctrls.controls = ctrl;
++
++		if (::ioctl(fd(), VIDIOC_S_EXT_CTRLS, &ctrls) < 0)
++			return -errno;
++		return 0;
++	}
++
++	/*
++	 * isp_awb_enable lives on the ISP subdev. VIDIOC_S_CTRL on this video
++	 * node is forwarded there with the pad linked to this node.
++	 * VVCAM_CID_AWB_ENABLE, not the scene/sensor user-class block.
++	 */
++	int setAwbEnable(bool enable)
++	{
++		v4l2_control ctrl = {};
++		ctrl.id = VVCAM_CID_AWB_ENABLE;
++		ctrl.value = enable ? 1 : 0;
++		if (::ioctl(fd(), VIDIOC_S_CTRL, &ctrl) < 0)
++			return -errno;
++		return 0;
++	}
++
++	/* Integer control on the ISP subdev pad linked to this video node. */
++	int setIspCtrl(uint32_t id, int32_t value)
++	{
++		v4l2_control ctrl = {};
++		ctrl.id = id;
++		ctrl.value = value;
++		if (::ioctl(fd(), VIDIOC_S_CTRL, &ctrl) < 0)
++			return -errno;
++		return 0;
++	}
++
++	/* Manual cproc: enable, mode 0, then the brightness/contrast/saturation id. */
++	int setCprocManual(uint32_t id, int32_t value)
++	{
++		int ret = setIspCtrl(VVCAM_CID_CPROC_ENABLE, 1);
++		if (!ret)
++			ret = setIspCtrl(VVCAM_CID_CPROC_MODE, 0);
++		if (!ret)
++			ret = setIspCtrl(id, value);
++		return ret;
++	}
++
++	/* Exposure is microseconds. Gain is the driver code, 1000 = 1.0x. */
++	int readExposureGain(int32_t *exposureUs, int32_t *gainMilli)
++	{
++		v4l2_ext_control ctrl[2] = {};
++		v4l2_ext_controls ctrls = {};
++
++		ctrl[0].id = V4L2_CID_EXPOSURE;
++		ctrl[1].id = V4L2_CID_ANALOGUE_GAIN;
++		ctrls.which = V4L2_CTRL_WHICH_CUR_VAL;
++		ctrls.count = 2;
++		ctrls.controls = ctrl;
++
++		if (::ioctl(fd(), VIDIOC_G_EXT_CTRLS, &ctrls) < 0)
++			return -errno;
++		*exposureUs = ctrl[0].value;
++		*gainMilli = ctrl[1].value;
++		return 0;
++	}
++};
++
++/*
++ * Supported sensor modes. Add a sensor here when package/vvcam/src/<name>.c
++ * gains one. width/height/fps must match that file's modes[] and
++ * ae_info.cur_fps. If the driver lists the same WxH@fps twice for different
++ * mclks, keep one row: -S cannot select between them, and the daemon uses
++ * the first match.
++ *
++ * The name is the string in /proc/vsi/isp_subdev* ("sensor   : <name>"),
++ * which is also vvcam_sensor.name. This table is read at match(), before
++ * any format ioctl, so it does not create an ISP pipeline.
++ */
++struct SensorMode {
++	unsigned int width;
++	unsigned int height;
++	unsigned int fps;
++};
++
++struct SensorSupport {
++	const char *name;
++	const SensorMode *modes;
++	unsigned int count;
++};
++
++static constexpr SensorMode kGc2093Modes[] = {
++	{ 1920, 1080, 30 },
++	{ 1920, 1080, 60 },
++	{ 1280, 960, 90 },
++	{ 1280, 720, 90 },
++};
++
++static constexpr SensorMode kGc2053Modes[] = {
++	{ 1920, 1080, 30 },
++	{ 1280, 960, 50 },
++	{ 1280, 720, 60 },
++};
++
++static constexpr SensorMode kOv5647Modes[] = {
++	{ 1920, 1080, 30 },
++	{ 2592, 1944, 10 },
++	{ 1280, 960, 45 },
++	{ 1280, 720, 60 },
++	{ 640, 480, 90 },
++};
++
++static constexpr SensorMode kOv13850Modes[] = {
++	{ 3840, 2160, 7 },
++};
++
++static constexpr SensorMode kImx335Modes[] = {
++	{ 1920, 1080, 30 },
++	{ 2592, 1944, 30 },
++};
++
++static constexpr SensorMode kBf3238Modes[] = {
++	{ 1920, 1080, 30 },
++	{ 1280, 960, 30 },
++};
++
++static constexpr SensorSupport kSensors[] = {
++	{ "gc2093", kGc2093Modes, std::size(kGc2093Modes) },
++	{ "gc2053", kGc2053Modes, std::size(kGc2053Modes) },
++	{ "ov5647", kOv5647Modes, std::size(kOv5647Modes) },
++	{ "ov13850", kOv13850Modes, std::size(kOv13850Modes) },
++	{ "imx335", kImx335Modes, std::size(kImx335Modes) },
++	{ "bf3238", kBf3238Modes, std::size(kBf3238Modes) },
++};
++
++static constexpr unsigned int kMinWidth = 32;
++static constexpr unsigned int kMinHeight = 16;
++/* ISP source pads per port. Same value as VVCAM_ISP_PORT_PAD_NR. */
++static constexpr unsigned int kPadsPerPort = 5;
++
++static unsigned int alignUp(unsigned int value, unsigned int align)
++{
++	return (value + align - 1) / align * align;
++}
++
++static const SensorSupport *findSensor(const std::string &name)
++{
++	for (const SensorSupport &sensor : kSensors) {
++		if (name == sensor.name)
++			return &sensor;
++	}
++	return nullptr;
++}
++
++static Size largestMode(const SensorSupport *sensor)
++{
++	Size size{ sensor->modes[0].width, sensor->modes[0].height };
++
++	for (unsigned int i = 1; i < sensor->count; i++) {
++		size.width = std::max(size.width, sensor->modes[i].width);
++		size.height = std::max(size.height, sensor->modes[i].height);
++	}
++	return size;
++}
++
++static const std::vector<PixelFormat> &supportedFormats()
++{
++	static const std::vector<PixelFormat> formats = {
++		formats::NV12,
++		formats::NV16,
++		formats::YUYV,
++		formats::BGR888,
++	};
++
++	return formats;
++}
++
++static StreamFormats streamFormats(const SensorSupport *sensor)
++{
++	std::map<PixelFormat, std::vector<SizeRange>> map;
++	const Size maxSize = largestMode(sensor);
++	const SizeRange range({ kMinWidth, kMinHeight }, maxSize);
++
++	for (const PixelFormat &format : supportedFormats())
++		map[format] = { range };
++
++	return StreamFormats(map);
++}
++
++/* Video node -> ISP port, from the media link. Does not touch format ioctls. */
++static int ispPort(MediaEntity *video)
++{
++	for (MediaPad *pad : video->pads()) {
++		for (MediaLink *link : pad->links()) {
++			MediaPad *remote = link->source()->entity() == video
++						   ? link->sink()
++						   : link->source();
++			if (remote->entity()->name().find("vvcam-isp") == std::string::npos)
++				continue;
++			return remote->index() / kPadsPerPort;
++		}
++	}
++	return -1;
++}
++
++/* Sensor name published by the kernel before any ISP pipeline exists. */
++static std::string sensorNameOnPort(unsigned int port)
++{
++	for (unsigned int id = 0; id < 4; id++) {
++		std::ifstream in("/proc/vsi/isp_subdev" + std::to_string(id));
++		if (!in)
++			continue;
++
++		std::string line;
++		int current = -1;
++		while (std::getline(in, line)) {
++			unsigned int parsed = 0;
++			if (std::sscanf(line.c_str(), "isp%*u port%u", &parsed) == 1) {
++				current = static_cast<int>(parsed);
++				continue;
++			}
++			if (current != static_cast<int>(port) ||
++			    line.compare(0, 6, "sensor") != 0)
++				continue;
++
++			const auto colon = line.find(':');
++			if (colon == std::string::npos)
++				return {};
++
++			std::string name = line.substr(colon + 1);
++			while (!name.empty() &&
++			       std::isspace(static_cast<unsigned char>(name.front())))
++				name.erase(name.begin());
++			while (!name.empty() &&
++			       std::isspace(static_cast<unsigned char>(name.back())))
++				name.pop_back();
++			return name;
++		}
++	}
++	return {};
++}
++
++class VvcamCameraData : public Camera::Private
++{
++public:
++	VvcamCameraData(PipelineHandler *pipe, const std::string &node)
++		: Camera::Private(pipe), video_(node), startTimer_(pipe)
++	{
++		video_.bufferReady.connect(this, &VvcamCameraData::imageBufferReady);
++		startTimer_.timeout.connect(this, &VvcamCameraData::onStartTimeout);
++	}
++
++	void imageBufferReady(FrameBuffer *buffer);
++	void onStartTimeout();
++	void tryStartStreaming();
++	void failStart(const char *why, int ret);
++
++	Mutex openLock_;
++	VvcamVideoDevice video_;
++	Stream stream_;
++	std::unique_ptr<FrameBuffer> spare_;
++	std::vector<FrameBuffer *> exported_;
++	std::set<FrameBuffer *> queuedSet_;
++	std::set<FrameBuffer *> fillers_;
++	unsigned int queued_ = 0;
++	unsigned int frameSequence_ = 0;
++	bool spareQueued_ = false;
++	bool started_ = false;
++	bool stopping_ = false;
++	bool exposureSet_ = false;
++	bool awbSet_ = false;
++	bool brightSet_ = false;
++	bool contrastSet_ = false;
++	bool saturationSet_ = false;
++	bool exposureWritten_ = false;
++	int32_t exposureWrittenUs_ = 0;
++	bool gainWritten_ = false;
++	float gainWrittenX_ = 0;
++	bool draining_ = false;
++	std::vector<Request *> drained_;
++	bool startPending_ = false;
++	Timer startTimer_;
++	std::unique_ptr<ipa::vvcam::IPAProxyVvcam> ipa_;
++	const SensorSupport *sensor_ = nullptr;
++};
++
++class VvcamCameraConfiguration : public CameraConfiguration
++{
++public:
++	explicit VvcamCameraConfiguration(const SensorSupport *sensor);
++
++	Status validate() override;
++
++private:
++	const SensorSupport *sensor_;
++};
++
++class PipelineHandlerVvcam : public PipelineHandler
++{
++public:
++	PipelineHandlerVvcam(CameraManager *manager);
++
++	std::unique_ptr<CameraConfiguration> generateConfiguration(Camera *camera,
++								   Span<const StreamRole> roles) override;
++	int configure(Camera *camera, CameraConfiguration *config) override;
++	int exportFrameBuffers(Camera *camera, Stream *stream,
++			       std::vector<std::unique_ptr<FrameBuffer>> *buffers) override;
++	int start(Camera *camera, const ControlList *controls) override;
++	void stopDevice(Camera *camera) override;
++	int queueRequestDevice(Camera *camera, Request *request) override;
++
++	bool match(DeviceEnumerator *enumerator) override;
++
++private:
++	static bool queryCapture(const std::string &node);
++	bool registerCapture(MediaEntity *entity);
++
++	bool acquireDevice(Camera *camera) override;
++	void releaseDevice(Camera *camera) override;
++
++	VvcamCameraData *cameraData(Camera *camera)
++	{
++		return static_cast<VvcamCameraData *>(camera->_d());
++	}
++};
++
++PipelineHandlerVvcam::PipelineHandlerVvcam(CameraManager *manager)
++	: PipelineHandler(manager)
++{
++}
++
++VvcamCameraConfiguration::VvcamCameraConfiguration(const SensorSupport *sensor)
++	: sensor_(sensor)
++{
++}
++
++CameraConfiguration::Status VvcamCameraConfiguration::validate()
++{
++	Status status = Valid;
++
++	if (config_.empty() || !sensor_)
++		return Invalid;
++
++	/*
++	 * outputSize is the sensor mode. bitDepth carries fps because
++	 * SensorConfiguration has no frame-rate field. It is not bit depth.
++	 * With no target, the daemon keeps mode 0 of this sensor.
++	 */
++	const SensorMode *active = &sensor_->modes[0];
++	if (sensorConfig) {
++		const Size &size = sensorConfig->outputSize;
++		const SensorMode *found = nullptr;
++		if (sensorConfig->isValid()) {
++			for (unsigned int i = 0; i < sensor_->count; i++) {
++				const SensorMode &mode = sensor_->modes[i];
++				if (mode.width == size.width &&
++				    mode.height == size.height &&
++				    mode.fps == sensorConfig->bitDepth) {
++					found = &mode;
++					break;
++				}
++			}
++		}
++		if (!found) {
++			LOG(VVCAM, Error)
++				<< sensor_->name << " has no sensor mode "
++				<< size << "@" << sensorConfig->bitDepth;
++			return Invalid;
++		}
++		active = found;
++	}
++
++	if (config_.size() > 1) {
++		config_.resize(1);
++		status = Adjusted;
++	}
++
++	StreamConfiguration &cfg = config_[0];
++	const std::vector<PixelFormat> &formats = supportedFormats();
++	if (std::find(formats.begin(), formats.end(), cfg.pixelFormat) == formats.end()) {
++		LOG(VVCAM, Debug)
++			<< "Adjust pixel format from " << cfg.pixelFormat
++			<< " to NV12";
++		cfg.pixelFormat = formats::NV12;
++		status = Adjusted;
++	}
++
++	const Size requested = cfg.size;
++	unsigned int width = alignUp(requested.width, 16);
++	unsigned int height = alignUp(requested.height, 8);
++
++	if (width > active->width)
++		width = active->width;
++	if (height > active->height)
++		height = active->height;
++	if (width < kMinWidth)
++		width = kMinWidth;
++	if (height < kMinHeight)
++		height = kMinHeight;
++
++	/*
++	 * Sensor flip is only HFLIP/VFLIP. 90-degree orientations need a
++	 * transpose, which this sensor path does not do.
++	 */
++	const Transform transform = orientation / Orientation::Rotate0;
++	if (!!(transform & Transform::Transpose)) {
++		orientation = Orientation::Rotate0;
++		status = Adjusted;
++		LOG(VVCAM, Info) << "Adjust orientation to Rotate0";
++	}
++
++	cfg.size = { width, height };
++	if (cfg.size != requested) {
++		LOG(VVCAM, Info)
++			<< "Adjust size from " << requested
++			<< " to " << cfg.size
++			<< " (align 16x8, clamp 32x16.."
++			<< active->width << "x" << active->height << ")";
++		status = Adjusted;
++	}
++
++	cfg.bufferCount = 4;
++
++	return status;
++}
++
++std::unique_ptr<CameraConfiguration>
++PipelineHandlerVvcam::generateConfiguration(Camera *camera,
++					    Span<const StreamRole> roles)
++{
++	VvcamCameraData *data = cameraData(camera);
++	std::unique_ptr<VvcamCameraConfiguration> config =
++		std::make_unique<VvcamCameraConfiguration>(data->sensor_);
++
++	if (roles.empty())
++		return config;
++
++	bool supported = false;
++	for (const StreamRole role : roles) {
++		if (role == StreamRole::Viewfinder || role == StreamRole::Raw)
++			supported = true;
++	}
++	if (!supported)
++		return config;
++
++	const SensorMode &deflt = data->sensor_->modes[0];
++	StreamConfiguration cfg(streamFormats(data->sensor_));
++	cfg.pixelFormat = formats::NV12;
++	cfg.size = { deflt.width, deflt.height };
++	cfg.bufferCount = 4;
++	config->addConfiguration(cfg);
++	config->validate();
++
++	LOG(VVCAM, Debug)
++		<< "Generated " << cfg.pixelFormat << " "
++		<< deflt.width << "x" << deflt.height
++		<< " for camera " << camera->id()
++		<< " node " << data->video_.deviceNode();
++
++	return config;
++}
++
++int PipelineHandlerVvcam::configure(Camera *camera, CameraConfiguration *config)
++{
++	VvcamCameraData *data = cameraData(camera);
++	StreamConfiguration &cfg = config->at(0);
++
++	V4L2DeviceFormat format;
++	format.fourcc = data->video_.toV4L2PixelFormat(cfg.pixelFormat);
++	format.size = cfg.size;
++
++	int ret;
++	if (config->sensorConfig) {
++		const SensorConfiguration &sensor = *config->sensorConfig;
++		/* sensor.bitDepth is fps. See validate(). */
++		ret = data->video_.setSensorTarget(1, sensor.outputSize.width,
++						   sensor.outputSize.height,
++						   sensor.bitDepth);
++		if (ret) {
++			LOG(VVCAM, Error)
++				<< "Failed to set sensor target: " << strerror(-ret);
++			return ret;
++		}
++		LOG(VVCAM, Info)
++			<< "Sensor mode " << sensor.outputSize
++			<< "@" << sensor.bitDepth;
++	} else {
++		ret = data->video_.setSensorTarget(0, 0, 0, 0);
++		if (ret) {
++			LOG(VVCAM, Error)
++				<< "Failed to clear sensor target: " << strerror(-ret);
++			return ret;
++		}
++	}
++
++	ret = data->video_.setFormat(&format);
++	if (ret)
++		return ret;
++
++	if (format.size != cfg.size ||
++	    format.fourcc != data->video_.toV4L2PixelFormat(cfg.pixelFormat)) {
++		LOG(VVCAM, Error)
++			<< "S_FMT returned " << format.size.width << "x"
++			<< format.size.height << " " << format.fourcc;
++		return -EINVAL;
++	}
++
++	cfg.stride = format.planes[0].bpl;
++	cfg.frameSize = format.planes[0].size;
++	cfg.setStream(&data->stream_);
++
++	/*
++	 * S_FMT has created the ISP pipeline, so QUERY_EXT_CTRL now reports
++	 * the sensor exposure range instead of the placeholder 1..1000000.
++	 */
++	data->video_.updateControlInfo();
++	const v4l2_query_ext_ctrl *exposure = data->video_.controlInfo(V4L2_CID_EXPOSURE);
++	if (!exposure) {
++		LOG(VVCAM, Error) << "Exposure control is not available";
++		return -EINVAL;
++	}
++
++	const int32_t exposureMin = static_cast<int32_t>(exposure->minimum);
++	const int32_t exposureMax = static_cast<int32_t>(exposure->maximum);
++	int32_t exposureDefault = static_cast<int32_t>(exposure->default_value);
++	if (exposure->minimum != exposureMin || exposure->maximum != exposureMax ||
++	    exposureMin > exposureMax) {
++		LOG(VVCAM, Error)
++			<< "Exposure range " << exposure->minimum
++			<< ".." << exposure->maximum << " does not fit ControlInfo";
++		return -ERANGE;
++	}
++	if (exposureDefault < exposureMin)
++		exposureDefault = exposureMin;
++	if (exposureDefault > exposureMax)
++		exposureDefault = exposureMax;
++
++	const v4l2_query_ext_ctrl *analogueGain = data->video_.controlInfo(V4L2_CID_ANALOGUE_GAIN);
++	if (!analogueGain) {
++		LOG(VVCAM, Error) << "Analogue gain control is not available";
++		return -EINVAL;
++	}
++	if (analogueGain->minimum > analogueGain->maximum || analogueGain->minimum < 0) {
++		LOG(VVCAM, Error)
++			<< "Analogue gain range " << analogueGain->minimum
++			<< ".." << analogueGain->maximum << " is not usable";
++		return -ERANGE;
++	}
++
++	/* Driver code is 1/1000 x. libcamera AnalogueGain is a multiplier. */
++	float gainMin = static_cast<float>(analogueGain->minimum) / 1000.0f;
++	float gainMax = static_cast<float>(analogueGain->maximum) / 1000.0f;
++	float gainDefault = static_cast<float>(analogueGain->default_value) / 1000.0f;
++	if (gainDefault < gainMin)
++		gainDefault = gainMin;
++	if (gainDefault > gainMax)
++		gainDefault = gainMax;
++
++	ControlInfoMap::Map ctrls;
++	for (const auto &[id, info] : data->controlInfo_)
++		ctrls.emplace(id, info);
++	ctrls[&controls::ExposureTime] =
++		ControlInfo(exposureMin, exposureMax, exposureDefault);
++	ctrls[&controls::AnalogueGain] =
++		ControlInfo(gainMin, gainMax, gainDefault);
++	data->controlInfo_ = ControlInfoMap(std::move(ctrls), controls::controls);
++
++	ret = data->ipa_->configure(data->video_.dupFd());
++	if (ret) {
++		LOG(VVCAM, Error) << "IPA configure failed: " << ret;
++		return ret;
++	}
++
++	const Transform transform = config->orientation / Orientation::Rotate0;
++	const bool hflip = (transform & Transform::HFlip) == Transform::HFlip;
++	const bool vflip = (transform & Transform::VFlip) == Transform::VFlip;
++	ret = data->ipa_->setFlip(hflip, vflip);
++	if (ret) {
++		LOG(VVCAM, Error) << "Failed to set flip: " << ret;
++		return ret;
++	}
++
++	return 0;
++}
++
++int PipelineHandlerVvcam::exportFrameBuffers(Camera *camera, Stream *stream,
++					     std::vector<std::unique_ptr<FrameBuffer>> *buffers)
++{
++	VvcamCameraData *data = cameraData(camera);
++	unsigned int count = stream->configuration().bufferCount;
++
++	/*
++	 * One extra buffer stays queued for the life of the stream. The ISP
++	 * returns a buffer only after another is queued in its place, so the
++	 * last application buffer would otherwise never complete. MMAP, because
++	 * vvcam reports buffers to isp_media_server from REQBUFS/QBUF.
++	 */
++	std::vector<std::unique_ptr<FrameBuffer>> allocated;
++	int ret = data->video_.allocateBuffers(count + 1, &allocated);
++	if (ret < 0)
++		return ret;
++	if (allocated.size() != count + 1) {
++		data->video_.releaseBuffers();
++		return -ENOBUFS;
++	}
++
++	data->exported_.clear();
++	data->queuedSet_.clear();
++	data->fillers_.clear();
++	data->spare_ = std::move(allocated.back());
++	allocated.pop_back();
++	for (const std::unique_ptr<FrameBuffer> &buffer : allocated)
++		data->exported_.push_back(buffer.get());
++	buffers->swap(allocated);
++	data->spareQueued_ = false;
++	return count;
++}
++
++int PipelineHandlerVvcam::start(Camera *camera, const ControlList *)
++{
++	VvcamCameraData *data = cameraData(camera);
++	data->queued_ = 0;
++	data->frameSequence_ = 0;
++	data->spareQueued_ = false;
++	data->started_ = false;
++	data->stopping_ = false;
++	data->exposureSet_ = false;
++	data->awbSet_ = false;
++	data->brightSet_ = false;
++	data->contrastSet_ = false;
++	data->saturationSet_ = false;
++	data->exposureWritten_ = false;
++	data->exposureWrittenUs_ = 0;
++	data->gainWritten_ = false;
++	data->gainWrittenX_ = 0;
++	data->startPending_ = false;
++	data->startTimer_.stop();
++	data->queuedSet_.clear();
++	data->fillers_.clear();
++	return 0;
++}
++
++void PipelineHandlerVvcam::stopDevice(Camera *camera)
++{
++	VvcamCameraData *data = cameraData(camera);
++	data->stopping_ = true;
++	data->startPending_ = false;
++	data->startTimer_.stop();
++	data->video_.streamOff();
++	data->video_.releaseBuffers();
++	data->spare_.reset();
++	data->exported_.clear();
++	data->queuedSet_.clear();
++	data->fillers_.clear();
++	data->queued_ = 0;
++	data->frameSequence_ = 0;
++	data->spareQueued_ = false;
++	data->started_ = false;
++	data->stopping_ = false;
++	data->exposureWritten_ = false;
++	data->exposureWrittenUs_ = 0;
++	data->gainWritten_ = false;
++	data->gainWrittenX_ = 0;
++}
++
++int PipelineHandlerVvcam::queueRequestDevice(Camera *camera, Request *request)
++{
++	VvcamCameraData *data = cameraData(camera);
++	FrameBuffer *buffer = request->findBuffer(&data->stream_);
++	if (!buffer) {
++		LOG(VVCAM, Error) << "Request has no buffer for the vvcam stream";
++		return -ENOENT;
++	}
++
++	int ret = data->video_.queueBuffer(buffer);
++	if (ret < 0)
++		return ret;
++
++	/*
++	 * AE mode, exposure and gain are applied once, before STREAMON.
++	 * EXPOSURE_AUTO is written first. A later request that still carries
++	 * AeEnable is ignored so -EBUSY does not fail the frame.
++	 */
++	if (!data->started_ && !data->exposureSet_) {
++		auto ae = request->controls().get(controls::AeEnable);
++		auto exposure = request->controls().get(controls::ExposureTime);
++		auto gain = request->controls().get(controls::AnalogueGain);
++		if (ae || exposure || gain) {
++			ret = data->ipa_->setControls(ae.has_value(),
++						      ae.value_or(false),
++						      exposure.has_value(),
++						      exposure.value_or(0),
++						      gain.has_value(),
++						      gain.value_or(0.0f));
++			if (ret)
++				LOG(VVCAM, Error) << "Failed to set exposure controls: " << ret;
++			else {
++				data->exposureSet_ = true;
++				if (exposure) {
++					const ControlInfo &info =
++						data->controlInfo_.at(&controls::ExposureTime);
++					int32_t value = exposure.value();
++					const int32_t lo = info.min().get<int32_t>();
++					const int32_t hi = info.max().get<int32_t>();
++					if (value < lo)
++						value = lo;
++					if (value > hi)
++						value = hi;
++					data->exposureWritten_ = true;
++					data->exposureWrittenUs_ = value;
++				}
++				if (gain) {
++					const ControlInfo &info =
++						data->controlInfo_.at(&controls::AnalogueGain);
++					float value = gain.value();
++					const float lo = info.min().get<float>();
++					const float hi = info.max().get<float>();
++					if (value < lo)
++						value = lo;
++					if (value > hi)
++						value = hi;
++					data->gainWritten_ = true;
++					data->gainWrittenX_ = value;
++				}
++			}
++		}
++	}
++
++	if (!data->started_ && !data->awbSet_) {
++		const auto awb = request->controls().get(controls::AwbEnable);
++		if (awb) {
++			ret = data->video_.setAwbEnable(awb.value());
++			if (ret) {
++				LOG(VVCAM, Error)
++					<< "Failed to set AWB enable "
++					<< (awb.value() ? 1 : 0)
++					<< ": " << strerror(-ret);
++			} else {
++				data->awbSet_ = true;
++			}
++		}
++	}
++
++	if (!data->started_ && !data->brightSet_) {
++		const auto bright = request->controls().get(controls::Brightness);
++		if (bright) {
++			int value = static_cast<int>(std::lround(
++				static_cast<double>(bright.value()) * 128.0));
++			if (value < -128)
++				value = -128;
++			if (value > 127)
++				value = 127;
++
++			ret = data->video_.setCprocManual(VVCAM_CID_CPROC_MANU_BRIGHT, value);
++			if (ret)
++				LOG(VVCAM, Error)
++					<< "Failed to set brightness " << value
++					<< ": " << strerror(-ret);
++			else
++				data->brightSet_ = true;
++		}
++	}
++
++	if (!data->started_ && !data->contrastSet_) {
++		const auto contrast = request->controls().get(controls::Contrast);
++		if (contrast) {
++			int value = static_cast<int>(std::lround(
++				static_cast<double>(contrast.value()) * 128.0));
++			if (value < 0)
++				value = 0;
++			if (value > 255)
++				value = 255;
++
++			ret = data->video_.setCprocManual(VVCAM_CID_CPROC_MANU_CONTRAST, value);
++			if (ret)
++				LOG(VVCAM, Error)
++					<< "Failed to set contrast " << value
++					<< ": " << strerror(-ret);
++			else
++				data->contrastSet_ = true;
++		}
++	}
++
++	if (!data->started_ && !data->saturationSet_) {
++		const auto saturation = request->controls().get(controls::Saturation);
++		if (saturation) {
++			int value = static_cast<int>(std::lround(
++				static_cast<double>(saturation.value()) * 128.0));
++			if (value < 0)
++				value = 0;
++			if (value > 255)
++				value = 255;
++
++			ret = data->video_.setCprocManual(VVCAM_CID_CPROC_MANU_SATURATION, value);
++			if (ret)
++				LOG(VVCAM, Error)
++					<< "Failed to set saturation " << value
++					<< ": " << strerror(-ret);
++			else
++				data->saturationSet_ = true;
++		}
++	}
++
++	data->queuedSet_.insert(buffer);
++	data->fillers_.erase(buffer);
++	data->queued_++;
++	if (data->started_)
++		return 0;
++
++	/*
++	 * --capture=1 submits one request; --capture=5 submits the whole pool
++	 * in a burst. Restart a short timer on each request so STREAMON runs
++	 * after the burst, with any buffer the application did not submit
++	 * queued as a filler. The ISP faults if STREAMON sees an empty slot.
++	 */
++	data->startPending_ = true;
++	data->startTimer_.start(std::chrono::milliseconds(50));
++	return 0;
++}
++
++void VvcamCameraData::onStartTimeout()
++{
++	if (!startPending_)
++		return;
++	startPending_ = false;
++	tryStartStreaming();
++}
++
++void VvcamCameraData::failStart(const char *why, int ret)
++{
++	LOG(VVCAM, Error) << why << ": " << strerror(-ret);
++
++	/*
++	 * streamOff() emits bufferReady for every queued buffer. Hold those
++	 * requests here, then cancel them after the device queue is clear, so
++	 * the application is not left waiting for a frame that will not come.
++	 */
++	drained_.clear();
++	draining_ = true;
++	video_.streamOff();
++	draining_ = false;
++
++	std::set<Request *> requests(drained_.begin(), drained_.end());
++	if (requests.empty()) {
++		for (FrameBuffer *buffer : queuedSet_) {
++			if (Request *request = buffer->request())
++				requests.insert(request);
++		}
++	}
++	drained_.clear();
++	queuedSet_.clear();
++	fillers_.clear();
++	spareQueued_ = false;
++	queued_ = 0;
++	startPending_ = false;
++	started_ = false;
++
++	for (Request *request : requests)
++		pipe()->cancelRequest(request);
++}
++
++void VvcamCameraData::tryStartStreaming()
++{
++	if (started_ || stopping_)
++		return;
++
++	if (!spareQueued_) {
++		int ret = video_.queueBuffer(spare_.get());
++		if (ret < 0) {
++			failStart("Failed to queue spare buffer", ret);
++			return;
++		}
++		spareQueued_ = true;
++	}
++
++	for (FrameBuffer *exported : exported_) {
++		if (queuedSet_.count(exported))
++			continue;
++
++		int ret = video_.queueBuffer(exported);
++		if (ret < 0) {
++			failStart("Failed to queue filler buffer", ret);
++			return;
++		}
++		fillers_.insert(exported);
++	}
++
++	int ret = video_.streamOn();
++	if (ret < 0) {
++		failStart("Failed to start streaming", ret);
++		return;
++	}
++
++	started_ = true;
++	LOG(VVCAM, Info) << "STREAMON " << video_.deviceNode() << " ok";
++}
++
++bool PipelineHandlerVvcam::acquireDevice(Camera *camera)
++{
++	VvcamCameraData *data = cameraData(camera);
++	MutexLocker locker(data->openLock_);
++
++	return data->video_.open() == 0;
++}
++
++void PipelineHandlerVvcam::releaseDevice(Camera *camera)
++{
++	VvcamCameraData *data = cameraData(camera);
++	MutexLocker locker(data->openLock_);
++	data->video_.close();
++}
++
++bool PipelineHandlerVvcam::queryCapture(const std::string &node)
++{
++	UniqueFD fd(::open(node.c_str(), O_RDWR | O_CLOEXEC));
++	if (!fd.isValid()) {
++		LOG(VVCAM, Error)
++			<< "Failed to open " << node << ": "
++			<< strerror(errno);
++		return false;
++	}
++
++	v4l2_capability cap = {};
++	if (::ioctl(fd.get(), VIDIOC_QUERYCAP, &cap) < 0) {
++		LOG(VVCAM, Error)
++			<< "QUERYCAP failed on " << node << ": "
++			<< strerror(errno);
++		return false;
++	}
++
++	const uint32_t caps = (cap.capabilities & V4L2_CAP_DEVICE_CAPS) ?
++			      cap.device_caps : cap.capabilities;
++	const bool capture = caps & V4L2_CAP_VIDEO_CAPTURE;
++	const bool streaming = caps & V4L2_CAP_STREAMING;
++
++	LOG(VVCAM, Debug)
++		<< node << " QUERYCAP caps=0x" << std::hex << caps << std::dec
++		<< " capture=" << capture << " streaming=" << streaming;
++
++	return capture && streaming;
++}
++
++bool PipelineHandlerVvcam::match(DeviceEnumerator *enumerator)
++{
++	DeviceMatch dm("vvcam-video");
++	dm.add("vvcam-video.0.0");
++
++	std::shared_ptr<MediaDevice> media = acquireMediaDevice(enumerator, dm);
++	if (!media)
++		return false;
++
++	if (media->model() != "verisilicon_media") {
++		LOG(VVCAM, Debug)
++			<< "Skip " << media->deviceNode()
++			<< " model " << media->model();
++		return false;
++	}
++
++	std::vector<MediaEntity *> videos;
++	for (MediaEntity *candidate : media->entities()) {
++		const std::string &name = candidate->name();
++		if (name.starts_with("vvcam-video.") &&
++		    !candidate->deviceNode().empty())
++			videos.push_back(candidate);
++	}
++	std::sort(videos.begin(), videos.end(),
++		  [](const MediaEntity *a, const MediaEntity *b) {
++			  return a->name() < b->name();
++		  });
++
++	unsigned int registered = 0;
++	for (MediaEntity *entity : videos) {
++		if (registerCapture(entity))
++			registered++;
++	}
++
++	if (!registered) {
++		LOG(VVCAM, Error) << "No vvcam capture node on " << media->deviceNode();
++		return false;
++	}
++
++	LOG(VVCAM, Info)
++		<< "Registered " << registered << " camera"
++		<< (registered == 1 ? "" : "s")
++		<< " from " << media->deviceNode();
++	return true;
++}
++
++bool PipelineHandlerVvcam::registerCapture(MediaEntity *entity)
++{
++	const std::string &node = entity->deviceNode();
++	if (!queryCapture(node))
++		return false;
++
++	const int port = ispPort(entity);
++	if (port < 0) {
++		LOG(VVCAM, Error) << "No ISP link for " << entity->name();
++		return false;
++	}
++
++	const std::string sensorName = sensorNameOnPort(port);
++	const SensorSupport *sensor = findSensor(sensorName);
++	if (!sensor) {
++		LOG(VVCAM, Error)
++			<< entity->name() << " port " << port
++			<< " sensor '" << sensorName
++			<< "' is not in kSensors. Add its modes next to the other sensors in vvcam.cpp";
++		return false;
++	}
++
++	std::unique_ptr<VvcamCameraData> data =
++		std::make_unique<VvcamCameraData>(this, node);
++	data->sensor_ = sensor;
++	data->properties_.set(properties::Model, std::string(sensor->name));
++	data->properties_.set(properties::PixelArraySize, largestMode(sensor));
++
++	data->ipa_ = createIPA<ipa::vvcam::IPAProxyVvcam>(0, 0);
++	if (!data->ipa_) {
++		LOG(VVCAM, Error) << "No IPA found for " << entity->name();
++		return false;
++	}
++
++	const int ret = data->ipa_->init(IPASettings{ "", "vvcam" });
++	if (ret) {
++		LOG(VVCAM, Error) << "IPA init failed for " << entity->name()
++				  << ": " << ret;
++		return false;
++	}
++
++	ControlInfoMap::Map ctrls;
++	ctrls.emplace(&controls::AeEnable, ControlInfo(false, true, true));
++	ctrls.emplace(&controls::AwbEnable, ControlInfo(false, true, true));
++	ctrls.emplace(&controls::Brightness, ControlInfo(-1.0f, 1.0f, 0.0f));
++	ctrls.emplace(&controls::Contrast,
++		      ControlInfo(0.0f, 255.0f / 128.0f, 1.0f));
++	ctrls.emplace(&controls::Saturation,
++		      ControlInfo(0.0f, 255.0f / 128.0f, 1.0f));
++	ctrls.emplace(&controls::ExposureTime,
++		      ControlInfo{ { int32_t{ 1 } },
++				   { int32_t{ 1000000 } },
++				   { int32_t{ 10000 } } });
++	ctrls.emplace(&controls::AnalogueGain,
++		      ControlInfo{ { 1.0f }, { 256.0f }, { 1.0f } });
++	data->controlInfo_ = ControlInfoMap(std::move(ctrls), controls::controls);
++
++	const std::string &id = entity->name();
++	std::set<Stream *> streams{ &data->stream_ };
++	std::shared_ptr<Camera> camera =
++		Camera::create(std::move(data), id, streams);
++	registerCamera(std::move(camera));
++
++	LOG(VVCAM, Info) << "Registered " << id << " on " << node
++			 << " sensor " << sensor->name;
++	return true;
++}
++
++void VvcamCameraData::imageBufferReady(FrameBuffer *buffer)
++{
++	if (draining_) {
++		if (buffer != spare_.get() && !fillers_.count(buffer)) {
++			if (Request *request = buffer->request())
++				drained_.push_back(request);
++		}
++		return;
++	}
++
++	if (buffer == spare_.get() || fillers_.count(buffer)) {
++		if (stopping_)
++			return;
++		int ret = video_.queueBuffer(buffer);
++		if (ret < 0 && ret != -ESHUTDOWN)
++			LOG(VVCAM, Error) << "Failed to requeue spare buffer";
++		return;
++	}
++
++	Request *request = buffer->request();
++	if (!request)
++		return;
++
++	/*
++	 * The video node leaves v4l2_buffer.sequence and timestamp at 0.
++	 * Stamp monotonic time here and keep our own frame count so each
++	 * captured file is distinct.
++	 */
++	FrameMetadata &meta = buffer->_d()->metadata();
++	if (!meta.timestamp) {
++		struct timespec ts;
++		if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
++			meta.timestamp = static_cast<uint64_t>(ts.tv_sec) * 1000000000ULL +
++					 static_cast<uint64_t>(ts.tv_nsec);
++		}
++	}
++	if (meta.sequence == 0 && frameSequence_ > 0)
++		meta.sequence = frameSequence_;
++	frameSequence_ = meta.sequence + 1;
++
++	request->_d()->metadata().set(controls::SensorTimestamp, meta.timestamp);
++
++	int32_t exposureUs = 0;
++	int32_t gainMilli = 0;
++	bool haveExposure = exposureWritten_;
++	bool haveGain = gainWritten_;
++	if (haveExposure)
++		exposureUs = exposureWrittenUs_;
++	if (!haveExposure || !haveGain) {
++		int32_t readUs = 0;
++		int32_t readMilli = 0;
++		int readRet = video_.readExposureGain(&readUs, &readMilli);
++		if (readRet) {
++			LOG(VVCAM, Error)
++				<< "Failed to read exposure metadata: " << strerror(-readRet);
++		} else {
++			if (!haveExposure) {
++				exposureUs = readUs;
++				haveExposure = true;
++			}
++			if (!haveGain) {
++				gainMilli = readMilli;
++				haveGain = true;
++			}
++		}
++	}
++	if (haveGain && gainWritten_)
++		request->_d()->metadata().set(controls::AnalogueGain, gainWrittenX_);
++	else if (haveGain)
++		request->_d()->metadata().set(controls::AnalogueGain,
++					       static_cast<float>(gainMilli) / 1000.0f);
++	if (haveExposure)
++		request->_d()->metadata().set(controls::ExposureTime, exposureUs);
++
++	pipe()->completeBuffer(request, buffer);
++	pipe()->completeRequest(request);
++}
++
++REGISTER_PIPELINE_HANDLER(PipelineHandlerVvcam, "vvcam")
++
++} /* namespace libcamera */
