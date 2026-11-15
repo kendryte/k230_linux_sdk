@@ -13,6 +13,8 @@ dtb-$(CONFIG_TARGET_K230_CANMV_01STUDIO) += k230_canmv_01studio_mmc.dtb  k230_ca
 dtb-$(CONFIG_TARGET_K230D_CANMV_JUNROC_AI_CAM) += k230d_canmv_junroc_ai_cam.dtb
 dtb-$(CONFIG_TARGET_K230_CANMV_HUSKYLENS) += k230_canmv_huskylens.dtb
 
+dtb-$(CONFIG_TARGET_K230_CANMV_DONGSHANPI) += k230_canmv_dongshanpi_v3.dtb
+
 include $(srctree)/scripts/Makefile.dts
 
 targets += $(dtb-y)
