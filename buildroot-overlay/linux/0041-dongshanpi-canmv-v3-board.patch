@@ -1,0 +1,161 @@
+From: Rongkangqi <Rongkangqi@users.noreply.github.com>
+Subject: [PATCH] riscv: dts: add DongshanPi CanMV V3 board
+
+Add the LPDDR3 V3 board with eMMC, SDIO RTL8733BS, CSI2 GC2093 and
+the existing ST7701 480x640 panel. No driver implementation changes.
+
+diff --git a/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi-v3.dts b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi-v3.dts
+new file mode 100644
+--- /dev/null
++++ b/arch/riscv/boot/dts/canaan/k230-canmv-dongshanpi-v3.dts
+@@ -0,0 +1,150 @@
++// SPDX-License-Identifier: GPL-2.0 OR MIT
++#include "k230.dtsi"
++#include "display-st7701-480x640.dtsi"
++
++/ {
++	model = "DongshanPi K230 CanMV V3";
++	compatible = "100ask,dongshanpi-k230-v3", "canaan,canmv-k230",
++		     "canaan,kendryte-k230";
++
++	aliases {
++		serial3 = &uart3;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c3 = &i2c3;
++		i2c4 = &i2c4;
++		mmc0 = &mmc_sd0;
++		mmc1 = &mmc_sd1;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	ddr: memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x20000000>;
++	};
++
++	wifi_pwrseq: wifi-pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		pinctrl-names = "default";
++		pinctrl-0 = <&wifi_reg_on_pins>;
++		reset-gpios = <&gpio0_ports 6 GPIO_ACTIVE_LOW>;
++		post-power-on-delay-ms = <50>;
++		power-off-delay-us = <200000>;
++	};
++
++	sound {
++		compatible = "canaan,k230-audio-inno";
++		canaan,model = "K230_I2S_INNO";
++		canaan,k230-i2s-controller = <&i2s>;
++		canaan,k230-audio-codec = <&inno_codec>;
++		status = "okay";
++	};
++};
++
++&uart0 { status = "okay"; };
++&uart3 { status = "okay"; };
++&usb0 { status = "okay"; };
++&usb1 { dr_mode = "host"; status = "okay"; };
++
++&mmc_sd0 {
++	status = "okay";
++	io_fixed_1v8;
++	non-removable;
++	rx_delay_line = <0x0d>;
++	tx_delay_line = <0x40>;
++};
++
++/* SDIO1 is wired to the onboard RTL8733BS; boot storage is eMMC/SDIO0. */
++&mmc_sd1 {
++	status = "okay";
++	bus-width = <4>;
++	no-1-8-v;
++	cap-sd-highspeed;
++	cap-sdio-irq;
++	keep-power-in-suspend;
++	non-removable;
++	max-frequency = <50000000>;
++	mshc_ctrl_r = <0x00>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++};
++
++&i2c3 {
++	status = "okay";
++	touchscreen@38 {
++		compatible = "edt,edt-ft5306";
++		reg = <0x38>;
++		reset-gpios = <&gpio0_ports 24 GPIO_ACTIVE_LOW>;
++		interrupt-parent = <&gpio0_ports>;
++		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
++		touchscreen-size-x = <480>;
++		touchscreen-size-y = <640>;
++	};
++};
++
++&i2c4 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&cam2_i2c_scl_pins &cam2_i2c_sda_pins>;
++};
++
++&lcd {
++	panel-dsi-lane = <2>;
++	dsi_reset-gpios = <&gpio0_ports 22 GPIO_ACTIVE_HIGH>;
++	backlight_gpio-gpios = <&gpio0_ports 25 GPIO_ACTIVE_LOW>;
++};
++
++/* VVCAM logical slot0 uses physical CSI2, as on the original DongshanPi. */
++&mipi0 {
++	id = <2>;
++	reg = <0x0 0x9000a800 0x0 0x800>;
++	interrupts = <121 IRQ_TYPE_LEVEL_HIGH>;
++	resets = <&sysctl_reset K230_RESET_CSI2_REG_OFFSET K230_RESET_CSI2_TYPE
++			  K230_RESET_CSI2_DONE_BIT K230_RESET_CSI2_ASSERT_BIT>,
++		 <&sysctl_reset K230_RESET_M2_REG_OFFSET K230_RESET_M2_TYPE
++			  K230_RESET_M2_DONE_BIT K230_RESET_M2_ASSERT_BIT>;
++	reset-gpios = <&gpio0_ports 21 GPIO_ACTIVE_HIGH>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&cam2_mclk_pins>;
++	status = "okay";
++};
++
++&mipi1 { status = "disabled"; };
++&mipi2 { status = "disabled"; };
++
++&v4l2isp {
++	dev0-sensor-name = "gc2093";
++	dev0-sensor-mode = <0>;
++	dev0-sensor-i2c-bus = <4>;
++	dev0-sensor-mclk-id = <0>;
++	dev0-sensor-use-chip-clk = <1>;
++	status = "okay";
++};
++
++&iomux {
++	wifi_reg_on_pins: wifi-reg-on-pins {
++		pins = K230_IO6;
++		function = K230_IO6_GPIO6;
++	};
++
++	cam2_mclk_pins: cam2-mclk-pins {
++		pins = K230_IO13;
++		function = K230_IO13_M_CLK1;
++	};
++
++	cam2_i2c_scl_pins: cam2-i2c-scl-pins {
++		pins = K230_IO7;
++		function = K230_IO7_I2C4_SCL;
++		bias-pull-up;
++		input-enable;
++	};
++
++	cam2_i2c_sda_pins: cam2-i2c-sda-pins {
++		pins = K230_IO8;
++		function = K230_IO8_I2C4_SDA;
++		bias-pull-up;
++		input-enable;
++	};
++};

@@ -11,6 +11,7 @@ declare -A board_note=(
 	[k230_canmv_v3_defconfig]="canmv v3 board"
 	[k230_canmv_01studio_defconfig]="01studio board,01科技"
 	[k230_canmv_dongshanpi_defconfig]="dongshanpi board,百问网"
+	[dongshanpi_v3_defconfig]="DongshanPi CanMV V3, LPDDR3, eMMC, RTL8733BS"
 	[k230_canmv_lckfb_defconfig]="lushanpi ,jialichuang board,嘉立创"
 	[BPI-CanMV-K230D-Zero_defconfig]="bananapi k230d"
 	[k230d_canmv_ilp32_defconfig]="k230d canmv new32 board,plct use"
