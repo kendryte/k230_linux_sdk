@@ -8,10 +8,14 @@ export FORCE_UNSAFE_CONFIGURE := 1
 export BR2_PRIMARY_SITE ?= $(shell tools/download/get_fast_url.sh | cut -d',' -f1 )
 
 
+define write_last_conf
+echo CONF=$(1)>.last_conf && if [ "$$(id -u)" = "0" ]; then chmod a+w .last_conf; fi
+endef
+
 ifeq ("$(origin CONF)", "command line")
-$(shell echo CONF=$(CONF)>.last_conf;)
+$(shell $(call write_last_conf,$(CONF)))
 else
-$(shell [ -f .last_conf ] || ( echo CONF=k230_canmv_defconfig>.last_conf;) )
+$(shell [ -f .last_conf ] || ( $(call write_last_conf,k230_canmv_defconfig) ) )
 endif
 include .last_conf
 BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
@@ -91,7 +95,7 @@ $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
 
 
 %_defconfig:  sync
-	echo CONF=$@ >.last_conf
+	$(call write_last_conf,$@)
 	make -C $(BR_SRC_DIR) $@  O=$(CURDIR)/output/$@
 
 savedefconfig:  $(BRW_BUILD_DIR)/.config
