@@ -363,7 +363,7 @@ diff -Naur libcamera-v0.7.2/src/libcamera/pipeline/vvcam/meson.build libcamera-v
 diff -Naur libcamera-v0.7.2/src/libcamera/pipeline/vvcam/vvcam.cpp libcamera-v0.7.2-vvcam/src/libcamera/pipeline/vvcam/vvcam.cpp
 --- libcamera-v0.7.2/src/libcamera/pipeline/vvcam/vvcam.cpp	1970-01-01 08:00:00.000000000 +0800
 +++ libcamera-v0.7.2-vvcam/src/libcamera/pipeline/vvcam/vvcam.cpp	2026-11-05 17:20:00.000000000 +0800
-@@ -0,0 +1,1232 @@
+@@ -0,0 +1,1233 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later */
 +/*
 + * Pipeline handler for VeriSilicon vvcam on K230.
