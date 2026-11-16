@@ -13,8 +13,8 @@
 # packages. The resulting .so files need at most GLIBC_2.32 / GLIBCXX_3.4.29,
 # which Ubuntu 24.04 (glibc 2.39, GCC 13) satisfies.
 #
-# Usage: buildroot-overlay/board/canaan/k230-soc/distribution/cp312-support/build_k230_wheel_py312.sh <BRW_BUILD_DIR>
-#        e.g. buildroot-overlay/board/canaan/k230-soc/distribution/cp312-support/build_k230_wheel_py312.sh output/k230_canmv_01studio_defconfig
+# Usage: buildroot-overlay/board/canaan/k230-soc/distribution/cp312-support/build_k230_wheel_py312_autover.sh <BRW_BUILD_DIR>
+#        e.g. buildroot-overlay/board/canaan/k230-soc/distribution/cp312-support/build_k230_wheel_py312_autover.sh output/k230_canmv_01studio_defconfig
 #
 # Output: <BRW_BUILD_DIR>/build/python-k230-1.0.0/dist/
 #             k230_python-1.0.0-cp312-cp312-linux_riscv64.whl
@@ -40,7 +40,19 @@ print_red()   { echo -e "${RED}$*${NONE}"; }
 print_green() { echo -e "${GREEN}$*${NONE}"; }
 
 # Ubuntu 24.04 (noble) riscv64 python3.12 packages.
-PY312_DEB_VERSION="${PY312_DEB_VERSION:-3.12.3-1ubuntu0.17}"
+#
+# Ubuntu removes superseded package versions from the pool, so a hard-coded
+# version eventually 404s (wget exit 8). This script therefore resolves the
+# version at run time:
+#   - PY312_DEB_VERSION set by the caller -> used as-is (strict pin, no fallback)
+#   - otherwise PY312_DEB_PREFERRED is tried first, then the newest version of
+#     the PY312_DEB_SERIES series that is available for all packages (online
+#     pool listing, or the local download cache when offline).
+PY312_DEB_VERSION_PINNED="${PY312_DEB_VERSION:-}"
+PY312_DEB_PREFERRED="${PY312_DEB_PREFERRED:-3.12.3-1ubuntu0.17}"
+# Stay on noble's 3.12.3 build; other 3.12.x uploads in the pool belong to
+# other Ubuntu releases.
+PY312_DEB_SERIES="${PY312_DEB_SERIES:-3.12.3-1}"
 PY312_DEB_BASE="${PY312_DEB_BASE:-https://ports.ubuntu.com/ubuntu-ports/pool/main/p/python3.12}"
 PY312_DEBS="libpython3.12-dev python3.12-dev libpython3.12-stdlib libpython3.12-minimal"
 
@@ -68,13 +80,87 @@ if [ -z "${CROSS_GCC}" ] || [ -z "${CROSS_GXX}" ]; then
     exit 1
 fi
 
-# ---------------------------------------------------------------- fetch headers
+# ------------------------------------------------------------ resolve version
 mkdir -p "${DL_DIR}"
+# Drop leftovers of earlier failed downloads (e.g. empty .tmp files from a 404).
+rm -f "${DL_DIR}"/*.deb.tmp
+
+# True if every package of version $1 is already in the download cache.
+cached_all() {
+    local p
+    for p in ${PY312_DEBS}; do
+        [ -s "${DL_DIR}/${p}_${1}_riscv64.deb" ] || return 1
+    done
+}
+
+# True if every package of version $1 appears in the pool listing $2.
+listed_all() {
+    local p
+    for p in ${PY312_DEBS}; do
+        grep -qxF "${p}_${1}_riscv64.deb" <<<"$2" || return 1
+    done
+}
+
+# Newest version of the series for which check function $1 (with extra arg $2)
+# succeeds, picked from the candidate list on stdin.
+newest_matching() {
+    local v
+    sort -Vru | while read -r v; do
+        if [ -n "${v}" ] && "$1" "${v}" "$2"; then
+            echo "${v}"
+            break
+        fi
+    done
+    return 0
+}
+
+if [ -n "${PY312_DEB_VERSION_PINNED}" ]; then
+    PY312_DEB_VERSION="${PY312_DEB_VERSION_PINNED}"
+    print_blue "Using pinned python3.12 version ${PY312_DEB_VERSION}"
+elif cached_all "${PY312_DEB_PREFERRED}"; then
+    PY312_DEB_VERSION="${PY312_DEB_PREFERRED}"
+else
+    print_blue "Querying ${PY312_DEB_BASE}/ for available python3.12 versions..."
+    POOL_LIST="$(wget -q -O - "${PY312_DEB_BASE}/" 2>/dev/null \
+        | grep -o '[A-Za-z0-9.+_-]*_riscv64\.deb' | sort -u || true)"
+    PY312_DEB_VERSION=""
+    if [ -n "${POOL_LIST}" ]; then
+        if listed_all "${PY312_DEB_PREFERRED}" "${POOL_LIST}"; then
+            PY312_DEB_VERSION="${PY312_DEB_PREFERRED}"
+        else
+            PY312_DEB_VERSION="$(sed -n "s/^python3\.12-dev_\(${PY312_DEB_SERIES//./\\.}[^_]*\)_riscv64\.deb$/\1/p" <<<"${POOL_LIST}" \
+                | newest_matching listed_all "${POOL_LIST}")"
+        fi
+    else
+        # Offline: fall back to the newest complete set in the local cache.
+        print_blue "Pool listing unavailable, looking in ${DL_DIR}..."
+        PY312_DEB_VERSION="$(ls "${DL_DIR}" 2>/dev/null \
+            | sed -n "s/^python3\.12-dev_\(${PY312_DEB_SERIES//./\\.}[^_]*\)_riscv64\.deb$/\1/p" \
+            | newest_matching cached_all)"
+    fi
+    if [ -z "${PY312_DEB_VERSION}" ]; then
+        print_red "Error: no python3.12 ${PY312_DEB_SERIES}* riscv64 version with all of"
+        print_red "       [${PY312_DEBS}] found at ${PY312_DEB_BASE}/ or in ${DL_DIR}"
+        print_red "       Set PY312_DEB_VERSION=<version> to pin one manually."
+        exit 1
+    fi
+    if [ "${PY312_DEB_VERSION}" != "${PY312_DEB_PREFERRED}" ]; then
+        print_blue "Preferred ${PY312_DEB_PREFERRED} not available, using ${PY312_DEB_VERSION}"
+    fi
+fi
+print_blue "python3.12 riscv64 package version: ${PY312_DEB_VERSION}"
+
+# ---------------------------------------------------------------- fetch headers
 for p in ${PY312_DEBS}; do
     deb="${p}_${PY312_DEB_VERSION}_riscv64.deb"
-    if [ ! -f "${DL_DIR}/${deb}" ]; then
-        print_blue "Downloading ${PY312_DEB_BASE}/${deb}..."
-        wget -q --show-progress -O "${DL_DIR}/${deb}.tmp" "${PY312_DEB_BASE}/${deb}"
+    if [ ! -s "${DL_DIR}/${deb}" ]; then
+        print_blue "Downloading ${deb}..."
+        wget -q --show-progress -O "${DL_DIR}/${deb}.tmp" "${PY312_DEB_BASE}/${deb}" || {
+            rc=$?
+            rm -f "${DL_DIR}/${deb}.tmp"
+            print_red "Error: download failed (wget exit ${rc}): ${PY312_DEB_BASE}/${deb}"
+            exit "${rc}"
+        }
         mv "${DL_DIR}/${deb}.tmp" "${DL_DIR}/${deb}"
     fi
 done
