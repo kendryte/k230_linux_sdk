@@ -284,20 +284,22 @@ void flush_dcache_all(void)
 void flush_dcache_range(unsigned long start, unsigned long end)
 {
 	register unsigned long i asm("a0") = start & ~(CONFIG_SYS_CACHELINE_SIZE - 1);
-
+    __DSB();
 	for (; i < end; i += CONFIG_SYS_CACHELINE_SIZE)
 		asm volatile(".long 0x0295000b");  /* dcache.cpa a0 */
-
+    __DSB();
+    __ISB();
 	sync_is();
 }
 
 void invalidate_dcache_range(unsigned long start, unsigned long end)
 {
 	register unsigned long i asm("a0") = start & ~(CONFIG_SYS_CACHELINE_SIZE - 1);
-
+    __DSB();
 	for (; i < end; i += CONFIG_SYS_CACHELINE_SIZE)
 		asm volatile(".long 0x02a5000b");  /* dcache.ipa a0 */
-
+     __DSB();
+    __ISB();
 	sync_is();
 }
 
@@ -330,4 +332,3 @@ void dcache_disable(void)
 	// L2 cache is is always enabled
 #endif
 }
-

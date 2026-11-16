@@ -11,7 +11,7 @@
 #include <linux/sizes.h>
 #include <asm/io.h>
 #include <linux/delay.h>
-
+#include "platform.h"
 DECLARE_GLOBAL_DATA_PTR;
 
 
@@ -34,6 +34,28 @@ __weak int ddr_init_training(void)
 	}
 
   ddr_init_board();
+	return 0;
+}
+
+u32 ddr_rollback_test(u64 size)
+{
+	u64 ddr_half_size = size >> 1;
+	u64 read_value;
+	u64 ddr_detect_pattern[] = {0x1234567887654321, 0x1122334455667788};
+
+	writeq(ddr_detect_pattern[0], (void __iomem *)0);
+	flush_dcache_range(0, CONFIG_SYS_CACHELINE_SIZE);
+
+	writeq(ddr_detect_pattern[1], (void __iomem *)ddr_half_size);
+	flush_dcache_range(ddr_half_size, ddr_half_size + CONFIG_SYS_CACHELINE_SIZE);
+
+	invalidate_dcache_range(0, CONFIG_SYS_CACHELINE_SIZE);
+	read_value = readq((void __iomem *)0);
+	if (read_value == ddr_detect_pattern[1]) {
+		printf("ddr rollback test failed, size=%llx\n", size);
+		return 1; //检测到回卷，测试失败
+	}
+
 	return 0;
 }
 
@@ -70,6 +92,11 @@ u32 detect_ddr_size(void)
     }
     gd->ram_size = ddr_size;
     //printf("ddr detect error %x\n\n", ddr_size);
+    if(ddr_rollback_test(ddr_size) != 0){
+		printf("ddr detect error %llx, reboot system\n\n", ddr_size);
+		writel(0x10001, (void*)SYSCTL_BOOT_BASE_ADDR+0x60);//reboot system;
+		while(1);
+	}
     return ddr_size;
 }
 
