@@ -37,6 +37,27 @@ def get_md5_from_file(file_path):
             return content[0] if content else "N/A"
     return "N/A"
 
+# --- 版本摘要 / 更新日志链接 sidecar 文件 ---
+# 和 .md5 文件的约定一致：维护者在发布目录里放一个和镜像文件同名、
+# 后缀为 .summary / .changelog_url 的文本文件，发布流程不强制要求，缺失时
+# 前端就不展示摘要/更新日志区域。
+#   <image>.img.gz.summary       一段版本摘要文字（可多行，原样展示）
+#   <image>.img.gz.changelog_url SDK 仓库 CHANGELOG.md 对应版本小节的链接（单行），
+#                                 例如 https://github.com/kendryte/k230_linux_sdk/blob/main/CHANGELOG.md#xxx
+def get_summary_from_file(file_path):
+    summary_file = file_path + ".summary"
+    if os.path.exists(summary_file):
+        with io.open(summary_file, 'r', encoding='utf-8') as f:
+            return f.read().strip()
+    return ""
+
+def get_changelog_url_from_file(file_path):
+    changelog_url_file = file_path + ".changelog_url"
+    if os.path.exists(changelog_url_file):
+        with io.open(changelog_url_file, 'r', encoding='utf-8') as f:
+            return f.read().strip()
+    return ""
+
 def get_dir_creation_time(dir_path):
     if not os.path.exists(dir_path):
         return "dir '{0}' not exist".format(dir_path)
@@ -128,7 +149,11 @@ def update_file_to_json(file_path, products):
         "version": get_version_from_filename(filename),
         "date": get_dir_creation_time(os.path.dirname(file_path)),
         "url": get_url(file_path),
-        "md5": get_md5_from_file(file_path)
+        "md5": get_md5_from_file(file_path),
+        # 正式发布版本才有意义：summary / changelogUrl 由维护者手工在发布目录放置
+        # <filename>.summary / <filename>.changelog_url 提供，daily build 通常没有，留空即可
+        "summary": get_summary_from_file(file_path),
+        "changelogUrl": get_changelog_url_from_file(file_path)
     }
 
     if version_type == "latest":

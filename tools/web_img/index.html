@@ -17,6 +17,11 @@
             @apply border-b-2 border-blue-600 text-blue-600 font-semibold;
         }
     </style>
+    <!-- 百度统计（与 kendryte.com 主站共用同一站点ID，便于合并查看整体流量） -->
+    <script>
+      window._hmt = window._hmt || [];
+    </script>
+    <script async src="https://hm.baidu.com/hm.js?aa49f516b360dae82327d4961ef96480"></script>
 </head>
 
 <body class="bg-gray-50 font-sans antialiased text-gray-800">
@@ -150,6 +155,7 @@
                                 <table class="min-w-full divide-y divide-gray-100">
                                     <thead class="bg-gray-50 hidden md:table-header-group">
                                         <tr>
+                                            <th scope="col" class="px-2 py-3 w-6"></th>
                                             <th scope="col"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 {{ t.tableVersion }}</th>
@@ -165,26 +171,47 @@
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-100">
-                                        <tr v-for="h in paginatedHistory" :key="h.version"
-                                            class="hover:bg-gray-50 transition-colors">
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">
-                                                {{ h.version }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ h.date || '-' }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ h.md5 || '-' }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <a :href="h.url" target="_blank" rel="noopener noreferrer"
-                                                    class="text-blue-600 hover:text-blue-800 flex justify-end items-center group">
-                                                    <span
-                                                        class="hidden group-hover:block mr-1 text-xs opacity-75">{{ t.downloadAction }}</span>
-                                                    <i class="fas fa-file-download"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
+                                        <template v-for="h in paginatedHistory" :key="h.version">
+                                            <tr class="hover:bg-gray-50 transition-colors">
+                                                <td class="px-2 py-4">
+                                                    <button v-if="hasVersionDetail(h)" @click="toggleHistoryDetail(h.version)"
+                                                            class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-blue-600 transition-transform"
+                                                            :class="{ 'rotate-90': expandedHistoryVersion === h.version }">
+                                                        <i class="fas fa-chevron-right text-xs"></i>
+                                                    </button>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700">
+                                                    {{ h.version }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {{ h.date || '-' }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {{ h.md5 || '-' }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <a :href="h.url" target="_blank" rel="noopener noreferrer"
+                                                        class="text-blue-600 hover:text-blue-800 flex justify-end items-center group">
+                                                        <span
+                                                            class="hidden group-hover:block mr-1 text-xs opacity-75">{{ t.downloadAction }}</span>
+                                                        <i class="fas fa-file-download"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            <tr v-if="expandedHistoryVersion === h.version && hasVersionDetail(h)" class="bg-gray-50/70">
+                                                <td></td>
+                                                <td colspan="4" class="px-6 py-3">
+                                                    <div v-if="h.summary" class="mb-2">
+                                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ t.summaryLabel }}</span>
+                                                        <p class="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{{ h.summary }}</p>
+                                                    </div>
+                                                    <a v-if="h.changelogUrl" :href="h.changelogUrl" target="_blank" rel="noopener noreferrer"
+                                                       class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-semibold">
+                                                        <i class="fas fa-file-lines"></i> {{ t.changelogLinkText }} <i class="fas fa-arrow-up-right-from-square text-xs"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </template>
                                     </tbody>
                                 </table>
                             </div>
@@ -310,6 +337,8 @@
                 tableVersion: '版本号',
                 tableDate: '发布日期',
                 tableAction: '操作',
+                summaryLabel: '版本摘要',
+                changelogLinkText: '查看完整更新日志',
                 paginationSummary: (total, current, pages) => `共 ${total} 条记录，第 ${current} / ${pages} 页`,
                 quickLinks: '常用资源',
                 communityLink: '嘉楠问答社区',
@@ -347,6 +376,8 @@
                 tableVersion: 'Version',
                 tableDate: 'Release Date',
                 tableAction: 'Action',
+                summaryLabel: 'Version Summary',
+                changelogLinkText: 'View Full Changelog',
                 paginationSummary: (total, current, pages) => `${total} records total, page ${current} of ${pages}`,
                 quickLinks: 'Quick Links',
                 communityLink: 'Kendryte Community',
@@ -465,16 +496,25 @@
                     currentPage.value = page;
                 };
 
+                // 历史版本展开/收起：记录当前展开的那一条记录版本号，再次点击同一条则收起
+                const expandedHistoryVersion = ref(null);
+                const toggleHistoryDetail = (version) => {
+                    expandedHistoryVersion.value = expandedHistoryVersion.value === version ? null : version;
+                };
+                const hasVersionDetail = (h) => !!(h && (h.summary || h.changelogUrl));
+
                 // 切换产品时，重置变体到第一个、分页到第1页
                 watch(activeProductId, (newVal) => {
                     if (newVal && products.value[newVal]) {
                         activeVariantKey.value = Object.keys(products.value[newVal].variants)[0];
                     }
                     currentPage.value = 1;
+                    expandedHistoryVersion.value = null;
                 });
                 // 切换变体时，重置分页到第1页
                 watch(activeVariantKey, () => {
                     currentPage.value = 1;
+                    expandedHistoryVersion.value = null;
                 });
 
                 onMounted(fetchProducts);
@@ -482,6 +522,7 @@
                 return {
                     products, activeProductId, activeVariantKey, activeProduct, activeVariant, updatetime,
                     currentPage, totalPages, paginatedHistory, visiblePages, goToPage,
+                    expandedHistoryVersion, toggleHistoryDetail, hasVersionDetail,
                     lang, t, links, switchLang
                 };
             }
