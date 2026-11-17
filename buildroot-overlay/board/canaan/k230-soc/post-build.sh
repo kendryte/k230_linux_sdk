@@ -86,6 +86,10 @@ EOF
 		echo " modprobe 8189fs " >> ${auto_boot_f}
 	fi
 
+	if  $(cat ${config} |  grep  BR2_PACKAGE_RTL8189FS_VENDOR=y >/dev/null 2>&1 ); then
+		echo " modprobe 8189fs " >> ${auto_boot_f}
+	fi
+
 	if  $(cat ${config} |  grep  BR2_PACKAGE_BCMDHD=y >/dev/null 2>&1 ); then
 		echo " modprobe bcmdhd " >> ${auto_boot_f}
 	fi

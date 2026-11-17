@@ -1,0 +1,117 @@
+把rtwpriv/rtwpriv_arm 拷贝到u盘,那个能用就用那个，指令对应，
+
+cd  /mnt/usb/sda1   //（例如）进入u盘
+
+mount -o rw,remount /system  //把system获取权限
+
+cp rtwpriv /system/bin或data/
+
+chmod 0755 /system/bin/rtwpriv
+
+rtwpriv -v ；工具能设别版本就能用,异常需自行编译
+
+如在当前路径下需要在指令下加   ./
+
+
+指令说明   
+rtwpriv wlan0 mp_start         //进入定频模式
+rtwpriv wlan0 mp_channel 1        //信道
+rtwpriv  wlan0 mp_bandwidth 40M=0,shortGI=0   //20M:40M=0;40M:40M=1;80M:40M=2
+rtwpriv  wlan0 mp_ant_tx b            // a:A天线；b：B天线
+rtwpriv  wlan0 mp_rate 22         //（模式设置,1M=2,11M=22,6M=12,54M=108,MCS0=128,MCS7=135，ACmcs0=160,ACmcs8=168 ，ACmcs8=169)
+rtwpriv wlan0 mp_get_txpower 0                    //获取efuse 功率因子 0:A天线；1：B天线
+rtwpriv wlan0 mp_txpower patha=44,pathb=44   //上一条获取的功率因子填入“pathb=80”替换掉80即可,patha=46:表示A天线；pathb=46表示B天线
+rtwpriv  wlan0 mp_ctx background,pkt    /表示发包方式
+rtwpriv wlan0 mp_pwrctldm start   // 表示打开温补
+
+
+11B
+rtwpriv wlan0 mp_ctx stop
+rtwpriv wlan0 mp_start 
+rtwpriv wlan0 mp_channel 1
+rtwpriv  wlan0 mp_bandwidth 40M=0,shortGI=0   
+rtwpriv  wlan0 mp_ant_tx a         
+rtwpriv  wlan0 mp_rate 22
+rtwpriv wlan0 mp_get_txpower 0                  
+./rtwpriv  wlan0 mp_ctx background,pkt
+
+
+
+
+11G
+./rtwpriv  wlan0 mp_pwrctldm stop 
+./rtwpriv wlan0 mp_ctx stop
+./rtwpriv wlan0 mp_start 
+./rtwpriv wlan0 mp_channel  13
+./rtwpriv wlan0 mp_bandwidth 40M=0,shortGI=0
+./rtwpriv wlan0 mp_ant_tx a
+./rtwpriv wlan0 mp_rate 108
+./rtwpriv wlan0 mp_get_txpower 0
+./rtwpriv wlan0 mp_ctx background,pkt
+./rtwpriv  wlan0 mp_pwrctldm start 
+
+11N HT20
+rtwpriv wlan0 mp_ctx stop
+rtwpriv wlan0 mp_start 
+rtwpriv wlan0 mp_channel 1
+rtwpriv  wlan0 mp_bandwidth 40M=2,shortGI=0
+rtwpriv  wlan0 mp_ant_tx a
+rtwpriv  wlan0 mp_rate 135
+rtwpriv wlan0 mp_get_txpower 0 
+rtwpriv  wlan0 mp_ctx background,pkt
+
+11N HT40
+rtwpriv wlan0 mp_ctx stop
+rtwpriv wlan0 mp_start 
+rtwpriv wlan0 mp_channel 3
+rtwpriv  wlan0 mp_bandwidth 40M=0,shortGI=0
+rtwpriv  wlan0 mp_ant_tx a
+rtwpriv  wlan0 mp_rate 135
+rtwpriv wlan0 mp_get_txpower 0 
+rtwpriv  wlan0 mp_ctx background,pkt
+
+
+
+2、接收灵敏度指令
+2.1指令介绍
+rtwpriv wlan0 mp_start  //进入测试模式
+rtwpriv wlan0 mp_channel 13   //设置频道
+rtwpriv wlan0 mp_bandwidth 40M=0,shortGI=0   //40M=0 表示20M带宽。 =1 表示40M带宽。=2表示80M带宽
+rtwpriv wlan0 mp_ant_tx a    //选择a天线
+rtwpriv wlan0 mp_arx start              //开始收包
+rtwpriv wlan0 mp_arx phy   //查看物理层收包情况，表示模块收到的包。
+rtwpriv wlan0 mp_reset_stats //接收数据复位
+rtwpriv wlan0 mp_stop   //停止工具
+
+./rtwpriv wlan0 mp_stop  
+./rtwpriv wlan0 mp_start
+./rtwpriv wlan0 mp_channel 13
+./rtwpriv wlan0 mp_bandwidth 40M=0,shortGI=0 
+./rtwpriv wlan0 mp_ant_rx a
+./rtwpriv wlan0 mp_arx start             
+./rtwpriv wlan0 mp_reset_stats 
+./rtwpriv wlan0 mp_arx phy 
+
+
+
+3.单载波指令
+
+54M天线测试用例：
+方法1
+rtwpriv  wlan0 mp_ctx stop
+rtwpriv wlan0 mp_start
+rtwpriv wlan0 mp_channel 1
+rtwpriv wlan0 mp_bandwidth 40M=0,shortGI=0
+rtwpriv wlan0 mp_ant_tx a
+rtwpriv wlan0 mp_rate 108
+rtwpriv wlan0 mp_ctx background,stone
+
+方法2
+rtwpriv  wlan0 mp_ctx stop
+rtwpriv wlan0 mp_start
+rtwpriv wlan0 mp_channel 1
+rtwpriv wlan0 mp_bandwidth 40M=0,shortGI=0
+rtwpriv wlan0 mp_ant_tx a
+rtwpriv wlan0 mp_rate 108
+rtwpriv wlan0 mp_ctx background,stone
+rtwpriv  wlan0 mp_ctx background,pkt

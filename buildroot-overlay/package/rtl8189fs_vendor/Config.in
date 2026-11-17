@@ -1,0 +1,17 @@
+config BR2_PACKAGE_RTL8189FS_VENDOR
+	bool "rtl8189fs (vendor)"
+	depends on !BR2_s390x
+	depends on BR2_LINUX_KERNEL
+	depends on !BR2_PACKAGE_RTL8189FS
+	depends on !BR2_PACKAGE_RTL8733BS
+	help
+	  Realtek RTL8188F/RTL8189FS SDIO WiFi driver, built from the
+	  official Realtek vendor source drop instead of the community
+	  jwrdegoede/rtl8189ES_linux fork used by the "rtl8189fs" package.
+
+	  Mutually exclusive with "rtl8189fs" - only one of the two can
+	  be enabled at a time, since both build a module named 8189fs.ko.
+
+comment "rtl8189fs (vendor) needs a Linux kernel to be built"
+	depends on !BR2_s390x
+	depends on !BR2_LINUX_KERNEL

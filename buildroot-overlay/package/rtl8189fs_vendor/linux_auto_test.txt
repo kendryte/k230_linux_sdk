@@ -1,0 +1,244 @@
+
+首先要保证模块在整机上的RF性能要达标， OTA有源测试要达标
+
+1、在Makefile 里打开自适应选项
+   CONFIG_RTW_ADAPTIVITY_EN = enable
+新驱动宏设定:CONFIG_RTW_EDCCA_MODE_SEL = ADAPT
+cat /proc/net/rtl8821cu/drv_cfg      //查看配置是否打开此功能
+
+2、禁止掉如下两条
+  2.1    echo 1 > /proc/net/rtl8821cu/wlan0/scan_deny  禁止掉scan动作
+cd /userdata/bin
+  2.2 在Makefile 里永久关闭power saving
+   CONFIG_POWER_SAVING = n
+   临时关闭power saving确认下，方法下指令：
+  ./rtwpriv wlan0 pm_set lps=0      //关闭省电模注：lps 中的l 为字母L 的小写
+   ./rtwpriv wlan0 pm_set ips=0
+
+   临时打开: 
+   rtwpriv  wlan0  pm_set lps=1   
+   rtwpriv  wlan0  pm_set ips=1      
+   
+3、关闭蓝牙
+   彻底关闭蓝牙方法：
+   1）mv /system/etc/firmware/rtl8822cs_fw   /system/etc/firmware/rtl8822cs_fw_bak
+
+也可以如下关闭，但不是彻底关掉，可能还会影响
+2）pm disable com.android.bluetooth   //禁用蓝牙
+3）service call bluetooth_manager 8     //关bt  安卓都可以
+4）service call bluetooth_manager 6    //开bt  安卓都可以
+
+4、发包如用TCP测试fail，请更换为UDP确认.
+   运行iperf UDP的方法（方向很重要）：
+	陪测电脑：iperf -u -s 
+	WIFI模组：iperf -u -c IPx.x.x.x -b 10m -t 6000 -i 1
+
+5、如果还过不了，TH_L2H_ini值，执行以下操作：
+cat /proc/net/rtl8821cu/wlan0/odm/adaptivity  //查看返回值，
+例如是：
+0xf5 7 0x32 0 20 0
+
+
+说明TH_L2H_ini值为0xf5，调整该参数从0xf5->0xf3->f1 ，其余参数不变（从大调小，干扰信号的阈值。可以改变自适应干扰判断能力）
+指令如下：
+echo 0xf0 7 0x32 0 20 0 > /proc/net/rtl8821cu/wlan0/odm/adaptivity
+
+cat /proc/net/rtl8821cu/wlan0/odm/adaptivity   //确认该值是否为自己调整的
+echo adapt_debug 1 0xf1 > /proc/net/rtl8821cu/wlan0/odm/cmd   //新驱动改阀值方法
+
+
+如不能更改TH_L2H_ini值先执行后在修改：echo ability 13 2  > /proc/net/rtl8821cy/wlan0/odm/cmd
+  power save   需要关闭                            echo 1  > /proc/net/rtl8189fs/wlan0/scan_deny
+
+
+
+
+6、测试前查看WiFi信号强度，确认信号强度在接收灵敏度范围之内，-60db左右为正常值。
+   cat /proc/net/rtl8822cs/wlan0/rx_signa   //确定已连ap信号强度
+
+7、安卓系统不要停留在WiFi界面，防止频繁scan。
+
+8、加大干扰信号强度试下是否有效.
+
+9、请报告一下，其它模式；其它信道情况是否也一样.
+
+10、抓log信息
+
+echo ability 100 > /proc/net/rtl88x2cs/wlan0/odm/cmd
+
+cat /proc/net/rtl88x2cs/wlan0/odm/cmd 
+
+若查看到PWR_TRAIN 是17，请下命令:
+
+echo dbg 17 1 > /proc/net/rtlxxx/wlan0/odm/cmd
+echo dbg 17 1 > /proc/net/rtl88x2cs/wlan0/odm/cmd
+
+cat /proc/net/rtl88x2cs/wlan0/odm/adaptivity  //确认
+
+cat /proc/net/rtl88x2cs/wlan0/odm/cmd    //确认 
+
+测试抓log.
+
+cat /proc/net/rtlxxx/wlan0/odm/adaptivity
+
+
+
+11、提供测试失败的频谱图.
+
+
+
+ADAPTIVITY要求：50ms 内出来的信号时间加起来不能超个2.5ms
+
+
+RX-Blocking测试（必须关闭bt）
+
+干扰-34dbm  ，打不同干扰点，误码率-68 到 -74 （不同干扰点要求灵敏度不同）这是标准。
+
+
+
+
+
+
+
+
+
+
+
+
+1. Turn on adaptive options in makefile 
+
+CONFIG_ RTW_ ADAPTIVITY_ EN = enable 
+
+
+2. Turn off power saving in makefile 
+
+CONFIG_ POWER_ SAVING = n 
+
+After power saving is turned off and confirmed, the method gives the following command: 
+
+ rtwptiv wlan0 pm_set lps=0     //note: l in LPS is lower case of L 
+ rtwptiv wlan0 pm_set ips=0
+
+
+3. Turn off Bluetooth 
+
+Turn Bluetooth off completely: 
+
+mv /system/etc/firmware/rtl8822cs_fw /system/etc/firmware/rtl8822cs_fw_bak
+
+
+
+4. Check the WiFi signal strength before the test, and confirm that the signal strength is within the range of receiving sensitivity, and the value of - 60dB is normal. 
+
+cat /proc/net/rtl8822cs/wlan0/rx_signa   // determine the connected AP signal strength 
+
+
+5. Android system should not stay in WiFi interface to prevent frequent scan. 
+
+
+6. The method to run iperf UDP (direction is important) :
+Accompanying computer: iperf -u -s 
+Product under test: iperf -u -c x.x.x.x -b 100m -t 6000 -i 1 -w2m
+
+
+If the above methods still fail, check down: 
+
+
+7. Increase the interference signal strength to test whether it is effective 
+
+
+8. Please report other modes; whether other channels are the same 
+
+
+9. Grasp log information 
+
+echo ability 100 > /proc/net/rtl8822cs/wlan0/odm/cmd
+
+cat /proc/net/rtl8822cs/wlan0/odm/cmd 
+
+If PWR is found_ Train is 17, please command: 
+
+echo dbg 17 1 > /proc/net/rtlxxx/wlan0/odm/cmd
+
+cat /proc/net/rtlxxx/wlan0/odm/cmd    //confirm that the test grabs the log 
+
+10. Provide spectrum of test failure 
+
+
+
+
+
+可以通过by rate 列表进行控制低速率功率。方法如下：
+ by rate和limit 使用方法：
+Makefile中：
+
+CONFIG_LOAD_PHY_PARA_FROM_FILE = y
+
+CONFIG_TXPWR_BY_RATE = y       
+
+CONFIG_TXPWR_BY_RATE_EN = y        //开by rate （低速率会比高速率高）
+
+CONFIG_TXPWR_LIMIT = n             
+
+CONFIG_TXPWR_LIMIT_EN = n        //功率限制关闭（打开，专为过认证而限制功率）
+
+
+
+
+
+
+FCC,CE fail排查方法：
+
+1. 把贵司目前的指令发给我检查一下
+2. 咨询一下测试公司测试的是1M，6M，mcs0吗?
+3. 请实验室测试一下 54M,MCS7，看是否ok？
+4. cat  /proc/net/rtl8821cs/drv_cfg    //读给我看看
+5. cat /proc/net/rtl8821cs/wlan0/tx_power_idx         /检查limt列表是否有生效 ，读给我们看看
+
+解决办法：
+1. 如果只是低速率测试不过，高速速率（11M，54M,MCS7)测试ok，两个方法：
+  1）./rtwpriv wlan0 mp_pwrbyrate off  //临时关，功率就会降低。 机器重启就没了
+  2）Makefile中：
+CONFIG_TXPWR_BY_RATE = n       
+CONFIG_TXPWR_BY_RATE_EN = n  
+永久关闭
+
+2. 如果高速率（11M，54M,MCS7) 其中一个或者全部测试fail。 方法：
+1） by rate和limit 使用方法：
+Makefile中：
+CONFIG_LOAD_PHY_PARA_FROM_FILE = y
+CONFIG_TXPWR_BY_RATE = y        
+CONFIG_TXPWR_BY_RATE_EN = y        //开by rate （低速率会比高速率高）
+CONFIG_TXPWR_LIMIT = y             
+CONFIG_TXPWR_LIMIT_EN = y        //开启power limit（专为过认证而限制功率）
+
+Makefile修改外挂power by rate & power limit table(PHY_REG_PG.txt和TXPWR_LMT.txt)的存取路径。                                
+ifeq ($(CONFIG_LOAD_PHY_PARA_FROM_FILE), y)
+EXTRA_CFLAGS += -DCONFIG_LOAD_PHY_PARA_FROM_FILE
+EXTRA_CFLAGS += -DREALTEK_CONFIG_PATH=\"/lib/firmware/\"
+Endif
+将两个.txt文档放在/lib/firmware目录下，若只需要做功率限制，也可以单独放置TXPWR_LMT.txt文档。
+需要注意，设定的目录不能因为系统恢复出厂设置或软件升级而造成txt文件丢失或被改写。
+
+注：PHY_REG_PG.txt和TXPWR_LMT.txt 不同芯片的模块各有不同，请找模组厂获取对应的。
+
+2）还要进行国家码设置
+如果是FCC， 就选择 US 2G  1-11频道， 12，13频道彻底禁用
+国家码修改方法：
+ insmod 8821cs.ko rtw_channel_plan=34   //us 2G=22h=34（十进制）
+
+3. 以上两点设置好后，请检查：
+ cat /proc/net/rtl8821cs/wlan0/tx_power_idx  //看table是否吃到
+cat /proc/net/rtl8821cs/wlan0/chan_plan  //国家频道范围
+cat /proc/net/rtl8821cs/wlan0/country_code  //国家码属性是否对应
+
+
+2）还要进行国家码设置
+如果是FCC， 就选择 US 2G  1-11频道， 12，13频道彻底禁用
+国家码修改方法：
+ insmod 8821cs.ko rtw_channel_plan=34   //us 2G=22h=34（十进制）
+
+3. 以上两点设置好后，请检查：
+ cat /proc/net/rtl8821cs/wlan0/tx_power_idx  //看table是否吃到
+cat /proc/net/rtl8821cs/wlan0/chan_plan  //国家频道范围
+cat /proc/net/rtl8821cs/wlan0/country_code  //国家码属性是否对应
