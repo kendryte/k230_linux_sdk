@@ -38,7 +38,7 @@ RUN apt-get install -y  --fix-broken --fix-missing   git sed make binutils build
         libssl-dev gawk cmake bison flex  bash-completion  parted curl xz-utils  mtd-utils
 
 RUN UBUNTU_VERSION=$(awk -F'"' '/VERSION=/{print $2}' /etc/os-release | cut -d. -f1-2) && \
-    if [ "${UBUNTU_VERSION}" = "24.04" ]; then \
+    if dpkg --compare-versions "${UBUNTU_VERSION}" ge 24.04; then \
         apt-get install -y python3-pcpp; \
     else \
         pip3 install pcpp; \
