@@ -7,6 +7,8 @@ BLUEZ_INC_LOCAL_PATH:= $(realpath $(TOPDIR))"/package/bluez_inc"
 BLUEZ_INC_DIR_NAME := bluez_inc
 BLUEZ_INC_APP_NAME := bluez_inc
 
+BLUEZ_INC_DEPENDENCIES = libglib2
+
 BLUEZ_INC_SITE = $(realpath $(TOPDIR))"/package/bluez_inc/src"
 BLUEZ_INC_SITE_METHOD = local
 

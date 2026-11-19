@@ -1,7 +1,7 @@
 AUDIO_REC_PLAY_SITE = $(realpath $(TOPDIR))"/package/audio_rec_play"
 AUDIO_REC_PLAY_SITE_METHOD = local
 AUDIO_REC_PLAY_INSTALL_STAGING = YES
-AUDIO_REC_PLAY_DEPENDENCIES = speex webrtc-audio-processing
+AUDIO_REC_PLAY_DEPENDENCIES = speex webrtc-audio-processing alsa-utils alure
 
 define AUDIO_REC_PLAY_BUILD_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" CFLAGS="$(TARGET_CFLAGS)" -C $(@D)

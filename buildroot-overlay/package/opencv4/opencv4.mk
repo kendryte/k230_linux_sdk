@@ -411,6 +411,10 @@ OPENCV4_CONF_OPTS += \
 OPENCV4_DEPENDENCIES += python3
 OPENCV4_KEEP_PY_FILES += usr/lib/python$(PYTHON3_VERSION_MAJOR)/site-packages/cv2/config*.py
 OPENCV4_CONF_ENV += $(PKG_PYTHON_SETUPTOOLS_ENV)
+# PKG_PYTHON_SETUPTOOLS_ENV 里的 PYTHONPATH 指向 target sysroot 的 python3 stdlib，
+# 是给 setup.py 构建用的；cmake 在这里要用 host python3 做 FindPython3 探测，
+# 带着这个 PYTHONPATH 会让 host python3 启动时误加载 target 的 io.py，直接崩溃。
+OPENCV4_CONF_ENV += PYTHONPATH=
 OPENCV4_DEPENDENCIES += python-numpy
 else
 OPENCV4_CONF_OPTS += \

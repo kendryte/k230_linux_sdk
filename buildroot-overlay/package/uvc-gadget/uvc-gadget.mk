@@ -11,7 +11,7 @@ UVC_GADGET_LICENSE = GPL-2.0+
 UVC_GADGET_LICENSE_FILES = LICENSE
 
 # 依赖 libv4l2 库
-UVC_GADGET_DEPENDENCIES = libv4l host-pkgconf
+UVC_GADGET_DEPENDENCIES = libv4l host-pkgconf opencv4
 
 # v0.3.0 默认可能需要一些配置选项
 UVC_GADGET_CONF_OPTS = -Dwerror=false

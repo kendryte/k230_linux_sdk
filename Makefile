@@ -22,6 +22,7 @@ BRW_BUILD_DIR = $(CURDIR)/output/$(CONF)
 
 
 .PHONY: all buildroot  debian ubuntu openouler  ruyi  debian_rootfs ubuntu_rootfs
+.NOTPARALLEL:
 all :  buildroot
 
 
@@ -33,7 +34,7 @@ ddr_test_img_% :sync buildroot ###128/512/1024/2048
 	@tools/ddr_test_img.sh  $*
 
 buildroot: $(BRW_BUILD_DIR)/.config
-	make -C $(BRW_BUILD_DIR) all   BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
+	$(MAKE) -C $(BRW_BUILD_DIR) all   BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
 	@echo -e "\033[32m========================================\033[0m"
 	@echo -e "\033[32m Build complete!\033[0m"
 	@tools/print_images.sh $(BRW_BUILD_DIR)
@@ -42,7 +43,7 @@ buildroot: $(BRW_BUILD_DIR)/.config
 .PHONY:dl
 dl:   $(BRW_BUILD_DIR)/.config
 	echo "download all source"
-	make -C $(BRW_BUILD_DIR) source BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
+	$(MAKE) -C $(BRW_BUILD_DIR) source BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
 
 .PHONY:toolchain_and_depend
 toolchain_and_depend:
@@ -53,7 +54,7 @@ help:sync
 	@echo "sdk build usage:"
 	@echo "   make CONF=k230_canmv_defconfig  -build k230 linux sdk user k230_canmv_defconfig config "
 	@[ -d $(BR_SRC_DIR) ] && echo "buildroot usage:" || exit 0
-	@[ -d $(BR_SRC_DIR) ] && make --no-print-directory -C $(BR_SRC_DIR)  help  || exit 0
+	@[ -d $(BR_SRC_DIR) ] && $(MAKE) --no-print-directory -C $(BR_SRC_DIR)  help  || exit 0
 	@echo "often use command example:"
 	@echo "    make uboot-rebuild  #rebuild uboot"
 	@echo "    make uboot-dirclean #uboot clean"
@@ -82,33 +83,33 @@ list-def list_def:
 
 .PHONY:sync
 sync:
-	make -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
+	$(MAKE) -f tools/sync.mk sync   BR_SRC_DIR=$(BR_SRC_DIR)  BR_OVERLAY_DIR=$(BR_OVERLAY_DIR)  BR_NAME=$(BR_NAME)
 
 this-makefile := $(lastword $(MAKEFILE_LIST))  all dl help  savedefconfig  sync  %_defconfig  \
 				 debian ubuntu openouler  debian_rootfs ubuntu_rootfs list_def list-def  toolchain_and_depend buildroot  ddr_test_img_%  clean
 $(filter-out $(this-makefile) , $(MAKECMDGOALS)):	$(BRW_BUILD_DIR)/.config
-	[ -d $(BRW_BUILD_DIR) ] && make -C $(BRW_BUILD_DIR) $@ BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
+	[ -d $(BRW_BUILD_DIR) ] && $(MAKE) -C $(BRW_BUILD_DIR) $@ BR2_PRIMARY_SITE=$(BR2_PRIMARY_SITE)
 	@( if [ $@ = linux-savedefconfig ];then \
-		lr="$$(make printvars VARS='LINUX_DIR' | grep LINUX_DIR  | cut -d= -f2 )";\
+		lr="$$($(MAKE) printvars VARS='LINUX_DIR' | grep LINUX_DIR  | cut -d= -f2 )";\
 		cp $${lr}/defconfig  linux_defconfig ; \
 	fi )
 
 
 %_defconfig:  sync
 	$(call write_last_conf,$@)
-	make -C $(BR_SRC_DIR) $@  O=$(CURDIR)/output/$@
+	$(MAKE) -C $(BR_SRC_DIR) $@  O=$(CURDIR)/output/$@
 
 savedefconfig:  $(BRW_BUILD_DIR)/.config
-	make -C $(BRW_BUILD_DIR) $@
+	$(MAKE) -C $(BRW_BUILD_DIR) $@
 	cp $(BR_SRC_DIR)/configs/$(CONF) $(BR_OVERLAY_DIR)/configs/
 
 $(BRW_BUILD_DIR)/.config: sync
 	mkdir -p $(BRW_BUILD_DIR)/images/deb
 ifeq ("$(origin CONF)", "command line")
-	make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR)
+	$(MAKE) -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR)
 	touch $@
 else
-	[ -e "$(BRW_BUILD_DIR)" ] || ( make -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR) ;touch $@; )
+	[ -e "$(BRW_BUILD_DIR)" ] || ( $(MAKE) -C $(BR_SRC_DIR) $(CONF) O=$(BRW_BUILD_DIR) ;touch $@; )
 endif
 
 #echo LINUX_OVERRIDE_SRCDIR=/home/wangjianxin/t/linux-xuantie-kernel >output/k230d_canmv_64kernel_32rootfs_defconfig/local.mk
@@ -122,4 +123,4 @@ clean:
 		exit 1; \
 	fi
 	@rm -rf output
-	@make $(CONF)
+	@$(MAKE) $(CONF)

@@ -1,7 +1,7 @@
 AUDIO_DEMO_SITE = $(realpath $(TOPDIR))"/package/audio_demo"
 AUDIO_DEMO_SITE_METHOD = local
 AUDIO_DEMO_INSTALL_STAGING = YES
-
+AUDIO_DEMO_DEPENDENCIES += alsa-utils alure
 define AUDIO_DEMO_BUILD_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" CFLAGS="$(TARGET_CFLAGS)" -C $(@D)
 endef
