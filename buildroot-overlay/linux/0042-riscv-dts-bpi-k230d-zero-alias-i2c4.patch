@@ -1,0 +1,28 @@
+From: wangjianxin <wangjianxin@canaan-creative.com>
+Subject: [PATCH] riscv: dts: bpi-k230d-zero: alias hardware I2C4 as i2c4
+
+The IMX335 on this board is wired to the I2C4 controller and
+dev0-sensor-i2c-bus is already 4. Without an i2c4 alias the only
+enabled controller is registered as /dev/i2c-0, so isp_media_server
+opens /dev/i2c-4 and the sensor probe fails.
+
+diff --git a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+--- a/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
++++ b/arch/riscv/boot/dts/canaan/bananapi-canmv-k230d-zero.dts
+@@ -14,6 +14,7 @@
+ 		serial2 = &uart2;
+ 		mmc0 = &mmc_sd0;
+ 		mmc1 = &mmc_sd1;
++		i2c4 = &i2c4; /* hardware I2C4 -> /dev/i2c-4 */
+ 	};
+ 
+ 	chosen {
+@@ -106,7 +107,7 @@
+ };
+ 
+ &v4l2isp {
+-	/* BPI defconfig selects imx335; camera control is on hardware I2C4. */
++	/* BPI defconfig selects imx335. Alias i2c4=&i2c4, so this is /dev/i2c-4. */
+ 	dev0-sensor-name = "imx335";
+ 	dev0-sensor-mode = <0>;
+ 	dev0-sensor-i2c-bus = <4>;
