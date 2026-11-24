@@ -1,0 +1,638 @@
+From 1e4daed9bf120b248786a029ef89653a76d0b362 Mon Sep 17 00:00:00 2001
+From: zhengzeying <zhengzeying@canaan-creative.com>
+Date: Tue, 24 Nov 2026 14:04:32 +0800
+Subject: [PATCH] drm/canaan: VFP-timed vblank and computed DSI timings
+
+Rework the Canaan VO/DSI driver for correct frame-base latching and
+panel-accurate DSI timing.
+
+VO:
+- Report the CRTC vblank from the vertical front porch (active end) via an
+  hrtimer armed by the vsync IRQ instead of the 2^n-line interrupt: the
+  displayed framebuffer has finished scanning out by then, so it is the
+  earliest point at which the old buffer is safe to release.
+- Write the frame base directly in the atomic commit (canaan_vo_write_base).
+  The base registers are not GO-gated and hardware samples them at the layer
+  latch point, so writing them well before the latch keeps all layers in step;
+  the VFP hrtimer then only reports the vblank.
+- Use auto address mode with base0 == base1 (single buffer) on all layers
+  (video2/3 ADDR_SEL 0x00, OSD 0x00, LAYER1 bit16 enable only).
+- Enable IRQ0 only when a vblank is subscribed; drop the IRQ0/hrtimer teardown
+  race in disable_crtc via synchronize_irq(); note (dev_dbg) when vfp <= 32
+  (RDMA prefetch margin).
+
+DSI:
+- Compute hsfreqrange, D-PHY LP/HS transition timings, ESC/timeout clock
+  dividers and DPI 24-bit colour coding from the lane rate instead of the
+  previous hardcoded values.
+---
+ drivers/gpu/drm/canaan/canaan_dsi.c | 181 +++++++++++++++++++++-
+ drivers/gpu/drm/canaan/canaan_vo.c  | 229 ++++++++++++++++++++++------
+ drivers/gpu/drm/canaan/canaan_vo.h  |  13 ++
+ 3 files changed, 375 insertions(+), 48 deletions(-)
+ mode change 100755 => 100644 drivers/gpu/drm/canaan/canaan_vo.c
+
+diff --git a/drivers/gpu/drm/canaan/canaan_dsi.c b/drivers/gpu/drm/canaan/canaan_dsi.c
+index fc45fcd..5701724 100644
+--- a/drivers/gpu/drm/canaan/canaan_dsi.c
++++ b/drivers/gpu/drm/canaan/canaan_dsi.c
+@@ -81,6 +81,137 @@
+ #define TXPHY_475_VOC (0x17)
+ #define TXPHY_475_HS_FREQ (0xa3)
+ 
++#define DSI_PHY_TMR_LPCLK_CFG	0x98
++#define DSI_PHY_TMR_CFG		0x9c
++#define DSI_PHY_TMR_RD_CFG	0xf4
++
++#define TO_CLK_DIVISION(div)		(((div) & 0xff) << 8)
++#define TX_ESC_CLK_DIVISION(div)	((div) & 0xff)
++#define PHY_HS2LP_TIME_V131(lbcc)	(((lbcc) & 0x3ff) << 16)
++#define PHY_LP2HS_TIME_V131(lbcc)	((lbcc) & 0x3ff)
++#define PHY_CLKHS2LP_TIME(lbcc)		(((lbcc) & 0x3ff) << 16)
++#define PHY_CLKLP2HS_TIME(lbcc)		((lbcc) & 0x3ff)
++#define MAX_RD_TIME_V131(lbcc)		((lbcc) & 0x7fff)
++/*
++ * DPI_COLOR_CODING[3:0] = colour depth; 0x5 selects 24-bit RGB888.  bit8
++ * (loosely-18 packing) applies only to the 18-bit codings and is left clear
++ * for 24-bit, so the coding value is 0x5 (not 0x105).
++ */
++#define DPI_COLOR_CODING_24BIT		0x5
++
++struct canaan_dsi_hsfreq_range {
++	u64 min_freq;
++	u64 max_freq;
++	u8 hsfreqrange;
++};
++
++/*
++ * Sorted by descending min_freq.  canaan_dsi_calc_hsfreqrange() returns the
++ * first row whose [min_freq, max_freq] contains the bit rate, so new rows must
++ * keep this order (the high rows deliberately share max_freq = 2500 Mbps).
++ */
++static const struct canaan_dsi_hsfreq_range canaan_hsfreq_ranges[] = {
++	{ 2363125000ULL, 2500000000ULL, 0x49 }, { 2315625000ULL, 2500000000ULL, 0x48 }, { 2268125000ULL, 2500000000ULL, 0x47 },
++	{ 2220625000ULL, 2480625000ULL, 0x46 }, { 2173125000ULL, 2428125000ULL, 0x45 }, { 2125625000ULL, 2375625000ULL, 0x44 },
++	{ 2078125000ULL, 2323125000ULL, 0x43 }, { 2030625000ULL, 2270625000ULL, 0x42 }, { 1983125000ULL, 2218125000ULL, 0x41 },
++	{ 1935625000ULL, 2165625000ULL, 0x40 }, { 1888125000ULL, 2113125000ULL, 0x0F }, { 1840625000ULL, 2060625000ULL, 0x3F },
++	{ 1793125000ULL, 2008125000ULL, 0x2F }, { 1745625000ULL, 1955625000ULL, 0x1E }, { 1698125000ULL, 1903125000ULL, 0x0E },
++	{ 1650625000ULL, 1850625000ULL, 0x3E }, { 1603125000ULL, 1798125000ULL, 0x2E }, { 1555625000ULL, 1745625000ULL, 0x1D },
++	{ 1508125000ULL, 1693125000ULL, 0x0D }, { 1460625000ULL, 1640625000ULL, 0x3D }, { 1413125000ULL, 1588125000ULL, 0x2C },
++	{ 1365625000ULL, 1535625000ULL, 0x1C }, { 1318125000ULL, 1483125000ULL, 0x0C }, { 1270625000ULL, 1430625000ULL, 0x3C },
++	{ 1223125000ULL, 1378125000ULL, 0x2B }, { 1175625000ULL, 1325625000ULL, 0x1B }, { 1128125000ULL, 1273125000ULL, 0x0B },
++	{ 1080625000ULL, 1220625000ULL, 0x3B }, { 1033125000ULL, 1168125000ULL, 0x2A }, { 985625000ULL, 1115625000ULL, 0x1A },
++	{ 938125000ULL, 1063125000ULL, 0x0A },  { 890625000ULL, 1010625000ULL, 0x3A },  { 843125000ULL, 958125000ULL, 0x29 },
++	{ 795625000ULL, 905625000ULL, 0x19 },   { 748125000ULL, 853125000ULL, 0x09 },   { 700625000ULL, 800625000ULL, 0x39 },
++	{ 653125000ULL, 748125000ULL, 0x28 },   { 605625000ULL, 695625000ULL, 0x18 },   { 558125000ULL, 643125000ULL, 0x07 },
++	{ 510625000ULL, 590625000ULL, 0x37 },   { 463125000ULL, 538125000ULL, 0x26 },   { 415625000ULL, 485625000ULL, 0x16 },
++	{ 368125000ULL, 433125000ULL, 0x05 },   { 320625000ULL, 380625000ULL, 0x35 },   { 296875000ULL, 354375000ULL, 0x25 },
++	{ 273125000ULL, 328125000ULL, 0x14 },   { 249375000ULL, 301875000ULL, 0x04 },   { 225625000ULL, 275625000ULL, 0x33 },
++	{ 211375000ULL, 259875000ULL, 0x23 },   { 197125000ULL, 244125000ULL, 0x13 },   { 182875000ULL, 228375000ULL, 0x03 },
++	{ 168625000ULL, 212625000ULL, 0x32 },   { 159125000ULL, 202125000ULL, 0x22 },   { 149625000ULL, 191625000ULL, 0x12 },
++	{ 140125000ULL, 181125000ULL, 0x02 },   { 130625000ULL, 170625000ULL, 0x31 },   { 121125000ULL, 160125000ULL, 0x21 },
++	{ 111625000ULL, 149625000ULL, 0x11 },   { 102125000ULL, 139125000ULL, 0x01 },   { 92625000ULL, 128625000ULL, 0x30 },
++	{ 83125000ULL, 118125000ULL, 0x20 },    { 80000000ULL, 107625000ULL, 0x10 },    { 80000000ULL, 97125000ULL, 0x00 },
++};
++
++static u8 canaan_dsi_calc_hsfreqrange(u64 bitrate_hz)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(canaan_hsfreq_ranges); i++) {
++		if (bitrate_hz >= canaan_hsfreq_ranges[i].min_freq &&
++		    bitrate_hz <= canaan_hsfreq_ranges[i].max_freq)
++			return canaan_hsfreq_ranges[i].hsfreqrange;
++	}
++
++	pr_warn("canaan-dsi: lane bitrate %llu Hz out of hsfreqrange table (80-2500 Mbps); using code 0x00\n",
++		bitrate_hz);
++	return 0;
++}
++
++/*
++ * D-PHY LP<->HS transition timings: lane rate (Mbps) -> cycle counts.
++ * Verbatim from RT-Smart dphy_timings[]; nearest-rate entry is selected.
++ */
++struct canaan_dsi_dphy_timing {
++	u32 rate_mbps;
++	u16 clk_lp2hs;
++	u16 clk_hs2lp;
++	u16 data_lp2hs;
++	u16 data_hs2lp;
++};
++
++static const struct canaan_dsi_dphy_timing canaan_dphy_timings[] = {
++	{ 80, 21, 17, 15, 10 },     { 90, 23, 17, 16, 10 },     { 100, 22, 17, 16, 10 },
++	{ 110, 25, 18, 17, 11 },    { 120, 26, 20, 18, 11 },    { 130, 27, 19, 19, 11 },
++	{ 140, 27, 19, 19, 11 },    { 150, 28, 20, 20, 12 },    { 160, 30, 21, 22, 13 },
++	{ 170, 30, 21, 23, 13 },    { 180, 31, 21, 23, 13 },    { 190, 32, 22, 24, 13 },
++	{ 205, 35, 22, 25, 13 },    { 220, 37, 26, 27, 15 },    { 235, 38, 28, 27, 16 },
++	{ 250, 41, 29, 30, 17 },    { 275, 43, 29, 32, 18 },    { 300, 45, 32, 35, 19 },
++	{ 325, 48, 33, 36, 18 },    { 350, 51, 35, 40, 20 },    { 400, 59, 37, 44, 21 },
++	{ 450, 65, 40, 49, 23 },    { 500, 71, 41, 54, 24 },    { 550, 77, 44, 57, 26 },
++	{ 600, 82, 46, 64, 27 },    { 650, 87, 48, 67, 28 },    { 700, 94, 52, 71, 29 },
++	{ 750, 99, 52, 75, 31 },    { 800, 105, 55, 82, 32 },   { 850, 110, 58, 85, 32 },
++	{ 900, 115, 58, 88, 35 },   { 950, 120, 62, 93, 36 },   { 1000, 128, 63, 99, 38 },
++	{ 1050, 132, 65, 102, 38 }, { 1100, 138, 67, 106, 39 }, { 1150, 146, 69, 112, 42 },
++	{ 1200, 151, 71, 117, 43 }, { 1250, 153, 74, 120, 45 }, { 1300, 160, 73, 124, 46 },
++	{ 1350, 165, 76, 130, 47 }, { 1400, 172, 78, 134, 49 }, { 1450, 177, 80, 138, 49 },
++	{ 1500, 183, 81, 143, 52 }, { 1550, 191, 84, 147, 52 }, { 1600, 194, 85, 152, 52 },
++	{ 1650, 201, 86, 155, 53 }, { 1700, 208, 88, 161, 53 }, { 1750, 212, 89, 165, 53 },
++	{ 1800, 220, 90, 171, 54 }, { 1850, 223, 92, 175, 54 }, { 1900, 231, 91, 180, 55 },
++	{ 1950, 236, 95, 185, 56 }, { 2000, 243, 97, 190, 56 }, { 2050, 248, 99, 194, 58 },
++	{ 2100, 252, 100, 199, 59 },{ 2150, 259, 102, 204, 61 },{ 2200, 266, 105, 210, 62 },
++	{ 2250, 269, 109, 213, 63 },{ 2300, 272, 109, 217, 65 },{ 2350, 281, 112, 225, 66 },
++	{ 2400, 283, 115, 226, 66 },{ 2450, 282, 115, 226, 67 },{ 2500, 281, 118, 227, 67 },
++};
++
++static void canaan_dsi_get_dphy_timing(u32 lane_mbps,
++				       struct canaan_dsi_dphy_timing *out)
++{
++	u32 min_diff = 0xffffffffU;
++	int i, best = -1;
++
++	for (i = 0; i < ARRAY_SIZE(canaan_dphy_timings); i++) {
++		u32 rate = canaan_dphy_timings[i].rate_mbps;
++		u32 diff = lane_mbps > rate ? lane_mbps - rate : rate - lane_mbps;
++
++		if (diff < min_diff) {
++			min_diff = diff;
++			best = i;
++		}
++	}
++
++	if (best < 0) {
++		/*
++		 * Only reachable if the table is emptied by a future edit; keep
++		 * *out zeroed instead of dereferencing canaan_dphy_timings[-1].
++		 */
++		memset(out, 0, sizeof(*out));
++		return;
++	}
++	*out = canaan_dphy_timings[best];
++}
++
+ static inline void dsi_write(struct canaan_dsi *dsi, u32 reg, u32 val)
+ {
+ 	writel(val, dsi->base + reg);
+@@ -257,8 +388,29 @@ static void canaan_dsi_set_dpi_timing(struct canaan_dsi *dsi,
+ 
+ void canaan_dsi_lpdt_init(struct canaan_dsi *dsi, struct drm_display_mode *mode)
+ {
++	/*
++	 * ESC/timeout clock dividers, computed from the lane byte clock like
++	 * RT-Smart (dwc_dsi_init) instead of the former hardcoded 0x108.
++	 * esc_rate = 20 MHz (max ESC clock), to_rate = 1 MHz.
++	 */
++	u32 lane_mbps = dsi->phy_freq / 1000;
++	u32 lane_byte_mbps = lane_mbps / 8;
++	u32 esc_rate = 20;
++	u32 esc_div = lane_byte_mbps ? (lane_byte_mbps + esc_rate - 1) / esc_rate : 1;
++	u32 to_div = lane_byte_mbps ? lane_byte_mbps : 1;
++
++	/*
++	 * TO_CLK_DIVISION is 8-bit.  Above ~2048 Mbps the lane byte clock exceeds
++	 * 255 MHz, and clamping the divider makes the timeout clock slightly
++	 * faster than its nominal 1 MHz (a shorter timeout) -- an intentional,
++	 * harmless trade-off for our panels.
++	 */
++	if (to_div > 255)
++		to_div = 255;
++
+ 	// set lpdt div
+-	dsi_write(dsi, CLKMGR_CFG, 0x108);
++	dsi_write(dsi, CLKMGR_CFG,
++		  TO_CLK_DIVISION(to_div) | TX_ESC_CLK_DIVISION(esc_div));
+ 	// set vcid
+ 	dsi_write(dsi, GEN_VCID, 0x303);
+ 	// stt dpi tinging
+@@ -285,9 +437,22 @@ void canaan_dsi_lpdt_init(struct canaan_dsi *dsi, struct drm_display_mode *mode)
+ 
+ static void canaan_mipi_dsi_set_dsi_enable(struct canaan_dsi *dsi)
+ {
+-	dsi_write(dsi, DPI_COLOR_CODING, 0x105);
+-	dsi_write(dsi, 0x9c, 0x320068);
+-	dsi_write(dsi, 0x98, 0x2e0080);
++	struct canaan_dsi_dphy_timing t;
++	u32 lane_mbps = dsi->phy_freq / 1000;
++	u32 data_lp2hs;
++
++	/* D-PHY LP<->HS timings from the lane rate, like RT-Smart. */
++	canaan_dsi_get_dphy_timing(lane_mbps, &t);
++	data_lp2hs = t.data_lp2hs + t.clk_lp2hs;
++
++	dsi_write(dsi, DPI_COLOR_CODING, DPI_COLOR_CODING_24BIT);
++	dsi_write(dsi, DSI_PHY_TMR_CFG,
++		  PHY_HS2LP_TIME_V131(t.data_hs2lp) |
++			  PHY_LP2HS_TIME_V131(data_lp2hs));
++	dsi_write(dsi, DSI_PHY_TMR_RD_CFG, MAX_RD_TIME_V131(10000));
++	dsi_write(dsi, DSI_PHY_TMR_LPCLK_CFG,
++		  PHY_CLKHS2LP_TIME(t.clk_hs2lp) |
++			  PHY_CLKLP2HS_TIME(t.clk_lp2hs));
+ 	dsi_write(dsi, 0xc4, 0xffffffff);
+ 	dsi_write(dsi, 0xc8, 0xffffffff);
+ 	dsi_write(dsi, MODE_CFG, 0x0);
+@@ -380,7 +545,13 @@ static int canaan_dsi_clk_cfg(struct canaan_dsi *dsi, u32 clk)
+ 	writel(val, dis_clk + 0x78);
+ 	iounmap(dis_clk);
+ 
+-	k230_dsi_config_4lan_phy(dsi, m - 2, n - 1, voc, 0x96);
++	/*
++	 * hsfreqrange from the DDR bit rate (dsi->phy_freq is in kHz) like
++	 * RT-Smart (0x80 | hsfreqrange), replacing the hardcoded 0x96.
++	 */
++	k230_dsi_config_4lan_phy(dsi, m - 2, n - 1, voc,
++				 0x80 | canaan_dsi_calc_hsfreqrange(
++						(u64)dsi->phy_freq * 1000));
+ 
+ 	return 0;
+ }
+diff --git a/drivers/gpu/drm/canaan/canaan_vo.c b/drivers/gpu/drm/canaan/canaan_vo.c
+old mode 100755
+new mode 100644
+index fd24c34..940434f
+--- a/drivers/gpu/drm/canaan/canaan_vo.c
++++ b/drivers/gpu/drm/canaan/canaan_vo.c
+@@ -15,6 +15,9 @@
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/delay.h>
++#include <linux/hrtimer.h>
++#include <linux/ktime.h>
++#include <linux/math64.h>
+ 
+ #include <drm/drm_atomic.h>
+ #include <drm/drm_atomic_helper.h>
+@@ -93,6 +96,43 @@ static inline u32 canaan_vo_read(struct canaan_vo *vo, u32 reg)
+ 	return readl(vo->reg_base + reg);
+ }
+ 
++/*
++ * Program a plane's frame base directly from the atomic commit.  The base
++ * registers are not GO-gated: hardware samples them at the layer's latch point
++ * (video2/3 and OSD at the frame top, video1/RDMA a little before the frame
++ * end).  Writing them here, long before any latch point, keeps all layers in
++ * step; the VFP timer then only reports the vblank.  Both base slots are set to
++ * the same address so every layer runs as a single buffer.
++ *
++ * The multi-register write can, very rarely, race the latch and produce a
++ * single-frame chroma tear (both buffers are valid, so it self-heals).
++ */
++static void canaan_vo_write_base(struct canaan_vo *vo,
++				 struct canaan_plane *canaan_plane,
++				 dma_addr_t base0, dma_addr_t base1)
++{
++	uint32_t off = canaan_plane->config->plane_offset;
++
++	/* Same layer dispatch as canaan_vo_update_plane(). */
++	if (vo->canaan_plane[0]->id == canaan_plane->id ||
++	    vo->canaan_plane[5]->id == canaan_plane->id) {		/* video2/3 */
++		writel(base0, vo->reg_base + off + VO_LAYER2_3_Y_ADDR0_REG_OFFSET);
++		writel(base0, vo->reg_base + off + VO_LAYER2_3_Y_ADDR1_REG_OFFSET);
++		writel(base1, vo->reg_base + off + VO_LAYER2_3_UV_ADDR0_REG_OFFSET);
++		writel(base1, vo->reg_base + off + VO_LAYER2_3_UV_ADDR1_REG_OFFSET);
++	} else if (vo->canaan_plane[6]->id == canaan_plane->id) {	/* RDMA layer1 */
++		writel(base0, vo->reg_base + off + VO_LAYER1_Y_ADDR0);
++		writel(base0, vo->reg_base + off + VO_LAYER1_Y_ADDR1);
++		writel(base1, vo->reg_base + off + VO_LAYER1_UV_ADDR0);
++		writel(base1, vo->reg_base + off + VO_LAYER1_UV_ADDR1);
++	} else {							/* osd */
++		writel(base0, vo->reg_base + off + VO_OSD0_7_VLU_ADDR0_REG_OFFSET);
++		writel(base0, vo->reg_base + off + VO_OSD0_7_ALP_ADDR0_REG_OFFSET);
++		writel(base0, vo->reg_base + off + VO_OSD0_7_VLU_ADDR1_REG_OFFSET);
++		writel(base0, vo->reg_base + off + VO_OSD0_7_ALP_ADDR1_REG_OFFSET);
++	}
++}
++
+ static void canaan_vo_update_video(struct canaan_vo *vo,
+ 				   struct canaan_plane *canaan_plane,
+ 				   struct drm_display_mode *adj_mode)
+@@ -153,16 +193,8 @@ static void canaan_vo_update_video(struct canaan_vo *vo,
+ 	writel(reg_val, vo->reg_base + yctl_reg_offset);
+ 
+ 	y_addr = scanout_addr[0];
+-	writel(y_addr,
+-	       vo->reg_base + plane_offset + VO_LAYER2_3_Y_ADDR0_REG_OFFSET);
+-	writel(y_addr,
+-	       vo->reg_base + plane_offset + VO_LAYER2_3_Y_ADDR1_REG_OFFSET);
+-
+ 	uv_addr = scanout_addr[1];
+-	writel(uv_addr,
+-	       vo->reg_base + plane_offset + VO_LAYER2_3_UV_ADDR0_REG_OFFSET);
+-	writel(uv_addr,
+-	       vo->reg_base + plane_offset + VO_LAYER2_3_UV_ADDR1_REG_OFFSET);
++	canaan_vo_write_base(vo, canaan_plane, y_addr, uv_addr);
+ 
+ 	stride = (scanout_pitch[0] / 8 - 1) | (actual_h << 16);
+ 	writel(stride,
+@@ -172,7 +204,11 @@ static void canaan_vo_update_video(struct canaan_vo *vo,
+ 			     VO_LAYER2_3_IMG_IN_OFFSET_REG_OFFSET);
+ 	writel(0x0f,
+ 	       vo->reg_base + plane_offset + VO_LAYER2_3_BLENTH_REG_OFFSET);
+-	writel(0x11, vo->reg_base + plane_offset +
++	/*
++	 * Auto address mode (0x00): the two frame-base slots are programmed to the
++	 * same address above, so the layer runs as a single buffer.
++	 */
++	writel(0x00, vo->reg_base + plane_offset +
+ 			     VO_LAYER2_3_ADDR_SEL_MODE_REG_OFFSET);
+ 
+ 	disp_en = readl(vo->reg_base + VO_DISP_ENABLE);
+@@ -269,14 +305,7 @@ static void canaan_vo_update_osd(struct canaan_vo *vo,
+ 	writel(reg_val, vo->reg_base + yctl_reg_offset);
+ 
+ 	paddr = scanout_addr[0];
+-	writel(paddr,
+-	       vo->reg_base + plane_offset + VO_OSD0_7_VLU_ADDR0_REG_OFFSET);
+-	writel(paddr,
+-	       vo->reg_base + plane_offset + VO_OSD0_7_ALP_ADDR0_REG_OFFSET);
+-	writel(paddr,
+-	       vo->reg_base + plane_offset + VO_OSD0_7_VLU_ADDR1_REG_OFFSET);
+-	writel(paddr,
+-	       vo->reg_base + plane_offset + VO_OSD0_7_ALP_ADDR1_REG_OFFSET);
++	canaan_vo_write_base(vo, canaan_plane, paddr, paddr);
+ 
+ 	stride = scanout_pitch[0] / 8;
+ 	writel(stride,
+@@ -284,7 +313,8 @@ static void canaan_vo_update_osd(struct canaan_vo *vo,
+ 
+ 	writel(rb_swap, vo->reg_base + plane_offset + VO_OSD0_7_DMA_CTRL_REG_OFFSET);
+ 
+-	writel(0x100, vo->reg_base + plane_offset +
++	/* Auto address mode (0x00): both base slots set equal -> single buffer. */
++	writel(0x00, vo->reg_base + plane_offset +
+ 			      VO_OSD0_7_ADDR_SEL_MODE_REG_OFFSET);
+ 
+ 	disp_en = readl(vo->reg_base + VO_DISP_ENABLE);
+@@ -372,14 +402,8 @@ static void canaan_vo_update_layer1(struct canaan_vo *vo,
+ 	writel(reg_val, vo->reg_base + yctl_reg_offset);
+ 
+ 	y_addr = scanout_addr[0];
+-	writel(y_addr, vo->reg_base + plane_offset + VO_LAYER1_Y_ADDR0);
+-	writel(y_addr, vo->reg_base + plane_offset + VO_LAYER1_Y_ADDR1);
+-
+ 	uv_addr = scanout_addr[1];
+-	writel(uv_addr,
+-	       vo->reg_base + plane_offset + VO_LAYER1_UV_ADDR0);
+-	writel(uv_addr,
+-	       vo->reg_base + plane_offset + VO_LAYER1_UV_ADDR1);
++	canaan_vo_write_base(vo, canaan_plane, y_addr, uv_addr);
+ 
+ 	stride = scanout_pitch[0] | (scanout_pitch[1] << 16);
+ 	writel(stride, vo->reg_base + plane_offset + VO_LAYER1_STRIDE);
+@@ -388,7 +412,13 @@ static void canaan_vo_update_layer1(struct canaan_vo *vo,
+ 	disp_en |= 1 << plane_enable_bit;
+ 	writel(disp_en, vo->reg_base + VO_DISP_ENABLE);
+ 
+-	writel(0x00010100, vo->reg_base + VO_LAYER1_OFFSET + VO_LAYER1_ADDR_SEL_MODE);
++	/*
++	 * LAYER1 ADDR_SEL (0xA3c): bit16 = layer-enable, rest 0 (auto address mode,
++	 * single buffer) -- same style as video2/3.  Clearing bit16 disables the
++	 * layer -> underrun / green screen.
++	 */
++	writel(BIT(16),
++	       vo->reg_base + VO_LAYER1_OFFSET + VO_LAYER1_ADDR_SEL_MODE);
+ 
+ 	writel(0x11,  vo->reg_base + VO_REG_LOAD_CTL);
+ 
+@@ -475,17 +505,74 @@ void canaan_vo_disable_plane(struct canaan_vo *vo,
+ 	writel(disp_en, vo->reg_base + VO_DISP_ENABLE);
+ }
+ 
+-static irqreturn_t canaan_vo_irq_handler(int irq, void *dev_id)
++/*
++ * Armed by the vsync IRQ to fire inside the vertical front porch.  The ONLY
++ * thing it does is drm_crtc_handle_vblank() -- the frame base (BADDR) is
++ * written directly in the atomic commit and latched by hardware at the frame
++ * boundary (video1 fetches slightly ahead, near the end of the frame).
++ *
++ * The vblank is reported from the VFP (after the active region), NOT from the
++ * vsync IRQ at the frame top.  DRM's buffer cleanup
++ * (drm_atomic_helper_wait_for_vblanks) is gated on the vblank count, and the
++ * currently-displayed framebuffer is only finished being scanned at the end of
++ * its active region.  Reporting the vblank in the VFP therefore guarantees the
++ * old framebuffer is released only after its active scan-out is done -- no
++ * use-after-free.  (Reporting at the frame top would be too early: active has
++ * not even started there, and for RDMA a one-frame-late flip could free a
++ * buffer that is about to be displayed.)
++ */
++static enum hrtimer_restart canaan_vo_vfp_timer_cb(struct hrtimer *timer)
+ {
+-	struct canaan_vo *vo = dev_id;
++	struct canaan_vo *vo = container_of(timer, struct canaan_vo, vfp_timer);
+ 	struct canaan_crtc *canaan_crtc = vo->canaan_crtc;
+ 
+-	canaan_vo_write(vo, VO_DISP_IRQ_STATUS, 0xffffffff);
+-
+-	// printk("canaan_vo_irq_handler---------------\n");
+-	if (atomic_read(&vo->vsync_enabled))
++	if (canaan_crtc && atomic_read(&vo->vsync_enabled))
+ 		drm_crtc_handle_vblank(&canaan_crtc->base);
+ 
++	return HRTIMER_NORESTART;
++}
++
++static irqreturn_t canaan_vo_irq_handler(int irq, void *dev_id)
++{
++	struct canaan_vo *vo = dev_id;
++	struct canaan_crtc *canaan_crtc = vo->canaan_crtc;
++	u32 status;
++
++	/*
++	 * VO_DISP_IRQ status/clear: bits 0..2 are write-1-to-clear
++	 * (IRQ0 vsync / IRQ1 line / IRQ2 underrun).  Clear exactly the bits
++	 * that are pending; do not blindly write 0xffffffff.
++	 */
++	status = canaan_vo_read(vo, VO_DISP_IRQ_STATUS);
++	canaan_vo_write(vo, VO_DISP_IRQ_STATUS, status & 0x7);
++
++	/* IRQ0 = vsync (frame start, line 0): arm the VFP vblank timer. */
++	if (status & BIT(0)) {
++		if (vo->vfp_delay_ns) {
++			/*
++			 * The base is already in HW (written in the commit), so
++			 * the timer is needed only to report the vblank.  Arm it
++			 * only when a vblank is subscribed; otherwise let the CPU
++			 * idle instead of running an hrtimer every frame.
++			 */
++			if (atomic_read(&vo->vsync_enabled))
++				hrtimer_start(&vo->vfp_timer,
++					      ns_to_ktime(vo->vfp_delay_ns),
++					      HRTIMER_MODE_REL);
++		} else {
++			/*
++			 * No valid delay: degenerate fallback that reports the
++			 * vblank at the frame top (old timing).  This is the
++			 * early-report path the VFP scheme exists to avoid, so
++			 * surface it once -- RDMA (video1) may tear here.
++			 */
++			dev_warn_once(vo->dev,
++				      "vfp_delay_ns=0: vblank reported at frame top (degenerate timing)\n");
++			if (canaan_crtc && atomic_read(&vo->vsync_enabled))
++				drm_crtc_handle_vblank(&canaan_crtc->base);
++		}
++	}
++
+ 	return IRQ_HANDLED;
+ }
+ 
+@@ -495,22 +582,25 @@ int canaan_vo_enable_vblank(struct canaan_vo *vo)
+ 
+ 	atomic_set(&vo->vsync_enabled, 1);
+ 
+-	val = canaan_vo_read(vo, VO_DISP_IRQ1_CTL);
++	/* vsync IRQ (IRQ0). It is normally already on from enable_crtc. */
++	val = canaan_vo_read(vo, VO_DISP_IRQ0_CTL);
+ 	val |= (1 << 20);
+-	canaan_vo_write(vo, VO_DISP_IRQ1_CTL, val);
++	canaan_vo_write(vo, VO_DISP_IRQ0_CTL, val);
+ 
+ 	return 0;
+ }
+ 
+ void canaan_vo_disable_vblank(struct canaan_vo *vo)
+ {
+-	u32 val;
+-
+ 	atomic_set(&vo->vsync_enabled, 0);
+ 
+-	val = canaan_vo_read(vo, VO_DISP_IRQ1_CTL);
+-	val &= ~(1 << 20);
+-	canaan_vo_write(vo, VO_DISP_IRQ1_CTL, val);
++	/*
++	 * The base is written in the commit, so IRQ0 / the VFP timer are only
++	 * needed to report the vblank.  With no subscriber, turn IRQ0 off so the
++	 * CPU can reach idle instead of taking a hardirq every frame;
++	 * enable_vblank re-arms it.
++	 */
++	canaan_vo_write(vo, VO_DISP_IRQ0_CTL, 0x0);
+ }
+ 
+ static void canaan_vo_init(struct canaan_vo *vo)
+@@ -592,6 +682,8 @@ static void canaan_vo_set_timing(struct canaan_vo *vo,
+ {
+ 	u32 htotal, hsa, hbp, hact, vsa, vbp, vfp, vact, vtotal;
+ 	u32 reg = 0;
++	u32 delay_lines;
++	u64 pclk_hz;
+ 
+ 	htotal = mode->htotal;
+ 	hsa = mode->hsync_end - mode->hsync_start;
+@@ -638,8 +730,34 @@ static void canaan_vo_set_timing(struct canaan_vo *vo,
+ 	reg = (hact - 1) + ((vact - 1) << 16) + (0x1 << 15);
+ 	canaan_vo_write(vo, 0x780, reg); // enalbe remap  0x77f8437
+ 
+-	reg = 32 - __builtin_clz(vtotal) - 1;
+-	canaan_vo_write(vo, VO_DISP_IRQ1_CTL, reg);
++	/*
++	 * The 2^n line interrupt (IRQ1) is no longer used.  Report the vblank at
++	 * the end of the active region (= vtotal - vfp lines after the frame top):
++	 * the framebuffer displayed this frame has just finished being read out
++	 * (video2/3 to the last pixel, video1 a little earlier), so this is the
++	 * earliest point at which the old buffer is safe to release.
++	 */
++	delay_lines = vtotal - vfp;
++	pclk_hz = (u64)mode->clock * 1000;
++	if (pclk_hz && htotal)
++		vo->vfp_delay_ns = div64_u64((u64)delay_lines * htotal *
++						     1000000000ULL,
++					     pclk_hz);
++	else
++		vo->vfp_delay_ns = 0;
++
++	/*
++	 * video1 (RDMA) fetches each frame a little ahead and latches the next
++	 * frame's address near the end of the current frame.  A very short vertical
++	 * front porch (vfp <= 32, e.g. HDMI 1080p/720p) only shortens the time left
++	 * to pre-fetch the next frame: the layer still updates every frame and does
++	 * not tear; only under heavy memory-bandwidth contention could a frame's
++	 * first lines occasionally arrive late.  video2/3 and OSD are unaffected.
++	 */
++	if (vfp <= 32)
++		dev_dbg(vo->dev,
++			"vfp=%u <= 32: video1 prefetch window tight (fine unless memory-bandwidth starved)\n",
++			vfp);
+ }
+ 
+ int  kd_vo_software_reset(void)
+@@ -685,7 +803,17 @@ void canaan_vo_enable_crtc(struct canaan_vo *vo,
+ 	// set background
+ 	canaan_vo_write(vo, VO_DISP_BACKGROUND,
+ 			vo->background); // enalbe remap  0x77f8437
+-	// enable vo
++
++	/*
++	 * IRQ0 (vsync) arms the VFP vblank timer.  The base is written in the
++	 * commit, so IRQ0 is only needed to report the vblank: leave it off here
++	 * and let enable_vblank turn it on for a subscriber (disable_vblank turns
++	 * it back off) -- an unsubscribed CRTC then takes no empty hardirq every
++	 * frame.  IRQ1 (2^n line) and IRQ2 (underrun) stay off.
++	 */
++	canaan_vo_write(vo, VO_DISP_IRQ0_CTL, 0x0);
++
++	// enable vo (first load)
+ 	canaan_vo_write(vo, VO_REG_LOAD_CTL, 0x11);
+ }
+ 
+@@ -694,6 +822,17 @@ void canaan_vo_disable_crtc(struct canaan_vo *vo,
+ {
+ 	void *rst;
+ 
++	/*
++	 * Stop the vsync IRQ and the pending VFP latch before resetting.  Masking
++	 * IRQ0 only blocks new interrupts; an ISR already running on another CPU
++	 * can still re-arm vfp_timer after hrtimer_cancel().  synchronize_irq()
++	 * waits for that handler to finish so the cancel below is final and the
++	 * timer cannot fire into the reset.
++	 */
++	canaan_vo_write(vo, VO_DISP_IRQ0_CTL, 0x0);
++	synchronize_irq(vo->irq);
++	hrtimer_cancel(&vo->vfp_timer);
++
+ 	rst = ioremap(0x91101090, 4);
+ 	writel(0x0, rst);
+ 	fsleep(1000);
+@@ -841,6 +980,10 @@ static int canaan_vo_bind(struct device *dev, struct device *master, void *data)
+ 	dev_info(vo->dev, "background color is %x\n", vo->background);
+ 
+ 	atomic_set(&vo->vsync_enabled, 0);
++
++	hrtimer_init(&vo->vfp_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
++	vo->vfp_timer.function = canaan_vo_vfp_timer_cb;
++
+ 	vo->irq = platform_get_irq(pdev, 0);
+ 	if (vo->irq < 0) {
+ 		DRM_DEV_ERROR(dev, "Failed to get vsync irq\n");
+diff --git a/drivers/gpu/drm/canaan/canaan_vo.h b/drivers/gpu/drm/canaan/canaan_vo.h
+index cfbc983..b36fb92 100644
+--- a/drivers/gpu/drm/canaan/canaan_vo.h
++++ b/drivers/gpu/drm/canaan/canaan_vo.h
+@@ -9,6 +9,9 @@
+ #ifndef __CANAAN_VO_H__
+ #define __CANAAN_VO_H__
+ 
++#include <linux/hrtimer.h>
++#include <linux/ktime.h>
++
+ #define CANAAN_PLANE_NUMBER 7
+ 
+ struct canaan_vo {
+@@ -24,6 +27,16 @@ struct canaan_vo {
+ 
+ 	u32 background;
+ 	u32 vth_line;
++
++	/*
++	 * The vsync (IRQ0) handler arms vfp_timer to fire vfp_delay_ns later,
++	 * inside the vertical front porch of the same frame, where it reports the
++	 * vblank (after the active region has finished scanning out).  The frame
++	 * base is written directly in the atomic commit, so the timer does no
++	 * register programming.
++	 */
++	struct hrtimer vfp_timer;
++	u64 vfp_delay_ns;
+ };
+ 
+ int canaan_vo_check_plane(struct canaan_vo *vo,
+-- 
+2.43.0
+
