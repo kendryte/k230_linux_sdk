@@ -209,8 +209,8 @@ size_t V4l2Drm::calc_buffer_size(struct v4l2_drm_context* ctx) const {
             return ctx->width * ctx->height * 3;
         case V4L2_PIX_FMT_YUYV:
             return ctx->width * ctx->height * 2;
-        case v4l2_fourcc('B', 'G', '3', 'P'):  // BGR32/BGRA32
-            return ctx->width * ctx->height * 4;
+        case v4l2_fourcc('B', 'G', '3', 'P'):  // RGB888 planar
+            return ctx->width * ctx->height * 3;
         default:
             return ctx->vbuffer.length > 0 ? ctx->vbuffer.length
                                            : ctx->width * ctx->height * 3 / 2;

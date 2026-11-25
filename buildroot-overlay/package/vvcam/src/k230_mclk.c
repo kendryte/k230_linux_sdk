@@ -110,9 +110,9 @@ static int parent_to_hw_sel(uint8_t sel)
     case VVCAM_PLL0_CLK_DIV4:
         return 2; /* 400 MHz */
     case VVCAM_PLL1_CLK_DIV3:
-        return 1; /* 792 MHz */
+        return 0; /* 792 MHz */
     case VVCAM_PLL1_CLK_DIV4:
-        return 0; /* 594 MHz */
+        return 1; /* 594 MHz */
     case 0:
     case 1:
     case 2:
@@ -173,8 +173,8 @@ int vvcam_mclk_apply(uint8_t mclk_id, const struct vvcam_mclk_setting *setting)
     div = setting->div;
     if (div < 1)
         div = 1;
-    if (div > 31)
-        div = 31;
+    if (div > 32)
+        div = 32;
 
     if (lock_mclk())
         return -1;
@@ -184,7 +184,8 @@ int vvcam_mclk_apply(uint8_t mclk_id, const struct vvcam_mclk_setting *setting)
     }
 
     reg = read_mclk();
-    set_channel(&reg, mclk_id, 1, hw_sel, div);
+    /* the divider field holds (div - 1) */
+    set_channel(&reg, mclk_id, 1, hw_sel, div - 1);
     write_mclk(reg);
 
     fprintf(stderr,

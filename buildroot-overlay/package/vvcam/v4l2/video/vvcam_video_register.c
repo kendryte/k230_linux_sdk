@@ -77,7 +77,7 @@
 #endif
 
 #ifndef V4L2_PIX_FMT_BG3P
-#define V4L2_PIX_FMT_BG3P v4l2_fourcc('B', 'G', '3', 'P') /* 3 planer BGR format */
+#define V4L2_PIX_FMT_BG3P v4l2_fourcc('B', 'G', '3', 'P') /* 3-plane RGB888, R then G then B */
 #endif
 
 static struct vvcam_video_fmt_info vvcam_formats_info[] = {
@@ -99,7 +99,7 @@ static struct vvcam_video_fmt_info vvcam_formats_info[] = {
     },
     {
         .fourcc    = V4L2_PIX_FMT_BG3P,
-        .mbus      = MEDIA_BUS_FMT_BGR888_3X8,
+        .mbus      = MEDIA_BUS_FMT_RGB888_3X8,
     },
     {
         .fourcc    = V4L2_PIX_FMT_SBGGR8,
@@ -439,9 +439,8 @@ static int vvcam_videoc_enum_fmt_vid_cap(struct file *file, void *priv,
         ret = vvcam_video_mbus_to_fourcc(mbus_code.code, &f->pixelformat);
         if (ret)
             return ret;
-        if (f->pixelformat == V4L2_PIX_FMT_BG3P) {
-            memcpy(f->description, "24-bit BGR planer", 17);
-        }
+        if (f->pixelformat == V4L2_PIX_FMT_BG3P)
+            strscpy(f->description, "24-bit RGB planar", sizeof(f->description));
     }
 
     return ret;
