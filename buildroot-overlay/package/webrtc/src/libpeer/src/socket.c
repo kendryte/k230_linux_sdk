@@ -27,11 +27,17 @@ int udp_socket_add_multicast_group(UdpSocket* udp_socket, Address* mcast_addr) {
   return 0;
 }
 
-int udp_socket_open(UdpSocket* udp_socket, int family, int port) {
-  int ret;
+static int udp_socket_open_internal(UdpSocket* udp_socket, int family, int port,
+                                    const Address* local_addr) {
+  int ret = -1;
   int reuse = 1;
   struct sockaddr* sa;
   socklen_t sock_len;
+
+  if (local_addr != NULL && local_addr->family != family) {
+    LOGE("Local bind address family does not match socket family");
+    return -1;
+  }
 
   udp_socket->bind_addr.family = family;
   switch (family) {
@@ -39,7 +45,9 @@ int udp_socket_open(UdpSocket* udp_socket, int family, int port) {
       udp_socket->fd = socket(AF_INET6, SOCK_DGRAM, 0);
       udp_socket->bind_addr.sin6.sin6_family = AF_INET6;
       udp_socket->bind_addr.sin6.sin6_port = htons(port);
-      udp_socket->bind_addr.sin6.sin6_addr = in6addr_any;
+      udp_socket->bind_addr.sin6.sin6_addr = local_addr != NULL
+                                                 ? local_addr->sin6.sin6_addr
+                                                 : in6addr_any;
       udp_socket->bind_addr.port = ntohs(udp_socket->bind_addr.sin6.sin6_port);
       sa = (struct sockaddr*)&udp_socket->bind_addr.sin6;
       sock_len = sizeof(struct sockaddr_in6);
@@ -49,7 +57,9 @@ int udp_socket_open(UdpSocket* udp_socket, int family, int port) {
       udp_socket->fd = socket(AF_INET, SOCK_DGRAM, 0);
       udp_socket->bind_addr.sin.sin_family = AF_INET;
       udp_socket->bind_addr.sin.sin_port = htons(port);
-      udp_socket->bind_addr.sin.sin_addr.s_addr = htonl(INADDR_ANY);
+      udp_socket->bind_addr.sin.sin_addr.s_addr = local_addr != NULL
+                                                     ? local_addr->sin.sin_addr.s_addr
+                                                     : htonl(INADDR_ANY);
       sa = (struct sockaddr*)&udp_socket->bind_addr.sin;
       sock_len = sizeof(struct sockaddr_in);
       break;
@@ -94,10 +104,35 @@ int udp_socket_open(UdpSocket* udp_socket, int family, int port) {
   return 0;
 }
 
+int udp_socket_open(UdpSocket* udp_socket, int family, int port) {
+  return udp_socket_open_internal(udp_socket, family, port, NULL);
+}
+
+int udp_socket_rebind(UdpSocket* udp_socket, const Address* local_addr) {
+  UdpSocket replacement;
+  int family;
+
+  if (udp_socket == NULL) {
+    return -1;
+  }
+
+  family = local_addr != NULL ? local_addr->family : udp_socket->bind_addr.family;
+  memset(&replacement, 0, sizeof(replacement));
+  replacement.fd = -1;
+  if (udp_socket_open_internal(&replacement, family, 0, local_addr) < 0) {
+    return -1;
+  }
+
+  udp_socket_close(udp_socket);
+  *udp_socket = replacement;
+  return 0;
+}
+
 void udp_socket_close(UdpSocket* udp_socket) {
-  if (udp_socket->fd > 0) {
+  if (udp_socket->fd >= 0) {
     close(udp_socket->fd);
   }
+  udp_socket->fd = -1;
 }
 
 int udp_socket_sendto(UdpSocket* udp_socket, Address* addr, const uint8_t* buf, int len) {
@@ -132,7 +167,7 @@ int udp_socket_sendto(UdpSocket* udp_socket, Address* addr, const uint8_t* buf, 
   return ret;
 }
 
-int udp_socket_recvfrom(UdpSocket* udp_socket, Address* addr, uint8_t* buf, int len) {
+static int udp_socket_recvfrom_flags(UdpSocket* udp_socket, Address* addr, uint8_t* buf, int len, int flags) {
   struct sockaddr_in6 sin6;
   struct sockaddr_in sin;
   struct sockaddr* sa;
@@ -158,7 +193,10 @@ int udp_socket_recvfrom(UdpSocket* udp_socket, Address* addr, uint8_t* buf, int 
       break;
   }
 
-  if ((ret = recvfrom(udp_socket->fd, buf, len, 0, sa, &sock_len)) < 0) {
+  if ((ret = recvfrom(udp_socket->fd, buf, len, flags, sa, &sock_len)) < 0) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      return 0;
+    }
     LOGE("Failed to recvfrom: %s", strerror(errno));
     return -1;
   }
@@ -167,19 +205,27 @@ int udp_socket_recvfrom(UdpSocket* udp_socket, Address* addr, uint8_t* buf, int 
     switch (udp_socket->bind_addr.family) {
       case AF_INET6:
         addr->family = AF_INET6;
-        addr->port = htons(sin6.sin6_port);
+        addr->port = ntohs(sin6.sin6_port);
         memcpy(&addr->sin6, &sin6, sizeof(struct sockaddr_in6));
         break;
       case AF_INET:
       default:
         addr->family = AF_INET;
-        addr->port = htons(sin.sin_port);
+        addr->port = ntohs(sin.sin_port);
         memcpy(&addr->sin, &sin, sizeof(struct sockaddr_in));
         break;
     }
   }
 
   return ret;
+}
+
+int udp_socket_recvfrom(UdpSocket* udp_socket, Address* addr, uint8_t* buf, int len) {
+  return udp_socket_recvfrom_flags(udp_socket, addr, buf, len, 0);
+}
+
+int udp_socket_recvfrom_nonblocking(UdpSocket* udp_socket, Address* addr, uint8_t* buf, int len) {
+  return udp_socket_recvfrom_flags(udp_socket, addr, buf, len, MSG_DONTWAIT);
 }
 
 int tcp_socket_open(TcpSocket* tcp_socket, int family) {

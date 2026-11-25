@@ -18,16 +18,19 @@
 #include "mjpegLiveFrameSource.h"
 #include "mjpegMediaSubSession.h"
 #include "mjpegStreamReplicator.h"
-#include "g711BackChannelServerMediaSubsession.h"
 
-class OnBackChannel: public IOnData {
-  public:
-    explicit OnBackChannel(const std::string &name, IOnBackChannel *back_channel): name_(name), back_channel_(back_channel) {}
-    virtual void OnData(const unsigned char *data, unsigned dataSize, struct timeval presentationTime);
-  private:
-    std::string name_;
-    IOnBackChannel *back_channel_{nullptr};
-};
+// How many encoded frames a session will hold before it starts dropping the
+// oldest. 8 was not enough: one I-frame plus the P-frames behind it already
+// fills that, so a client that stalled for a moment lost picture instead of
+// catching up.
+static constexpr unsigned kVideoQueueSize = 64;
+static constexpr unsigned kAudioQueueSize = 64;
+
+// How long a client may go quiet before the server hangs up on it. live555
+// counts from the last RTCP receiver report, and clients commonly send those
+// every 5s or so under load, so 10s hung up on viewers that were perfectly
+// alive. 65s matches what the RT-Smart side uses.
+static constexpr unsigned kReclamationSeconds = 65;
 
 struct SessionInfo {
     // video,  FIXME
@@ -38,8 +41,6 @@ struct SessionInfo {
     // audio
     LiveFrameSource *g711_source = nullptr;
     StreamReplicator *g711_replicator = nullptr;
-    // backchannel
-    std::shared_ptr<IOnData> back_channel = nullptr;
 };
 
 static std::mutex session_info_map_mutex_;
@@ -47,20 +48,12 @@ static std::map<std::string, SessionInfo> session_info_map_;
 typedef std::map<std::string, std::string> SessionUrlMap;
 static SessionUrlMap session_url_map_;
 
-void OnBackChannel::OnData(unsigned char const* data, unsigned size, struct timeval presentationTime) {
-    if (back_channel_) {
-        uint64_t ms = presentationTime.tv_sec * 1000 + presentationTime.tv_usec/1000;
-        // std::cout << "OnBackChannel::OnData : size = " << size << ", timestamp = " << ms << std::endl;
-        back_channel_->OnBackChannelData(name_, data, size, ms);
-    }
-}
-
 class KdRtspServer::Impl {
   public:
     Impl() {}
     ~Impl() { DeInit(); }
 
-    int Init(Port port = 8554, IOnBackChannel *back_channel = nullptr);
+    int Init(Port port = 8554);
     void DeInit();
 
     int CreateSession(const std::string &session_name, const SessionAttr &session_attr);
@@ -85,20 +78,17 @@ class KdRtspServer::Impl {
     RTSPServer *rtspServer_{nullptr};
     volatile char watchVariable_{0};
     std::thread server_loop_;
-    IOnBackChannel *back_channel_{nullptr};
 };
 
-int KdRtspServer::Impl::Init(Port port, IOnBackChannel *back_channel) {
+int KdRtspServer::Impl::Init(Port port) {
     scheduler_ = BasicTaskScheduler::createNew();
     env_ = BasicUsageEnvironment::createNew(*scheduler_);
     UserAuthenticationDatabase* authDB = nullptr;
-    unsigned reclamationSeconds = 10;
-    rtspServer_ = RTSPServer::createNew(*env_, port, authDB, reclamationSeconds);
+    rtspServer_ = RTSPServer::createNew(*env_, port, authDB, kReclamationSeconds);
     if (!rtspServer_) {
         *env_ << "create rtsp server failed." << env_->getResultMsg() << "\n";
         return -1;
     }
-    back_channel_ = back_channel;
     return 0;
 }
 
@@ -120,7 +110,7 @@ int KdRtspServer::Impl::CreateSession(const std::string &session_name, const Ses
         return 0;
     }
     lck.unlock();
-    if (!session_attr.with_video && !session_attr.with_audio && !session_attr.with_audio_backchannel)  {
+    if (!session_attr.with_video && !session_attr.with_audio)  {
         *env_ << "no subSessions\n";
         return -1;
     }
@@ -132,15 +122,15 @@ int KdRtspServer::Impl::CreateSession(const std::string &session_name, const Ses
     SessionInfo info;
     if(session_attr.with_video) {
         if (session_attr.video_type == VideoType::kVideoTypeH264) {
-            info.h26x_source = H264LiveFrameSource::createNew(*env_, 8);
+            info.h26x_source = H264LiveFrameSource::createNew(*env_, kVideoQueueSize);
             info.h26x_replicator = StreamReplicator::createNew(*env_, info.h26x_source, false);
             if (!info.h26x_replicator) goto err_exit;
         } else if (session_attr.video_type == VideoType::kVideoTypeH265) {
-            info.h26x_source = H265LiveFrameSource::createNew(*env_, 8);
+            info.h26x_source = H265LiveFrameSource::createNew(*env_, kVideoQueueSize);
             info.h26x_replicator = StreamReplicator::createNew(*env_, info.h26x_source, false);
             if (!info.h26x_replicator) goto err_exit;
         } else if (session_attr.video_type == VideoType::kVideoTypeMjpeg) {
-            info.jpeg_source = MjpegLiveVideoSource::createNew(*env_, 8);
+            info.jpeg_source = MjpegLiveVideoSource::createNew(*env_, kVideoQueueSize);
             info.jpeg_replicator = JpegStreamReplicator::createNew(*env_, info.jpeg_source, false);
             if (!info.jpeg_replicator) goto err_exit;
         } else {
@@ -152,13 +142,8 @@ int KdRtspServer::Impl::CreateSession(const std::string &session_name, const Ses
 
     if (session_attr.with_audio) {
         std::cout << "with_audio" << std::endl;
-        info.g711_source = G711LiveFrameSource::createNew(*env_, 8);
+        info.g711_source = G711LiveFrameSource::createNew(*env_, kAudioQueueSize);
         info.g711_replicator = StreamReplicator::createNew(*env_, info.g711_source, false);
-    }
-
-    if (session_attr.with_audio_backchannel) {
-        std::cout << "with_audio_backchannel" << std::endl;
-        info.back_channel = std::make_shared<OnBackChannel>(session_name, back_channel_);
     }
 
     // create SMS and subsessions
@@ -179,12 +164,6 @@ int KdRtspServer::Impl::CreateSession(const std::string &session_name, const Ses
         sms->addSubsession(g711liveSubSession);
     }
 
-    if (info.back_channel) {
-        G711BackChannelServerMediaSubsession *backChannel = G711BackChannelServerMediaSubsession::createNew(*env_, info.back_channel.get());
-        std::cout << "G711BackChannelServerMediaSubsession" << std::endl;
-        sms->addSubsession(backChannel);
-    }
-
     rtspServer_->addServerMediaSession(sms);
     announceStream(sms, session_name.c_str());
 
@@ -196,7 +175,6 @@ err_exit:
     if (info.h26x_replicator) Medium::close(info.h26x_replicator);
     if (info.jpeg_replicator) Medium::close(info.jpeg_replicator);
     if (info.g711_replicator) Medium::close(info.g711_replicator);
-    if (info.back_channel) info.back_channel.reset();
     return -1;
 }
 
@@ -204,13 +182,20 @@ err_exit:
 int KdRtspServer::Impl::DestroySession(const std::string &session_name) {
     std::unique_lock<std::mutex> lck(session_info_map_mutex_);
     auto iter = session_info_map_.find(session_name);
-    if (iter != session_info_map_.end()) {
-        if (iter->second.h26x_replicator) Medium::close(iter->second.h26x_replicator);
-        if (iter->second.jpeg_replicator) Medium::close(iter->second.jpeg_replicator);
-        if (iter->second.g711_replicator) Medium::close(iter->second.g711_replicator);
-        if (iter->second.back_channel) iter->second.back_channel.reset();
+    if (iter == session_info_map_.end()) {
+        // erase(end()) is undefined behaviour, so a name that is not there
+        // has to return before it gets that far
+        return -1;
     }
+
+    // Viewers before the thing they are reading from, as in Stop()
+    if (rtspServer_) rtspServer_->deleteServerMediaSession(session_name.c_str());
+    if (iter->second.h26x_replicator) Medium::close(iter->second.h26x_replicator);
+    if (iter->second.jpeg_replicator) Medium::close(iter->second.jpeg_replicator);
+    if (iter->second.g711_replicator) Medium::close(iter->second.g711_replicator);
+
     session_info_map_.erase(iter);
+    session_url_map_.erase(session_name);
     return 0;
 }
 
@@ -237,20 +222,27 @@ void KdRtspServer::Impl::Start() {
 }
 
 void KdRtspServer::Impl::Stop() {
-    std::unique_lock<std::mutex> lck(session_info_map_mutex_);
-    for(auto &it: session_info_map_) {
-        if (it.second.h26x_replicator) Medium::close(it.second.h26x_replicator);
-        if (it.second.jpeg_replicator) Medium::close(it.second.jpeg_replicator);
-        if (it.second.g711_replicator) Medium::close(it.second.g711_replicator);
-        if (it.second.back_channel) it.second.back_channel.reset();
-    }
-    session_info_map_.clear();
-    lck.unlock();
-
+    // live555 is single threaded: every object below belongs to the event
+    // loop, so the loop has to be stopped before any of them is freed.
+    // Closing them first left doEventLoop() walking memory that had already
+    // gone back to the heap, which is a segfault on the way out.
     if(server_loop_.joinable()) {
       watchVariable_ = 1;
       server_loop_.join();
     }
+
+    std::unique_lock<std::mutex> lck(session_info_map_mutex_);
+    for(auto &it: session_info_map_) {
+        // Anyone still watching holds a replica of the replicator, and
+        // tearing that replica down reaches back into the replicator. So
+        // the viewers go first, then the thing they were reading from.
+        if (rtspServer_) rtspServer_->deleteServerMediaSession(it.first.c_str());
+        if (it.second.h26x_replicator) Medium::close(it.second.h26x_replicator);
+        if (it.second.jpeg_replicator) Medium::close(it.second.jpeg_replicator);
+        if (it.second.g711_replicator) Medium::close(it.second.g711_replicator);
+    }
+    session_info_map_.clear();
+    session_url_map_.clear();
 }
 
 
@@ -297,8 +289,8 @@ int KdRtspServer::Impl::SendAudioData(const std::string &session_name, const uin
 KdRtspServer::KdRtspServer() : impl_(std::make_unique<Impl>()) {}
 KdRtspServer::~KdRtspServer() {}
 
-int KdRtspServer::Init(int port, IOnBackChannel *back_channel) {
-    return impl_->Init((Port)port, back_channel);
+int KdRtspServer::Init(int port) {
+    return impl_->Init((Port)port);
 }
 
 void KdRtspServer::DeInit() {

@@ -1,0 +1,11 @@
+config BR2_PACKAGE_LIBVCODEC
+	bool "libvcodec (K230 VPU 编解码封装库)"
+	help
+	  K230 VPU（ARM Linlon/MVX）编解码封装库。
+
+	  把 V4L2 M2M 的 OUTPUT/CAPTURE 方向、drain 收尾、
+	  SOURCE_CHANGE 事件、dmabuf 导入这些细节包起来，
+	  对外只给 kd_enc_* / kd_dec_* / kd_bufgroup_* 三组接口。
+
+	  纯 C、零第三方依赖，支持摄像头 → 编码器、
+	  解码器 → DRM 显示两个方向的零拷贝。

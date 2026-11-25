@@ -83,6 +83,13 @@ typedef struct PeerConfiguration {
   void (*on_request_keyframe)(void* userdata);
   void* user_data;
 
+  /* Optional local IPv4 address to advertise as the host ICE candidate.
+   * This does not bind the ICE socket; use peer_connection_set_local_ip()
+   * when traffic must use the selected interface.
+   * This is needed for interfaces such as a SoftAP that cannot be selected
+   * as RT-Smart's default uplink. */
+  const char* local_ip;
+
 } PeerConfiguration;
 
 typedef struct PeerConnection PeerConnection;
@@ -93,7 +100,14 @@ PeerConnectionState peer_connection_get_state(PeerConnection* pc);
 
 void* peer_connection_get_sctp(PeerConnection* pc);
 
+/** Returns NULL if allocation or ICE socket creation fails. */
 PeerConnection* peer_connection_create(PeerConfiguration* config);
+
+/**
+ * Bind the ICE UDP socket and advertise the bound local IPv4 address in host
+ * candidates. The peer connection must be new or closed before changing it.
+ */
+int peer_connection_set_local_ip(PeerConnection* pc, const char* local_ip);
 
 void peer_connection_destroy(PeerConnection* pc);
 

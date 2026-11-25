@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/types.h>
 
 #include "ice.h"
@@ -46,6 +47,19 @@ void ice_candidate_create(IceCandidate* candidate, int foundation, IceCandidateT
   snprintf(candidate->transport, sizeof(candidate->transport), "%s", "UDP");
 }
 
+int ice_candidate_equal(const IceCandidate* a, const IceCandidate* b) {
+  if (a == NULL || b == NULL) {
+    return 0;
+  }
+
+  /* A foundation can be shared by candidates with different endpoints. */
+  return a->component == b->component && a->type == b->type &&
+         strcasecmp(a->transport, b->transport) == 0 &&
+         addr_equal(&a->addr, &b->addr) &&
+         ((a->raddr.family == 0 && b->raddr.family == 0) ||
+          addr_equal(&a->raddr, &b->raddr));
+}
+
 void ice_candidate_to_description(IceCandidate* candidate, char* description, int length) {
   char addr_string[ADDRSTRLEN];
   char typ_raddr[128];
@@ -79,19 +93,37 @@ void ice_candidate_to_description(IceCandidate* candidate, char* description, in
 }
 
 int ice_candidate_from_description(IceCandidate* candidate, char* description, char* end) {
-  char* candidate_start = description;
+  char candidate_line[1024];
+  char* candidate_start = candidate_line;
+  size_t line_len;
   uint32_t port;
   char type[16];
   char addrstring[ADDRSTRLEN];
 
+  if (candidate == NULL || description == NULL || end == NULL || end < description) {
+    return -1;
+  }
+  line_len = (size_t)(end - description);
+  if (line_len == 0 || line_len >= sizeof(candidate_line)) {
+    LOGE("ICE candidate line is empty or too long");
+    return -1;
+  }
+  memcpy(candidate_line, description, line_len);
+  candidate_line[line_len] = '\0';
+  memset(candidate, 0, sizeof(*candidate));
+
   if (strncmp("a=", candidate_start, strlen("a=")) == 0) {
     candidate_start += strlen("a=");
+  }
+  if (strncmp("candidate:", candidate_start, strlen("candidate:")) != 0) {
+    LOGE("Invalid ICE candidate prefix");
+    return -1;
   }
   candidate_start += strlen("candidate:");
 
   // a=candidate:448736988 1 udp 2122260223 172.17.0.1 49250 typ host generation 0 network-id 1 network-cost 50
   // a=candidate:udpcandidate 1 udp 120 192.168.1.102 8000 typ host
-  if (sscanf(candidate_start, "%s %d %s %" PRIu32 " %s %" PRIu32 " typ %s",
+  if (sscanf(candidate_start, "%32s %d %32s %" PRIu32 " %45s %" PRIu32 " typ %15s",
              candidate->foundation,
              &candidate->component,
              candidate->transport,
@@ -100,6 +132,11 @@ int ice_candidate_from_description(IceCandidate* candidate, char* description, c
              &port,
              type) != 7) {
     LOGE("Failed to parse ICE candidate description");
+    return -1;
+  }
+
+  if (candidate->component <= 0 || candidate->component > 256 || port > UINT16_MAX) {
+    LOGE("Invalid ICE candidate component or port");
     return -1;
   }
 
@@ -134,14 +171,21 @@ int ice_candidate_from_description(IceCandidate* candidate, char* description, c
   if (candidate->type == ICE_CANDIDATE_TYPE_SRFLX || candidate->type == ICE_CANDIDATE_TYPE_RELAY) {
     char* raddr_pos = strstr(candidate_start, "raddr");
     char* rport_pos = strstr(candidate_start, "rport");
-    if (raddr_pos && rport_pos && raddr_pos < end && rport_pos < end) {
+    if (raddr_pos && rport_pos) {
       char raddr_str[ADDRSTRLEN];
       uint32_t rport_val;
-      if (sscanf(raddr_pos + 6, "%s", raddr_str) == 1) {
-        addr_from_string(raddr_str, &candidate->raddr);
+      if (sscanf(raddr_pos + 6, "%45s", raddr_str) == 1) {
+        if (!addr_from_string(raddr_str, &candidate->raddr)) {
+          LOGE("Invalid ICE related address");
+          return -1;
+        }
         addr_set_family(&candidate->raddr, candidate->addr.family);
       }
       if (sscanf(rport_pos + 6, "%" PRIu32, &rport_val) == 1) {
+        if (rport_val > UINT16_MAX) {
+          LOGE("Invalid ICE related port");
+          return -1;
+        }
         addr_set_port(&candidate->raddr, (uint16_t)rport_val);
       }
     }

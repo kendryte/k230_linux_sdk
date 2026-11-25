@@ -1,0 +1,167 @@
+From: Canaan K230 BSP <bsp@canaan-creative.com>
+Date: Mon, 24 Nov 2026 07:00:00 +0800
+Subject: [PATCH] media: canaan: vpu: honour per-plane data_offset on input
+ frames
+
+The VPU wants NV12 as two planes. A camera hands out NV12 as one buffer,
+because that is all the V4L2 core allows it to do: v4l2_format_info()
+gives V4L2_PIX_FMT_NV12 mem_planes = 1, so one frame is one dmabuf and
+there is no second fd to import.
+
+V4L2 already has an answer for that - name the same fd on both planes
+and set data_offset on the second one to the size of the luma. The
+driver did not implement it, so the only way to feed the encoder from
+the camera was to copy every frame into a buffer the driver did like.
+At 1080p30 that is 3 MB of memcpy per frame, and the memory it reads
+from is uncached.
+
+Three things were in the way:
+
+ - update_mvx_buffer() passed V4L2's bytesused straight through as MVX's
+   'filled'. V4L2 counts data_offset inside bytesused, MVX does not; the
+   driver's own comment in update_v4l2_bytesused() says so and the
+   dequeue direction already obeys it. The queue direction therefore
+   over-counted by data_offset and mvx_buffer_filled_set() rejected a
+   plane that fit exactly.
+
+ - Nothing kept data_offset for the firmware to use.
+
+ - mvx_firmware_v2.c pointed plane_top at the start of the imported
+   memory, so the chroma was read from the address of the luma and the
+   picture came out green.
+
+Fixed by carrying data_offset in a new field of struct
+mvx_buffer_plane. The existing @offset field could not be reused: it
+also carries the intra-page remainder of an mmap offset, which
+mvx_buffer_va() has already accounted for, and mvx_buffer_frame_set()
+clears it.
+
+Deliberately inert for everyone who does not set data_offset, which is
+every existing user - ffmpeg's v4l2_m2m encoder never writes it on QBUF.
+With data_offset == 0 the subtraction, the new field and the added term
+in plane_top are all zero and the driver behaves exactly as before.
+
+Capture buffers clear the new field in mvx_buffer_frame_set(), next to
+where @offset is already cleared, because vb2_fill_vb2_v4l2_buffer()
+does not reset data_offset on a capture QBUF - what is left in there is
+whatever the driver itself reported on the previous dequeue.
+
+Signed-off-by: Canaan K230 BSP <bsp@canaan-creative.com>
+---
+--- a/drivers/media/platform/canaan/vpu/mvx_buffer.h
++++ b/drivers/media/platform/canaan/vpu/mvx_buffer.h
+@@ -61,6 +61,20 @@
+ 	unsigned int stride;
+ 	unsigned int filled;
+ 	unsigned int offset;
++	/**
++	 * data_offset: Where this plane's data starts inside the memory it was
++	 * imported from, taken straight from v4l2_plane.data_offset.
++	 *
++	 * Zero for every caller that gives each plane memory of its own, which
++	 * is all of them except an application that hands in one dmabuf
++	 * holding a whole multi-plane frame - the chroma of an NV12 frame
++	 * being the same dmabuf, luma_size bytes in.
++	 *
++	 * Kept apart from @offset on purpose. @offset also carries the
++	 * intra-page remainder of an mmap offset and is cleared again for
++	 * capture buffers, so it cannot be reused for this.
++	 */
++	unsigned int data_offset;
+ 	unsigned int afbc_width;
+ };
+ 
+--- a/drivers/media/platform/canaan/vpu/mvx_v4l2_buffer.c
++++ b/drivers/media/platform/canaan/vpu/mvx_v4l2_buffer.c
+@@ -316,7 +316,9 @@
+ 	mvx_buf->user_data = vb2->timestamp;
+ 
+ 	for (i = 0; i < vb2->num_planes; i++) {
+-		unsigned int offset = vb2->planes[i].data_offset;
++		unsigned int data_offset = vb2->planes[i].data_offset;
++		unsigned int filled = vb2->planes[i].bytesused;
++		unsigned int offset = data_offset;
+ 
+ 			/*
+ 			 * For single planar mmap buffers the offset is carried by
+@@ -325,8 +327,34 @@
+ 		if (vb2->memory == V4L2_MEMORY_MMAP)
+ 			offset += vb2->planes[i].m.offset & ~PAGE_MASK;
+ 
+-		ret = mvx_buffer_filled_set(mvx_buf, i,
+-					    vb2->planes[i].bytesused, offset);
++		/*
++		 * V4L2 counts data_offset inside bytesused, MVX does not -
++		 * see the comment in update_v4l2_bytesused() below, which
++		 * hands the pair back the other way round as
++		 * 'filled + offset'. Take it off here so the two agree.
++		 *
++		 * Without this a plane that starts part way into its buffer,
++		 * which is how one allocation carries both the luma and the
++		 * chroma of an NV12 frame, is rejected by
++		 * mvx_buffer_filled_set() for overflowing a buffer it fits
++		 * in exactly.
++		 *
++		 * Everyone who leaves data_offset at zero, which is every
++		 * caller that gives each plane memory of its own, is left
++		 * exactly where they were.
++		 */
++		if (filled >= data_offset)
++			filled -= data_offset;
++
++		/*
++		 * Remembered separately for the firmware, which has to be
++		 * told where the plane starts. It cannot read it back out of
++		 * @offset: that one also carries the intra-page remainder
++		 * added just above, and mvx_buffer_frame_set() clears it.
++		 */
++		mvx_buf->planes[i].data_offset = data_offset;
++
++		ret = mvx_buffer_filled_set(mvx_buf, i, filled, offset);
+ 		if (ret != 0)
+ 			return ret;
+ 	}
+--- a/drivers/media/platform/canaan/vpu/mvx_buffer.c
++++ b/drivers/media/platform/canaan/vpu/mvx_buffer.c
+@@ -478,6 +478,17 @@
+ 		if (buf->dir == MVX_DIR_OUTPUT) {
+ 			int ret;
+ 
++			/*
++			 * A capture frame is laid out by the driver, every
++			 * plane starting at the top of its own memory. Clear
++			 * the offset the application sent in, the same way
++			 * @offset is cleared just above - vb2 does not reset
++			 * data_offset on a capture QBUF, so what is left
++			 * there is whatever the driver itself reported on the
++			 * previous dequeue.
++			 */
++			plane->data_offset = 0;
++
+ 			ret = mvx_buffer_filled_set(buf, i, size[i], 0);
+ 			if (ret != 0)
+ 				return ret;
+--- a/drivers/media/platform/canaan/vpu/mvx_firmware_v2.c
++++ b/drivers/media/platform/canaan/vpu/mvx_firmware_v2.c
+@@ -1328,8 +1328,17 @@
+ 		for (i = 0; i < buf->nplanes; i++) {
+ 			struct mvx_buffer_plane *plane = &buf->planes[i];
+ 
++			/*
++			 * plane->data_offset is where this plane starts
++			 * inside the memory it was imported from. It is zero
++			 * for every caller that gives each plane memory of
++			 * its own, and it is what lets one allocation carry a
++			 * whole NV12 frame: the chroma is the same dmabuf,
++			 * luma_size bytes in.
++			 */
+ 			if (plane->stride > 0)
+-				planar->plane_top[i] = mvx_buffer_va(buf, i);
++				planar->plane_top[i] = mvx_buffer_va(buf, i) +
++						       plane->data_offset;
+ 
+ 			if (f.frame_flags & MVE_BUFFER_FRAME_FLAG_INTERLACE) {
+ 				// interlace mode
+-- 
+2.34.1
+

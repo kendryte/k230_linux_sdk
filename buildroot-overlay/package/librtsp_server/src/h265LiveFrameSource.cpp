@@ -14,12 +14,19 @@ const uint8_t H265marker[] = {0, 0, 0, 1};
 uint8_t *H265LiveFrameSource::extractFrame(uint8_t *frame, size_t &size, size_t &outsize) {
     unsigned char *outFrame = NULL;
     outsize = 0;
+    size_t markerSize = 0;
     if ((size >= sizeof(H265marker)) && (memcmp(frame, H265marker, sizeof(H265marker)) == 0)) {
-        size -= sizeof(H265marker);
-        outFrame = &frame[sizeof(H265marker)];
+        markerSize = sizeof(H265marker);
+    } else if (size >= 3 && frame[0] == 0 && frame[1] == 0 && frame[2] == 1) {
+        markerSize = 3;
+    }
+    if (markerSize > 0) {
+        size -= markerSize;
+        outFrame = &frame[markerSize];
         outsize = size;
-        for (int i = 0; i + sizeof(H265marker) < size; ++i) {
-            if (memcmp(&outFrame[i], H265marker, sizeof(H265marker)) == 0) {
+        for (size_t i = 0; i + 3 <= size; ++i) {
+            if ((i + sizeof(H265marker) <= size && memcmp(&outFrame[i], H265marker, sizeof(H265marker)) == 0)
+                || (outFrame[i] == 0 && outFrame[i + 1] == 0 && outFrame[i + 2] == 1)) {
                 outsize = (size_t) i;
                 break;
             }
@@ -92,6 +99,7 @@ H265LiveFrameSource::parseFrame(std::shared_ptr<uint8_t> data, size_t data_size,
             // std::cout << "H265 SDP-aux-line: " << fAuxLine.c_str() << std::endl;
         }
         FramePacket packet(data, buffer - data.get(), size, ref);
+        packet.is_vcl_ = nal_type <= 31;
         packetList.push_back(packet);
         buffer = this->extractFrame(&buffer[size], bufSize, size);
     }

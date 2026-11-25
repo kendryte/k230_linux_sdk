@@ -14,12 +14,19 @@ const uint8_t H264marker[] = {0, 0, 0, 1};
 uint8_t *H264LiveFrameSource::extractFrame(uint8_t *frame, size_t &size, size_t &outsize) {
     unsigned char *outFrame = NULL;
     outsize = 0;
+    size_t markerSize = 0;
     if ((size >= sizeof(H264marker)) && (memcmp(frame, H264marker, sizeof(H264marker)) == 0)) {
-        size -= sizeof(H264marker);
-        outFrame = &frame[sizeof(H264marker)];
+        markerSize = sizeof(H264marker);
+    } else if (size >= 3 && frame[0] == 0 && frame[1] == 0 && frame[2] == 1) {
+        markerSize = 3;
+    }
+    if (markerSize > 0) {
+        size -= markerSize;
+        outFrame = &frame[markerSize];
         outsize = size;
-        for (int i = 0; i + sizeof(H264marker) < size; ++i) {
-            if (memcmp(&outFrame[i], H264marker, sizeof(H264marker)) == 0) {
+        for (size_t i = 0; i + 3 <= size; ++i) {
+            if ((i + sizeof(H264marker) <= size && memcmp(&outFrame[i], H264marker, sizeof(H264marker)) == 0)
+                || (outFrame[i] == 0 && outFrame[i + 1] == 0 && outFrame[i + 2] == 1)) {
                 outsize = (size_t) i;
                 break;
             }
@@ -37,7 +44,8 @@ H264LiveFrameSource::parseFrame(std::shared_ptr<uint8_t> data, size_t data_size,
     size_t size = 0;
     uint8_t *buffer = this->extractFrame(data.get(), bufSize, size);
     while (buffer != NULL) {
-        switch (buffer[0] & 0x1F) {
+        uint8_t nal_type = buffer[0] & 0x1F;
+        switch (nal_type) {
             case 7:
                 fAuxLine.clear();
                 fSps.reset(), fPps.reset();
@@ -70,7 +78,7 @@ H264LiveFrameSource::parseFrame(std::shared_ptr<uint8_t> data, size_t data_size,
             char *pps_base64 = base64Encode((char*)fPps.get(), pps_size);
 
             std::ostringstream os;
-            os << "profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
+            os << "packetization-mode=1;profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
             os << ";sprop-parameter-sets=" << sps_base64 << "," << pps_base64 << ";";
             fAuxLine.assign(os.str());
 
@@ -79,6 +87,7 @@ H264LiveFrameSource::parseFrame(std::shared_ptr<uint8_t> data, size_t data_size,
             // std::cout << "H264 SDP-aux-line: " << fAuxLine.c_str() << std::endl;
         }
         FramePacket packet(data, buffer - data.get(), size, ref);
+        packet.is_vcl_ = nal_type > 0 && nal_type <= 5;
         packetList.push_back(packet);
         buffer = this->extractFrame(&buffer[size], bufSize, size);
     }

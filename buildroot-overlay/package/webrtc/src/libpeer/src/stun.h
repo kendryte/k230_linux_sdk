@@ -110,7 +110,7 @@ struct StunMessage {
   size_t size;
 };
 
-void stun_msg_create(StunMessage* msg, uint16_t type);
+int stun_msg_create(StunMessage* msg, uint16_t type);
 
 int stun_set_mapped_address(char* value, uint8_t* mask, Address* addr);
 
@@ -118,7 +118,7 @@ void stun_get_mapped_address(char* value, uint8_t* mask, Address* addr);
 
 void stun_msg_parse(StunMessage* msg, uint8_t* buf, size_t len);
 
-void stun_parse_msg_buf(StunMessage* msg);
+int stun_parse_msg_buf(StunMessage* msg, size_t received_size);
 
 void stun_calculate_fingerprint(char* buf, size_t len, uint32_t* fingerprint);
 

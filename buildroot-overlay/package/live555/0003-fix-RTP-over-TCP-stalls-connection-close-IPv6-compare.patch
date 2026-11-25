@@ -1,0 +1,483 @@
+From: Canaan K230 Linux SDK
+Subject: [PATCH] live555: fix RTP-over-TCP stalls, missing close notification, IPv6 compare
+
+Three fixes carried by the rt-smart tree's vendored live555 copy
+(canmv_k230_dpu/src/rtsmart/mpp/middleware/src/live555), rebased here onto
+2021.05.03. They are platform-neutral; the rt-smart/lwIP workarounds that
+live next to them (SO_REUSEPORT, SO_LINGER, the disabled IPv6 listener, the
+debug printfs) are deliberately NOT carried over.
+
+1. liveMedia/RTPInterface.cpp, liveMedia/include/RTPInterface.hh
+   RTP-over-TCP (rtsp_transport=tcp, which is what most players pick when
+   UDP is blocked) used to be sent as two writes: the 4-byte interleaved
+   header, then the packet.  If the second write only partly fit in the
+   socket buffer, live555 switched the socket to blocking mode and retried
+   with a 500ms timeout.
+
+   That blocks the single-threaded event loop.  Nothing else is served for
+   up to half a second -- including reading this very socket, which is where
+   the receiver's RTCP "RR"s and the window updates arrive, so the stall
+   feeds itself.  With several clients, or one client on a slow link, the
+   timeout eventually fires and live555 drops the connection: the player
+   freezes and then disconnects, typically a few seconds after an I-frame.
+
+   Now the header and payload are copied into one buffer and sent as a
+   single write, so a frame that does not fit can simply be dropped (which
+   is what RTP over UDP does anyway, and the receiver handles).  Only a
+   genuinely partial write leaves a tail, and that tail is finished from a
+   SOCKET_WRITABLE callback rather than by blocking.  Reads stay enabled
+   throughout.
+
+2. liveMedia/RTSPClient.cpp, liveMedia/include/RTSPClient.hh
+   An RTSP client streaming over TCP was never told when the server closed
+   the connection.  live555 reports a dead socket by failing whatever
+   request is awaiting a response, but after "PLAY" there is no such
+   request, so the event was dropped on the floor: the client sat in its
+   event loop forever with no data and no error.
+
+   Adds a virtual handleTCPConnectionClosed() hook, posted as a zero-delay
+   task (the detection happens inside the socket descriptor's destructor,
+   so the subclass must not tear things down re-entrantly).  The task is
+   unscheduled in ~RTSPClient so it cannot outlive the client.
+
+   package/librtsp_client already overrides this hook -- without this patch
+   that override compiles but is never called, and KdRtspClient never
+   reports a disconnect.
+
+3. groupsock/NetAddress.cpp
+   IPv6 addresses were compared with "==" on "s6_addr", which is a
+   16-element array: that compares the addresses of two different arrays
+   and so is always false.  Two equal IPv6 addresses never compared equal.
+   Replaced with an element-wise comparison.
+
+diff -urN /tmp/l_a/groupsock/NetAddress.cpp /tmp/l_b/groupsock/NetAddress.cpp
+--- a/groupsock/NetAddress.cpp	2026-11-21 08:02:27.132435977 +0800
++++ b/groupsock/NetAddress.cpp	2026-11-21 08:03:35.409667005 +0800
+@@ -160,7 +160,15 @@
+       return ((struct sockaddr_in const&)left).sin_addr.s_addr == ((struct sockaddr_in const&)right).sin_addr.s_addr;
+     }
+     case AF_INET6: {
+-      return ((struct sockaddr_in6 const&)left).sin6_addr.s6_addr == ((struct sockaddr_in6 const&)right).sin6_addr.s6_addr;
++      // Local patch; reapply when upgrading live555.
++      // "s6_addr" is a 16-byte array, so comparing the two with "==" compares
++      // the addresses of two different arrays and is therefore always false.
++      u_int8_t const* leftAddr = ((struct sockaddr_in6 const&)left).sin6_addr.s6_addr;
++      u_int8_t const* rightAddr = ((struct sockaddr_in6 const&)right).sin6_addr.s6_addr;
++      for (unsigned i = 0; i < 16; ++i) {
++	if (leftAddr[i] != rightAddr[i]) return False;
++      }
++      return True;
+     }
+     default: {
+       return False;
+diff -urN /tmp/l_a/liveMedia/include/RTPInterface.hh /tmp/l_b/liveMedia/include/RTPInterface.hh
+--- a/liveMedia/include/RTPInterface.hh	2026-11-21 08:02:27.124435832 +0800
++++ b/liveMedia/include/RTPInterface.hh	2026-11-21 08:03:35.413667078 +0800
+@@ -88,13 +88,17 @@
+   // Helper functions for sending a RTP or RTCP packet over a TCP connection:
+   Boolean sendRTPorRTCPPacketOverTCP(unsigned char* packet, unsigned packetSize,
+ 				     int socketNum, unsigned char streamChannelId);
+-  Boolean sendDataOverTCP(int socketNum, u_int8_t const* data, unsigned dataSize, Boolean forceSendToSucceed);
+ 
+ private:
+   friend class SocketDescriptor;
+   Medium* fOwner;
+   Groupsock* fGS;
+   class tcpStreamRecord* fTCPStreams; // optional, for RTP-over-TCP streaming/receiving
++  // Local patch; reapply when upgrading live555.
++  // Scratch space in which the interleaved header and the packet are made
++  // contiguous, so that they can be handed to "send()" as a single write.
++  u_int8_t* fTCPWriteBuffer;
++  unsigned fTCPWriteBufferSize;
+ 
+   unsigned short fNextTCPReadSize;
+     // how much data (if any) is available to be read from the TCP stream
+diff -urN /tmp/l_a/liveMedia/include/RTSPClient.hh /tmp/l_b/liveMedia/include/RTSPClient.hh
+--- a/liveMedia/include/RTSPClient.hh	2026-11-21 08:02:27.128435904 +0800
++++ b/liveMedia/include/RTSPClient.hh	2026-11-21 08:03:35.417667148 +0800
+@@ -302,6 +302,7 @@
+   char const* sessionURL(MediaSession const& session) const;
+   static void handleAlternativeRequestByte(void*, u_int8_t requestByte);
+   void handleAlternativeRequestByte1(u_int8_t requestByte);
++  static void tcpConnectionClosedHandler(void* clientData);
+   void constructSubsessionURL(MediaSubsession const& subsession,
+ 			      char const*& prefix,
+ 			      char const*& separator,
+@@ -332,6 +333,13 @@
+     // IP, UDP, and RTP headers) will be sent with each "SETUP" request.
+ 
+ protected:
++  // Local patch; reapply when upgrading live555.
++  // Called once the interleaved TCP connection has been found dead. After
++  // "PLAY" there is no outstanding request to fail, so without this a
++  // subclass never learns that the server went away. Subclasses tear the
++  // session down, or reconnect, from here.
++  virtual void handleTCPConnectionClosed();
++
+   int fVerbosityLevel;
+   unsigned fCSeq; // sequence number, used in consecutive requests
+   Authenticator fCurrentAuthenticator;
+@@ -347,6 +355,9 @@
+   unsigned char fTCPStreamIdCount; // used for (optional) RTP/TCP
+   char* fLastSessionId;
+   unsigned fSessionTimeoutParameter; // optionally set in response "Session:" headers
++  // Cancelled in the destructor, so that a client deleted before the task has
++  // run cannot leave the callback pointing at freed memory.
++  TaskToken fTCPConnectionClosedTask;
+   char* fResponseBuffer;
+   unsigned fResponseBytesAlreadySeen, fResponseBufferBytesLeft;
+   RequestQueue fRequestsAwaitingConnection, fRequestsAwaitingHTTPTunneling, fRequestsAwaitingResponse;
+diff -urN /tmp/l_a/liveMedia/RTPInterface.cpp /tmp/l_b/liveMedia/RTPInterface.cpp
+--- a/liveMedia/RTPInterface.cpp	2026-11-21 08:02:27.124435832 +0800
++++ b/liveMedia/RTPInterface.cpp	2026-11-21 08:03:35.417667148 +0800
+@@ -66,6 +66,7 @@
+ 			    RTPInterface* rtpInterface);
+   RTPInterface* lookupRTPInterface(unsigned char streamChannelId);
+   void deregisterRTPInterface(unsigned char streamChannelId);
++  Boolean sendInterleavedFrame(u_int8_t const* data, unsigned dataSize);
+ 
+   void setServerRequestAlternativeByteHandler(ServerRequestAlternativeByteHandler* handler, void* clientData) {
+     fServerRequestAlternativeByteHandler = handler;
+@@ -75,6 +76,9 @@
+ private:
+   static void tcpReadHandler(SocketDescriptor*, int mask);
+   Boolean tcpReadHandler1(int mask);
++  Boolean flushPendingWrite();
++  void updateBackgroundHandling();
++  void handleWriteError(int sendResult, int errorNumber);
+ 
+ private:
+   UsageEnvironment& fEnv;
+@@ -84,6 +88,8 @@
+   void* fServerRequestAlternativeByteHandlerClientData;
+   u_int8_t fStreamChannelId, fSizeByte1;
+   Boolean fReadErrorOccurred, fDeleteMyselfNext, fAreInReadHandlerLoop;
++  u_int8_t* fPendingWrite;
++  unsigned fPendingWriteSize, fPendingWriteOffset, fNumDroppedFrames;
+   enum { AWAITING_DOLLAR, AWAITING_STREAM_CHANNEL_ID, AWAITING_SIZE1, AWAITING_SIZE2, AWAITING_PACKET_DATA } fTCPReadingState;
+ };
+ 
+@@ -128,7 +134,7 @@
+ 
+ RTPInterface::RTPInterface(Medium* owner, Groupsock* gs)
+   : fOwner(owner), fGS(gs),
+-    fTCPStreams(NULL),
++    fTCPStreams(NULL), fTCPWriteBuffer(NULL), fTCPWriteBufferSize(0),
+     fNextTCPReadSize(0), fNextTCPReadStreamSocketNum(-1),
+     fNextTCPReadStreamChannelId(0xFF), fReadHandlerProc(NULL),
+     fAuxReadHandlerFunc(NULL), fAuxReadHandlerClientData(NULL) {
+@@ -143,6 +149,7 @@
+ RTPInterface::~RTPInterface() {
+   stopNetworkReading();
+   delete fTCPStreams;
++  delete[] fTCPWriteBuffer;
+ }
+ 
+ void RTPInterface::setStreamSocket(int sockNum,
+@@ -331,26 +338,38 @@
+   fprintf(stderr, "sendRTPorRTCPPacketOverTCP: %d bytes over channel %d (socket %d)\n",
+ 	  packetSize, streamChannelId, socketNum); fflush(stderr);
+ #endif
+-  // Send a RTP/RTCP packet over TCP, using the encoding defined in RFC 2326, section 10.12:
+-  //     $<streamChannelId><packetSize><packet>
+-  // (If the initial "send()" of '$<streamChannelId><packetSize>' succeeds, then we force
+-  // the subsequent "send()" for the <packet> data to succeed, even if we have to do so with
+-  // a blocking "send()".)
+-  do {
+-    u_int8_t framingHeader[4];
+-    framingHeader[0] = '$';
+-    framingHeader[1] = streamChannelId;
+-    framingHeader[2] = (u_int8_t) ((packetSize&0xFF00)>>8);
+-    framingHeader[3] = (u_int8_t) (packetSize&0xFF);
+-    if (!sendDataOverTCP(socketNum, framingHeader, 4, False)) break;
+-
+-    if (!sendDataOverTCP(socketNum, packet, packetSize, True)) break;
++  // Local patch; reapply when upgrading live555.
++  // Send the interleaved header and the RTP/RTCP payload as a single write.
++  // Stock live555 sends them as two writes and, if the second one only partly
++  // fits, falls back to a blocking "send()" with a 500ms timeout. That blocks
++  // the whole event loop -- one slow client stalls every other client, and the
++  // RTCP "RR"s that the stalled connection still has to read never get read,
++  // which is what makes the timeout fire in the first place. Writing the frame
++  // in one piece means a frame that does not fit can simply be dropped, which
++  // is what RTP does over UDP anyway.
++  if (packetSize > 0xFFFF) return False; // will not fit the 16-bit size field
++
++  unsigned framedPacketSize = packetSize + 4;
++  if (fTCPWriteBufferSize < framedPacketSize) {
++    delete[] fTCPWriteBuffer;
++    fTCPWriteBuffer = new u_int8_t[framedPacketSize];
++    fTCPWriteBufferSize = framedPacketSize;
++  }
++
++  fTCPWriteBuffer[0] = '$';
++  fTCPWriteBuffer[1] = streamChannelId;
++  fTCPWriteBuffer[2] = (u_int8_t) ((packetSize&0xFF00)>>8);
++  fTCPWriteBuffer[3] = (u_int8_t) (packetSize&0xFF);
++  memmove(&fTCPWriteBuffer[4], packet, packetSize);
++
++  SocketDescriptor* socketDescriptor = lookupSocketDescriptor(envir(), socketNum, False);
++  if (socketDescriptor != NULL
++      && socketDescriptor->sendInterleavedFrame(fTCPWriteBuffer, framedPacketSize)) {
+ #ifdef DEBUG_SEND
+     fprintf(stderr, "sendRTPorRTCPPacketOverTCP: completed\n"); fflush(stderr);
+ #endif
+-
+     return True;
+-  } while (0);
++  }
+ 
+ #ifdef DEBUG_SEND
+   fprintf(stderr, "sendRTPorRTCPPacketOverTCP: failed! (errno %d)\n", envir().getErrno()); fflush(stderr);
+@@ -358,50 +377,48 @@
+   return False;
+ }
+ 
+-#ifndef RTPINTERFACE_BLOCKING_WRITE_TIMEOUT_MS
+-#define RTPINTERFACE_BLOCKING_WRITE_TIMEOUT_MS 500
+-#endif
++Boolean SocketDescriptor::sendInterleavedFrame(u_int8_t const* data, unsigned dataSize) {
++  // A previous interleaved frame was only partially accepted. Its remainder
++  // has to stay next in the TCP byte stream, so drop this complete RTP/RTCP
++  // packet and let the writable-socket callback finish the previous one.
++  if (fPendingWrite != NULL) {
++    ++fNumDroppedFrames;
++    return True;
++  }
+ 
+-Boolean RTPInterface::sendDataOverTCP(int socketNum, u_int8_t const* data, unsigned dataSize, Boolean forceSendToSucceed) {
+-  int sendResult = send(socketNum, (char const*)data, dataSize, 0/*flags*/);
+-  if (sendResult < (int)dataSize) {
+-    // The TCP send() failed - at least partially.
+-
+-    unsigned numBytesSentSoFar = sendResult < 0 ? 0 : (unsigned)sendResult;
+-    if (numBytesSentSoFar > 0 || (forceSendToSucceed && envir().getErrno() == EAGAIN)) {
+-      // The OS's TCP send buffer has filled up (because the stream's bitrate has exceeded
+-      // the capacity of the TCP connection!).
+-      // Force this data write to succeed, by blocking if necessary until it does:
+-      unsigned numBytesRemainingToSend = dataSize - numBytesSentSoFar;
+-#ifdef DEBUG_SEND
+-      fprintf(stderr, "sendDataOverTCP: resending %d-byte send (blocking)\n", numBytesRemainingToSend); fflush(stderr);
+-#endif
+-      makeSocketBlocking(socketNum, RTPINTERFACE_BLOCKING_WRITE_TIMEOUT_MS);
+-      sendResult = send(socketNum, (char const*)(&data[numBytesSentSoFar]), numBytesRemainingToSend, 0/*flags*/);
+-      if ((unsigned)sendResult != numBytesRemainingToSend) {
+-	// The blocking "send()" failed, or timed out.  In either case, we assume that the
+-	// TCP connection has failed (or is 'hanging' indefinitely), and we stop using it
+-	// (for both RTP and RTP).
+-	// (If we kept using the socket here, the RTP or RTCP packet write would be in an
+-	//  incomplete, inconsistent state.)
+-#ifdef DEBUG_SEND
+-	fprintf(stderr, "sendDataOverTCP: blocking send() failed (delivering %d bytes out of %d); closing socket %d\n", sendResult, numBytesRemainingToSend, socketNum); fflush(stderr);
+-#endif
+-	removeStreamSocket(socketNum, 0xFF);
+-	return False;
+-      }
+-      makeSocketNonBlocking(socketNum);
++  int sendResult;
++  do {
++    sendResult = send(fOurSocketNum, (char const*)data, dataSize, 0/*flags*/);
++  } while (sendResult < 0 && fEnv.getErrno() == EINTR);
+ 
++  if (sendResult == (int)dataSize) return True;
++
++  int const errorNumber = fEnv.getErrno();
++  if (sendResult < 0) {
++    if (errorNumber == EAGAIN || errorNumber == EWOULDBLOCK) {
++      // Not one byte was accepted, so dropping this complete interleaved frame
++      // looks to the receiver exactly like ordinary RTP packet loss, and cannot
++      // desynchronize the RTSP connection that shares this socket.
+       return True;
+-    } else if (sendResult < 0 && envir().getErrno() != EAGAIN) {
+-      // Because the "send()" call failed, assume that the socket is now unusable, so stop
+-      // using it (for both RTP and RTCP):
+-      removeStreamSocket(socketNum, 0xFF);
+     }
++    handleWriteError(sendResult, errorNumber);
++    return False;
++  }
+ 
++  if (sendResult == 0) {
++    handleWriteError(sendResult, errorNumber);
+     return False;
+   }
+ 
++  // A partial write: the frame is now half-way into the byte stream, so the
++  // tail cannot be dropped. Keep it and finish it when "select()" reports the
++  // socket writable. Blocking here instead would stop the event loop from
++  // reading this socket, and the reads are what free up the send window.
++  fPendingWriteSize = dataSize - (unsigned)sendResult;
++  fPendingWriteOffset = 0;
++  fPendingWrite = new u_int8_t[fPendingWriteSize];
++  memmove(fPendingWrite, &data[sendResult], fPendingWriteSize);
++  updateBackgroundHandling();
+   return True;
+ }
+ 
+@@ -409,12 +426,15 @@
+   :fEnv(env), fOurSocketNum(socketNum),
+     fSubChannelHashTable(HashTable::create(ONE_WORD_HASH_KEYS)),
+    fServerRequestAlternativeByteHandler(NULL), fServerRequestAlternativeByteHandlerClientData(NULL),
+-   fReadErrorOccurred(False), fDeleteMyselfNext(False), fAreInReadHandlerLoop(False), fTCPReadingState(AWAITING_DOLLAR) {
++   fReadErrorOccurred(False), fDeleteMyselfNext(False), fAreInReadHandlerLoop(False),
++   fPendingWrite(NULL), fPendingWriteSize(0), fPendingWriteOffset(0), fNumDroppedFrames(0),
++   fTCPReadingState(AWAITING_DOLLAR) {
+ }
+ 
+ SocketDescriptor::~SocketDescriptor() {
+   fEnv.taskScheduler().turnOffBackgroundReadHandling(fOurSocketNum);
+   removeSocketDescription(fEnv, fOurSocketNum);
++  delete[] fPendingWrite;
+ 
+   if (fSubChannelHashTable != NULL) {
+     // Remove knowledge of this socket from any "RTPInterface"s that are using it:
+@@ -455,14 +475,71 @@
+ 			    rtpInterface);
+ 
+   if (isFirstRegistration) {
+-    // Arrange to handle reads on this TCP socket:
+-    TaskScheduler::BackgroundHandlerProc* handler
+-      = (TaskScheduler::BackgroundHandlerProc*)&tcpReadHandler;
+-    fEnv.taskScheduler().
+-      setBackgroundHandling(fOurSocketNum, SOCKET_READABLE|SOCKET_EXCEPTION, handler, this);
++    updateBackgroundHandling();
+   }
+ }
+ 
++void SocketDescriptor::updateBackgroundHandling() {
++  if (fSubChannelHashTable->IsEmpty()) {
++    fEnv.taskScheduler().disableBackgroundHandling(fOurSocketNum);
++    return;
++  }
++
++  // Arrange to handle reads on this TCP socket:
++  TaskScheduler::BackgroundHandlerProc* handler
++    = (TaskScheduler::BackgroundHandlerProc*)&tcpReadHandler;
++  // Keep reading even while an outbound tail is pending. RTP, RTCP and RTSP
++  // all share this one connection; stopping reads fills the receive window,
++  // the peer then stops reading too, and nothing ever drains.
++  int conditionSet = SOCKET_READABLE|SOCKET_EXCEPTION;
++  if (fPendingWrite != NULL) conditionSet |= SOCKET_WRITABLE;
++  fEnv.taskScheduler().setBackgroundHandling(fOurSocketNum, conditionSet, handler, this);
++}
++
++Boolean SocketDescriptor::flushPendingWrite() {
++  while (fPendingWrite != NULL) {
++    unsigned const bytesRemaining = fPendingWriteSize - fPendingWriteOffset;
++    int sendResult = send(fOurSocketNum, (char const*)&fPendingWrite[fPendingWriteOffset],
++			  bytesRemaining, 0/*flags*/);
++
++    if (sendResult > 0) {
++      fPendingWriteOffset += (unsigned)sendResult;
++      if (fPendingWriteOffset < fPendingWriteSize) continue;
++
++      delete[] fPendingWrite;
++      fPendingWrite = NULL;
++      fPendingWriteSize = fPendingWriteOffset = 0;
++#ifdef DEBUG_SEND
++      if (fNumDroppedFrames > 0) {
++	fprintf(stderr, "SocketDescriptor(socket %d): resumed TCP output after dropping %u packets\n",
++		fOurSocketNum, fNumDroppedFrames); fflush(stderr);
++      }
++#endif
++      fNumDroppedFrames = 0;
++      updateBackgroundHandling();
++      return True;
++    }
++
++    int const errorNumber = fEnv.getErrno();
++    if (sendResult < 0 && errorNumber == EINTR) continue;
++    if (sendResult < 0 && (errorNumber == EAGAIN || errorNumber == EWOULDBLOCK)) return True;
++
++    handleWriteError(sendResult, errorNumber);
++    return False;
++  }
++
++  return True;
++}
++
++void SocketDescriptor::handleWriteError(int sendResult, int errorNumber) {
++  fEnv << "RTP-over-TCP write failed on socket " << fOurSocketNum
++       << " (result " << sendResult << ", errno " << errorNumber
++       << "); closing the RTSP connection\n";
++  fReadErrorOccurred = True;
++  fDeleteMyselfNext = True;
++  shutdown(fOurSocketNum, SHUT_RDWR);
++}
++
+ RTPInterface* SocketDescriptor
+ ::lookupRTPInterface(unsigned char streamChannelId) {
+   char const* lookupArg = (char const*)(long)streamChannelId;
+@@ -487,10 +564,18 @@
+ }
+ 
+ void SocketDescriptor::tcpReadHandler(SocketDescriptor* socketDescriptor, int mask) {
+-  // Call the read handler until it returns false, with a limit to avoid starving other sockets
+-  unsigned count = 2000;
+   socketDescriptor->fAreInReadHandlerLoop = True;
+-  while (!socketDescriptor->fDeleteMyselfNext && socketDescriptor->tcpReadHandler1(mask) && --count > 0) {}
++
++  if ((mask&SOCKET_WRITABLE) != 0) {
++    socketDescriptor->flushPendingWrite();
++  }
++
++  if (!socketDescriptor->fDeleteMyselfNext && (mask&(SOCKET_READABLE|SOCKET_EXCEPTION)) != 0) {
++    // Call the read handler until it returns false, with a limit to avoid starving other sockets
++    unsigned count = 2000;
++    while (!socketDescriptor->fDeleteMyselfNext && socketDescriptor->tcpReadHandler1(mask) && --count > 0) {}
++  }
++
+   socketDescriptor->fAreInReadHandlerLoop = False;
+   if (socketDescriptor->fDeleteMyselfNext) delete socketDescriptor;
+ }
+diff -urN /tmp/l_a/liveMedia/RTSPClient.cpp /tmp/l_b/liveMedia/RTSPClient.cpp
+--- a/liveMedia/RTSPClient.cpp	2026-11-21 08:02:27.128435904 +0800
++++ b/liveMedia/RTSPClient.cpp	2026-11-21 08:06:33.288817079 +0800
+@@ -383,7 +383,7 @@
+     fAllowBasicAuthentication(True), fTunnelOverHTTPPortNum(tunnelOverHTTPPortNum),
+     fUserAgentHeaderStr(NULL), fUserAgentHeaderStrLen(0),
+     fInputSocketNum(-1), fOutputSocketNum(-1), fBaseURL(NULL), fTCPStreamIdCount(0),
+-    fLastSessionId(NULL), fSessionTimeoutParameter(0), fSessionCookieCounter(0), fHTTPTunnelingConnectionIsPending(False),
++    fLastSessionId(NULL), fSessionTimeoutParameter(0), fTCPConnectionClosedTask(NULL), fSessionCookieCounter(0), fHTTPTunnelingConnectionIsPending(False),
+     fTLS(*this), bRequireBackChannel(False) {
+   setBaseURL(rtspURL);
+ 
+@@ -417,6 +417,8 @@
+ }
+ 
+ RTSPClient::~RTSPClient() {
++  // The task may already have run, in which case unscheduling it does nothing.
++  envir().taskScheduler().unscheduleDelayedTask(fTCPConnectionClosedTask);
+   reset();
+ 
+   delete[] fResponseBuffer;
+@@ -1463,10 +1465,29 @@
+   ((RTSPClient*)rtspClient)->handleAlternativeRequestByte1(requestByte);
+ }
+ 
++void RTSPClient::tcpConnectionClosedHandler(void* clientData) {
++  ((RTSPClient*)clientData)->handleTCPConnectionClosed();
++}
++
++void RTSPClient::handleTCPConnectionClosed() {
++  // The default is to do nothing; subclasses override this.
++}
++
+ void RTSPClient::handleAlternativeRequestByte1(u_int8_t requestByte) {
+   if (requestByte == 0xFF) {
+     // Hack: The new handler of the input TCP socket encountered an error reading it.  Indicate this:
++    // Any request still awaiting a response is failed by "handleResponseBytes()"
++    // below, and that is how the caller normally hears about a dead connection.
++    // After "PLAY" there is no such request, so report the close separately --
++    // but from a delayed task, because we are being called from the socket
++    // descriptor's own destructor and the subclass will want to close things.
++    Boolean noPendingRequest = fRequestsAwaitingResponse.isEmpty();
+     handleResponseBytes(-1);
++    if (noPendingRequest) {
++      envir().taskScheduler().unscheduleDelayedTask(fTCPConnectionClosedTask);
++      fTCPConnectionClosedTask
++	= envir().taskScheduler().scheduleDelayedTask(0, tcpConnectionClosedHandler, this);
++    }
+   } else if (requestByte == 0xFE) {
+     // Another hack: The new handler of the input TCP socket no longer needs it, so take back control:
+     envir().taskScheduler().setBackgroundHandling(fInputSocketNum, SOCKET_READABLE|SOCKET_EXCEPTION,

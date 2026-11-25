@@ -1,0 +1,71 @@
+From: Canaan K230 Linux SDK
+Subject: [PATCH] live555: let an RTSP server be restarted right away
+
+An RTSP server that had a client connected when it was stopped cannot be
+started again for 60 seconds. It dies at startup with
+
+    create rtsp server failed.bind() error (port 8554): Address already in use
+
+This is deliberate upstream behaviour, not a bug in our code. live555 wraps
+the listening socket's setup in "NoReuse dummy(env);", which sets
+SO_REUSEADDR to 0, unless ALLOW_SERVER_PORT_REUSE or the older
+ALLOW_RTSP_SERVER_PORT_REUSE is defined. Neither is defined in this tree.
+
+The part that is easy to get wrong: the listening socket itself never enters
+TIME_WAIT. The TIME_WAIT entries belong to the *accepted* client connections,
+which have the same local port (8554) and which the server closed first, so
+they linger for TCP_TIMEWAIT_LEN. That constant is (60*HZ) in
+include/net/tcp.h and no sysctl changes it. This is also why the problem looks
+intermittent: with no client ever attached there is nothing in TIME_WAIT and
+the restart is instant.
+
+Upstream's stated reason for NoReuse is "Don't use this socket if there's
+already a local server using it". On Linux that reason does not hold:
+SO_REUSEADDR has never allowed a second socket to bind over a live listener -
+that is SO_REUSEPORT, which live555 only sets for UDP (it is behind the
+undefined REUSE_FOR_TCP in GroupsockHelper.cpp). So after this patch, starting
+a second RTSP server on a port that is already being listened on still fails,
+exactly as before. The only thing that changes is the 60-second lockout after
+a clean exit.
+
+Note this is NOT the rt-smart change of the same area. rt-smart drops NoReuse
+*and* adds SO_LINGER {1,0}, which makes the server send a RST instead of
+closing cleanly - that is how it dodges lwIP's stale TIME_WAIT PCBs, and on
+Linux it would cut responses short. Only the NoReuse half is carried over.
+
+--- a/liveMedia/GenericMediaServer.cpp	2026-11-25 11:35:08.739587382 +0800
++++ b/liveMedia/GenericMediaServer.cpp	2026-11-25 11:35:18.595214600 +0800
+@@ -179,13 +179,26 @@
+   int ourSocket = -1;
+   
+   do {
+-    // The following statement is enabled by default.
+-    // Don't disable it (by defining ALLOW_SERVER_PORT_REUSE) unless you know what you're doing.
+-#if !defined(ALLOW_SERVER_PORT_REUSE) && !defined(ALLOW_RTSP_SERVER_PORT_REUSE)
+-    // ALLOW_RTSP_SERVER_PORT_REUSE is for backwards-compatibility #####
+-    NoReuse dummy(env); // Don't use this socket if there's already a local server using it
+-#endif
+-    
++    // Local patch; reapply when upgrading live555.
++    //
++    // Upstream has "NoReuse dummy(env);" here, which turns SO_REUSEADDR off
++    // for the listening socket so that bind() fails if another local server
++    // already holds this port. On Linux that protection is not what keeps it:
++    // SO_REUSEADDR has never let a second socket bind over a live listener
++    // (only SO_REUSEPORT does, and live555 does not set it for TCP), so
++    // removing NoReuse does not make two RTSP servers on one port possible.
++    //
++    // What it does remove is this: after a server that had clients connected
++    // exits, the accepted connections it closed sit in TIME_WAIT holding the
++    // same local port, and without SO_REUSEADDR bind() fails with EADDRINUSE
++    // for TCP_TIMEWAIT_LEN - 60 seconds, not tunable by any sysctl. A camera
++    // that cannot be restarted for a minute after you stop it is a daily
++    // annoyance; two servers on one port is not a thing that happens here.
++    //
++    // Defining ALLOW_SERVER_PORT_REUSE would do the same, but it would have
++    // to be added to COMPILE_OPTS from live555.mk, which is buildroot's file
++    // rather than ours.
++
+     ourSocket = setupStreamSocket(env, ourPort, domain, True, True);
+         // later fix to support IPv6
+     if (ourSocket < 0) break;

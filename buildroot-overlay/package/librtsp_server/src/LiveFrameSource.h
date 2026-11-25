@@ -5,7 +5,9 @@
 #include <list>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -37,7 +39,10 @@ class LiveFrameSource : public FramedSource {
       std::shared_ptr<uint8_t> buffer_{nullptr};
       size_t offset_{0};
       size_t size_{0};
-      struct timeval timestamp_{0};
+      struct timeval timestamp_{0, 0};
+      uint64_t access_unit_id_{0};
+      bool is_vcl_{false};
+      bool ends_access_unit_{false};
     };
 
     struct RawData {
@@ -54,15 +59,20 @@ class LiveFrameSource : public FramedSource {
     virtual void doStopGettingFrames();
 
     virtual unsigned maxFrameSize() const {
-      return 512 * 1024; // set a reasonable value ..TODO
+      return 2 * 1024 * 1024;
     }
     static void deliverFrame0(void *clientData);
+    static void deliverFrameFromTask(void *clientData);
     void deliverFrame();
 
     int getFrame();
-    void processFrame(std::shared_ptr<uint8_t> data, size_t size, const struct timeval &ref);
+    void processFrame(std::shared_ptr<uint8_t> data, size_t size, uint64_t timestamp);
     virtual std::list<FramePacket> parseFrame(std::shared_ptr<uint8_t> data, size_t size, const struct timeval &ref);
+    void markAccessUnitEnd(std::list<FramePacket> &packets);
     void queueFramePacket(FramePacket &packet);
+    void queueFramePackets(std::list<FramePacket> &packets);
+    void dropOldestAccessUnitLocked();
+    struct timeval presentationTimeFor(uint64_t timestamp);
 
   protected:
     std::list<FramePacket> fFramePacketQueue;
@@ -73,8 +83,25 @@ class LiveFrameSource : public FramedSource {
     std::thread fThread;
     std::mutex fMutex;
     std::mutex fMutexRaw;
+    std::condition_variable fCondRaw;
     std::atomic<bool> fNeedReadFrame{true};
+    std::atomic<unsigned long long> fRawDropCount{0};
+    std::atomic<unsigned long long> fPacketDropCount{0};
+    std::atomic<unsigned long long> fIdleDropCount{0};
+    std::atomic<size_t> fMaxRawDepth{0};
+    std::chrono::steady_clock::time_point fLastRawDepthLog{}; // guarded by fMutexRaw
+    std::atomic<bool> fConsumerActive{false};
+    uint64_t fNextAccessUnitId{0};
+    bool fHaveTimestampBase{false};
+    uint64_t fLastInputTimestamp{0};
+    uint32_t fTimestampScaleToUs{0};
+    struct timeval fLastPresentationTime{0, 0};
+    uint64_t fLastFrameStepUs{33333};
     std::string fAuxLine;
+
+  public:
+    static constexpr unsigned kAccessUnitContinues = 1;
+    static constexpr unsigned kAccessUnitEnds = 2;
 };
 
 #endif  // _LIVEFRAMESOURCE_H

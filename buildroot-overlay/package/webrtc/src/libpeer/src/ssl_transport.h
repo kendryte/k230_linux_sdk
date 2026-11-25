@@ -11,6 +11,10 @@
 #include "socket.h"
 #include "transport_interface.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct NetworkContext {
   TcpSocket tcp_socket;
   mbedtls_ssl_context ssl;
@@ -27,9 +31,15 @@ int ssl_transport_connect(NetworkContext_t* net_ctx,
 
 void ssl_transport_disconnect(NetworkContext_t* net_ctx);
 
+void ssl_transport_set_read_timeout(NetworkContext_t* net_ctx, uint32_t timeout_ms);
+
 int32_t ssl_transport_recv(NetworkContext_t* net_ctx, void* buf, size_t len);
 
 int32_t ssl_transport_send(NetworkContext_t* net_ctx, const void* buf, size_t len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // DISABLE_PEER_SIGNALING
 #endif  // SSL_TRANSPORT_H_

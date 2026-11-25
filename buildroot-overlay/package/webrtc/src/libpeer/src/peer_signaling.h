@@ -30,6 +30,15 @@ extern "C" {
 typedef int (*peer_signaling_custom_rpc_cb)(const char* method, cJSON* params, int id,
                                             cJSON** result, cJSON** error, void* userdata);
 
+/*
+ * Connect to the signaling server. For MQTT (proto 0) this runs the TCP
+ * connect, TLS handshake, MQTT CONNECT and SUBSCRIBE synchronously and
+ * returns their actual result — CONNACK/SUBACK already received means the
+ * session is live, so callers do not need a separate peer_signaling_loop()
+ * probe to confirm it. HTTP mode and unrecognized schemes always return 0.
+ *
+ * @return 0 on success, -1 on failure (MQTT mode only)
+ */
 int peer_signaling_connect(const char* url, const char* token, PeerConnection* pc);
 
 void peer_signaling_disconnect();

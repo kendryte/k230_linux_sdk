@@ -1,0 +1,237 @@
+From: sunxiaopeng <sunxiaopeng@canaan-creative.com>
+Subject: [PATCH] liveMedia: add ONVIF audio back channel support to RTSPClient
+
+Stock live555 can only receive on an RTSP session.  An ONVIF audio back
+channel ("talk-back" on an IP camera) needs the client to *send* on one
+of the tracks the server advertises, so the RTSP client library has to
+grow three things:
+
+  - a direction flag per subsession, parsed from "a=sendonly"/"a=recvonly"
+    in the SDP;
+  - an "fRTPSink" for a subsession that we send on, built by a subclass
+    through the new virtual createBackChannelObjects(), used instead of
+    the "fRTPSource"/"fReadSource" pair that a receiving subsession gets;
+  - a "Require: www.onvif.org/ver20/backchannel" header on DESCRIBE, and
+    the matching hookup of that sink to the interleaved TCP channel in
+    the SETUP response handler.
+
+This is a backport of the same extension that the RT-Smart tree carries
+in its vendored live555 (every change there is tagged "added for audio
+back channel"); package/librtsp_client is the user of it.  Keep the two
+in step: anything that changes here has to change there too, or the two
+RTSP clients stop behaving the same way.
+
+Two deliberate differences from the RT-Smart original:
+
+  - parseSDPAttribute_flag() there compares "strncmp(...) == 1" rather
+    than "== 0".  That happens to do the right thing for "a=sendonly"
+    (strncmp against "a=recvonly" returns 's'-'r' == 1), but it also
+    fires on every other "a=s..." line - "a=ssrc:", "a=setup:",
+    "a=sendrecv" all compare 1 the same way - and would mark an ordinary
+    video track as one we transmit on.  Compared against 0 here, with
+    the two direction lines keeping the behaviour they had.
+
+  - the RTCP instance for a back channel is created with an explicit
+    NULL source instead of "fRTPSource", which is always NULL on that
+    path anyway.  Same behaviour, minus the head-scratching.
+
+Upstream does not want this (it is an ONVIF extension, not RFC), so it
+has to be reapplied when live555 is upgraded.
+
+--- a/liveMedia/MediaSession.cpp
++++ b/liveMedia/MediaSession.cpp
+@@ -226,6 +226,9 @@
+       if (subsession->parseSDPAttribute_key_mgmt(sdpLine)) continue;
+ 
+       // (Later, check for malformed lines, and other valid SDP lines#####)
++
++      // added for audio back channel
++      if (subsession->parseSDPAttribute_flag(sdpLine)) continue;
+     }
+     if (sdpLine != NULL) subsession->fSavedSDPLines[sdpLine-mStart] = '\0';
+ 
+@@ -651,6 +654,10 @@
+   setAttribute("level-id", "93"); // used with "video/H265"
+   setAttribute("interop-constraints", "B00000000000"); // used with "video/H265"
+   setAttribute("sampling", "RGB"); // used with "video/JPEG2000"
++
++  // added for audio back channel
++  fFlag = FLAG_RECVONLY;
++  fRTPSink = NULL;
+ }
+ 
+ MediaSubsession::~MediaSubsession() {
+@@ -849,6 +856,9 @@
+       fRTCPSocket->changeDestinationParameters(fSourceFilterAddr, 0, ~0);
+     }
+ 
++    // added for audio back channel: only a "recvonly" subsession reads.
++    if (fFlag == FLAG_RECVONLY) {
++
+     // Create "fRTPSource" and "fReadSource":
+     if (!createSourceObjects(useSpecialRTPoffset)) break;
+ 
+@@ -890,6 +900,43 @@
+       }
+     }
+ 
++    } else if (fFlag == FLAG_SENDONLY) {
++      // added for audio back channel.  The server told us that *we* are the
++      // one who sends on this track (an ONVIF back channel), so build an
++      // "fRTPSink" where a receiving subsession would build a source.
++      if (!createBackChannelObjects(useSpecialRTPoffset)) break;
++
++      if (fRTPSink == NULL) {
++	env().setResultMsg("Failed to create RTP sink");
++	break;
++      }
++
++      // Finally, create our RTCP instance. (It starts running automatically)
++      // Note: it is given neither a sink nor a source, so it only listens to
++      // the server's reports and never reports on the back channel itself.
++      // That matches the RT-Smart implementation this was ported from.
++      if (fRTCPSocket != NULL) {
++	unsigned totSessionBandwidth
++	  = fBandwidth ? fBandwidth + fBandwidth / 20 : 500;
++	fRTCPInstance = RTCPInstance::createNew(env(), fRTCPSocket,
++						totSessionBandwidth,
++						(unsigned char const*)
++						fParent.CNAME(),
++						NULL /* sink - see above */,
++						NULL /* source - we don't read */);
++	if (fRTCPInstance == NULL) {
++	  env().setResultMsg("Failed to create RTCP instance");
++	  break;
++	}
++      }
++
++      // So that RTSPClient can attach the sink to an interleaved TCP channel:
++      sink = fRTPSink;
++    } else {
++      env().setResultMsg("Unexpected direction flag for this subsession");
++      break;
++    }
++
+     return True;
+   } while (0);
+ 
+@@ -904,6 +951,10 @@
+   Medium::close(fReadSource); // this is assumed to also close fRTPSource
+   fReadSource = NULL; fRTPSource = NULL;
+ 
++  // added for audio back channel
++  Medium::close(fRTPSink);
++  fRTPSink = NULL; sink = NULL;
++
+   delete fRTPSocket;
+   if (fRTCPSocket != fRTPSocket) delete fRTCPSocket;
+   fRTPSocket = NULL; fRTCPSocket = NULL;
+@@ -1236,6 +1287,21 @@
+   return True;
+ }
+ 
++// added for audio back channel
++Boolean MediaSubsession::parseSDPAttribute_flag(char const* sdpLine) {
++  // Check for "a=sendonly" or "a=recvonly".  ONVIF writes these from the
++  // *client's* point of view, so a back channel track - one we talk on -
++  // arrives as "a=sendonly" and is taken over verbatim.
++  if (strncmp(sdpLine, "a=sendonly", 10) == 0) {
++    fFlag = FLAG_SENDONLY;
++    return True;
++  } else if (strncmp(sdpLine, "a=recvonly", 10) == 0) {
++    fFlag = FLAG_RECVONLY;
++    return True;
++  }
++  return False;
++}
++
+ Boolean MediaSubsession::createSourceObjects(int useSpecialRTPoffset) {
+   do {
+     // First, check "fProtocolName"
+--- a/liveMedia/RTSPClient.cpp
++++ b/liveMedia/RTSPClient.cpp
+@@ -384,7 +384,7 @@
+     fUserAgentHeaderStr(NULL), fUserAgentHeaderStrLen(0),
+     fInputSocketNum(-1), fOutputSocketNum(-1), fBaseURL(NULL), fTCPStreamIdCount(0),
+     fLastSessionId(NULL), fSessionTimeoutParameter(0), fSessionCookieCounter(0), fHTTPTunnelingConnectionIsPending(False),
+-    fTLS(*this) {
++    fTLS(*this), bRequireBackChannel(False) {
+   setBaseURL(rtspURL);
+ 
+   fResponseBuffer = new char[responseBufferSize+1];
+@@ -664,7 +664,10 @@
+   // Set various fields that will appear in our outgoing request, depending upon the particular command that we are sending.
+ 
+   if (strcmp(request->commandName(), "DESCRIBE") == 0) {
+-    extraHeaders = (char*)"Accept: application/sdp\r\n";
++    // added for audio back channel
++    extraHeaders = (char*)(bRequireBackChannel
++			   ? "Accept: application/sdp\r\nRequire: www.onvif.org/ver20/backchannel\r\n"
++			   : "Accept: application/sdp\r\n");
+   } else if (strcmp(request->commandName(), "OPTIONS") == 0) {
+     // If we're currently part of a session, create a "Session:" header (in case the server wants this to indicate
+     // client 'liveness); this makes up our 'extra headers':
+@@ -1259,6 +1262,15 @@
+ 	  // To avoid confusing the server (which won't start handling RTP/RTCP-over-TCP until "PLAY"), don't send RTCP "RR"s yet
+ 	increaseReceiveBufferTo(envir(), fInputSocketNum, 50*1024);
+       }
++
++      // added for audio back channel: a "sendonly" subsession has no source,
++      // but its sink has to go out over the same interleaved channel.
++      if (bRequireBackChannel && subsession.sink != NULL) {
++	RTPSink* backChannelSink = (RTPSink*)(subsession.sink);
++	backChannelSink->setStreamSocket(fInputSocketNum, subsession.rtpChannelId);
++	increaseReceiveBufferTo(envir(), fInputSocketNum, 50*1024);
++      }
++
+       if (subsession.rtcpInstance() != NULL) subsession.rtcpInstance()->setStreamSocket(fInputSocketNum, subsession.rtcpChannelId);
+       RTPInterface::setServerRequestAlternativeByteHandler(envir(), fInputSocketNum, handleAlternativeRequestByte, this);
+     } else {
+--- a/liveMedia/include/MediaSession.hh
++++ b/liveMedia/include/MediaSession.hh
+@@ -58,6 +58,11 @@
+ #include "SRTPCryptographicContext.hh"
+ #endif
+ 
++// added for audio back channel.  These describe the direction of a
++// subsession from *our* (the client's) point of view.
++#define FLAG_RECVONLY 0
++#define FLAG_SENDONLY 1
++
+ class MediaSubsession; // forward
+ 
+ class MediaSession: public Medium {
+@@ -365,6 +370,18 @@
+ 
+   // Other fields:
+   char* fSessionId; // used by RTSP
++
++  // added for audio back channel
++public:
++  unsigned getFlag() { return fFlag; }
++
++protected:
++  Boolean parseSDPAttribute_flag(char const* sdpLine);
++  unsigned fFlag; // FLAG_RECVONLY or FLAG_SENDONLY
++
++  RTPSink* fRTPSink; // used instead of "fRTPSource" when FLAG_SENDONLY
++  virtual Boolean createBackChannelObjects(int /*useSpecialRTPoffset*/) { return False; }
++    // Subclasses that want to send on a back channel override this to set "fRTPSink".
+ };
+ 
+ #endif
+--- a/liveMedia/include/RTSPClient.hh
++++ b/liveMedia/include/RTSPClient.hh
+@@ -359,6 +359,12 @@
+   // Optional support for TLS:
+   TLSState fTLS;
+   friend class TLSState;
++
++  // added for audio back channel
++public:
++  Boolean bRequireBackChannel;
++    // Set this before "sendDescribeCommand()" to ask the server for an
++    // ONVIF back channel.  Public because it is set from outside the class.
+ };
+ 
+ 

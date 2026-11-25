@@ -240,6 +240,15 @@ enum k_2d_video_format get_video_fmt(enum k_pixel_format pixel_format)
     case PIXEL_FORMAT_ARGB_8888:
         return K_2D_VIDEO_FMT_ARGB8888;
 
+    /* Without this, ABGR fell through to the default below and was
+     * reported as NV12, which made get_video_type() call it YUV. A CSC
+     * job with an ABGR destination then had YUV on both sides and the
+     * identity matrix was loaded instead of yuv2rgb: the colour bytes
+     * came out as raw Y, U and V and nothing anywhere returned an error.
+     */
+    case PIXEL_FORMAT_ABGR_8888:
+        return K_2D_VIDEO_FMT_BGRA8888;
+
     case PIXEL_FORMAT_RGB_565:
         return K_2D_VIDEO_FMT_RGB565;
 

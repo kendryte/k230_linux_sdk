@@ -438,6 +438,7 @@ struct display_buffer* display_allocate_buffer(struct display_plane* plane, uint
     buffer->height = height;
     buffer->size = creq.size;
     buffer->dmabuf_fd = prime.fd;
+    buffer->uv_dmabuf_fd = -1;
     buffer->map = map;
     buffer->plane = plane;
     buffer->next = plane->buffers;
@@ -460,6 +461,305 @@ error:
     return NULL;
 }
 
+/*
+ * One dumb buffer, 8 bits per pixel, exported and mapped. The building block of
+ * display_allocate_buffer_planes(): every plane of a semiplanar YUV frame is a
+ * byte per sample, so one helper covers both.
+ */
+static int alloc_dumb_plane(const struct display* display, uint32_t width, uint32_t height,
+                            uint32_t* handle, uint32_t* pitch, uint32_t* size, int* dmabuf_fd,
+                            void** map) {
+    struct drm_mode_create_dumb creq;
+    struct drm_mode_map_dumb mreq;
+    struct drm_prime_handle prime;
+    struct drm_mode_destroy_dumb destroy;
+    void* m;
+
+    memset(&creq, 0, sizeof(creq));
+    creq.width = width;
+    creq.height = height;
+    creq.bpp = 8;
+    if (drmIoctl(display->fd, DRM_IOCTL_MODE_CREATE_DUMB, &creq) < 0) {
+        pr("create dumb %ux%u failed: %s", width, height, strerror(errno));
+        return -1;
+    }
+
+    memset(&prime, 0, sizeof(prime));
+    prime.fd = -1;
+    prime.handle = creq.handle;
+    if (ioctl(display->fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &prime) < 0) {
+        pr("exporting the dumb buffer failed: %s", strerror(errno));
+        goto free_dumb;
+    }
+
+    memset(&mreq, 0, sizeof(mreq));
+    mreq.handle = creq.handle;
+    if (drmIoctl(display->fd, DRM_IOCTL_MODE_MAP_DUMB, &mreq) < 0) {
+        pr("mapping the dumb buffer failed: %s", strerror(errno));
+        goto close_fd;
+    }
+    m = mmap(NULL, creq.size, PROT_READ | PROT_WRITE, MAP_SHARED, display->fd, mreq.offset);
+    if (m == MAP_FAILED) {
+        pr("mmap dumb buffer failed: %s", strerror(errno));
+        goto close_fd;
+    }
+    memset(m, 0, creq.size);
+
+    *handle = creq.handle;
+    *pitch = creq.pitch;
+    *size = (uint32_t)creq.size;
+    *dmabuf_fd = prime.fd;
+    *map = m;
+    return 0;
+
+close_fd:
+    close(prime.fd);
+free_dumb:
+    memset(&destroy, 0, sizeof(destroy));
+    destroy.handle = creq.handle;
+    drmIoctl(display->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
+    return -1;
+}
+
+/*
+ * Chroma lines per luma line, as a fraction. 4:2:0 halves them, 4:2:2 does not.
+ */
+static int chroma_height(uint32_t fourcc, uint32_t height, uint32_t* out) {
+    switch (fourcc) {
+        case DRM_FORMAT_NV12:
+        case DRM_FORMAT_NV21:
+            *out = height / 2;
+            return 0;
+        case DRM_FORMAT_NV16:
+        case DRM_FORMAT_NV61:
+            *out = height;
+            return 0;
+        default:
+            return -1;
+    }
+}
+
+struct display_buffer* display_allocate_buffer_planes(struct display_plane* plane, uint32_t width,
+                                                      uint32_t height, unsigned nplanes) {
+    uint32_t handles[4] = {0, 0, 0, 0}, pitches[4] = {0, 0, 0, 0}, offsets[4] = {0, 0, 0, 0};
+    const struct display* display = plane->display;
+    struct display_buffer* buffer;
+    uint32_t y_handle = 0, y_pitch = 0, y_size = 0;
+    uint32_t uv_handle = 0, uv_pitch = 0, uv_size = 0, uv_height = 0;
+    int y_fd = -1, uv_fd = -1;
+    void *y_map = NULL, *uv_map = NULL;
+    struct drm_mode_destroy_dumb destroy;
+
+    if (nplanes <= 1) {
+        return display_allocate_buffer(plane, width, height);
+    }
+
+    if (nplanes > 2 || chroma_height(plane->fourcc, height, &uv_height) != 0) {
+        pr("a %u plane allocation is not defined for fourcc %08x", nplanes, plane->fourcc);
+        return NULL;
+    }
+
+    if (alloc_dumb_plane(display, width, height, &y_handle, &y_pitch, &y_size, &y_fd, &y_map) != 0) {
+        return NULL;
+    }
+    if (alloc_dumb_plane(display, width, uv_height, &uv_handle, &uv_pitch, &uv_size, &uv_fd,
+                         &uv_map) != 0) {
+        goto free_y;
+    }
+
+    /* Two GEM objects, one per plane, each starting at its own offset 0 */
+    handles[0] = y_handle;
+    pitches[0] = y_pitch;
+    offsets[0] = 0;
+    handles[1] = uv_handle;
+    pitches[1] = uv_pitch;
+    offsets[1] = 0;
+
+    buffer = malloc(sizeof(struct display_buffer));
+    if (buffer == NULL) {
+        goto free_uv;
+    }
+    memset(buffer, 0, sizeof(struct display_buffer));
+
+    CKE(drmModeAddFB2(display->fd, width, height, plane->fourcc, handles, pitches, offsets,
+                      &buffer->id, 0),
+        free_buffer);
+
+    buffer->handle = y_handle;
+    buffer->stride = y_pitch;
+    buffer->width = width;
+    buffer->height = height;
+    buffer->size = y_size;
+    buffer->dmabuf_fd = y_fd;
+    buffer->map = y_map;
+    buffer->uv_handle = uv_handle;
+    buffer->uv_size = uv_size;
+    buffer->uv_dmabuf_fd = uv_fd;
+    buffer->uv_map = uv_map;
+    buffer->plane = plane;
+    buffer->next = plane->buffers;
+    plane->buffers = buffer;
+    buffer->drm_rotation = plane->drm_rotation;
+    return buffer;
+
+free_buffer:
+    free(buffer);
+free_uv:
+    munmap(uv_map, uv_size);
+    close(uv_fd);
+    memset(&destroy, 0, sizeof(destroy));
+    destroy.handle = uv_handle;
+    drmIoctl(display->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
+free_y:
+    munmap(y_map, y_size);
+    close(y_fd);
+    memset(&destroy, 0, sizeof(destroy));
+    destroy.handle = y_handle;
+    drmIoctl(display->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
+    return NULL;
+}
+
+/*
+ * Bytes per line of the first plane, when the caller did not say.
+ */
+static uint32_t default_stride(uint32_t fourcc, uint32_t width) {
+    switch (fourcc) {
+        case DRM_FORMAT_NV12:
+        case DRM_FORMAT_NV21:
+        case DRM_FORMAT_NV16:
+        case DRM_FORMAT_NV61:
+            return width;
+        case DRM_FORMAT_RGB565:
+        case DRM_FORMAT_BGR565:
+            return width * 2;
+        case DRM_FORMAT_BGR888:
+        case DRM_FORMAT_RGB888:
+            return width * 3;
+        default:
+            return width * 4;
+    }
+}
+
+struct display_buffer* display_import_buffer(struct display_plane* plane, int dmabuf_fd,
+                                             uint32_t width, uint32_t height, uint32_t stride) {
+    return display_import_buffer_planes(plane, &dmabuf_fd, 1, width, height, stride);
+}
+
+struct display_buffer* display_import_buffer_planes(struct display_plane* plane,
+                                                    const int* dmabuf_fds, unsigned nfds,
+                                                    uint32_t width, uint32_t height,
+                                                    uint32_t stride) {
+    struct drm_prime_handle prime;
+    struct drm_gem_close gem_close;
+    uint32_t handles[4] = {0, 0, 0, 0}, pitches[4] = {0, 0, 0, 0}, offsets[4] = {0, 0, 0, 0};
+    const struct display* display = plane->display;
+    struct display_buffer* buffer;
+    uint32_t uv_handle = 0;
+    bool semiplanar;
+
+    if (dmabuf_fds == NULL || nfds < 1 || nfds > 2 || dmabuf_fds[0] < 0 || width == 0 ||
+        height == 0) {
+        pr("import: bad arguments (nfds=%u fd=%d %ux%u)", nfds,
+           dmabuf_fds != NULL ? dmabuf_fds[0] : -1, width, height);
+        return NULL;
+    }
+
+    if (stride == 0) {
+        stride = default_stride(plane->fourcc, width);
+    }
+
+    switch (plane->fourcc) {
+        case DRM_FORMAT_NV12:
+        case DRM_FORMAT_NV21:
+        case DRM_FORMAT_NV16:
+        case DRM_FORMAT_NV61:
+            semiplanar = true;
+            break;
+        default:
+            semiplanar = false;
+            break;
+    }
+
+    if (nfds == 2 && !semiplanar) {
+        pr("import: fourcc %08x has nothing to put in a second fd", plane->fourcc);
+        return NULL;
+    }
+
+    memset(&prime, 0, sizeof(prime));
+    prime.fd = dmabuf_fds[0];
+    CKE(ioctl(display->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &prime), error);
+
+    handles[0] = prime.handle;
+    pitches[0] = stride;
+    offsets[0] = 0;
+
+    if (semiplanar && nfds == 2) {
+        /* Chroma in an allocation of its own, starting at its own offset 0 */
+        struct drm_prime_handle uv_prime;
+
+        memset(&uv_prime, 0, sizeof(uv_prime));
+        uv_prime.fd = dmabuf_fds[1];
+        CKE(ioctl(display->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &uv_prime), close_handle);
+
+        uv_handle = uv_prime.handle;
+        handles[1] = uv_handle;
+        pitches[1] = stride;
+        offsets[1] = 0;
+    } else if (semiplanar) {
+        /*
+         * Semiplanar YUV in a single allocation: both planes point at the same
+         * GEM object, the second one offset by a whole luma plane. Same layout
+         * display_allocate_buffer() produces, and the same one a V4L2 capture
+         * device hands out for NV12.
+         */
+        handles[1] = prime.handle;
+        pitches[1] = stride;
+        offsets[1] = stride * height;
+    }
+
+    buffer = malloc(sizeof(struct display_buffer));
+    if (buffer == NULL) {
+        goto close_uv_handle;
+    }
+    memset(buffer, 0, sizeof(struct display_buffer));
+
+    CKE(drmModeAddFB2(display->fd, width, height, plane->fourcc, handles, pitches, offsets, &buffer->id, 0), free_buffer);
+
+    buffer->handle = prime.handle;
+    buffer->stride = stride;
+    buffer->width = width;
+    buffer->height = height;
+    buffer->size = 0;
+    buffer->dmabuf_fd = dmabuf_fds[0];
+    buffer->map = NULL;
+    buffer->uv_handle = uv_handle;
+    buffer->uv_dmabuf_fd = nfds == 2 ? dmabuf_fds[1] : -1;
+    buffer->uv_size = 0;
+    buffer->uv_map = NULL;
+    buffer->imported = true;
+    buffer->plane = plane;
+    buffer->next = plane->buffers;
+    plane->buffers = buffer;
+    buffer->drm_rotation = plane->drm_rotation;
+
+    return buffer;
+
+free_buffer:
+    free(buffer);
+close_uv_handle:
+    if (uv_handle != 0) {
+        memset(&gem_close, 0, sizeof(gem_close));
+        gem_close.handle = uv_handle;
+        drmIoctl(display->fd, DRM_IOCTL_GEM_CLOSE, &gem_close);
+    }
+close_handle:
+    memset(&gem_close, 0, sizeof(gem_close));
+    gem_close.handle = prime.handle;
+    drmIoctl(display->fd, DRM_IOCTL_GEM_CLOSE, &gem_close);
+error:
+    return NULL;
+}
+
 void display_free_buffer(struct display_buffer* buffer) {
     if (buffer == NULL)
         return;
@@ -471,16 +771,51 @@ void display_free_buffer(struct display_buffer* buffer) {
     if (buffer->map != NULL) {
         munmap(buffer->map, buffer->size);
     }
+    if (buffer->uv_map != NULL) {
+        munmap(buffer->uv_map, buffer->uv_size);
+    }
     if (buffer->id != 0) {
         drmModeRmFB(d->fd, buffer->id);
     }
-    if (buffer->dmabuf_fd >= 0) {
-        close(buffer->dmabuf_fd);
+
+    if (buffer->imported) {
+        /* The memory is the exporter's. Drop our GEM reference only, and
+         * leave the fd alone: it is still the caller's to close. */
+        struct drm_gem_close gem_close;
+
+        memset(&gem_close, 0, sizeof(gem_close));
+        gem_close.handle = buffer->handle;
+        drmIoctl(d->fd, DRM_IOCTL_GEM_CLOSE, &gem_close);
         buffer->dmabuf_fd = -1;
+
+        if (buffer->uv_handle != 0) {
+            memset(&gem_close, 0, sizeof(gem_close));
+            gem_close.handle = buffer->uv_handle;
+            drmIoctl(d->fd, DRM_IOCTL_GEM_CLOSE, &gem_close);
+            buffer->uv_handle = 0;
+        }
+        buffer->uv_dmabuf_fd = -1;
+    } else {
+        if (buffer->dmabuf_fd >= 0) {
+            close(buffer->dmabuf_fd);
+            buffer->dmabuf_fd = -1;
+        }
+        memset(&destroy, 0, sizeof(destroy));
+        destroy.handle = buffer->handle;
+        drmIoctl(d->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
+
+        /* The chroma allocation, when there is a separate one */
+        if (buffer->uv_dmabuf_fd >= 0) {
+            close(buffer->uv_dmabuf_fd);
+            buffer->uv_dmabuf_fd = -1;
+        }
+        if (buffer->uv_handle != 0) {
+            memset(&destroy, 0, sizeof(destroy));
+            destroy.handle = buffer->uv_handle;
+            drmIoctl(d->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
+            buffer->uv_handle = 0;
+        }
     }
-    memset(&destroy, 0, sizeof(destroy));
-    destroy.handle = buffer->handle;
-    drmIoctl(d->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy);
 
     // remove from list
     struct display_buffer* b = p->buffers;

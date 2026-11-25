@@ -72,13 +72,12 @@ int MyCameraRtspDemo::Init(const KdMediaInputConfig &config,const std::string &s
     //init rtsp server
     input_config_ = config;
 
-    if (rtsp_server_.Init(port, nullptr) < 0) {
+    if (rtsp_server_.Init(port) < 0) {
         return -1;
     }
     // enable audio-track
     SessionAttr session_attr;
     session_attr.with_audio = true;
-    session_attr.with_audio_backchannel = false;
     session_attr.with_video = true;
 
     if (config.video_type == KdMediaVideoType::kVideoTypeH264) {

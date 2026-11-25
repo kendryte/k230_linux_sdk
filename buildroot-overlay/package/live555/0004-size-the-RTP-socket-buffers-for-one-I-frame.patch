@@ -1,0 +1,58 @@
+From: Canaan K230 Linux SDK
+Subject: [PATCH] live555: size the RTP socket buffers for one I-frame
+
+Carried over from the rt-smart tree's vendored live555 copy
+(canmv_k230_dpu/src/rtsmart/mpp/middleware/src/live555).
+
+Unlike 0003 this is tuning, not a bug fix, and it is a separate patch so it
+can be dropped on its own. live555 asks the kernel for 50kB of RTP socket
+buffer in each direction. One H.264/H.265 I-frame out of this SoC's encoder
+is bigger than that, and it goes onto the wire as a single burst, so the
+kernel drops the tail of every I-frame: the picture smears once per GOP.
+
+Both directions now ask for 1MB. "increaseReceiveBufferTo()" and
+"increaseSendBufferTo()" probe downwards until the kernel accepts a value,
+so on a system whose net.core.rmem_max / wmem_max is lower this simply gets
+whatever the limit allows rather than failing.
+
+Not carried over from rt-smart, because nothing we build uses them:
+
+  * StreamParser.cpp BANK_SIZE 150000 -> 512kB.  Only the file-reading
+    framers go through StreamParser; librtsp_server feeds discrete framers
+    from memory.
+  * mediaServer/DynamicRTSPServer.cpp OutPacketBuffer::maxSize 100000 -> 1MB.
+    That is the stand-alone live555MediaServer demo; librtsp_server sets
+    OutPacketBuffer::maxSize itself.
+
+diff -urN /tmp/m_a/liveMedia/MultiFramedRTPSource.cpp /tmp/m_b/liveMedia/MultiFramedRTPSource.cpp
+--- a/liveMedia/MultiFramedRTPSource.cpp	2026-11-21 08:07:08.737436617 +0800
++++ b/liveMedia/MultiFramedRTPSource.cpp	2026-11-21 08:07:25.753733214 +0800
+@@ -73,7 +73,13 @@
+   fReorderingBuffer = new ReorderingPacketBuffer(packetFactory);
+ 
+   // Try to use a big receive buffer for RTP:
+-  increaseReceiveBufferTo(env, RTPgs->socketNum(), 50*1024);
++  // Local patch; reapply when upgrading live555.
++  // 50kB is less than a single H.264/H.265 I-frame at the bitrates this SoC
++  // encodes at, and an I-frame arrives as one burst of UDP packets. Whatever
++  // does not fit is dropped by the kernel before we ever get to read it, which
++  // shows up as a smeared picture once per GOP. Linux clamps the request to
++  // net.core.rmem_max, so asking for more than the system allows is harmless.
++  increaseReceiveBufferTo(env, RTPgs->socketNum(), 1024*1024);
+ }
+ 
+ void MultiFramedRTPSource::reset() {
+diff -urN /tmp/m_a/liveMedia/RTPInterface.cpp /tmp/m_b/liveMedia/RTPInterface.cpp
+--- a/liveMedia/RTPInterface.cpp	2026-11-21 08:07:08.737436617 +0800
++++ b/liveMedia/RTPInterface.cpp	2026-11-21 08:07:25.753733214 +0800
+@@ -143,7 +143,9 @@
+   // even if the socket was previously reported (e.g., by "select()") as having data available.
+   // (This can supposedly happen if the UDP checksum fails, for example.)
+   makeSocketNonBlocking(fGS->socketNum());
+-  increaseSendBufferTo(envir(), fGS->socketNum(), 50*1024);
++  // Local patch; reapply when upgrading live555. See MultiFramedRTPSource.cpp
++  // for why 50kB is too small for one I-frame; the same applies on the way out.
++  increaseSendBufferTo(envir(), fGS->socketNum(), 1024*1024);
+ }
+ 
+ RTPInterface::~RTPInterface() {

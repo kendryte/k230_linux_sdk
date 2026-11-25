@@ -1,0 +1,12 @@
+config BR2_PACKAGE_LIBRTSP_CLIENT
+    bool "RTSP Client Library"
+    depends on BR2_PACKAGE_LIVE555
+    help
+        This option enables the RTSP Client Library, which pulls H.264/H.265
+        video and G.711 audio from an RTSP server and hands it to the
+        application through callbacks.  It can also talk back over an ONVIF
+        audio back channel.  It depends on the LIVE555 library.
+
+        Note: unlike BR2_PACKAGE_LIB_RTSPSERVER next door, this symbol is
+        named the way buildroot derives it from the directory name, so
+        setting it in a defconfig is enough to build the library on its own.

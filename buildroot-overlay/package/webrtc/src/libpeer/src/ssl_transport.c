@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/debug.h"
@@ -50,6 +51,11 @@ int ssl_transport_connect(NetworkContext_t* net_ctx,
   int ret;
   Address resolved_addr;
 
+  /* fail: closes the socket, and one caller passes an uninitialised stack
+   * NetworkContext_t — mark the fd invalid before anything can jump there so
+   * tcp_socket_close() cannot act on a garbage value. */
+  net_ctx->tcp_socket.fd = -1;
+
   mbedtls_ssl_init(&net_ctx->ssl);
   mbedtls_ssl_config_init(&net_ctx->conf);
   // mbedtls_x509_crt_init(&net_ctx->cacert);
@@ -58,7 +64,8 @@ int ssl_transport_connect(NetworkContext_t* net_ctx,
 
   if ((ret = mbedtls_ctr_drbg_seed(&net_ctx->ctr_drbg, mbedtls_entropy_func, &net_ctx->entropy,
                                    (const unsigned char*)pers, strlen(pers))) != 0) {
-    return -1;
+    LOGE("ctr_drbg seed error: -0x%x", (unsigned int)-ret);
+    goto fail;
   }
 
   if ((ret = mbedtls_ssl_config_defaults(&net_ctx->conf,
@@ -66,7 +73,7 @@ int ssl_transport_connect(NetworkContext_t* net_ctx,
                                          MBEDTLS_SSL_TRANSPORT_STREAM,
                                          MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
     LOGE("ssl config error: -0x%x", (unsigned int)-ret);
-    return -1;
+    goto fail;
   }
 
   mbedtls_ssl_conf_authmode(&net_ctx->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
@@ -83,36 +90,65 @@ int ssl_transport_connect(NetworkContext_t* net_ctx,
 
   if ((ret = mbedtls_ssl_setup(&net_ctx->ssl, &net_ctx->conf)) != 0) {
     LOGE("ssl setup error: -0x%x", (unsigned int)-ret);
-    return -1;
+    goto fail;
   }
 
   if ((ret = mbedtls_ssl_set_hostname(&net_ctx->ssl, host)) != 0) {
     LOGE("ssl set hostname error: -0x%x", (unsigned int)-ret);
-    return -1;
+    goto fail;
   }
 
   memset(&resolved_addr, 0, sizeof(resolved_addr));
-  tcp_socket_open(&net_ctx->tcp_socket, AF_INET);
-  ports_resolve_addr(host, &resolved_addr);
+  if ((ret = tcp_socket_open(&net_ctx->tcp_socket, AF_INET)) < 0) {
+    goto fail;
+  }
+  /* Bail out here rather than connecting to the zeroed address. Early in the
+   * boot DNS is not up yet and this returns EAI_AGAIN for a hostname; carrying
+   * on used to dial 0.0.0.0:port and burn a full TCP connect timeout before
+   * the caller could retry. */
+  if ((ret = ports_resolve_addr(host, &resolved_addr)) < 0) {
+    LOGE("failed to resolve %s", host);
+    goto fail;
+  }
   addr_set_port(&resolved_addr, port);
   if ((ret = tcp_socket_connect(&net_ctx->tcp_socket, &resolved_addr)) < 0) {
-    return -1;
+    goto fail;
   }
 
-  mbedtls_ssl_conf_read_timeout(&net_ctx->conf, CONFIG_TLS_READ_TIMEOUT);
+  mbedtls_ssl_conf_read_timeout(&net_ctx->conf, CONFIG_TLS_HANDSHAKE_READ_TIMEOUT);
   mbedtls_ssl_set_bio(&net_ctx->ssl, &net_ctx->tcp_socket,
                       ssl_transport_mbedlts_send, NULL, ssl_transport_mbedtls_recv_timeout);
 
   LOGI("start to handshake");
 
+  /* WANT_READ/WANT_WRITE mean "call me again"; anything else is terminal and
+   * leaves the context in an error state, so retrying it just spins. */
   while ((ret = mbedtls_ssl_handshake(&net_ctx->ssl)) != 0) {
     if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
       LOGE("ssl handshake error: -0x%x", (unsigned int)-ret);
+      goto fail;
     }
   }
 
   LOGI("handshake success");
+
   return 0;
+
+fail:
+  /* Reachable from any point after the mbedtls _init() calls above. Once
+   * mbedtls_ssl_setup() has run the record buffers are allocated, so a caller
+   * that just retries would leak them — none of them call
+   * ssl_transport_disconnect() on failure. The mbedtls free functions zeroize
+   * their context, so calling it again later is harmless. */
+  ssl_transport_disconnect(net_ctx);
+  return -1;
+}
+
+/* Caller switches to the short steady-state timeout only once MQTT CONNACK
+ * and SUBACK are confirmed — doing it earlier starves MQTT_ProcessLoop()'s
+ * single-shot recv() before those replies arrive. */
+void ssl_transport_set_read_timeout(NetworkContext_t* net_ctx, uint32_t timeout_ms) {
+  mbedtls_ssl_conf_read_timeout(&net_ctx->conf, timeout_ms);
 }
 
 void ssl_transport_disconnect(NetworkContext_t* net_ctx) {

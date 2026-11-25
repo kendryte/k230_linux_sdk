@@ -46,6 +46,7 @@ typedef struct DtlsSrtp {
   mbedtls_pk_context pkey;
   mbedtls_entropy_context entropy;
   mbedtls_ctr_drbg_context ctr_drbg;
+  mbedtls_timing_delay_context timer;
 
   // SRTP
   srtp_policy_t remote_policy;
@@ -66,11 +67,6 @@ typedef struct DtlsSrtp {
   char local_fingerprint[DTLS_SRTP_FINGERPRINT_LENGTH];
   char remote_fingerprint[DTLS_SRTP_FINGERPRINT_LENGTH];
   char actual_remote_fingerprint[DTLS_SRTP_FINGERPRINT_LENGTH];
-
-  // DTLS handshake fragment reassembly
-  uint8_t* reasm_buf;      // Reassembled record buffer (dynamically allocated)
-  size_t reasm_len;        // Total reassembled data length
-  size_t reasm_off;        // Current return offset for chunked delivery
 
   int cert_cached;         // 1 = cert/pkey/entropy/ctr_drbg already generated, skip regen
 

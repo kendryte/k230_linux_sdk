@@ -133,20 +133,26 @@ static struct nonai_2d_format formats[] = {
         .fmt_osd = K_2D_OSD_FMT_XRGB8888,
         .pixel_format = PIXEL_FORMAT_ARGB_8888,
     },
+    /* V4L2 names these from the last byte in memory backwards, so
+     * ABGR32 is B, G, R, A in memory - the reverse of ARGB32. The
+     * hardware has those two orders as separate formats; pointing both
+     * entries at the ARGB ones made the two fourccs behave identically
+     * and left BGRA8888/BGRX8888 unreachable from userspace.
+     */
     {
         .fourcc = V4L2_PIX_FMT_ABGR32,
         .depth = 32,
         .plane = 1,
-        .fmt_2d = K_2D_VIDEO_FMT_ARGB8888,
-        .fmt_osd = K_2D_OSD_FMT_ARGB8888,
+        .fmt_2d = K_2D_VIDEO_FMT_BGRA8888,
+        .fmt_osd = K_2D_OSD_FMT_BGRA8888,
         .pixel_format = PIXEL_FORMAT_ABGR_8888,
     },
     {
         .fourcc = V4L2_PIX_FMT_XBGR32,
         .depth = 32,
         .plane = 1,
-        .fmt_2d = K_2D_VIDEO_FMT_XRGB8888,
-        .fmt_osd = K_2D_OSD_FMT_XRGB8888,
+        .fmt_2d = K_2D_VIDEO_FMT_BGRX8888,
+        .fmt_osd = K_2D_OSD_FMT_BGRX8888,
         .pixel_format = PIXEL_FORMAT_ABGR_8888,
     },
     {
@@ -286,6 +292,12 @@ static void nonai_2d_update_frame_layout(struct nonai_2d_frame *frm)
         frm->size = frm->height * frm->stride;
 }
 
+/* How many colour planes the pixel format really has, whatever V4L2 was told */
+static uint32_t nonai_2d_fmt_planes(const struct nonai_2d_format *fmt)
+{
+    return fmt->plane ? fmt->plane : 1;
+}
+
 static void nonai_2d_fill_plane_layout(const struct nonai_2d_format *fmt,
                    uint32_t width, uint32_t height,
                    uint32_t bytesperline[3], uint32_t sizeimage[3])
@@ -329,6 +341,47 @@ static void nonai_2d_fill_plane_layout(const struct nonai_2d_format *fmt,
         sizeimage[0] = height * bytesperline[0];
         break;
     }
+}
+
+/*
+ * The layout a queue actually sees, plus where each colour plane starts
+ * inside it.
+ *
+ * Everything else on this chip treats a frame as one contiguous block: the
+ * camera hands NV12 over as a single buffer with chroma right after luma, the
+ * encoder wants it that way, and the RTOS firmware - which shares nonai_2d.c
+ * with us - never knew anything else, which is how it gets away with zero
+ * copies. This V4L2 wrapper is the only thing that ever split NV12 into two
+ * separate buffers, and that split is what stops a camera frame from being
+ * handed over where it lies: one dmabuf fd cannot describe two buffers.
+ *
+ * So when the frame was set up single-plane - which is what a plain
+ * VIDEO_CAPTURE S_FMT does - fold the planes together into plane 0 and
+ * remember the offsets. The hardware is given addresses either way; it has no
+ * opinion on how many V4L2 planes they arrived in.
+ */
+static void nonai_2d_fill_frame_layout(const struct nonai_2d_frame *f,
+                       uint32_t bytesperline[3],
+                       uint32_t sizeimage[3],
+                       uint32_t offsets[3])
+{
+    uint32_t total = 0;
+    uint32_t i;
+
+    nonai_2d_fill_plane_layout(&f->fmt, f->width, f->height, bytesperline,
+                   sizeimage);
+
+    for (i = 0; i < 3; i++) {
+        offsets[i] = total;
+        total += sizeimage[i];
+    }
+
+    if (f->num_planes != 1 || nonai_2d_fmt_planes(&f->fmt) == 1)
+        return;
+
+    sizeimage[0] = total;
+    sizeimage[1] = 0;
+    sizeimage[2] = 0;
 }
 
 struct nonai_2d_frame *nonai_2d_get_frame(struct nonai_2d_v4l2_ctx *ctx,
@@ -391,12 +444,13 @@ static int nonai_2d_queue_setup(struct vb2_queue *vq, unsigned int *nbuffers,
     struct nonai_2d_frame *f = nonai_2d_get_frame(ctx, vq->type);
     uint32_t bytesperline[3];
     uint32_t sizeimage[3];
+    uint32_t offsets[3];
 
     if (IS_ERR(f))
         return PTR_ERR(f);
 
     nonai_2d_update_frame_layout(f);
-    nonai_2d_fill_plane_layout(&f->fmt, f->width, f->height, bytesperline, sizeimage);
+    nonai_2d_fill_frame_layout(f, bytesperline, sizeimage, offsets);
 
     nonai_2d_info("nonai2d queue_setup: type=%u req_nbuf=%u req_nplanes=%u fmt=0x%x wxh=%ux%u frm_planes=%u\n",
         vq->type, *nbuffers, *nplanes, f->fmt.fourcc, f->width, f->height, f->num_planes);
@@ -431,6 +485,7 @@ static int nonai_2d_buf_prepare(struct vb2_buffer *vb)
     struct nonai_2d_frame *f = nonai_2d_get_frame(ctx, vb->vb2_queue->type);
     uint32_t bytesperline[3];
     uint32_t sizeimage[3];
+    uint32_t offsets[3];
     uint32_t plane;
     dma_addr_t dst_addr;
     dma_addr_t plane_addr;
@@ -440,7 +495,7 @@ static int nonai_2d_buf_prepare(struct vb2_buffer *vb)
     if (IS_ERR(f))
         return PTR_ERR(f);
 
-    nonai_2d_fill_plane_layout(&f->fmt, f->width, f->height, bytesperline, sizeimage);
+    nonai_2d_fill_frame_layout(f, bytesperline, sizeimage, offsets);
     for (plane = 0; plane < f->num_planes; plane++) {
         if (vb2_plane_size(vb, plane) < sizeimage[plane])
             return -EINVAL;
@@ -453,6 +508,48 @@ static int nonai_2d_buf_prepare(struct vb2_buffer *vb)
     return 0;
 }
 
+/*
+ * Work out where each plane of the capture buffer lives, and point the engine
+ * at it for both reading and writing - OSD and BORDER draw in place.
+ *
+ * The interesting case is a buffer that arrives as one plane when the format
+ * has two. That is not a mistake, it is the shape everything else on this chip
+ * produces: a camera frame or an encoder frame is a single contiguous block
+ * with chroma sitting further down it, behind one dmabuf handle. A handle
+ * cannot be split, so chroma's address is worked out here from the frame
+ * layout rather than asked for - which is what lets a frame be drawn on where
+ * it lies, with nothing copied in or out.
+ */
+static void nonai_2d_set_inplace_addrs(struct nonai_2d_v4l2_ctx *ctx,
+                       struct vb2_v4l2_buffer *dst)
+{
+    struct nonai_2d_frame *f = &ctx->out;
+    uint32_t fmt_planes = nonai_2d_fmt_planes(&f->fmt);
+    int dst_planes = dst->vb2_buf.num_planes > 3 ? 3 : dst->vb2_buf.num_planes;
+    int plane;
+
+    for (plane = 0; plane < 3; plane++) {
+        ctx->in.addr[plane] = 0;
+        ctx->out.addr[plane] = 0;
+    }
+
+    if (dst_planes == 1 && fmt_planes > 1) {
+        uint32_t bytesperline[3], sizeimage[3], offsets[3];
+        dma_addr_t base = vb2_dma_contig_plane_dma_addr(&dst->vb2_buf, 0);
+
+        nonai_2d_fill_frame_layout(f, bytesperline, sizeimage, offsets);
+        for (plane = 0; plane < (int)fmt_planes; plane++)
+            ctx->out.addr[plane] = base + offsets[plane];
+        dst_planes = fmt_planes;
+    } else {
+        for (plane = 0; plane < dst_planes; plane++)
+            ctx->out.addr[plane] = vb2_dma_contig_plane_dma_addr(&dst->vb2_buf, plane);
+    }
+
+    for (plane = 0; plane < dst_planes; plane++)
+        ctx->in.addr[plane] = ctx->out.addr[plane];
+}
+
 static void nonai_2d_buf_queue(struct vb2_buffer *vb)
 {
     struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
@@ -460,8 +557,6 @@ static void nonai_2d_buf_queue(struct vb2_buffer *vb)
     struct nonai_2d_drv_ctx *drv_ctx = ctx->drv_ctx;
     struct nonai_2d_chn_t *chn = &g_nonai_2d_chn[ctx->in.chn];
     unsigned long flags;
-    int plane;
-    int dst_planes;
     struct nonai_2d_job job;
 
     v4l2_m2m_buf_queue(ctx->fh.m2m_ctx, vbuf);
@@ -477,23 +572,8 @@ static void nonai_2d_buf_queue(struct vb2_buffer *vb)
             if (dst) {
                 drv_ctx->v4l2_ctx = ctx;
 
-                dst_planes = dst->vb2_buf.num_planes > 3 ? 3 : dst->vb2_buf.num_planes;
-
-                /* Clear addresses */
-                for (plane = 0; plane < 3; plane++) {
-                    ctx->in.addr[plane] = 0;
-                    ctx->out.addr[plane] = 0;
-                }
-
-                /* Set output addresses from capture buffer */
-                for (plane = 0; plane < dst_planes; plane++) {
-                    ctx->out.addr[plane] = vb2_dma_contig_plane_dma_addr(&dst->vb2_buf, plane);
-                }
-
                 /* In OSD mode, input and output use the same buffer (in-place processing) */
-                for (plane = 0; plane < dst_planes; plane++) {
-                    ctx->in.addr[plane] = ctx->out.addr[plane];
-                }
+                nonai_2d_set_inplace_addrs(ctx, dst);
 
                 /* Configure hardware */
                 nonai_2d_config_job(&job, ctx);
@@ -1063,19 +1143,8 @@ static void device_run(void *prv)
             return;
         }
 
-        dst_planes = dst->vb2_buf.num_planes > 3 ? 3 : dst->vb2_buf.num_planes;
-
-        for (plane = 0; plane < 3; plane++) {
-            v4l2_ctx->in.addr[plane] = 0;
-            v4l2_ctx->out.addr[plane] = 0;
-        }
-
-        for (plane = 0; plane < dst_planes; plane++)
-            v4l2_ctx->out.addr[plane] = vb2_dma_contig_plane_dma_addr(&dst->vb2_buf, plane);
-
         /* OSD/BORDER mode works in-place on capture buffer only. */
-        for (plane = 0; plane < dst_planes; plane++)
-            v4l2_ctx->in.addr[plane] = v4l2_ctx->out.addr[plane];
+        nonai_2d_set_inplace_addrs(v4l2_ctx, dst);
 
         if (!v4l2_ctx->out.addr[0]) {
             v4l2_err(&drv_ctx->v4l2_dev,
@@ -1187,6 +1256,7 @@ static int nonai_2d_vidioc_g_fmt(struct file *file, void *prv, struct v4l2_forma
     struct nonai_2d_frame *frm;
     uint32_t bytesperline[3];
     uint32_t sizeimage[3];
+    uint32_t offsets[3];
     uint32_t plane;
 
     vq = v4l2_m2m_get_vq(ctx->fh.m2m_ctx, f->type);
@@ -1196,7 +1266,8 @@ static int nonai_2d_vidioc_g_fmt(struct file *file, void *prv, struct v4l2_forma
     if (IS_ERR(frm))
         return PTR_ERR(frm);
 
-    nonai_2d_fill_plane_layout(&frm->fmt, frm->width, frm->height, bytesperline, sizeimage);
+    /* Report what the queue is actually holding, folded planes and all */
+    nonai_2d_fill_frame_layout(frm, bytesperline, sizeimage, offsets);
 
     if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ||
         f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
@@ -1267,12 +1338,18 @@ static int nonai_2d_vidioc_try_fmt(struct file *file, void *prv, struct v4l2_for
             f->fmt.pix_mp.plane_fmt[plane].sizeimage = sizeimage[plane];
         }
     } else {
+        /*
+         * Single-planar means "the whole frame in one buffer", so the size
+         * has to cover every plane - not just luma, which is what
+         * width*depth/8 per line would give for NV12.
+         */
+        nonai_2d_fill_plane_layout(fmt, width, height, bytesperline, sizeimage);
         f->fmt.pix.width = width;
         f->fmt.pix.height = height;
         f->fmt.pix.field = V4L2_FIELD_NONE;
         f->fmt.pix.pixelformat = pixelformat;
-        f->fmt.pix.bytesperline = (width * fmt->depth) >> 3;
-        f->fmt.pix.sizeimage = (height * (width * fmt->depth)) >> 3;
+        f->fmt.pix.bytesperline = bytesperline[0];
+        f->fmt.pix.sizeimage = sizeimage[0] + sizeimage[1] + sizeimage[2];
     }
 
     return 0;

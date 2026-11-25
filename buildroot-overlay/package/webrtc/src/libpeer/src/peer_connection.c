@@ -36,6 +36,12 @@ struct PeerConnection {
   uint8_t temp_buf[CONFIG_MTU];
   uint8_t agent_buf[CONFIG_MTU];
   int agent_ret;
+  int dtls_recv_available;
+  uint8_t* dtls_client_hello;
+  uint8_t* dtls_client_hello_map;
+  size_t dtls_client_hello_len;
+  size_t dtls_client_hello_received;
+  uint16_t dtls_client_hello_seq;
   int b_local_description_created;
 
   RtpEncoder artp_encoder;
@@ -53,133 +59,140 @@ static void peer_connection_outgoing_rtp_packet(uint8_t* data, size_t size, void
   agent_send(&pc->agent, data, size);
 }
 
-#define DTLS_CT_HANDSHAKE 22
-#define DTLS_REC_HDR_LEN  13
-#define DTLS_HS_HDR_LEN   12
+#define DTLS_RECORD_HEADER_LEN 13
+#define DTLS_HANDSHAKE_HEADER_LEN 12
+#define DTLS_CONTENT_HANDSHAKE 22
+#define DTLS_HANDSHAKE_CLIENT_HELLO 1
+#define DTLS_CLIENT_HELLO_MAX 16384
 
-static int dtls_is_fragmented(const uint8_t* data, size_t len,
-                               uint32_t* hs_total_len,
-                               uint32_t* frag_off,
-                               uint32_t* frag_len) {
-  if (len < DTLS_REC_HDR_LEN + DTLS_HS_HDR_LEN) return 0;
-  if (data[0] != DTLS_CT_HANDSHAKE) return 0;
+static uint32_t peer_connection_read_u24(const uint8_t* value) {
+  return ((uint32_t)value[0] << 16) | ((uint32_t)value[1] << 8) | value[2];
+}
 
-  const uint8_t* hs = data + DTLS_REC_HDR_LEN;
-  *hs_total_len = ((uint32_t)hs[1] << 16) | ((uint32_t)hs[2] << 8) | hs[3];
-  *frag_off     = ((uint32_t)hs[6] << 16) | ((uint32_t)hs[7] << 8) | hs[8];
-  *frag_len     = ((uint32_t)hs[9] << 16) | ((uint32_t)hs[10] << 8) | hs[11];
+static void peer_connection_clear_client_hello(PeerConnection* pc) {
+  free(pc->dtls_client_hello);
+  free(pc->dtls_client_hello_map);
+  pc->dtls_client_hello = NULL;
+  pc->dtls_client_hello_map = NULL;
+  pc->dtls_client_hello_len = 0;
+  pc->dtls_client_hello_received = 0;
+  pc->dtls_client_hello_seq = 0;
+}
 
-  return (*frag_off != 0 || *hs_total_len != *frag_len) ? 1 : 0;
+static int peer_connection_reassemble_client_hello(PeerConnection* pc,
+                                                    uint8_t* packet,
+                                                    size_t packet_len,
+                                                    size_t capacity) {
+  if (packet_len < DTLS_RECORD_HEADER_LEN + DTLS_HANDSHAKE_HEADER_LEN ||
+      packet[0] != DTLS_CONTENT_HANDSHAKE) {
+    return (int)packet_len;
+  }
+
+  size_t record_len = ((size_t)packet[11] << 8) | packet[12];
+  if (record_len + DTLS_RECORD_HEADER_LEN != packet_len ||
+      record_len < DTLS_HANDSHAKE_HEADER_LEN) {
+    return (int)packet_len;
+  }
+
+  uint8_t* handshake = packet + DTLS_RECORD_HEADER_LEN;
+  if (handshake[0] != DTLS_HANDSHAKE_CLIENT_HELLO) {
+    return (int)packet_len;
+  }
+
+  uint32_t total_len = peer_connection_read_u24(handshake + 1);
+  uint16_t message_seq = ((uint16_t)handshake[4] << 8) | handshake[5];
+  uint32_t fragment_offset = peer_connection_read_u24(handshake + 6);
+  uint32_t fragment_len = peer_connection_read_u24(handshake + 9);
+  if (fragment_offset == 0 && fragment_len == total_len) {
+    peer_connection_clear_client_hello(pc);
+    return (int)packet_len;
+  }
+  if (total_len == 0 || total_len > DTLS_CLIENT_HELLO_MAX ||
+      fragment_offset > total_len || fragment_len > total_len - fragment_offset ||
+      record_len != DTLS_HANDSHAKE_HEADER_LEN + fragment_len) {
+    peer_connection_clear_client_hello(pc);
+    return MBEDTLS_ERR_SSL_DECODE_ERROR;
+  }
+
+  size_t assembled_len = DTLS_RECORD_HEADER_LEN + DTLS_HANDSHAKE_HEADER_LEN + total_len;
+  if (assembled_len > capacity) {
+    peer_connection_clear_client_hello(pc);
+    return MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL;
+  }
+
+  if (pc->dtls_client_hello == NULL ||
+      pc->dtls_client_hello_len != assembled_len ||
+      pc->dtls_client_hello_seq != message_seq) {
+    peer_connection_clear_client_hello(pc);
+    pc->dtls_client_hello = malloc(assembled_len);
+    pc->dtls_client_hello_map = calloc(total_len, 1);
+    if (pc->dtls_client_hello == NULL || pc->dtls_client_hello_map == NULL) {
+      peer_connection_clear_client_hello(pc);
+      return MBEDTLS_ERR_SSL_ALLOC_FAILED;
+    }
+    pc->dtls_client_hello_len = assembled_len;
+    pc->dtls_client_hello_seq = message_seq;
+    memcpy(pc->dtls_client_hello, packet, DTLS_RECORD_HEADER_LEN + DTLS_HANDSHAKE_HEADER_LEN);
+    pc->dtls_client_hello[11] = (uint8_t)((DTLS_HANDSHAKE_HEADER_LEN + total_len) >> 8);
+    pc->dtls_client_hello[12] = (uint8_t)(DTLS_HANDSHAKE_HEADER_LEN + total_len);
+    memset(pc->dtls_client_hello + DTLS_RECORD_HEADER_LEN + 6, 0, 3);
+    pc->dtls_client_hello[DTLS_RECORD_HEADER_LEN + 9] = (uint8_t)(total_len >> 16);
+    pc->dtls_client_hello[DTLS_RECORD_HEADER_LEN + 10] = (uint8_t)(total_len >> 8);
+    pc->dtls_client_hello[DTLS_RECORD_HEADER_LEN + 11] = (uint8_t)total_len;
+  }
+
+  uint8_t* destination = pc->dtls_client_hello +
+                         DTLS_RECORD_HEADER_LEN + DTLS_HANDSHAKE_HEADER_LEN +
+                         fragment_offset;
+  const uint8_t* source = handshake + DTLS_HANDSHAKE_HEADER_LEN;
+  for (uint32_t i = 0; i < fragment_len; i++) {
+    if (pc->dtls_client_hello_map[fragment_offset + i] == 0) {
+      pc->dtls_client_hello_map[fragment_offset + i] = 1;
+      pc->dtls_client_hello_received++;
+    }
+    destination[i] = source[i];
+  }
+
+  if (pc->dtls_client_hello_received != total_len) {
+    return MBEDTLS_ERR_SSL_WANT_READ;
+  }
+
+  memcpy(packet, pc->dtls_client_hello, assembled_len);
+  peer_connection_clear_client_hello(pc);
+  return (int)assembled_len;
 }
 
 static int peer_connection_dtls_srtp_recv(void* ctx, unsigned char* buf, size_t len) {
-  int recv_max = 0;
-  int ret = -1;
+  int ret;
   DtlsSrtp* dtls_srtp = (DtlsSrtp*)ctx;
   PeerConnection* pc = (PeerConnection*)dtls_srtp->user_data;
 
-  if (dtls_srtp->reasm_buf && dtls_srtp->reasm_off < dtls_srtp->reasm_len) {
-    size_t remaining = dtls_srtp->reasm_len - dtls_srtp->reasm_off;
-    size_t copy = (remaining < len) ? remaining : len;
-    memcpy(buf, dtls_srtp->reasm_buf + dtls_srtp->reasm_off, copy);
-    dtls_srtp->reasm_off += copy;
-    if (dtls_srtp->reasm_off >= dtls_srtp->reasm_len) {
-      free(dtls_srtp->reasm_buf);
-      dtls_srtp->reasm_buf = NULL;
-      dtls_srtp->reasm_len = 0;
-      dtls_srtp->reasm_off = 0;
-    }
-    return (int)copy;
+  /* Consume at most one datagram per tick so a busy or incomplete handshake
+   * cannot starve peers. Fragmented ClientHello messages are assembled above
+   * because Mbed TLS 3.x rejects them before its general DTLS reassembler. */
+  if (!pc->dtls_recv_available) {
+    return MBEDTLS_ERR_SSL_WANT_READ;
   }
+  pc->dtls_recv_available = 0;
 
-  if (pc->agent_ret > 0 && pc->agent_ret <= (int)len) {
-    memcpy(buf, pc->agent_buf, pc->agent_ret);
+  if (pc->agent_ret > 0) {
     ret = pc->agent_ret;
     pc->agent_ret = 0;
+    if ((size_t)ret > len) {
+      return MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL;
+    }
+    memcpy(buf, pc->agent_buf, ret);
   } else {
-    while (recv_max < CONFIG_TLS_READ_TIMEOUT && pc->state == PEER_CONNECTION_CONNECTED) {
-      ret = agent_recv(&pc->agent, buf, len);
-      if (ret > 0) break;
-      recv_max++;
+    ret = agent_recv(&pc->agent, buf, len);
+    if (ret == 0) {
+      return MBEDTLS_ERR_SSL_WANT_READ;
     }
-    if (ret <= 0) return ret;
-  }
-
-  uint32_t hs_total_len, frag_off, frag_len;
-  if (!dtls_is_fragmented(buf, ret, &hs_total_len, &frag_off, &frag_len)) {
-    return ret;
-  }
-
-  LOGD("DTLS fragment: total=%u offset=%u frag=%u", hs_total_len, frag_off, frag_len);
-
-  size_t rec_total = DTLS_REC_HDR_LEN + DTLS_HS_HDR_LEN + hs_total_len;
-  uint8_t* reasm = (uint8_t*)malloc(rec_total);
-  if (!reasm) return ret;
-
-  memcpy(reasm, buf, DTLS_REC_HDR_LEN);
-  uint16_t payload_len = DTLS_HS_HDR_LEN + hs_total_len;
-  reasm[11] = (payload_len >> 8) & 0xFF;
-  reasm[12] = payload_len & 0xFF;
-
-  memcpy(reasm + DTLS_REC_HDR_LEN, buf + DTLS_REC_HDR_LEN, DTLS_HS_HDR_LEN);
-  reasm[DTLS_REC_HDR_LEN + 6]  = 0;
-  reasm[DTLS_REC_HDR_LEN + 7]  = 0;
-  reasm[DTLS_REC_HDR_LEN + 8]  = 0;
-  reasm[DTLS_REC_HDR_LEN + 9]  = (hs_total_len >> 16) & 0xFF;
-  reasm[DTLS_REC_HDR_LEN + 10] = (hs_total_len >> 8) & 0xFF;
-  reasm[DTLS_REC_HDR_LEN + 11] = hs_total_len & 0xFF;
-
-  memcpy(reasm + DTLS_REC_HDR_LEN + DTLS_HS_HDR_LEN + frag_off,
-         buf + DTLS_REC_HDR_LEN + DTLS_HS_HDR_LEN,
-         frag_len);
-  uint32_t received = frag_len;
-
-  uint8_t tmp[2048];
-  recv_max = 0;
-  while (received < hs_total_len && recv_max < CONFIG_TLS_READ_TIMEOUT) {
-    int r = agent_recv(&pc->agent, tmp, sizeof(tmp));
-    if (r > 0) {
-      uint32_t t, o, f;
-      if (dtls_is_fragmented(tmp, r, &t, &o, &f)) {
-        if (o + f <= hs_total_len) {
-          memcpy(reasm + DTLS_REC_HDR_LEN + DTLS_HS_HDR_LEN + o,
-                 tmp + DTLS_REC_HDR_LEN + DTLS_HS_HDR_LEN, f);
-          received += f;
-          LOGD("DTLS fragment: offset=%u len=%u received=%u/%u", o, f, received, hs_total_len);
-        }
-      } else if (tmp[0] == DTLS_CT_HANDSHAKE) {
-        recv_max++;
-      } else {
-        break;
-      }
-    } else {
-      recv_max++;
-      ports_sleep_ms(1);
+    if (ret < 0) {
+      return ret;
     }
   }
 
-  if (received < hs_total_len) {
-    LOGE("DTLS reassembly incomplete: %u/%u", received, hs_total_len);
-    free(reasm);
-    return -1;
-  }
-
-  LOGD("DTLS reassembly complete: %u bytes", (unsigned)rec_total);
-
-  dtls_srtp->reasm_buf = reasm;
-  dtls_srtp->reasm_len = rec_total;
-  dtls_srtp->reasm_off = 0;
-
-  size_t copy = (rec_total < len) ? rec_total : len;
-  memcpy(buf, reasm, copy);
-  dtls_srtp->reasm_off = copy;
-  if (copy >= rec_total) {
-    free(reasm);
-    dtls_srtp->reasm_buf = NULL;
-    dtls_srtp->reasm_len = 0;
-    dtls_srtp->reasm_off = 0;
-  }
-  return (int)copy;
+  return peer_connection_reassemble_client_hello(pc, buf, ret, len);
 }
 
 static int peer_connection_dtls_srtp_send(void* ctx, const uint8_t* buf, size_t len) {
@@ -266,7 +279,14 @@ PeerConnection* peer_connection_create(PeerConfiguration* config) {
 
   memcpy(&pc->config, config, sizeof(PeerConfiguration));
 
-  agent_create(&pc->agent);
+  if (agent_create(&pc->agent) != 0) {
+    free(pc);
+    return NULL;
+  }
+  if (pc->config.local_ip != NULL &&
+      agent_set_host_address(&pc->agent, pc->config.local_ip) != 0) {
+    LOGW("Ignoring invalid local_ip; falling back to interface detection");
+  }
 
   memset(&pc->sctp, 0, sizeof(pc->sctp));
 
@@ -289,8 +309,21 @@ PeerConnection* peer_connection_create(PeerConfiguration* config) {
   return pc;
 }
 
+int peer_connection_set_local_ip(PeerConnection* pc, const char* local_ip) {
+  if (pc == NULL) {
+    return -1;
+  }
+  if (pc->state != PEER_CONNECTION_CLOSED && pc->state != PEER_CONNECTION_NEW) {
+    LOGW("Cannot change local_ip while peer connection is active");
+    return -1;
+  }
+
+  return agent_bind_host_address(&pc->agent, local_ip);
+}
+
 void peer_connection_destroy(PeerConnection* pc) {
   if (pc) {
+    peer_connection_clear_client_hello(pc);
     sctp_destroy_association(&pc->sctp);
     dtls_srtp_deinit(&pc->dtls_srtp);
     agent_destroy(&pc->agent);
@@ -300,7 +333,7 @@ void peer_connection_destroy(PeerConnection* pc) {
 }
 
 void peer_connection_close(PeerConnection* pc) {
-  pc->state = PEER_CONNECTION_CLOSED;
+  STATE_CHANGED(pc, PEER_CONNECTION_CLOSED);
 }
 
 int peer_connection_send_audio(PeerConnection* pc, const uint8_t* buf, size_t len, uint64_t timestamp_us) {
@@ -403,6 +436,7 @@ int peer_connection_loop(PeerConnection* pc) {
   uint32_t ssrc = 0;
   memset(pc->agent_buf, 0, sizeof(pc->agent_buf));
   pc->agent_ret = -1;
+  pc->dtls_recv_available = 1;
 
   switch (pc->state) {
     case PEER_CONNECTION_NEW:
@@ -434,8 +468,9 @@ int peer_connection_loop(PeerConnection* pc) {
       break;
 
     case PEER_CONNECTION_CONNECTED:
-
-      if (dtls_srtp_handshake(&pc->dtls_srtp, NULL) == 0) {
+    {
+      int handshake_ret = dtls_srtp_handshake(&pc->dtls_srtp, NULL);
+      if (handshake_ret == 0) {
         LOGD("DTLS-SRTP handshake done");
 
         if (pc->config.datachannel) {
@@ -445,8 +480,12 @@ int peer_connection_loop(PeerConnection* pc) {
         }
 
         STATE_CHANGED(pc, PEER_CONNECTION_COMPLETED);
+      } else if (handshake_ret != MBEDTLS_ERR_SSL_WANT_READ &&
+                 handshake_ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+        STATE_CHANGED(pc, PEER_CONNECTION_FAILED);
       }
       break;
+    }
     case PEER_CONNECTION_COMPLETED:
       if ((pc->agent_ret = agent_recv(&pc->agent, pc->agent_buf, sizeof(pc->agent_buf))) > 0) {
         LOGD("agent_recv %d", pc->agent_ret);
@@ -484,6 +523,7 @@ int peer_connection_loop(PeerConnection* pc) {
       if (CONFIG_KEEPALIVE_TIMEOUT > 0 && (ports_get_epoch_time() - pc->agent.binding_request_time) > CONFIG_KEEPALIVE_TIMEOUT) {
         LOGI("binding request timeout");
         STATE_CHANGED(pc, PEER_CONNECTION_CLOSED);
+        break;
       }
 
       if (pc->agent.turn_relay_ready && (ports_get_epoch_time() - pc->agent.turn_allocation_time) > 540000) {
@@ -505,45 +545,118 @@ int peer_connection_loop(PeerConnection* pc) {
 }
 
 void peer_connection_set_remote_description(PeerConnection* pc, const char* sdp, SdpType type) {
-  char* start = (char*)sdp;
-  char* line = NULL;
-  char buf[256];
-  char* val_start = NULL;
+  static const char fingerprint_prefix[] = "a=fingerprint:sha-256 ";
+  static const char ice_ufrag_prefix[] = "a=ice-ufrag:";
+  const char* start;
+  const char* line;
+  const char* sdp_end;
+  size_t sdp_len;
   uint32_t* ssrc = NULL;
   DtlsSrtpRole role = DTLS_SRTP_ROLE_SERVER;
   int is_update = 0;
-  Agent* agent = &pc->agent;
+  Agent* agent;
 
-  while ((line = strstr(start, "\r\n"))) {
+  if (pc == NULL || sdp == NULL) {
+    return;
+  }
+  agent = &pc->agent;
+  sdp_len = strnlen(sdp, AGENT_MAX_DESCRIPTION + 1);
+  if (sdp_len > AGENT_MAX_DESCRIPTION) {
+    LOGE("Remote SDP exceeds maximum length.");
+    STATE_CHANGED(pc, PEER_CONNECTION_FAILED);
+    return;
+  }
+  start = sdp;
+  sdp_end = sdp + sdp_len;
+
+  while (start < sdp_end) {
+    size_t line_len;
     line = strstr(start, "\r\n");
-    strncpy(buf, start, line - start);
-    buf[line - start] = '\0';
+    if (line == NULL) {
+      line = sdp_end;
+    }
+    line_len = (size_t)(line - start);
 
-    if (strstr(buf, "a=setup:passive")) {
+    if (line_len == strlen("a=setup:passive") &&
+        memcmp(start, "a=setup:passive", line_len) == 0) {
       role = DTLS_SRTP_ROLE_CLIENT;
     }
 
-    if (strstr(buf, "a=fingerprint")) {
-      strncpy(pc->dtls_srtp.remote_fingerprint, buf + 22, DTLS_SRTP_FINGERPRINT_LENGTH);
+    if (line_len >= sizeof(fingerprint_prefix) - 1 &&
+        memcmp(start, fingerprint_prefix, sizeof(fingerprint_prefix) - 1) == 0) {
+      size_t fingerprint_len = line_len - (sizeof(fingerprint_prefix) - 1);
+      if (fingerprint_len == 0 ||
+          fingerprint_len >= sizeof(pc->dtls_srtp.remote_fingerprint)) {
+        LOGE("Invalid remote DTLS fingerprint length.");
+        STATE_CHANGED(pc, PEER_CONNECTION_FAILED);
+        return;
+      }
+      memcpy(pc->dtls_srtp.remote_fingerprint,
+             start + sizeof(fingerprint_prefix) - 1, fingerprint_len);
+      pc->dtls_srtp.remote_fingerprint[fingerprint_len] = '\0';
+      LOGD("remote fingerprint: %s", pc->dtls_srtp.remote_fingerprint);
     }
 
-    if (strstr(buf, "a=ice-ufrag") &&
-        strlen(agent->remote_ufrag) != 0 &&
-        (strncmp(buf + strlen("a=ice-ufrag:"), agent->remote_ufrag, strlen(agent->remote_ufrag)) == 0)) {
-      is_update = 1;
+    if (line_len >= sizeof(ice_ufrag_prefix) - 1 &&
+        memcmp(start, ice_ufrag_prefix, sizeof(ice_ufrag_prefix) - 1) == 0 &&
+        agent->remote_ufrag[0] != '\0') {
+      size_t remote_ufrag_len = strlen(agent->remote_ufrag);
+      size_t offered_ufrag_len = line_len - (sizeof(ice_ufrag_prefix) - 1);
+      if (offered_ufrag_len == remote_ufrag_len &&
+          memcmp(start + sizeof(ice_ufrag_prefix) - 1,
+                 agent->remote_ufrag, remote_ufrag_len) == 0) {
+        is_update = 1;
+      }
     }
 
-    if (strstr(buf, "m=video")) {
+    if (line_len >= strlen("m=video") &&
+        memcmp(start, "m=video", strlen("m=video")) == 0) {
       ssrc = &pc->remote_vssrc;
-    } else if (strstr(buf, "m=audio")) {
+      if (type == SDP_TYPE_ANSWER) {
+        const char* port_str = start + strlen("m=video") + 1;
+        if (port_str < line && *port_str == '0' &&
+            (port_str + 1 == line || port_str[1] < '0' || port_str[1] > '9')) {
+          LOGE("Remote answer rejected video m-line (port=0): browser has no "
+               "compatible video codec, e.g. no H.265/HEVC decode support. "
+               "Try restarting with -t h264.");
+        }
+      }
+    } else if (line_len >= strlen("m=audio") &&
+               memcmp(start, "m=audio", strlen("m=audio")) == 0) {
       ssrc = &pc->remote_assrc;
+      if (type == SDP_TYPE_ANSWER) {
+        const char* port_str = start + strlen("m=audio") + 1;
+        if (port_str < line && *port_str == '0' &&
+            (port_str + 1 == line || port_str[1] < '0' || port_str[1] > '9')) {
+          LOGE("Remote answer rejected audio m-line (port=0): browser has no "
+               "compatible audio codec.");
+        }
+      }
     }
 
-    if ((val_start = strstr(buf, "a=ssrc:")) && ssrc) {
-      *ssrc = strtoul(val_start + 7, NULL, 10);
-      LOGD("SSRC: %" PRIu32, *ssrc);
+    if (ssrc && line_len > strlen("a=ssrc:") &&
+        memcmp(start, "a=ssrc:", strlen("a=ssrc:")) == 0) {
+      const char* value = start + strlen("a=ssrc:");
+      uint64_t parsed = 0;
+      int has_digit = 0;
+      while (value < line && *value >= '0' && *value <= '9') {
+        has_digit = 1;
+        parsed = parsed * 10 + (uint64_t)(*value - '0');
+        if (parsed > UINT32_MAX) {
+          has_digit = 0;
+          break;
+        }
+        value++;
+      }
+      if (has_digit) {
+        *ssrc = (uint32_t)parsed;
+        LOGD("SSRC: %" PRIu32, *ssrc);
+      }
     }
 
+    if (line == sdp_end) {
+      break;
+    }
     start = line + 2;
   }
 
@@ -551,7 +664,11 @@ void peer_connection_set_remote_description(PeerConnection* pc, const char* sdp,
     return;
   }
 
-  agent_set_remote_description(&pc->agent, (char*)sdp);
+  if (agent_set_remote_description(&pc->agent, (char*)sdp) != 0) {
+    LOGE("Invalid remote ICE description.");
+    STATE_CHANGED(pc, PEER_CONNECTION_FAILED);
+    return;
+  }
   if (type == SDP_TYPE_ANSWER) {
     agent_update_candidate_pairs(&pc->agent);
     STATE_CHANGED(pc, PEER_CONNECTION_CHECKING);
@@ -569,6 +686,19 @@ static const char* peer_connection_create_sdp(PeerConnection* pc, SdpType sdp_ty
   switch (sdp_type) {
     case SDP_TYPE_OFFER:
       role = DTLS_SRTP_ROLE_SERVER;
+      if (pc->agent.turn_relay_ready || pc->agent.turn_server_addr.family != 0) {
+        LOGI("New offer: releasing previous TURN allocation before re-gathering candidates");
+        agent_turn_deallocate(&pc->agent);
+        /* Close and reopen the UDP socket to get a new source port.
+         * This guarantees a different 5-tuple (src_ip:NEW_port → turn_ip:turn_port),
+         * so the new Allocate request cannot conflict with the just-released
+         * allocation on the TURN server — eliminating the 437 Mismatch error
+         * that occurs when the server hasn't fully processed the deallocation. */
+        if (agent_reopen_udp_socket(&pc->agent) != 0) {
+          STATE_CHANGED(pc, PEER_CONNECTION_FAILED);
+          return NULL;
+        }
+      }
       agent_clear_candidates(&pc->agent);
       pc->agent.mode = AGENT_MODE_CONTROLLING;
       break;
@@ -580,8 +710,12 @@ static const char* peer_connection_create_sdp(PeerConnection* pc, SdpType sdp_ty
       break;
   }
 
+  peer_connection_clear_client_hello(pc);
   dtls_srtp_reset_session(&pc->dtls_srtp);
-  dtls_srtp_init(&pc->dtls_srtp, role, pc);
+  if (dtls_srtp_init(&pc->dtls_srtp, role, pc) != 0) {
+    STATE_CHANGED(pc, PEER_CONNECTION_FAILED);
+    return NULL;
+  }
   pc->dtls_srtp.udp_recv = peer_connection_dtls_srtp_recv;
   pc->dtls_srtp.udp_send = peer_connection_dtls_srtp_send;
 
@@ -592,7 +726,10 @@ static const char* peer_connection_create_sdp(PeerConnection* pc, SdpType sdp_ty
              pc->config.audio_codec != CODEC_NONE,
              pc->config.datachannel);
 
-  agent_create_ice_credential(&pc->agent);
+  if (agent_create_ice_credential(&pc->agent) != 0) {
+    STATE_CHANGED(pc, PEER_CONNECTION_FAILED);
+    return NULL;
+  }
   sdp_append(pc->sdp, "a=ice-ufrag:%s", pc->agent.local_ufrag);
   sdp_append(pc->sdp, "a=ice-pwd:%s", pc->agent.local_upwd);
   sdp_append(pc->sdp, "a=fingerprint:sha-256 %s", pc->dtls_srtp.local_fingerprint);
@@ -651,6 +788,9 @@ const char* peer_connection_create_offer(PeerConnection* pc) {
 
 const char* peer_connection_create_answer(PeerConnection* pc) {
   const char* sdp = peer_connection_create_sdp(pc, SDP_TYPE_ANSWER);
+  if (sdp == NULL) {
+    return NULL;
+  }
   agent_update_candidate_pairs(&pc->agent);
   STATE_CHANGED(pc, PEER_CONNECTION_CHECKING);
   return sdp;
@@ -719,10 +859,28 @@ char* peer_connection_lookup_sid_label(PeerConnection* pc, uint16_t sid) {
 }
 
 int peer_connection_add_ice_candidate(PeerConnection* pc, char* candidate) {
-  Agent* agent = &pc->agent;
-  if (ice_candidate_from_description(&agent->remote_candidates[agent->remote_candidates_count], candidate, candidate + strlen(candidate)) != 0) {
+  Agent* agent;
+  IceCandidate parsed_candidate;
+  int i;
+
+  if (pc == NULL || candidate == NULL) {
     return -1;
   }
+  agent = &pc->agent;
+  if (ice_candidate_from_description(&parsed_candidate, candidate,
+                                     candidate + strlen(candidate)) != 0) {
+    return -1;
+  }
+  for (i = 0; i < agent->remote_candidates_count; i++) {
+    if (ice_candidate_equal(&agent->remote_candidates[i], &parsed_candidate)) {
+      return 0;
+    }
+  }
+  if (agent->remote_candidates_count >= AGENT_MAX_CANDIDATES) {
+    LOGE("Too many remote ICE candidates");
+    return -1;
+  }
+  agent->remote_candidates[agent->remote_candidates_count] = parsed_candidate;
   LOGD("Add candidate: %s", candidate);
   agent->remote_candidates_count++;
   return 0;

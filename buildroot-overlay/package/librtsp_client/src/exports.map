@@ -1,0 +1,18 @@
+/*
+ * Only KdRtspClient leaves this library.
+ *
+ * The pattern is matched against mangled names, and every mangled name of a
+ * KdRtspClient member contains the string "KdRtspClient" - that is enough, and
+ * it does not depend on the linker's demangler.
+ *
+ * Everything else - in particular LiveFrameSource and G711LiveFrameSource,
+ * which librtsp_server.so also exports under exactly these names but with a
+ * different class layout - stays local and is bound inside this library at
+ * link time, so it can neither be preempted by nor preempt the server's copy.
+ */
+{
+	global:
+		*KdRtspClient*;
+	local:
+		*;
+};

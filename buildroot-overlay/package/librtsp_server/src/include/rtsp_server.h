@@ -12,17 +12,19 @@ enum class VideoType {
     kVideoTypeButt
 };
 
+/*
+ * This server sends only. The audio back channel (RTSP clients talking back
+ * to the board, ONVIF-style) used to live here, but it never worked on Linux:
+ * it needed a modified live555 and buildroot ships the stock one, so the
+ * calls it depended on had been commented out ever since the port. It has
+ * been removed rather than left as dead weight. Two-way audio is going to be
+ * WebRTC instead.
+ */
+
 struct SessionAttr {
     bool with_video {false};
     bool with_audio {false};   // G711U
-    bool with_audio_backchannel{false}; // G711U
     VideoType video_type; // valid when with_video is true
-};
-
-class IOnBackChannel {
-  public:
-    virtual ~IOnBackChannel() {}
-    virtual void OnBackChannelData(std::string &session_name, const uint8_t *data, size_t size, uint64_t timestamp) = 0;
 };
 
 class KdRtspServer {
@@ -30,7 +32,7 @@ class KdRtspServer {
     KdRtspServer();
     ~KdRtspServer();
 
-    int Init(int port = 8554, IOnBackChannel *back_channel = nullptr);
+    int Init(int port = 8554);
     void DeInit();
 
     int CreateSession(const std::string &session_name, const SessionAttr &session_attr);

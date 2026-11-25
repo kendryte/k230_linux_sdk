@@ -62,6 +62,8 @@ struct Agent {
 
   Address host_addr;
   int b_host_addr;
+  Address bound_host_addr;
+  int b_bound_host_addr;
   uint64_t binding_request_time;
   AgentState state;
 
@@ -92,7 +94,11 @@ struct Agent {
 
 void agent_gather_candidate(Agent* agent, const char* urls, const char* username, const char* credential);
 
-void agent_create_ice_credential(Agent* agent);
+int agent_set_host_address(Agent* agent, const char* address);
+
+int agent_bind_host_address(Agent* agent, const char* address);
+
+int agent_create_ice_credential(Agent* agent);
 
 void agent_get_local_description(Agent* agent, char* description, int length);
 
@@ -100,7 +106,7 @@ int agent_send(Agent* agent, const uint8_t* buf, int len);
 
 int agent_recv(Agent* agent, uint8_t* buf, int len);
 
-void agent_set_remote_description(Agent* agent, char* description);
+int agent_set_remote_description(Agent* agent, char* description);
 
 int agent_select_candidate_pair(Agent* agent);
 
@@ -117,5 +123,9 @@ void agent_update_candidate_pairs(Agent* agent);
 int agent_turn_setup_relay(Agent* agent);
 
 int agent_turn_refresh(Agent* agent);
+
+int agent_reopen_udp_socket(Agent* agent);
+
+int agent_turn_deallocate(Agent* agent);
 
 #endif  // AGENT_H_

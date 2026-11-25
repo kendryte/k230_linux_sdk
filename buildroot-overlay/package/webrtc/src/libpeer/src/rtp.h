@@ -1,6 +1,7 @@
 #ifndef RTP_H_
 #define RTP_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __BYTE_ORDER
@@ -81,6 +82,8 @@ struct RtpDecoder {
   RtpOnPacket on_packet;
   int (*decode_func)(RtpDecoder* rtp_decoder, uint8_t* data, size_t size);
   void* user_data;
+  size_t nalu_offset;
+  uint8_t nalu_buf[CONFIG_MAX_NALU_SIZE];
 };
 
 struct RtpEncoder {

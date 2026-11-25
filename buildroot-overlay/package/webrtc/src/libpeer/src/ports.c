@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #include "config.h"
 
@@ -53,9 +54,8 @@ int ports_get_host_addr(Address* addr, const char* iface_prefix) {
     }
   }
 #else
-  /* If iface_prefix is specified, use ioctl as before (for K230 etc.).
-   * Otherwise, use getifaddrs to enumerate all interfaces and pick
-   * the first UP non-loopback IPv4 address — works on any Linux. */
+  /* If iface_prefix is specified, use ioctl directly. Otherwise, prefer
+   * getifaddrs where supported, then try known interface names via ioctl. */
   if (iface_prefix && strlen(iface_prefix) > 0) {
     int sock;
     struct ifreq ifr;
@@ -74,15 +74,19 @@ int ports_get_host_addr(Address* addr, const char* iface_prefix) {
     strncpy(ifr.ifr_name, iface_prefix, sizeof(ifr.ifr_name) - 1);
 
     if (ioctl(sock, SIOCGIFADDR, &ifr) == 0) {
-      memcpy(&addr->sin, &ifr.ifr_addr, sizeof(struct sockaddr_in));
-      ret = 1;
+      struct sockaddr_in* sin = (struct sockaddr_in*)&ifr.ifr_addr;
+      if (sin->sin_addr.s_addr != htonl(INADDR_ANY)) {
+        addr->sin.sin_family = AF_INET;
+        memcpy(&addr->sin.sin_addr, &sin->sin_addr, sizeof(struct in_addr));
+        ret = 1;
+      }
     } else {
       LOGD("SIOCGIFADDR failed for %s: %s", ifr.ifr_name, strerror(errno));
     }
 
     close(sock);
   } else {
-    static const char* ifnames[] = {"u0", "e0", "eth0", "en0", "w0", "wlan0", NULL};
+#if CONFIG_USE_GETIFADDRS
     struct ifaddrs* ifaddr;
     struct ifaddrs* ifa;
 
@@ -97,7 +101,9 @@ int ports_get_host_addr(Address* addr, const char* iface_prefix) {
         if (ifa->ifa_addr->sa_family != AF_INET) continue;
         if (!(ifa->ifa_flags & IFF_UP)) continue;
 
-        memcpy(&addr->sin, ifa->ifa_addr, sizeof(struct sockaddr_in));
+        struct sockaddr_in* sin = (struct sockaddr_in*)ifa->ifa_addr;
+        addr->sin.sin_family = AF_INET;
+        memcpy(&addr->sin.sin_addr, &sin->sin_addr, sizeof(struct in_addr));
         ret = 1;
         break;
       }
@@ -107,6 +113,7 @@ int ports_get_host_addr(Address* addr, const char* iface_prefix) {
         return ret;
       }
     }
+#endif
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
@@ -114,19 +121,17 @@ int ports_get_host_addr(Address* addr, const char* iface_prefix) {
       return -1;
     }
 
+    /* RT-Smart resolves an unnamed SIOCGIFADDR request through the current
+     * default route. Standard hosts normally return above via getifaddrs(). */
     struct ifreq ifr;
-    for (int i = 0; ifnames[i] != NULL; i++) {
-      memset(&ifr, 0, sizeof(ifr));
-      strncpy(ifr.ifr_name, ifnames[i], sizeof(ifr.ifr_name) - 1);
-
-      if (ioctl(sock, SIOCGIFADDR, &ifr) == 0) {
-        struct sockaddr_in* sin = (struct sockaddr_in*)&ifr.ifr_addr;
-        if (sin->sin_addr.s_addr != htonl(INADDR_ANY)) {
-          memcpy(&addr->sin, sin, sizeof(struct sockaddr_in));
-          ret = 1;
-          LOGI("Got host IP from %s", ifnames[i]);
-          break;
-        }
+    memset(&ifr, 0, sizeof(ifr));
+    if (ioctl(sock, SIOCGIFADDR, &ifr) == 0) {
+      struct sockaddr_in* sin = (struct sockaddr_in*)&ifr.ifr_addr;
+      if (sin->sin_addr.s_addr != htonl(INADDR_ANY)) {
+        addr->sin.sin_family = AF_INET;
+        memcpy(&addr->sin.sin_addr, &sin->sin_addr, sizeof(struct in_addr));
+        ret = 1;
+        LOGI("Got host IP from the default route");
       }
     }
 
@@ -185,9 +190,24 @@ int ports_resolve_addr(const char* host, Address* addr) {
 }
 
 uint32_t ports_get_epoch_time() {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return (uint32_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+  /*
+   * Use CLOCK_MONOTONIC instead of gettimeofday() to avoid NTP time jumps.
+   *
+   * Problem: On embedded devices, the system clock starts at epoch 0 (1970)
+   * and jumps to the correct time when NTP sync completes. If gettimeofday()
+   * is used, any timeout calculation like (now - start > timeout) will see
+   * a huge delta after the NTP jump, falsely triggering timeouts.
+   *
+   * CLOCK_MONOTONIC is guaranteed to never jump backwards or forwards due
+   * to NTP/system clock adjustments — it only moves forward at a steady rate.
+   * This is the correct clock for all interval/timeout measurements.
+   *
+   * Note: coreMQTT also uses this function for keepalive timing, so this
+   * fix prevents MQTT disconnections on NTP sync as well.
+   */
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint32_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
 
 void ports_sleep_ms(int ms) {

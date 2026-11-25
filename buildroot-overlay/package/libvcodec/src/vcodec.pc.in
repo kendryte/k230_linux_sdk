@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libvcodec
+Description: K230 VPU video codec wrapper library (V4L2 M2M)
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lvcodec
+Cflags: -I${includedir}
