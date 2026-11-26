@@ -69,8 +69,7 @@
 	memory@0 {
 		device_type = "memory";
 		reg = <
-				0x0 0 0x0 0x7000000  /*MEM_LINUX_SYS*/
-				0x0 0x7000000 0 0x1000000  /*nuttx*/
+				0x0 0 0x0 0x8000000  /*MEM_LINUX_SYS*/
 			  >;
 	};
 };

@@ -36,6 +36,28 @@ int board_late_init(void)
 }
 #endif
 
+#if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
+/*
+ * bootcmd="run bnuttx;run blinuxilp32" loads nuttx at 0x7000000 and runs it
+ * alongside linux, so linux must not be told it owns the top 16MB nuttx uses.
+ */
+int ft_board_setup(void *blob, struct bd_info *bd)
+{
+    phys_addr_t base = env_get_bootm_low();
+    phys_size_t size = env_get_bootm_size();
+    const char *bootcmd = env_get("bootcmd");
+
+    //printf("xwjx ft_board_setup: base=0x%llx size=0x%llx bootcmd=%s\n", (unsigned long long)base, (unsigned long long)size, bootcmd);
+
+    if (bootcmd && strstr(bootcmd, "bnuttx")){
+        size -= 0x1000000;
+        fdt_status_disabled(blob, fdt_path_offset(blob, "/soc/serial@91402000"));
+    }
+
+    fdt_fixup_memory(blob, (u64)base, (u64)size);
+    return 0;
+}
+#endif
 
 // char *fdt_chosen_bootargs(void)
 // {
