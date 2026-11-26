@@ -33,6 +33,7 @@ add_executable(smart_ipc
     smart_ipc.c
     cam_capture.c
     osd2d.c
+    sysstat.c
     rtsp_out.cpp
     webrtc_out.c
     webrtc/http_server.c

@@ -1,0 +1,193 @@
+From: Canaan K230 BSP <bsp@canaan-creative.com>
+Date: Thu, 26 Nov 2026 15:00:00 +0800
+Subject: [PATCH] media: canaan: vpu: take MMU pages from the normal allocator
+
+An encode session on a 128 MB board costs about 6 MB of CMA at 720p and
+12 MB at 1080p, all of it charged to the 52 MB CMA area that has to be
+reserved up front and is useless to everything else while it sits idle.
+Almost none of that memory has any reason to be in CMA.
+
+The MVE has its own MMU. mvx_mmu_pages carries an array of physical page
+addresses and mvx_mmu_map_pages() installs them into the MVE page table
+one at a time, which is the whole point of the structure: the device
+sees a contiguous virtual range built out of pages that are scattered in
+physical memory. The RTOS port of this same driver allocates them one
+page at a time for exactly that reason.
+
+The Linux port does not. mvx_mmu_alloc_pages() and mvx_mmu_resize_pages()
+both call mvx_mmu_alloc_contiguous_pages() for the entire region in one
+go, so a 720p encoder asking for its reference frames needs ~5 MB of
+physically contiguous memory in a single block. The buddy allocator
+cannot produce that on a board that has been up for more than a few
+minutes, which leaves CMA as the only possible source - not because the
+hardware needs contiguity, but because the allocation asked for it.
+
+Allocate page by page instead, and let mvx_mmu_alloc_page() prefer
+alloc_page() over asking CMA for a single page - one page is contiguous
+by definition, so that call never needed the CMA area either.
+
+The normal allocator is a preference, not a requirement. At 1080p the
+firmware asks for about 11 MB through RPC and the normal pool on a
+128 MB board cannot supply all of it; the first version of this change
+then invoked the OOM killer from the RPC workqueue while 28 MB of CMA
+sat unused (free:7500 pages of which free_cma:7171). So when normal
+memory is exhausted the allocation falls back to CMA, with __GFP_NORETRY
+keeping the failing attempt from reaching the OOM killer on the way
+down. The free path validates the PFN range through
+dma_release_from_contiguous() - which returns false for pages outside
+the device's CMA area without touching them - so pages from either pool
+are returned to the pool they came from.
+
+mvx_mmu_alloc_contiguous_pages() stays, with one caller left:
+map_fw_print_ram() maps a 512 kB firmware debug buffer and takes a
+direct CPU pointer to it with phys_to_virt(), so that one really does
+need a contiguous block.
+
+Two consequences worth stating. Total memory use does not change; what
+changes is which pool it comes out of, so the CMA reservation can be
+sized closer to what the camera and display pipelines alone need - on a
+720p product the encoder now costs 0.5 MB of CMA instead of 6 MB. And
+the order-6 allocation failures that made the encoder return EIO until
+reboot cannot happen on this path any more, since nothing on it asks
+for a block larger than one page.
+
+This also fixes a latent bug in the resize path, where a missing pair of
+braces left "page += MVE_PAGE_SIZE" outside the inner loop. It was
+harmless only because MVX_PAGES_PER_PAGE is 1 when PAGE_SIZE equals
+MVE_PAGE_SIZE.
+
+Signed-off-by: Canaan K230 BSP <bsp@canaan-creative.com>
+--- a/drivers/media/platform/canaan/vpu/mvx_mmu.c
++++ b/drivers/media/platform/canaan/vpu/mvx_mmu.c
+@@ -618,9 +618,23 @@
+ 	phys_addr_t pa;
+ 	dma_addr_t dma_handle;
+ 
+-	page = dma_alloc_from_contiguous(dev, 1, 0, 0);
+-	if (page == NULL)
+-		return 0;
++	/*
++	 * A single page is contiguous by definition, so the CMA area is not
++	 * needed here. Prefer the normal allocator, which keeps the CMA
++	 * reservation available for the camera and display pipelines, but
++	 * fall back to CMA when normal memory runs out: at 1080p the
++	 * encoder firmware asks for about 11 MB through RPC and on a 128 MB
++	 * board the normal pool cannot supply all of it - with no fallback
++	 * the allocation invokes the OOM killer and takes the board down.
++	 * __GFP_NORETRY keeps the failing attempt from reaching the OOM
++	 * killer on the way down.
++	 */
++	page = alloc_page(GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN);
++	if (page == NULL) {
++		page = dma_alloc_from_contiguous(dev, 1, 0, 0);
++		if (page == NULL)
++			return 0;
++	}
+ 
+ 	dma_handle = dma_map_page(dev, page, 0, PAGE_SIZE, DMA_BIDIRECTIONAL);
+ 	if (dma_mapping_error(dev, dma_handle) != 0) {
+@@ -638,7 +652,7 @@
+ 	return pa;
+ 
+ free_page:
+-	dma_release_from_contiguous(dev, page, 1);
++	__free_page(page);
+ 	return 0;
+ }
+ 
+@@ -697,7 +711,15 @@
+ 	page = phys_to_page(pa);
+ 
+ 	dma_unmap_page(dev, pa, PAGE_SIZE, DMA_BIDIRECTIONAL);
+-	dma_release_from_contiguous(dev, page, 1);
++	/*
++	 * The page may come from either pool, depending on where the
++	 * allocation fell back. dma_release_from_contiguous() validates
++	 * the PFN range and returns false for pages outside the device's
++	 * CMA area without touching them, so the same free path handles
++	 * both origins.
++	 */
++	if (!dma_release_from_contiguous(dev, page, 1))
++		__free_page(page);
+ }
+ 
+ struct mvx_mmu_pages *mvx_mmu_alloc_pages(struct device *dev, size_t count,
+@@ -729,32 +751,37 @@
+ 	pages->capacity = capacity;
+ 	INIT_LIST_HEAD(&pages->dmabuf);
+ 
+-	if (count) {
++	/*
++	 * The MVE has its own MMU and these pages are handed to it through
++	 * mvx_mmu_map_pages(), which maps them one by one. Nothing requires
++	 * them to be contiguous with each other, so ask for them one at a
++	 * time. Asking for the whole region as a single block instead means
++	 * only the CMA area can ever satisfy it: a 720p encode session wants
++	 * about 5 MB in one piece, which the buddy allocator cannot produce
++	 * once the system has been up for a while.
++	 */
++	for (pages->count = 0; pages->count < count;) {
++		phys_addr_t page;
++		unsigned int i;
++
+ 		/*
+ 		 * Allocate a Linux page. It will typically be of the same size
+ 		 * as the MVE page, but could also be larger.
+ 		 */
++		page = mvx_mmu_alloc_page(dev);
++		if (page == 0) {
++			ret = -ENOMEM;
++			goto release_pages;
++		}
+ 
+ 		/*
+ 		 * If the Linux page is larger than the MVE page, then
+ 		 * we iterate and add physical addresses with an offset from
+ 		 * the Linux page.
+ 		 */
+-		phys_addr_t page;
+-		unsigned int i;
+-
+-		page = mvx_mmu_alloc_contiguous_pages(dev, count);
+-		if (page == 0) {
+-			ret = -ENOMEM;
+-			goto release_pages;
+-		}
+-
+-		for (pages->count = 0; pages->count < count;) {
+-			for (i = 0; i < MVX_PAGES_PER_PAGE; i++) {
+-				pages->pages[pages->count++] = page + i * MVE_PAGE_SIZE;
+-				page += MVE_PAGE_SIZE;
+-			}
+-		}
++		for (i = 0; i < MVX_PAGES_PER_PAGE; i++)
++			pages->pages[pages->count++] =
++				page + i * MVE_PAGE_SIZE;
+ 	}
+ 
+ 	return pages;
+@@ -934,19 +961,17 @@
+ 	}
+ 
+ 	/* Allocate pages if npage is larger than allocated pages. */
+-	if (pages->count < npages) {
++	while (pages->count < npages) {
+ 		phys_addr_t page;
+ 		unsigned int i;
+ 
+-		page = mvx_mmu_alloc_contiguous_pages(pages->dev, npages - pages->count);
++		page = mvx_mmu_alloc_page(pages->dev);
+ 		if (page == 0)
+ 			return -ENOMEM;
+ 
+-		for (; pages->count < npages;) {
+-			for (i = 0; i < MVX_PAGES_PER_PAGE; i++)
+-				pages->pages[pages->count++] = page + i * MVE_PAGE_SIZE;
+-				page += MVE_PAGE_SIZE;
+-		}
++		for (i = 0; i < MVX_PAGES_PER_PAGE; i++)
++			pages->pages[pages->count++] =
++				page + i * MVE_PAGE_SIZE;
+ 	}
+ 
+ 	return remap_pages(pages, oldcount);

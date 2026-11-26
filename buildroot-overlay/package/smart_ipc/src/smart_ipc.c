@@ -6,10 +6,13 @@
  * without any of the three getting in each other's way.
  *
  * Everything is on when nothing is asked for. Run it bare and the panel
- * lights up, H.264 goes out over RTSP and faces get outlined; every switch
- * is a --no-something, there to turn a piece off. That is the one thing that
- * separates this from a list of flags to remember, and it is deliberate: an
- * IP camera doing its whole job is the normal case, not a special one.
+ * lights up, H.264 goes out over RTSP and faces get outlined; an IP camera
+ * doing its whole job is the normal case, not a special one. --enable names
+ * fewer of the three when fewer are wanted, in any combination, because each
+ * of the three is a camera channel plus the one piece of hardware that
+ * consumes it and they are independent all the way down. Running one alone
+ * and subtracting the idle figures is how its cost gets measured, and on a
+ * 128 MB board that number decides what else fits.
  *
  *   main stream (NV12)     sub stream (NV12)        AI stream (BG3P)
  *   /dev/video1            /dev/video2              /dev/video3
@@ -22,20 +25,20 @@
  *                                                                     plane
  *
  * Nothing is ever written to a file. The encoder exists to feed the stream
- * and only that, which is why --no-stream turns the encoder off as well: a
- * 128 MB board has nowhere to put hours of H.264, and a recorder that
- * quietly fills the rootfs is worse than no recorder at all.
+ * and only that, which is why they are one name in --enable: a 128 MB board
+ * has nowhere to put hours of H.264, and a recorder that quietly fills the
+ * rootfs is worse than no recorder at all.
  *
  * RTSP and WebRTC are the same picture offered two ways and only one may be
  * on at a time, because each wants its own threads around the same encoder
  * output and there is no reason to pay for both: RTSP for VLC and ffplay,
- * WebRTC for a browser with nothing installed. --stream picks which.
+ * WebRTC for a browser with nothing installed. --protocol picks which.
  *
  * The boxes the AI finds go to two places. One is an overlay plane above the
  * video plane, which the panel composites and nobody else ever sees. The
  * other is the frames themselves, so whoever is watching the stream sees
- * them too - that is what --no-ai-burn turns off, leaving the stream exactly
- * what the camera produced. The K230's 2D engine does that drawing - see
+ * them too. Both follow from --enable: the boxes turn up on whichever of the
+ * two outputs is running. The K230's 2D engine does that drawing - see
  * osd2d.h - straight onto the camera's frame where it lies, without copying
  * it anywhere, which is the only way it fits in a frame's time.
  *
@@ -110,6 +113,7 @@
 #include "vcodec.h"
 
 #include "ai_face.h"
+#include "sysstat.h"
 #include "webrtc_out.h"
 
 #define MAX_BUFFERS 16
@@ -304,8 +308,8 @@ static int sub_channel_of(const char *dev, unsigned step, char *buf, size_t len)
 
 /*
  * One encoder packet out to whichever of the two servers is running. Exactly
- * one of them always is: without --no-stream there is no third option, and
- * with it there is no encoder to produce a packet in the first place.
+ * one of them always is: with the stream path enabled there is no third
+ * option, and without it there is no encoder to produce a packet at all.
  *
  * The RTSP timestamp is taken here rather than carried from the camera:
  * librtsp_server throws it away and stamps the frame when its own thread
@@ -332,50 +336,74 @@ static void emit_packet(struct rtsp_out *rtsp, struct webrtc_out *webrtc,
 
 static void usage(const char *prog)
 {
-	printf("usage: %s [options]\n"
-	       "\n"
-	       "video encoding:\n"
-	       "  -c, --codec <name>     h264 (default) or h265\n"
-	       "  -W, --width <pixels>   default 1280\n"
-	       "  -H, --height <pixels>  default 720\n"
-	       "  -f, --fps <rate>       default 30\n"
-	       "  -b, --bitrate <bps>    default 1500000, 0 = width x height x fps / 15\n"
-	       "\n"
-	       "AI analysis:\n"
-	       "  -x, --ai-width <px>    default 1280\n"
-	       "  -y, --ai-height <px>   default 720\n"
-	       "  -k, --ai-model <file>  default /usr/share/smart_ipc/"
-	       "face_detection_320.kmodel\n"
-	       "  -o, --ai-thresh <f>    default 0.6\n"
-	       "  -n, --ai-nms <f>       default 0.2\n"
-	       "\n"
-	       "streaming:\n"
-	       "  -m, --stream <kind>    rtsp (default) or webrtc\n"
-	       "  -p, --port <n>         default 8554 for rtsp, 8080 for webrtc\n"
-	       "  -u, --path <name>      RTSP stream name, default 'live'\n"
-	       "\n"
-	       "other:\n"
-	       "  -t, --time <seconds>   default 0 = until Ctrl-C\n"
-	       "  -h, --help             print this\n"
-	       "\n"
-	       "switches, all of them off switches:\n"
-	       "  -d, --no-display       do not touch the screen\n"
-	       "  -s, --no-stream        no encoder and no stream\n"
-	       "  -a, --no-ai            no face detection\n"
-	       "  -e, --no-ai-burn       keep the boxes out of the encoded picture\n"
-	       "\n"
-	       "common commands:\n"
-	       "  everything on\n"
-	       "    %s -t 15\n"
-	       "  screen off\n"
-	       "    %s --no-display -t 15\n"
-	       "  stream off\n"
-	       "    %s --no-stream -t 15\n"
-	       "  face detection off\n"
-	       "    %s --no-ai -t 15\n"
-	       "  boxes out of the stream\n"
-	       "    %s --no-ai-burn -t 15\n",
-	       prog, prog, prog, prog, prog, prog);
+	/*
+	 * The options and the commands worth copying, and nothing else. What
+	 * a help screen gets opened for is "which letter was the bitrate
+	 * again" and "how do I run just the encoder"; explanations of how
+	 * the thing works belong in README.md, where they do not sit between
+	 * the reader and the answer.
+	 *
+	 * The measuring recipe at the bottom earns its space. It is the
+	 * reason --enable exists, it is seven commands nobody remembers the
+	 * order of, and the alternative is looking them up somewhere that is
+	 * not on the board.
+	 *
+	 * @prog is not used: the name is written out in the examples so they
+	 * stay aligned and can be copied as they are, which is what they are
+	 * for. Running it through a path would ruin both.
+	 */
+	(void)prog;
+
+	printf(
+"smart_ipc - camera to panel, to H.264 over the network, and to face detection\n"
+"\n"
+"OPTIONS\n"
+"\n"
+"  -E, --enable LIST     paths to start: display, stream, ai, camera\n"
+"                        default display,stream,ai\n"
+"  -i, --stats-only      start no path, report resource usage only\n"
+"\n"
+"  -c, --codec NAME      video codec, h264 or h265            default h264\n"
+"  -W, --width PIXELS    encoded frame width                  default 1280\n"
+"  -H, --height PIXELS   encoded frame height                 default 720\n"
+"  -f, --fps RATE        capture frame rate                   default 30\n"
+"  -b, --bitrate BPS     encoder bitrate in bits per second\n"
+"                        0 derives it from the resolution     default 1500000\n"
+"\n"
+"  -m, --protocol KIND   delivery protocol, rtsp or webrtc    default rtsp\n"
+"  -p, --port N          server listen port                   default 8554\n"
+"  -u, --path NAME       stream path, as in rtsp://<board-ip>:8554/live\n"
+"                                                             default live\n"
+"\n"
+"  -x, --ai-width PX     detector input width                 default 1280\n"
+"  -y, --ai-height PX    detector input height                default 720\n"
+"  -o, --ai-thresh 0..1  detection confidence threshold       default 0.6\n"
+"  -n, --ai-nms 0..1     non-maximum suppression threshold    default 0.2\n"
+"  -k, --ai-model FILE   detection model\n"
+"                        default /usr/share/smart_ipc/face_detection_320.kmodel\n"
+"\n"
+"  -t, --time SECONDS    run duration, 0 runs until interrupted    default 0\n"
+"  -S, --stats SECONDS   resource report interval, 0 disables it   default 5\n"
+"  -h, --help            print this help and exit\n"
+"\n"
+"EXAMPLES\n"
+"\n"
+"    smart_ipc                                  panel, stream and detection\n"
+"    smart_ipc --enable display,stream          no detection\n"
+"    smart_ipc --enable stream -W 1920 -H 1080  stream only, at 1080p\n"
+"    smart_ipc --protocol webrtc                watch it in a browser\n"
+"\n"
+"What each path costs: run these and subtract the first one's \"cma used\".\n"
+"\n"
+"    smart_ipc --stats-only            -t 10    the baseline\n"
+"    smart_ipc --enable camera         -t 10    the channel, nothing behind it\n"
+"    smart_ipc --enable display        -t 10    the panel on its own\n"
+"    smart_ipc --enable stream         -t 10    the encoder on its own\n"
+"    smart_ipc --enable ai             -t 10    face detection on its own\n"
+"    smart_ipc --enable display,stream -t 10    the pair without detection\n"
+"    smart_ipc --enable stream,ai      -t 10    the pair without the panel\n"
+"    smart_ipc                         -t 10    all three at once\n"
+	);
 }
 
 /*
@@ -411,6 +439,74 @@ static bool parse_uint(const char *arg, const char *opt, unsigned long lo,
 	return true;
 }
 
+/*
+ * --enable, the only switch that decides what runs. Each name is one
+ * camera channel plus the one piece of hardware that consumes it, so every
+ * subset of them is a configuration the board can really be in - and that
+ * is the whole reason this is a list of things to turn on rather than the
+ * off switches it replaces. What a path costs is measured by running it
+ * alone and subtracting --stats-only, and the off switches could not
+ * express most of those runs: --no-display and --no-stream together were
+ * refused, which is precisely "detection only".
+ *
+ * "camera" is the odd one out: it has no consumer at all. It opens the
+ * channel, takes the frames and hands them straight back, which splits the
+ * cost of "stream" into the two halves anyone actually wants separated -
+ * what the sensor and its buffers cost, and what the encoder adds on top.
+ *
+ * list is written through, which is allowed: it is optarg, a pointer into
+ * argv, and nothing reads the argument again afterwards.
+ */
+static bool parse_enable(char *list, bool *display, bool *encode, bool *ai,
+			 bool *camera)
+{
+	char *save = NULL, *tok;
+	bool any = false;
+
+	*display = false;
+	*encode = false;
+	*ai = false;
+	*camera = false;
+
+	for (tok = strtok_r(list, ",", &save); tok != NULL;
+	     tok = strtok_r(NULL, ",", &save)) {
+		if (strcmp(tok, "display") == 0)
+			*display = true;
+		else if (strcmp(tok, "stream") == 0)
+			*encode = true;
+		else if (strcmp(tok, "ai") == 0)
+			*ai = true;
+		else if (strcmp(tok, "camera") == 0)
+			*camera = true;
+		else {
+			fprintf(stderr,
+				"--enable does not know \"%s\". The names are "
+				"display, stream, ai and camera, comma "
+				"separated, in any combination: "
+				"--enable display,ai\n",
+				tok);
+			return false;
+		}
+
+		any = true;
+	}
+
+	/*
+	 * An empty list is a typo, not a request. The one thing it looks like
+	 * it should mean already has a switch, and that switch does more than
+	 * start nothing - it keeps printing.
+	 */
+	if (!any) {
+		fprintf(stderr, "--enable needs at least one of display, "
+				"stream, ai, camera. To start none of them "
+				"and only print the idle figures, use "
+				"--stats-only\n");
+		return false;
+	}
+
+	return true;
+}
+
 int main(int argc, char **argv)
 {
 	/*
@@ -421,10 +517,7 @@ int main(int argc, char **argv)
 	 * every long option fell through to usage().
 	 */
 	static const struct option longopts[] = {
-		{ "no-display", no_argument, NULL, 'd' },
-		{ "no-stream", no_argument, NULL, 's' },
-		{ "no-ai", no_argument, NULL, 'a' },
-		{ "no-ai-burn", no_argument, NULL, 'e' },
+		{ "enable", required_argument, NULL, 'E' },
 		{ "codec", required_argument, NULL, 'c' },
 		{ "width", required_argument, NULL, 'W' },
 		{ "height", required_argument, NULL, 'H' },
@@ -435,10 +528,12 @@ int main(int argc, char **argv)
 		{ "ai-model", required_argument, NULL, 'k' },
 		{ "ai-thresh", required_argument, NULL, 'o' },
 		{ "ai-nms", required_argument, NULL, 'n' },
-		{ "stream", required_argument, NULL, 'm' },
+		{ "protocol", required_argument, NULL, 'm' },
 		{ "port", required_argument, NULL, 'p' },
 		{ "path", required_argument, NULL, 'u' },
 		{ "time", required_argument, NULL, 't' },
+		{ "stats", required_argument, NULL, 'S' },
+		{ "stats-only", no_argument, NULL, 'i' },
 		{ "help", no_argument, NULL, 'h' },
 		{ NULL, 0, NULL, 0 },
 	};
@@ -448,14 +543,37 @@ int main(int argc, char **argv)
 	unsigned width = 1280, height = 720, fps = 30;
 	unsigned preview_w = 0, preview_h = 0;
 	unsigned seconds = 0, bitrate = 1500000;
+	/*
+	 * How often the CPU and memory lines are printed. On by default: on
+	 * a 128 MB board the interesting failures are allocation failures,
+	 * and they are invisible unless someone was already watching when
+	 * they happened.
+	 */
+	unsigned stats_interval = 5;
+	struct sysstat stats = { 0 };
+	double next_stats = 0.0;
+	/*
+	 * --stats-only: print the numbers and start nothing at all. Still a
+	 * switch of its own and not --enable with an empty list, because it
+	 * is the baseline every other run is subtracted from, and a baseline
+	 * that has to be spelled as "none of the above" is a baseline nobody
+	 * measures.
+	 */
+	bool stats_only = false;
 	const unsigned drm_index = DRM_CARD;
 	int rtsp_port = 8554;
 	/*
-	 * Everything is on. Each switch below only ever clears one of these,
-	 * which is why none of them is called want_x_given: there is no
-	 * difference between "not asked for" and "asked to stay on".
+	 * All three paths, unless --enable names fewer. Nothing else in the
+	 * option loop touches them, so there is no want_x_given to carry:
+	 * --enable sets all three at once or none of them is set at all.
 	 */
 	bool want_display = true, want_encode = true;
+	/*
+	 * --enable camera: the main channel open with nothing behind it.
+	 * Off by default and never implied, because on its own it produces
+	 * no picture anywhere - it is a measurement, not a way to run.
+	 */
+	bool want_camera = false;
 	bool want_rtsp = true;
 	char sub_dev[64];
 
@@ -470,7 +588,11 @@ int main(int argc, char **argv)
 	const char *ai_model = NULL;
 	unsigned ai_w = 1280, ai_h = 720;
 	float ai_thresh = 0.0f, ai_nms = 0.0f;
-	/* the boxes go into the encoded picture as well, unless -e */
+	/*
+	 * The boxes go into the encoded picture too, whenever both ends of
+	 * that are running. Not a switch: it follows from --enable, the same
+	 * way the panel's boxes do.
+	 */
 	bool want_burn = true;
 	char ai_dev_buf[64];
 	const char *ai_dev = NULL;
@@ -513,7 +635,7 @@ int main(int argc, char **argv)
 	unsigned long frames = 0, pframes = 0, encoded = 0, packets = 0;
 	unsigned long skipped_enc = 0;
 	unsigned long long bytes = 0;
-	double start;
+	double start, now;
 	int rc = 1;
 	int c, ret;
 	unsigned i;
@@ -526,20 +648,14 @@ int main(int argc, char **argv)
 	screen.on_screen = -1;
 	screen.flipping = -1;
 
-	while ((c = getopt_long(argc, argv, "W:H:c:f:b:x:y:k:o:n:m:p:u:t:dsaeh",
-				longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv,
+				"W:H:c:f:b:x:y:k:o:n:m:p:u:t:S:E:hi", longopts,
+				NULL)) != -1) {
 		switch (c) {
-		case 'd':
-			want_display = false;
-			break;
-		case 's':
-			want_encode = false;
-			break;
-		case 'a':
-			want_ai = false;
-			break;
-		case 'e':
-			want_burn = false;
+		case 'E':
+			if (!parse_enable(optarg, &want_display, &want_encode,
+					  &want_ai, &want_camera))
+				return 1;
 			break;
 		case 'c':
 			if (strcmp(optarg, "h264") == 0) {
@@ -597,7 +713,7 @@ int main(int argc, char **argv)
 				want_rtsp = false;
 			} else {
 				fprintf(stderr,
-					"--stream takes rtsp or webrtc, not "
+					"--protocol takes rtsp or webrtc, not "
 					"%s. They are two ways of sending the "
 					"same picture: rtsp for VLC or ffplay, "
 					"webrtc for a browser.\n",
@@ -623,6 +739,15 @@ int main(int argc, char **argv)
 			if (!parse_uint(optarg, "--time", 0, 31536000, &seconds))
 				return 1;
 			break;
+		case 'S':
+			/* 0 is the documented "do not print them at all" */
+			if (!parse_uint(optarg, "--stats", 0, 3600,
+					&stats_interval))
+				return 1;
+			break;
+		case 'i':
+			stats_only = true;
+			break;
 		case 'h':
 			usage(argv[0]);
 			return 0;
@@ -633,16 +758,12 @@ int main(int argc, char **argv)
 	}
 
 	/*
-	 * Turning off the screen and the stream together leaves the program
-	 * with nowhere to put a picture. The detector alone is not a reason
-	 * to run: it has no output of its own.
+	 * --enable ai on its own used to be refused: with neither the panel
+	 * nor the stream there is nowhere for a picture to go, so it looked
+	 * like a mistake. It is not. The detector still prints what it found
+	 * and still costs a camera channel, a thread and a model, and running
+	 * it alone is the only way to find out how much of each.
 	 */
-	if (!want_display && !want_encode) {
-		fprintf(stderr, "--no-display and --no-stream together leave "
-				"nothing to do: the picture would have nowhere "
-				"to go. Keep one of them.\n");
-		return 1;
-	}
 
 	if (ai_thresh < 0.0f || ai_thresh >= 1.0f) {
 		fprintf(stderr, "--ai-thresh is a score between 0 and 1, not "
@@ -659,17 +780,25 @@ int main(int argc, char **argv)
 	}
 
 	/*
-	 * Three ways the boxes end up with nothing to draw on. None of them
-	 * is a mistake worth stopping for: burning in is a default, so it
-	 * goes quietly when whatever it needs is not there. The one thing
-	 * that does get said is the AI being off, because then the panel
-	 * loses its boxes too and that is visible.
+	 * Burning the boxes in needs both ends of it: something to draw and
+	 * somewhere to draw it. Nothing is said when one is missing, because
+	 * nothing was asked for - this follows from --enable rather than from
+	 * a switch of its own, and it is visible either way. Boxes appear on
+	 * whichever of the two outputs is running, and on both when both are.
 	 */
-	if (!want_ai)
-		want_burn = false;
+	want_burn = want_ai && want_encode;
 
-	if (!want_encode)
-		want_burn = false;
+	/*
+	 * Both name the same channel, and "stream" is the one with something
+	 * behind it. Worth saying out loud rather than quietly obeying: a
+	 * run meant to measure the bare channel that also started the
+	 * encoder would be read as the bare channel's cost.
+	 */
+	if (want_camera && want_encode) {
+		printf("--enable camera is already covered by stream, which "
+		       "opens the same channel\n");
+		want_camera = false;
+	}
 
 	/* The two have different defaults, and -p set both */
 	if (want_webrtc && !port_given)
@@ -700,6 +829,65 @@ int main(int argc, char **argv)
 	 * side effect of a library we may not even start.
 	 */
 	signal(SIGPIPE, SIG_IGN);
+
+	/*
+	 * Which paths this run is, on one line and before anything is opened.
+	 * Memory figures mean nothing without it: these lines get compared
+	 * across runs, and "which one was this" is not something anyone
+	 * reconstructs from a scrollback an hour later.
+	 */
+	if (!stats_only)
+		printf("enabled:%s%s%s%s\n", want_display ? " display" : "",
+		       want_encode ? " stream" : "", want_ai ? " ai" : "",
+		       want_camera ? " camera" : "");
+
+	/*
+	 * --stats-only stops here, before anything is opened: no sensor, no
+	 * encoder, no screen, no detection. So there is nothing to poll and
+	 * nothing to tear down, and the numbers are the idle baseline a
+	 * running camera can be compared against - in particular how much of
+	 * the CMA area the hardware is holding when no hardware is running.
+	 *
+	 * Reported on the same grid and in the same format as a real run, so
+	 * the two can be put side by side.
+	 */
+	if (stats_only) {
+		double base, at, next;
+
+		if (stats_interval == 0) {
+			fprintf(stderr, "--stats-only together with --stats 0 "
+					"would print nothing at all\n");
+			return 1;
+		}
+
+		printf("stats only: nothing is started, these are the idle "
+		       "figures\n");
+
+		base = now_sec();
+		sysstat_init(&stats);
+		next = base + (double)stats_interval;
+
+		while (!g_stop) {
+			at = now_sec();
+
+			if (at >= next) {
+				sysstat_report(&stats, at - base);
+
+				do {
+					next += (double)stats_interval;
+				} while (next <= at);
+			}
+
+			if (seconds > 0 && at - base >= (double)seconds)
+				break;
+
+			/* same 100 ms as the real loop's poll, so Ctrl-C
+			 * is answered just as quickly */
+			usleep(100000);
+		}
+
+		return 0;
+	}
 
 	/* ---- screen first: its size is what the preview stream is sized to ---- */
 	if (want_display) {
@@ -745,26 +933,32 @@ int main(int argc, char **argv)
 	}
 
 	/* ---- cameras ---- */
-	if (want_encode) {
-		/* Mapped, because the encoder reads the frames with the CPU.
+	if (want_encode || want_camera) {
+		/* Mapped only for the encoder, which reads the frames with
+		 * the CPU. With nothing behind the channel there is nobody to
+		 * map them for, and leaving them unmapped keeps the figures
+		 * about the camera rather than about our address space.
 		 * NULL for the sensor mode: the ISP keeps whatever it was set
 		 * up with, which is the sensor's native mode */
 		ret = cam_open(&cam, dev, NULL, width, height,
-			       V4L2_PIX_FMT_NV12, ENCODER_BUFFERS, true);
+			       V4L2_PIX_FMT_NV12, ENCODER_BUFFERS,
+			       want_encode);
 		if (ret < 0)
 			goto cleanup;
 
 		pool.cam = &cam;
 
-		printf("%s: NV12 %ux%u stride=%u, %u buffers\n", dev, cam.width,
-		       cam.height, cam.stride, cam.count);
+		printf("%s: NV12 %ux%u stride=%u, %u buffers%s\n", dev,
+		       cam.width, cam.height, cam.stride, cam.count,
+		       want_camera ? " (nothing reads them)" : "");
 
 		/*
 		 * The encoder assumes the chroma plane starts right after the
 		 * luma one. Say so when the driver reports a frame size that
 		 * does not fit, instead of showing a green picture.
 		 */
-		if (cam.frame_size != (size_t)cam.stride * cam.height * 3 / 2)
+		if (want_encode &&
+		    cam.frame_size != (size_t)cam.stride * cam.height * 3 / 2)
 			fprintf(stderr,
 				"warning: the camera reports %zu bytes per frame, not "
 				"the %zu a packed NV12 frame takes. The chroma plane "
@@ -810,7 +1004,7 @@ int main(int argc, char **argv)
 		}
 		preview_dev = sub_dev;
 
-		if (cam.fd < 0)
+		if (!want_encode)
 			printf("display takes %s at %ux%u\n", preview_dev,
 			       preview_w, preview_h);
 		else
@@ -1210,6 +1404,16 @@ int main(int argc, char **argv)
 
 	start = now_sec();
 
+	/*
+	 * Primed here rather than at the top of main() so that the first
+	 * CPU percentage covers the running camera and not the sensor and
+	 * encoder setup, which is a burst of work nobody is asking about.
+	 */
+	if (stats_interval > 0) {
+		sysstat_init(&stats);
+		next_stats = start + (double)stats_interval;
+	}
+
 	while (!g_stop) {
 		if (poll(fds, nfds, 100) < 0) {
 			if (errno == EINTR)
@@ -1378,7 +1582,24 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (seconds > 0 && now_sec() - start >= (double)seconds)
+		now = now_sec();
+
+		/*
+		 * Catch up by stepping the deadline rather than setting it
+		 * from now: if a report is late - the poll above blocks for
+		 * up to 100 ms, and the AI can hold the loop longer - the
+		 * next one is still on the original grid, and the intervals
+		 * the percentages are computed over stay even.
+		 */
+		if (stats_interval > 0 && now >= next_stats) {
+			sysstat_report(&stats, now - start);
+
+			do {
+				next_stats += (double)stats_interval;
+			} while (next_stats <= now);
+		}
+
+		if (seconds > 0 && now - start >= (double)seconds)
 			break;
 	}
 
@@ -1493,6 +1714,16 @@ int main(int argc, char **argv)
 				printf("WebRTC dropped %lu packets - the "
 				       "sender could not keep up\n", dropped);
 		}
+
+		/*
+		 * One last sample, so the figures printed next to the frame
+		 * counts are the ones that belong with them. The cma
+		 * failure count in particular is cumulative, so this line
+		 * is the whole run's answer to "did anything fail to get
+		 * memory", whether or not anyone watched it go past.
+		 */
+		if (stats_interval > 0)
+			sysstat_report(&stats, elapsed);
 	}
 
 	rc = 0;
