@@ -1,0 +1,40 @@
+config BR2_PACKAGE_SMART_IPC
+	bool "k230 smart_ipc (network camera: display + streaming + face detection)"
+	# The nncase runtime is a prebuilt riscv64 tarball, and the AI sources
+	# are compiled -mabi=lp64d to match it. There is nothing to build on a
+	# 32-bit configuration.
+	depends on BR2_RISCV_64
+	select BR2_PACKAGE_LIBVCODEC
+	select BR2_PACKAGE_DISPLAY
+	# osd2d.c drives the 2D engine over V4L2; the ioctl numbers come from
+	# nonai2d-v4l2-controls.h, which the nonai2d package puts in staging.
+	select BR2_PACKAGE_NONAI2D
+	# RTSP output goes through librtsp_server, which is live555
+	select BR2_PACKAGE_LIVE555
+	select BR2_PACKAGE_LIB_RTSPSERVER
+	# WebRTC output: libpeer, plus cJSON for the signaling messages
+	select BR2_PACKAGE_WEBRTC
+	select BR2_PACKAGE_CJSON
+	# Face detection: the KPU runtime, ai2d and OpenCV for the drawing.
+	# The kmodel is this package's own, under src/models/, so nothing
+	# here depends on the face_detect demo being configured in.
+	select BR2_PACKAGE_LIBNNCASE
+	select BR2_PACKAGE_GSL_LITE
+	select BR2_PACKAGE_OPENCV4
+	select BR2_PACKAGE_LIBMMZ
+	help
+	  A complete network camera. One sensor feeds three channels: the
+	  main stream goes to the encoder and out over the network, the sub
+	  stream is displayed with zero copies, and the third one goes to the
+	  KPU for face detection. Nothing is written to local storage.
+
+	  Every option is an off switch. Display, streaming, face detection
+	  and burnt-in face boxes are all on by default: -d drops the display,
+	  -s drops the stream, -a drops detection, and -e keeps the face boxes
+	  on screen only, out of the encoded stream. Pick one transport:
+	  -m rtsp needs VLC or ffplay, -m webrtc just needs a browser pointed
+	  at the board (same LAN - no STUN/TURN is configured).
+
+	  Run it with --help for the full usage and worked examples. For the
+	  dataflow diagram and the reasoning behind each option, see
+	  package/smart_ipc/src/README.md.

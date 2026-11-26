@@ -1,0 +1,115 @@
+From: Canaan K230 BSP <bsp@canaan-creative.com>
+Date: Tue, 25 Nov 2026 10:00:00 +0800
+Subject: [PATCH] media: canaan: vpu: allocate the MMU page array with kvzalloc
+
+On a 128 MB board the encoder fails to start perhaps one boot in three,
+and once it has failed it stays failed: every DQBUF returns EIO until
+the process is restarted. The kernel log says
+
+  smart_ipc: page allocation failure: order:6, mode:0xcc0(GFP_KERNEL)
+   mvx_mmu_alloc_pages+0x4e/0x1a4
+  MVX if: Could not find pages for RPC resize. va=0x20000000.
+
+order-6 is 256 kB of physically contiguous memory, and there is plenty
+of memory free at the time - the Mem-Info dump shows free:3676 pages.
+It is not an out-of-memory condition. free_cma:2482 of those pages are
+CMA, and every free block of order 5 or above in the buddy lists is
+tagged (C), i.e. MIGRATE_CMA only. GFP_KERNEL is unmovable and must
+not take CMA pages, so the largest block this allocation can actually
+have is 64 kB. Compaction cannot build a bigger one either: of the
+~52 MB outside the CMA area, ~27 MB is slab and page tables, which are
+unmovable and spread across most of the 2 MB pageblocks. A single
+unmovable page inside a 256 kB window is enough to rule that window
+out forever. That is why it is probabilistic and why a reboot fixes it.
+
+What is being allocated is not pixel data. mvx_mmu_alloc_pages() sizes
+its trailing phys_addr_t pages[] array from the capacity argument, and
+on the RPC mem_alloc path in mvx_firmware_v2.c that capacity is the
+firmware's declared max_size for the region, not the size actually
+requested. A region whose max_size is 128 MB gives 32768 entries,
+8 bytes each: 256 kB of index table for a mapping that at that moment
+holds a couple of hundred pages. The frames themselves come from CMA
+through mvx_mmu_alloc_contiguous_pages(), and that call succeeds.
+
+The array has no reason to be physically contiguous. Every use of
+pages->pages[i] in the driver reads one element at a time from the CPU,
+to feed map_page() into the MVE page table, to free the page again, or
+to dma_sync it. The array is never itself handed to the DMA API and
+never passed through virt_to_phys() as a block. kvzalloc() is therefore
+safe, and above one page it falls back to vmalloc, which does not care
+how fragmented the buddy lists are.
+
+Convert both constructors and both free paths. The side effect is that
+the allocation is no longer tied to the device's devres list, so it is
+not reclaimed automatically if the device is unbound with pages still
+outstanding; mvx_mmu_free_pages() is the only owner and is called from
+session teardown, so that path is unchanged in practice.
+
+The mvx_mmu_dma_buf allocations stay on devm_kzalloc. They are a few
+dozen bytes each and have never been the problem.
+
+Signed-off-by: Canaan K230 BSP <bsp@canaan-creative.com>
+--- a/drivers/media/platform/canaan/vpu/mvx_mmu.c
++++ b/drivers/media/platform/canaan/vpu/mvx_mmu.c
+@@ -36,7 +36,9 @@
+ #include <linux/dma-map-ops.h>
+ #include <linux/gfp.h>
+ #include <linux/list.h>
++#include <linux/mm.h>
+ #include <linux/sched.h>
++#include <linux/slab.h>
+ #include "mvx_mmu.h"
+ #include "mvx_log_group.h"
+ 
+@@ -708,9 +710,18 @@
+ 	capacity = roundup(capacity, MVX_PAGES_PER_PAGE);
+ 	capacity = max(count, capacity);
+ 
+-	pages = devm_kzalloc(dev,
+-			     sizeof(*pages) + sizeof(phys_addr_t) * capacity,
+-			     GFP_KERNEL);
++	/*
++	 * capacity comes from the firmware's declared max_size for the
++	 * region, not from what is actually in use, so this array is sized
++	 * for a ceiling the board will never reach. kmalloc would ask the
++	 * buddy allocator for one contiguous block of that size - 256 kB,
++	 * order-6, for a region whose max_size is 128 MB - and after a few
++	 * minutes of uptime there is no unmovable block that large left.
++	 * The array is only ever read by the CPU to feed map_page(), so it
++	 * does not have to be physically contiguous. Let it be vmalloc'd.
++	 */
++	pages = kvzalloc(sizeof(*pages) + sizeof(phys_addr_t) * capacity,
++			 GFP_KERNEL);
+ 	if (pages == NULL)
+ 		return ERR_PTR(-ENOMEM);
+ 
+@@ -766,9 +777,8 @@
+ 	capacity = roundup(capacity, MVX_PAGES_PER_PAGE);
+ 	capacity = max(count, capacity);
+ 
+-	pages = devm_kzalloc(dev,
+-			     sizeof(*pages) + sizeof(phys_addr_t) * capacity,
+-			     GFP_KERNEL);
++	pages = kvzalloc(sizeof(*pages) + sizeof(phys_addr_t) * capacity,
++			 GFP_KERNEL);
+ 	if (pages == NULL)
+ 		return ERR_PTR(-ENOMEM);
+ 
+@@ -780,7 +790,7 @@
+ 
+ 	ret = append_sg_table(pages, sgt);
+ 	if (ret != 0) {
+-		devm_kfree(dev, pages);
++		kvfree(pages);
+ 		return ERR_PTR(ret);
+ 	}
+ 
+@@ -959,7 +969,7 @@
+ 		devm_kfree(pages->dev, mbuf);
+ 	}
+ 
+-	devm_kfree(pages->dev, pages);
++	kvfree(pages);
+ }
+ 
+ size_t mvx_mmu_size_pages(struct mvx_mmu_pages *pages)
