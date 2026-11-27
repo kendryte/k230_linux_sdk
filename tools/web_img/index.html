@@ -205,7 +205,7 @@
                                                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ t.summaryLabel }}</span>
                                                         <p class="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{{ h.summary }}</p>
                                                     </div>
-                                                    <a v-if="h.changelogUrl" :href="h.changelogUrl" target="_blank" rel="noopener noreferrer"
+                                                    <a v-if="versionChangelogUrl(h)" :href="versionChangelogUrl(h)" target="_blank" rel="noopener noreferrer"
                                                        class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-semibold">
                                                         <i class="fas fa-file-lines"></i> {{ t.changelogLinkText }} <i class="fas fa-arrow-up-right-from-square text-xs"></i>
                                                     </a>
@@ -501,7 +501,27 @@
                 const toggleHistoryDetail = (version) => {
                     expandedHistoryVersion.value = expandedHistoryVersion.value === version ? null : version;
                 };
-                const hasVersionDetail = (h) => !!(h && (h.summary || h.changelogUrl));
+
+                // 更新日志页面（K230_Linux_SDK_Changelog.html / _EN.html）里已收录的版本号。
+                // 只有在这个列表里的版本号才自动拼接跳转链接，避免给未收录的版本（例如
+                // daily build 的非正式版本号）生成一个页面里根本没有对应小节的"死链接"。
+                // 新增 Changelog 版本小节时记得同步在这里补上版本号。
+                const CHANGELOG_VERSIONS = ['1.5', '1.4', '1.3', '1.2', '1.1', '1.0', '0.6.9', '0.6.5'];
+                const CHANGELOG_BASE_URL = 'https://www.kendryte.com/web/technical/';
+
+                // 更新日志链接：优先使用维护者手工放置的 h.changelogUrl（<image>.img.gz.changelog_url
+                // sidecar 文件），用于需要单独指向一篇详细说明的特殊版本；其余情况下按版本号自动
+                // 拼接到 Changelog 页面对应的锚点小节（如 1.5 -> #v1-5），无需逐版本手动维护链接。
+                const versionChangelogUrl = (h) => {
+                    if (!h) return '';
+                    if (h.changelogUrl) return h.changelogUrl;
+                    const version = (h.version || '').replace(/^v/, '');
+                    if (!CHANGELOG_VERSIONS.includes(version)) return '';
+                    const anchor = 'v' + version.replace(/\./g, '-');
+                    const file = lang.value === 'en' ? 'K230_Linux_SDK_Changelog_EN.html' : 'K230_Linux_SDK_Changelog.html';
+                    return `${CHANGELOG_BASE_URL}${file}#${anchor}`;
+                };
+                const hasVersionDetail = (h) => !!(h && (h.summary || versionChangelogUrl(h)));
 
                 // 切换产品时，重置变体到第一个、分页到第1页
                 watch(activeProductId, (newVal) => {
@@ -522,7 +542,7 @@
                 return {
                     products, activeProductId, activeVariantKey, activeProduct, activeVariant, updatetime,
                     currentPage, totalPages, paginatedHistory, visiblePages, goToPage,
-                    expandedHistoryVersion, toggleHistoryDetail, hasVersionDetail,
+                    expandedHistoryVersion, toggleHistoryDetail, hasVersionDetail, versionChangelogUrl,
                     lang, t, links, switchLang
                 };
             }

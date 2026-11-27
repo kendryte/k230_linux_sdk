@@ -6,6 +6,8 @@ import hashlib
 import re
 import sys
 import io
+import urllib.request
+import urllib.error
 from datetime import datetime,timedelta
 from collections import OrderedDict
 
@@ -347,13 +349,148 @@ def save_json(products, file_path):
         print("save error: {0}".format(str(e)))
         raise
 
+# --- 新版本订阅通知 ---
+# k230_linux_sdk 的每日构建/正式发布不经过 bbs-admin 填表单这条路径（不像
+# MicroPython 走 downloadData 表新增记录时自动触发通知），而是由本脚本扫描
+# 文件系统生成 products.json。为了让订阅了 Linux SDK 更新通知的用户也能及时
+# 收到邮件，这里在生成新 products.json 前后做一次 diff：只要 linux/debian/ubuntu
+# 这几个 variant 的 history 列表里出现了旧文件里没有的版本号，就认为是"新版本"，
+# 调用 bbs-be 的 /internal/version-notify 触发通知。
+#
+# 注意：
+#   - micropython variant 不在这里通知范围内，它走的是 bbs-admin/downloadData
+#     表那条独立的通知路径，二者互不影响、不会重复发信。
+#   - 一次脚本运行检测到的所有新版本合并成一次通知（version 字段传一段摘要文本），
+#     避免同一次 CI 运行里产品/板卡较多时连续发送多封邮件。
+#   - 网络请求失败只打印日志，不能影响本脚本生成 products.json 的主流程。
+
+NOTIFY_VARIANTS = ("linux", "debian", "ubuntu")
+
+# 内部通知接口地址与共享密钥：优先从环境变量读取，方便部署环境按需覆盖，
+# 不强制要求配置——未配置时直接跳过通知（不影响 products.json 正常生成）。
+INTERNAL_NOTIFY_URL = os.environ.get(
+    "BBS_INTERNAL_NOTIFY_URL", "https://www.kendryte.com/api/internal/version-notify"
+)
+INTERNAL_NOTIFY_SECRET = os.environ.get("BBS_INTERNAL_NOTIFY_SECRET", "")
+# Linux SDK 下载中心页面，通知邮件里的下载链接固定指向这里（不指向某个具体文件），
+# 和 download_data 表里 osType='linux' 的 Daily Build 占位记录 link 字段保持一致。
+LINUX_SDK_DOWNLOAD_URL = "https://download.kendryte.com/k230/release/linux_sdk_images/daily_build/?lang=zh"
+
+def load_history_versions(file_path):
+    """
+    读取已存在的 products.json（如果有），返回 {(product_name, variant): set(version)}，
+    用于和新生成的数据 diff 出"新增版本"。文件不存在或解析失败时返回空字典，
+    这种情况下不会误判出一堆"新版本"（因为下面的 diff 只看新增的 key，不存在
+    的旧文件等价于"所有版本都是新的"，而这正是首次运行的预期行为——不应该对
+    首次运行发一堆通知，所以首次运行时跳过通知，见 diff_new_versions 的调用处）。
+    """
+    if not os.path.exists(file_path):
+        return None
+    try:
+        with io.open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        print("[notify] failed to read old products.json: {0}".format(str(e)))
+        return None
+
+    result = {}
+    for product_name, product_info in (data.get("products") or {}).items():
+        variants = product_info.get("variants") or {}
+        for variant_name, variant_info in variants.items():
+            history = variant_info.get("history") or []
+            versions = set(
+                item.get("version") for item in history if item.get("version")
+            )
+            result[(product_name, variant_name)] = versions
+    return result
+
+def diff_new_versions(old_versions_map, products):
+    """
+    对比旧版本集合和新生成的 products 数据，返回新增版本列表，每项为
+    (product_name, variant_name, version)。只关心 NOTIFY_VARIANTS 里的 variant。
+    old_versions_map 为 None（首次运行、无旧文件）时不产生任何"新增"，
+    避免首次生成就把全部历史版本当成新版本发一遍通知。
+    """
+    if old_versions_map is None:
+        return []
+
+    new_items = []
+    for product_name, product_info in products.items():
+        variants = product_info.get("variants") or {}
+        for variant_name, variant_info in variants.items():
+            if variant_name not in NOTIFY_VARIANTS:
+                continue
+            history = variant_info.get("history") or []
+            old_versions = old_versions_map.get((product_name, variant_name), set())
+            for item in history:
+                version = item.get("version")
+                if version and version not in old_versions:
+                    new_items.append((product_name, variant_name, version))
+    return new_items
+
+def notify_new_versions(new_items):
+    """
+    把本次检测到的新版本合并成一次通知，调用 bbs-be 的 /internal/version-notify。
+    任何异常都只打印日志，不向上抛出，避免影响 products.json 的正常生成。
+    """
+    if not new_items:
+        return
+    if not INTERNAL_NOTIFY_SECRET:
+        print("[notify] BBS_INTERNAL_NOTIFY_SECRET not configured, skip notify")
+        return
+
+    # 摘要文本示例："k230_canmv_defconfig(linux v0.6.5), BPI-CanMV-K230D-Zero_defconfig(debian v0.6.4)"
+    summary = ", ".join(
+        "{0}({1} v{2})".format(product_name, variant_name, version)
+        for product_name, variant_name, version in new_items
+    )
+
+    body = json.dumps({
+        "chip": "k230,k230d",
+        "osType": "linux",
+        "version": summary,
+        "downloadUrl": LINUX_SDK_DOWNLOAD_URL,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        INTERNAL_NOTIFY_URL,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "X-Internal-Secret": INTERNAL_NOTIFY_SECRET,
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print("[notify] version-notify responded: {0} {1}".format(
+                resp.status, resp.read().decode("utf-8", "ignore")
+            ))
+    except urllib.error.URLError as e:
+        print("[notify] failed to call version-notify: {0}".format(str(e)))
+    except Exception as e:
+        print("[notify] unexpected error calling version-notify: {0}".format(str(e)))
+
 def update_products_json():
+    old_versions_map = load_history_versions("products.json")
     products = open_json()
     # 路径根据实际环境可能需要调整
     sdk_release_dirs_2_json("/data/kendryte-download/k230/release/linux_sdk_images", products, 20)
     #sdk_release_dirs_2_json("/data/kendryte-download/developer/releases/canmv_k230_micropython", products, 10)
     sdk_release_dirs_2_json("/data1/k230/release/linux_sdk_images/", products, 20)
     #sdk_release_dirs_2_json("/home/wangjianxin/k230/k230_linux_sdk/output/", products, 20)
+
+    try:
+        new_items = diff_new_versions(old_versions_map, products)
+        if new_items:
+            print("[notify] detected {0} new version(s): {1}".format(
+                len(new_items), new_items
+            ))
+            notify_new_versions(new_items)
+    except Exception as e:
+        # 通知流程本身不应该影响 products.json 的生成，任何异常都只记录不抛出
+        print("[notify] notify flow failed unexpectedly: {0}".format(str(e)))
+
     save_json(products, "products.json")
 
 if __name__ == "__main__":
